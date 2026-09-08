@@ -91,31 +91,6 @@ const getCategoryIcon = (category: string, size = 14, color = THEME.accent) => {
   return <Folder size={size} color={color} />;
 };
 
-const SUB_LOGOS: Record<string, string> = {
-  netflix: "netflix.com",
-  spotify: "spotify.com",
-  amazon: "amazon.in",
-  prime: "primevideo.com",
-  hotstar: "hotstar.com",
-  youtube: "youtube.com",
-  apple: "apple.com",
-  google: "google.com",
-  icloud: "apple.com",
-  swiggy: "swiggy.com",
-  zomato: "zomato.com",
-  "1password": "1password.com",
-  cursor: "cursor.com",
-  openai: "openai.com",
-  claude: "anthropic.com",
-  figma: "figma.com",
-  notion: "notion.so",
-  slack: "slack.com",
-  zoom: "zoom.us",
-  adobe: "adobe.com",
-  canva: "canva.com",
-  linkedin: "linkedin.com",
-};
-
 const CATEGORY_ORDER = [
   "Entertainment",
   "Productivity",
@@ -125,15 +100,6 @@ const CATEGORY_ORDER = [
   "Utilities",
   "Other",
 ];
-
-function extractDomain(website: string): string {
-  try {
-    const url = website.includes("://") ? website : `https://${website}`;
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return website.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
-  }
-}
 
 import { ServiceLogo } from "../ui/BrandLogos";
 export { ServiceLogo };
@@ -667,8 +633,8 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                           border: `1px solid ${THEME.line}`,
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <ServiceLogo name={s.name} size={22} website={s.website} />
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <ServiceLogo name={s.name} size={26} website={s.website} category={s.category} />
                           <span style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>{s.name}</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -826,7 +792,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                     <tr key={s.id} style={{ borderBottom: `1px solid ${THEME.line}`, opacity: s.paused ? 0.65 : 1 }}>
                       <td style={{ padding: "14px 16px", fontWeight: 700, color: THEME.ink }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <ServiceLogo name={s.name} size={28} website={s.website} />
+                          <ServiceLogo name={s.name} size={28} website={s.website} category={s.category} />
                           <div>
                             <div>{s.name}</div>
                             {s.remark && <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>{s.remark}</div>}
@@ -958,7 +924,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <ServiceLogo name={s.name} size={36} website={s.website} />
+                    <ServiceLogo name={s.name} size={36} website={s.website} category={s.category} />
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>{s.name}</span>
@@ -1096,7 +1062,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                           }}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                            <ServiceLogo name={s.name} website={s.website} />
+                            <ServiceLogo name={s.name} size={40} website={s.website} category={s.category} />
 
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div
@@ -1361,7 +1327,7 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                        <ServiceLogo name={s.name} website={s.website} />
+                        <ServiceLogo name={s.name} size={40} website={s.website} category={s.category} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div
                             style={{

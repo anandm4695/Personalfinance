@@ -181,7 +181,6 @@ export const CANONICAL_BRANDS: Record<string, BrandInfo> = {
 
   // ── Automotive Manufacturers & Electric Mobility (Priority 1) ─────────────
   "tata motors": { domain: "tatamotors.com", growwSym: "TATAMOTORS", name: "Tata Motors", color: "#1d2671", isPrimaryInstitution: true },
-  tata: { domain: "tatamotors.com", growwSym: "TATAMOTORS", name: "Tata Motors", color: "#1d2671", isPrimaryInstitution: true },
   "maruti suzuki": { domain: "marutisuzuki.com", growwSym: "MARUTI", name: "Maruti Suzuki", color: "#003087", isPrimaryInstitution: true },
   maruti: { domain: "marutisuzuki.com", growwSym: "MARUTI", name: "Maruti Suzuki", color: "#003087", isPrimaryInstitution: true },
   "mahindra & mahindra": { domain: "mahindra.com", growwSym: "M&M", name: "Mahindra", color: "#e31837", isPrimaryInstitution: true },
@@ -258,6 +257,237 @@ export const CANONICAL_BRANDS: Record<string, BrandInfo> = {
   yezdi: { domain: "jawamotorcycles.com", name: "Yezdi", color: "#b45309", isPrimaryInstitution: true },
   aprilia: { domain: "aprilia.com", name: "Aprilia", color: "#dc2626", isPrimaryInstitution: true },
   vespa: { domain: "vespa.com", name: "Vespa", color: "#0284c7", isPrimaryInstitution: true },
+  tata: { domain: "tatamotors.com", growwSym: "TATAMOTORS", name: "Tata Motors", color: "#1d2671", isPrimaryInstitution: true },
+
+  // ── Subscriptions, OTT & Streaming ─────────────────────────────────────────
+  netflix: { domain: "netflix.com", name: "Netflix", color: "#e50914" },
+  spotify: { domain: "spotify.com", name: "Spotify", color: "#1db954" },
+  "prime video": { domain: "primevideo.com", name: "Prime Video", color: "#00a8e1" },
+  "amazon prime": { domain: "primevideo.com", name: "Amazon Prime", color: "#00a8e1" },
+  hotstar: { domain: "hotstar.com", name: "Disney+ Hotstar", color: "#0c2044" },
+  "disney+": { domain: "hotstar.com", name: "Disney+ Hotstar", color: "#0c2044" },
+  "disney hotstar": { domain: "hotstar.com", name: "Disney+ Hotstar", color: "#0c2044" },
+  "disney plus": { domain: "hotstar.com", name: "Disney+ Hotstar", color: "#0c2044" },
+  jiohotstar: { domain: "hotstar.com", name: "JioHotstar", color: "#0c2044" },
+  "youtube premium": { domain: "youtube.com", name: "YouTube Premium", color: "#ff0000" },
+  "youtube music": { domain: "music.youtube.com", name: "YouTube Music", color: "#ff0000" },
+  youtube: { domain: "youtube.com", name: "YouTube", color: "#ff0000" },
+  "apple tv": { domain: "tv.apple.com", name: "Apple TV+", color: "#000000" },
+  "apple music": { domain: "music.apple.com", name: "Apple Music", color: "#fa243c" },
+  "apple one": { domain: "apple.com", name: "Apple One", color: "#000000" },
+  apple: { domain: "apple.com", name: "Apple", color: "#000000" },
+  icloud: { domain: "icloud.com", name: "iCloud", color: "#3699ff" },
+  jiocinema: { domain: "jiocinema.com", name: "JioCinema", color: "#d80064" },
+  "jio cinema": { domain: "jiocinema.com", name: "JioCinema", color: "#d80064" },
+  sonyliv: { domain: "sonyliv.com", name: "SonyLIV", color: "#000000" },
+  "sony liv": { domain: "sonyliv.com", name: "SonyLIV", color: "#000000" },
+  zee5: { domain: "zee5.com", name: "ZEE5", color: "#8230c6" },
+  hulu: { domain: "hulu.com", name: "Hulu", color: "#1ce783" },
+  max: { domain: "max.com", name: "Max", color: "#002be7" },
+  hbo: { domain: "max.com", name: "HBO Max", color: "#002be7" },
+  crunchyroll: { domain: "crunchyroll.com", name: "Crunchyroll", color: "#f47521" },
+  mubi: { domain: "mubi.com", name: "MUBI", color: "#000000" },
+  lionsgate: { domain: "lionsgateplay.com", name: "Lionsgate Play", color: "#000000" },
+  "discovery+": { domain: "discoveryplus.in", name: "Discovery+", color: "#002d62" },
+  discovery: { domain: "discoveryplus.in", name: "Discovery+", color: "#002d62" },
+  sunnxt: { domain: "sunnxt.net", name: "Sun NXT", color: "#ed1c24" },
+  "sun nxt": { domain: "sunnxt.net", name: "Sun NXT", color: "#ed1c24" },
+  aha: { domain: "aha.video", name: "Aha", color: "#ff5000" },
+  hoichoi: { domain: "hoichoi.tv", name: "Hoichoi", color: "#e50914" },
+  mxplayer: { domain: "mxplayer.in", name: "MX Player", color: "#0072ff" },
+  "mx player": { domain: "mxplayer.in", name: "MX Player", color: "#0072ff" },
+  twitch: { domain: "twitch.tv", name: "Twitch", color: "#9146ff" },
+  audible: { domain: "audible.in", name: "Audible", color: "#f7991c" },
+  storytel: { domain: "storytel.com", name: "Storytel", color: "#ff5a36" },
+  "kuku fm": { domain: "kukufm.com", name: "Kuku FM", color: "#ea1d24" },
+  kukufm: { domain: "kukufm.com", name: "Kuku FM", color: "#ea1d24" },
+  "pocket fm": { domain: "pocketfm.com", name: "Pocket FM", color: "#e11d48" },
+  pocketfm: { domain: "pocketfm.com", name: "Pocket FM", color: "#e11d48" },
+  gaana: { domain: "gaana.com", name: "Gaana", color: "#e72c30" },
+  jiosaavn: { domain: "jiosaavn.com", name: "JioSaavn", color: "#2bc5b4" },
+  saavn: { domain: "jiosaavn.com", name: "JioSaavn", color: "#2bc5b4" },
+  wynk: { domain: "wynk.in", name: "Wynk Music", color: "#0055ff" },
+  tidal: { domain: "tidal.com", name: "Tidal", color: "#000000" },
+  soundcloud: { domain: "soundcloud.com", name: "SoundCloud", color: "#ff5500" },
+  kindle: { domain: "amazon.in", name: "Kindle Unlimited", color: "#ff9900" },
+
+  // ── AI & Developer Tools ──────────────────────────────────────────────────
+  chatgpt: { domain: "chatgpt.com", name: "ChatGPT", color: "#10a37f" },
+  openai: { domain: "openai.com", name: "OpenAI", color: "#10a37f" },
+  claude: { domain: "claude.ai", name: "Claude AI", color: "#d97706" },
+  anthropic: { domain: "anthropic.com", name: "Anthropic", color: "#d97706" },
+  cursor: { domain: "cursor.com", name: "Cursor AI", color: "#000000" },
+  perplexity: { domain: "perplexity.ai", name: "Perplexity AI", color: "#22b8cf" },
+  midjourney: { domain: "midjourney.com", name: "Midjourney", color: "#000000" },
+  github: { domain: "github.com", name: "GitHub", color: "#24292e" },
+  copilot: { domain: "github.com", name: "GitHub Copilot", color: "#0969da" },
+  gitlab: { domain: "gitlab.com", name: "GitLab", color: "#fc6d26" },
+  vercel: { domain: "vercel.com", name: "Vercel", color: "#000000" },
+  replit: { domain: "replit.com", name: "Replit", color: "#f26207" },
+  jetbrains: { domain: "jetbrains.com", name: "JetBrains", color: "#000000" },
+  supabase: { domain: "supabase.com", name: "Supabase", color: "#3ecf8e" },
+  cloudflare: { domain: "cloudflare.com", name: "Cloudflare", color: "#f38020" },
+  digitalocean: { domain: "digitalocean.com", name: "DigitalOcean", color: "#0080ff" },
+  hetzner: { domain: "hetzner.com", name: "Hetzner", color: "#d50c2d" },
+  postman: { domain: "postman.com", name: "Postman", color: "#ff6c37" },
+  docker: { domain: "docker.com", name: "Docker", color: "#1d63ed" },
+  aws: { domain: "aws.amazon.com", name: "AWS", color: "#ff9900" },
+
+  // ── Cloud Storage & Productivity SaaS ─────────────────────────────────────
+  "google one": { domain: "one.google.com", name: "Google One", color: "#4285f4" },
+  "google drive": { domain: "drive.google.com", name: "Google Drive", color: "#0f9d58" },
+  "google workspace": { domain: "workspace.google.com", name: "Google Workspace", color: "#4285f4" },
+  google: { domain: "google.com", name: "Google", color: "#4285f4" },
+  "microsoft 365": { domain: "microsoft.com", name: "Microsoft 365", color: "#0078d4" },
+  "office 365": { domain: "microsoft.com", name: "Office 365", color: "#d83b01" },
+  microsoft: { domain: "microsoft.com", name: "Microsoft", color: "#0078d4" },
+  onedrive: { domain: "microsoft.com", name: "OneDrive", color: "#0078d4" },
+  dropbox: { domain: "dropbox.com", name: "Dropbox", color: "#0061ff" },
+  box: { domain: "box.com", name: "Box", color: "#0061d5" },
+  mega: { domain: "mega.io", name: "Mega", color: "#d9272e" },
+  proton: { domain: "proton.me", name: "Proton", color: "#6d4aff" },
+  protonmail: { domain: "proton.me", name: "Proton Mail", color: "#6d4aff" },
+  notion: { domain: "notion.so", name: "Notion", color: "#000000" },
+  figma: { domain: "figma.com", name: "Figma", color: "#f24e1e" },
+  slack: { domain: "slack.com", name: "Slack", color: "#4a154b" },
+  zoom: { domain: "zoom.us", name: "Zoom", color: "#2d8cff" },
+  canva: { domain: "canva.com", name: "Canva", color: "#00c4cc" },
+  adobe: { domain: "adobe.com", name: "Adobe", color: "#ff0000" },
+  photoshop: { domain: "adobe.com", name: "Adobe Photoshop", color: "#31a8ff" },
+  "1password": { domain: "1password.com", name: "1Password", color: "#0a85ea" },
+  bitwarden: { domain: "bitwarden.com", name: "Bitwarden", color: "#175ddc" },
+  lastpass: { domain: "lastpass.com", name: "LastPass", color: "#d32d27" },
+  dashlane: { domain: "dashlane.com", name: "Dashlane", color: "#0e353d" },
+  nordvpn: { domain: "nordvpn.com", name: "NordVPN", color: "#4687ff" },
+  expressvpn: { domain: "expressvpn.com", name: "ExpressVPN", color: "#da3940" },
+  surfshark: { domain: "surfshark.com", name: "Surfshark", color: "#1cc8ff" },
+  todoist: { domain: "todoist.com", name: "Todoist", color: "#e44332" },
+  ticktick: { domain: "ticktick.com", name: "TickTick", color: "#4a8bfc" },
+  asana: { domain: "asana.com", name: "Asana", color: "#f06a6a" },
+  trello: { domain: "trello.com", name: "Trello", color: "#0079bf" },
+  "monday.com": { domain: "monday.com", name: "Monday.com", color: "#ff3d57" },
+  monday: { domain: "monday.com", name: "Monday.com", color: "#ff3d57" },
+  clickup: { domain: "clickup.com", name: "ClickUp", color: "#7b68ee" },
+  linear: { domain: "linear.app", name: "Linear", color: "#5e6ad2" },
+  atlassian: { domain: "atlassian.com", name: "Atlassian", color: "#0052cc" },
+  jira: { domain: "atlassian.com", name: "Jira", color: "#0052cc" },
+  confluence: { domain: "atlassian.com", name: "Confluence", color: "#0052cc" },
+  miro: { domain: "miro.com", name: "Miro", color: "#ffd02f" },
+  loom: { domain: "loom.com", name: "Loom", color: "#625df5" },
+  grammarly: { domain: "grammarly.com", name: "Grammarly", color: "#15c39a" },
+  evernote: { domain: "evernote.com", name: "Evernote", color: "#00a82d" },
+  obsidian: { domain: "obsidian.md", name: "Obsidian", color: "#7c3aed" },
+
+  // ── News, Media & Learning ────────────────────────────────────────────────
+  "the ken": { domain: "the-ken.com", name: "The Ken", color: "#990000" },
+  ken: { domain: "the-ken.com", name: "The Ken", color: "#990000" },
+  "the morning context": { domain: "themorningcontext.com", name: "The Morning Context", color: "#111827" },
+  "morning context": { domain: "themorningcontext.com", name: "The Morning Context", color: "#111827" },
+  "economic times": { domain: "economictimes.indiatimes.com", name: "The Economic Times", color: "#c4161c" },
+  "et prime": { domain: "economictimes.indiatimes.com", name: "ET Prime", color: "#c4161c" },
+  livemint: { domain: "livemint.com", name: "Livemint", color: "#f37023" },
+  mint: { domain: "livemint.com", name: "Livemint", color: "#f37023" },
+  "financial times": { domain: "ft.com", name: "Financial Times", color: "#fcd1ac" },
+  ft: { domain: "ft.com", name: "Financial Times", color: "#fcd1ac" },
+  "wall street journal": { domain: "wsj.com", name: "The Wall Street Journal", color: "#000000" },
+  wsj: { domain: "wsj.com", name: "WSJ", color: "#000000" },
+  bloomberg: { domain: "bloomberg.com", name: "Bloomberg", color: "#000000" },
+  "new york times": { domain: "nytimes.com", name: "The New York Times", color: "#000000" },
+  nytimes: { domain: "nytimes.com", name: "The New York Times", color: "#000000" },
+  nyt: { domain: "nytimes.com", name: "The New York Times", color: "#000000" },
+  "the economist": { domain: "economist.com", name: "The Economist", color: "#e3120b" },
+  economist: { domain: "economist.com", name: "The Economist", color: "#e3120b" },
+  hbr: { domain: "hbr.org", name: "Harvard Business Review", color: "#cc0000" },
+  substack: { domain: "substack.com", name: "Substack", color: "#ff6719" },
+  medium: { domain: "medium.com", name: "Medium", color: "#000000" },
+  "x premium": { domain: "x.com", name: "X Premium", color: "#000000" },
+  twitter: { domain: "x.com", name: "Twitter", color: "#1da1f2" },
+  linkedin: { domain: "linkedin.com", name: "LinkedIn", color: "#0077b5" },
+  duolingo: { domain: "duolingo.com", name: "Duolingo", color: "#58cc02" },
+  coursera: { domain: "coursera.org", name: "Coursera", color: "#0056d2" },
+  udemy: { domain: "udemy.com", name: "Udemy", color: "#a435f0" },
+  skillshare: { domain: "skillshare.com", name: "Skillshare", color: "#00ff84" },
+  masterclass: { domain: "masterclass.com", name: "MasterClass", color: "#000000" },
+  leetcode: { domain: "leetcode.com", name: "LeetCode", color: "#ffa116" },
+  brilliant: { domain: "brilliant.org", name: "Brilliant", color: "#000000" },
+  "chess.com": { domain: "chess.com", name: "Chess.com", color: "#81b64c" },
+  chess: { domain: "chess.com", name: "Chess.com", color: "#81b64c" },
+
+  // ── Fitness, Health & Wellness ────────────────────────────────────────────
+  "cult.fit": { domain: "cult.fit", name: "Cult.fit", color: "#ff3278" },
+  "cult fit": { domain: "cult.fit", name: "Cult.fit", color: "#ff3278" },
+  cultpass: { domain: "cult.fit", name: "Cultpass", color: "#ff3278" },
+  "cure.fit": { domain: "cult.fit", name: "Cult.fit", color: "#ff3278" },
+  cult: { domain: "cult.fit", name: "Cult.fit", color: "#ff3278" },
+  strava: { domain: "strava.com", name: "Strava", color: "#fc4c02" },
+  headspace: { domain: "headspace.com", name: "Headspace", color: "#f47e3a" },
+  calm: { domain: "calm.com", name: "Calm", color: "#1996f0" },
+  whoop: { domain: "whoop.com", name: "WHOOP", color: "#000000" },
+  ouraring: { domain: "ouraring.com", name: "Oura", color: "#000000" },
+  oura: { domain: "ouraring.com", name: "Oura", color: "#000000" },
+  myfitnesspal: { domain: "myfitnesspal.com", name: "MyFitnessPal", color: "#0066ee" },
+  healthifyme: { domain: "healthifyme.com", name: "HealthifyMe", color: "#ff5000" },
+  ultrahuman: { domain: "ultrahuman.com", name: "Ultrahuman", color: "#000000" },
+
+  // ── Memberships & Convenience ─────────────────────────────────────────────
+  "swiggy one": { domain: "swiggy.com", name: "Swiggy One", color: "#fc8019" },
+  "zomato gold": { domain: "zomato.com", name: "Zomato Gold", color: "#cb202d" },
+  "times prime": { domain: "timesprime.com", name: "Times Prime", color: "#e11938" },
+  blinkit: { domain: "blinkit.com", name: "Blinkit", color: "#f8cb46" },
+  zepto: { domain: "zeptonow.com", name: "Zepto", color: "#5b21b6" },
+  instamart: { domain: "swiggy.com", name: "Swiggy Instamart", color: "#fc8019" },
+  bigbasket: { domain: "bigbasket.com", name: "BigBasket", color: "#84c225" },
+  "bb daily": { domain: "bigbasket.com", name: "BB Daily", color: "#84c225" },
+  bbdaily: { domain: "bigbasket.com", name: "BB Daily", color: "#84c225" },
+  "country delight": { domain: "countrydelight.in", name: "Country Delight", color: "#e31837" },
+  furlenco: { domain: "furlenco.com", name: "Furlenco", color: "#000000" },
+  rentomojo: { domain: "rentomojo.com", name: "Rentomojo", color: "#dc2626" },
+
+  // ── DTH, Telecom, Broadband & Utilities ───────────────────────────────────
+  "tata play": { domain: "tataplay.com", name: "Tata Play", color: "#e11938", isPrimaryInstitution: true },
+  "tata sky": { domain: "tataplay.com", name: "Tata Play", color: "#e11938", isPrimaryInstitution: true },
+  "tata power": { domain: "tatapower.com", name: "Tata Power", color: "#005a9c", isPrimaryInstitution: true },
+  "tata neu": { domain: "tatadigital.com", name: "Tata Neu", color: "#8338ec", isPrimaryInstitution: true },
+  "airtel xstream": { domain: "airtel.in", name: "Airtel Xstream", color: "#e40000" },
+  "airtel black": { domain: "airtel.in", name: "Airtel Black", color: "#e40000" },
+  "airtel fiber": { domain: "airtel.in", name: "Airtel Fiber", color: "#e40000" },
+  jiofiber: { domain: "jio.com", name: "JioFiber", color: "#0f3e99" },
+  "jio fiber": { domain: "jio.com", name: "JioFiber", color: "#0f3e99" },
+  jio: { domain: "jio.com", name: "Jio", color: "#0f3e99" },
+  vodafone: { domain: "myvi.in", name: "Vi (Vodafone Idea)", color: "#e60000" },
+  vi: { domain: "myvi.in", name: "Vi", color: "#e60000" },
+  bsnl: { domain: "bsnl.co.in", name: "BSNL", color: "#005a9c" },
+  "act fibernet": { domain: "actcorp.in", name: "ACT Fibernet", color: "#e51937" },
+  "act broadband": { domain: "actcorp.in", name: "ACT Fibernet", color: "#e51937" },
+  act: { domain: "actcorp.in", name: "ACT Fibernet", color: "#e51937" },
+  hathway: { domain: "hathway.com", name: "Hathway", color: "#0066b2" },
+  "dish tv": { domain: "dishtv.in", name: "Dish TV", color: "#ed1c24" },
+  d2h: { domain: "d2h.com", name: "D2H", color: "#005baa" },
+  "sun direct": { domain: "sundirect.in", name: "Sun Direct", color: "#f37023" },
+  bescom: { domain: "bescom.karnataka.gov.in", name: "BESCOM", color: "#005a9c" },
+  "adani electricity": { domain: "adanielectricity.com", name: "Adani Electricity", color: "#005a9c" },
+  "torrent power": { domain: "torrentpower.com", name: "Torrent Power", color: "#005a9c" },
+  igl: { domain: "iglonline.net", name: "Indraprastha Gas (IGL)", color: "#005a9c" },
+  mgl: { domain: "mahanagargas.com", name: "Mahanagar Gas (MGL)", color: "#005a9c" },
+
+  // ── Financial Markets, Analytics & Investing Research ─────────────────────
+  tradingview: { domain: "tradingview.com", name: "TradingView", color: "#131722" },
+  moneycontrol: { domain: "moneycontrol.com", name: "Moneycontrol", color: "#0f172a" },
+  trendlyne: { domain: "trendlyne.com", name: "Trendlyne", color: "#1e3a8a" },
+  screener: { domain: "screener.in", name: "Screener.in", color: "#0070f3" },
+  tijori: { domain: "tijorifinance.com", name: "Tijori Finance", color: "#0f172a" },
+  smallcase: { domain: "smallcase.com", name: "smallcase", color: "#1f80e0" },
+  tickertape: { domain: "tickertape.in", name: "Tickertape", color: "#1f80e0" },
+  valueresearch: { domain: "valueresearchonline.com", name: "Value Research", color: "#005a9c" },
+
+  // ── Gaming Networks ───────────────────────────────────────────────────────
+  playstation: { domain: "playstation.com", name: "PlayStation", color: "#003791" },
+  "ps plus": { domain: "playstation.com", name: "PlayStation Plus", color: "#003791" },
+  xbox: { domain: "xbox.com", name: "Xbox", color: "#107c10" },
+  "game pass": { domain: "xbox.com", name: "Xbox Game Pass", color: "#107c10" },
+  nintendo: { domain: "nintendo.com", name: "Nintendo", color: "#e60012" },
+  steam: { domain: "steampowered.com", name: "Steam", color: "#171a21" },
+  "ea play": { domain: "ea.com", name: "EA Play", color: "#ff4747" },
 };
 
 /**
@@ -305,12 +535,32 @@ const WORD_BOUNDARY_KEYS = new Set([
   "ktm",
   "tvs",
   "ola",
+  "vi",
+  "act",
+  "hbo",
+  "box",
+  "aha",
+  "ft",
+  "hbr",
+  "aws",
+  "igl",
+  "mgl",
+  "nyt",
+  "wsj",
+  "mubi",
+  "ken",
+  "oura",
+  "cult",
 ]);
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 /**
  * High-precision Brand Resolution:
  * 1. Checks primary issuing institutions FIRST (so "ICICI Amazon Pay" or "HDFC Swiggy" maps to ICICI / HDFC Bank).
- * 2. Uses strict word boundaries for short keys or sensitive abbreviations like `cred`, `sbi`, `lic`, preventing "credit" from matching "cred".
+ * 2. Uses strict word boundaries for brand matching, preventing substrings like "x premium" from matching "netflix premium", "vi" matching "service", or "act" matching "contact".
  * 3. Falls back to co-branding partners only when no primary institution is present.
  */
 export function resolveBrand(rawInput: string): BrandInfo | null {
@@ -320,17 +570,23 @@ export function resolveBrand(rawInput: string): BrandInfo | null {
   // Normalize string for checking:
   // Separate common glued terms (e.g. "HDFCBANK" -> "hdfc bank", "SBI_CARD" -> "sbi card")
   const clean = text
+    .replace(/([a-z])([A-Z0-9])/g, "$1 $2")
     .replace(/[_\-\/\(\)]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
   // Helper matching function
   const matchEntry = (k: string): boolean => {
-    if (WORD_BOUNDARY_KEYS.has(k) || k.length <= 3) {
-      const regex = new RegExp(`(^|[^a-z0-9])${k}([^a-z0-9]|$)`, "i");
-      return regex.test(clean);
+    const escaped = escapeRegex(k);
+    const regex = new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "i");
+    if (regex.test(clean)) return true;
+    // Allow glued matching only for longer unspaced keys (>= 4 chars) to support strings like "tatamotors" or "netflixpremium"
+    if (k.length >= 4 && !k.includes(" ")) {
+      const gluedClean = clean.replace(/\s+/g, "");
+      const gluedKey = k.replace(/\s+/g, "");
+      if (gluedClean.includes(gluedKey)) return true;
     }
-    return clean.includes(k);
+    return false;
   };
 
   // Pass 1: Match Primary Financial Institutions sorted by length descending
@@ -403,13 +659,17 @@ export const BrandLogo: React.FC<{
   // Candidates pipeline:
   // 0. Local vector SVG (e.g. /lic-logo.svg)
   // 1. Groww 256×256 WebP CDN (ultra-crisp vector asset for Indian banks, AMCs & brokers)
-  // 2. Google Favicon 256px CDN
-  // 3. Hunter.io CDN
+  // 2. DuckDuckGo Favicon CDN (crisp, fast, returns HTTP 404 cleanly on missing domains)
+  // 3. Google Favicon 128px CDN (fast & widely cached)
+  // 4. Google Favicon 256px CDN
+  // 5. Hunter.io CDN
   const candidates = React.useMemo(() => {
     const list: string[] = [];
     if (localSvg) list.push(localSvg);
     if (growwSym) list.push(`https://assets-netstorage.groww.in/stock-assets/logos2/${encodeURIComponent(growwSym)}.webp`);
     if (targetDomain) {
+      list.push(`https://icons.duckduckgo.com/ip3/${targetDomain}.ico`);
+      list.push(`https://www.google.com/s2/favicons?domain=${targetDomain}&sz=128`);
       list.push(`https://www.google.com/s2/favicons?domain=${targetDomain}&sz=256`);
       list.push(`https://logos.hunter.io/${targetDomain}`);
     }
@@ -438,7 +698,7 @@ export const BrandLogo: React.FC<{
           width: size,
           height: size,
           borderRadius: br,
-          background: "var(--surface-0, #ffffff)",
+          background: "#ffffff",
           border: `1px solid ${THEME.line}`,
           display: "flex",
           alignItems: "center",
@@ -453,9 +713,11 @@ export const BrandLogo: React.FC<{
           src={activeSrc}
           alt={name}
           onError={handleImgError}
+          loading="lazy"
+          decoding="async"
           style={{
-            width: "75%",
-            height: "75%",
+            width: size <= 28 ? "82%" : "75%",
+            height: size <= 28 ? "82%" : "75%",
             objectFit: "contain",
             imageRendering: "-webkit-optimize-contrast",
           }}
@@ -466,15 +728,11 @@ export const BrandLogo: React.FC<{
 
   // Render Initials Badge
   const color = accentColor || brand?.color || brandInitialsColor(name);
+  const words = (name || "?").trim().split(/\s+/).filter(Boolean);
   const initials =
-    (name || "?")
-      .split(/\s+/)
-      .filter((w: string) => w.length > 1)
-      .slice(0, 2)
-      .map((w: string) => w[0].toUpperCase())
-      .join("") ||
-    (name || "?")[0]?.toUpperCase() ||
-    "?";
+    words.length >= 2
+      ? `${words[0][0]}${words[1][0]}`.toUpperCase()
+      : (name || "?").slice(0, 2).toUpperCase();
 
   return (
     <div
@@ -565,24 +823,46 @@ export const BuilderLogo = ({
 export const ServiceLogo = ({
   name,
   website,
+  category,
   size = 40,
   borderRadius,
+  className,
+  style,
 }: {
   name: string;
   website?: string;
+  category?: string;
   size?: number;
   borderRadius?: number;
+  className?: string;
+  style?: React.CSSProperties;
 }) => {
   let explicitDomain = "";
   if (website && website.trim()) {
     try {
-      const url = website.includes("://") ? website : `https://${website}`;
+      const raw = website.trim();
+      const url = raw.includes("://") ? raw : `https://${raw}`;
       explicitDomain = new URL(url).hostname.replace(/^www\./, "");
     } catch {
-      explicitDomain = website.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
+      explicitDomain = website.replace(/^https?:\/\/(www\.)?/, "").split("/")[0].trim();
     }
   }
-  return <BrandLogo name={name} domain={explicitDomain} size={size} borderRadius={borderRadius} />;
+
+  // If website was not specified or domain is empty, resolve via canonical brands/services
+  const resolved = resolveBrand(name);
+  const targetDomain = explicitDomain || resolved?.domain || "";
+
+  return (
+    <BrandLogo
+      name={name}
+      domain={targetDomain}
+      size={size}
+      borderRadius={borderRadius}
+      accentColor={resolved?.color}
+      className={className}
+      style={style}
+    />
+  );
 };
 
 export const LicLogo = ({ size = 40 }: { size?: number }) => (

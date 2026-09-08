@@ -190,4 +190,48 @@ describe("SubscriptionsTab UI & State Integration", () => {
       })
     );
   });
+
+  it("resolves subscription brand domains accurately across streaming, AI, cloud, and telecom", async () => {
+    const { resolveBrand } = await import("../components/ui/BrandLogos");
+
+    expect(resolveBrand("Netflix")?.domain).toBe("netflix.com");
+    expect(resolveBrand("Netflix Premium")?.domain).toBe("netflix.com");
+    expect(resolveBrand("Spotify Family")?.domain).toBe("spotify.com");
+    expect(resolveBrand("Disney+ Hotstar")?.domain).toBe("hotstar.com");
+    expect(resolveBrand("YouTube Premium")?.domain).toBe("youtube.com");
+    expect(resolveBrand("Google One 2TB")?.domain).toBe("one.google.com");
+    expect(resolveBrand("ChatGPT Plus")?.domain).toBe("chatgpt.com");
+    expect(resolveBrand("Claude Pro")?.domain).toBe("claude.ai");
+    expect(resolveBrand("Cult.fit Gym")?.domain).toBe("cult.fit");
+    expect(resolveBrand("Airtel Fiber")?.domain).toBe("airtel.in");
+    expect(resolveBrand("JioFiber")?.domain).toBe("jio.com");
+
+    // DTH & Automotive separation check:
+    // Tata Play must resolve to tataplay.com, NOT tatamotors.com!
+    const tataPlay = resolveBrand("Tata Play");
+    expect(tataPlay?.domain).toBe("tataplay.com");
+    expect(tataPlay?.growwSym).toBeUndefined();
+
+    const tataMotors = resolveBrand("Tata Motors");
+    expect(tataMotors?.domain).toBe("tatamotors.com");
+    expect(tataMotors?.growwSym).toBe("TATAMOTORS");
+  });
+
+  it("renders ServiceLogo with candidate pipeline and domain resolution", async () => {
+    const { ServiceLogo } = await import("../components/ui/BrandLogos");
+
+    const container = await mount(
+      <div>
+        <ServiceLogo name="Netflix" />
+        <ServiceLogo name="Custom Service" website="https://customapp.io" />
+        <ServiceLogo name="Local Newspaper" category="News/Media" />
+      </div>
+    );
+
+    const images = container.querySelectorAll("img");
+    expect(images.length).toBeGreaterThanOrEqual(2);
+    expect(images[0].getAttribute("src")).toContain("netflix.com");
+    expect(images[1].getAttribute("src")).toContain("customapp.io");
+    expect(container.textContent).toContain("LN"); // Initials for Local Newspaper
+  });
 });

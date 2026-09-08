@@ -1,9 +1,29 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
+import { ServiceLogo, resolveBrand } from "../ui/BrandLogos";
+
+const POPULAR_PRESETS = [
+  { name: "Netflix", category: "Entertainment", website: "netflix.com", cycle: "monthly" },
+  { name: "Spotify", category: "Entertainment", website: "spotify.com", cycle: "monthly" },
+  { name: "Amazon Prime", category: "Entertainment", website: "primevideo.com", cycle: "yearly" },
+  { name: "YouTube Premium", category: "Entertainment", website: "youtube.com", cycle: "monthly" },
+  { name: "Disney+ Hotstar", category: "Entertainment", website: "hotstar.com", cycle: "yearly" },
+  { name: "Google One", category: "Storage/Cloud", website: "google.com", cycle: "yearly" },
+  { name: "Apple One", category: "Entertainment", website: "apple.com", cycle: "monthly" },
+  { name: "ChatGPT Plus", category: "Productivity", website: "openai.com", cycle: "monthly" },
+  { name: "Claude Pro", category: "Productivity", website: "anthropic.com", cycle: "monthly" },
+  { name: "Notion", category: "Productivity", website: "notion.so", cycle: "yearly" },
+  { name: "Cult.fit", category: "Fitness", website: "cult.fit", cycle: "yearly" },
+  { name: "Tata Play", category: "Entertainment", website: "tataplay.com", cycle: "monthly" },
+  { name: "Airtel Fiber", category: "Utilities", website: "airtel.in", cycle: "monthly" },
+  { name: "JioFiber", category: "Utilities", website: "jio.com", cycle: "monthly" },
+  { name: "Swiggy One", category: "Other", website: "swiggy.com", cycle: "quarterly" },
+  { name: "Zomato Gold", category: "Other", website: "zomato.com", cycle: "quarterly" },
+  { name: "Times Prime", category: "Entertainment", website: "timesprime.com", cycle: "yearly" },
+];
 
 const input = {
   width: "100%",
@@ -45,9 +65,35 @@ export function SubModal({ onClose, onSave, initialValues = null, saving = false
   const amountError =
     attempted && !(Number(f.amount) > 0) ? "Enter an amount greater than 0" : undefined;
 
+  const handleNameChange = (val: string) => {
+    const updated = { ...f, name: val };
+    // If website is empty, check if we can auto-suggest domain
+    if (!f.website.trim() && val.trim()) {
+      const match = resolveBrand(val.trim());
+      if (match?.domain) {
+        updated.website = match.domain;
+      }
+    }
+    setF(updated);
+  };
+
+  const applyPreset = (p: typeof POPULAR_PRESETS[0]) => {
+    setF((prev) => ({
+      ...prev,
+      name: p.name,
+      category: p.category,
+      website: p.website,
+      cycle: p.cycle || prev.cycle,
+    }));
+  };
+
   const handleSave = () => {
     if (f.name.trim() && Number(f.amount) > 0) {
-      onSave(f);
+      const resolvedDomain = f.website.trim() || resolveBrand(f.name.trim())?.domain || "";
+      onSave({
+        ...f,
+        website: resolvedDomain,
+      });
     } else {
       setAttempted(true);
     }
@@ -55,6 +101,65 @@ export function SubModal({ onClose, onSave, initialValues = null, saving = false
 
   return (
     <Modal title={initialValues ? "Edit Subscription" : "Add Subscription"} onClose={onClose}>
+      {/* Quick Add Presets Bar */}
+      {!initialValues && (
+        <div style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: THEME.muted,
+              marginBottom: 8,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
+          >
+            Popular Services
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              overflowX: "auto",
+              paddingBottom: 4,
+              scrollbarWidth: "none",
+            }}
+          >
+            {POPULAR_PRESETS.map((p) => {
+              const active = f.name.toLowerCase() === p.name.toLowerCase();
+              return (
+                <button
+                  key={p.name}
+                  type="button"
+                  onClick={() => applyPreset(p)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "5px 10px",
+                    borderRadius: 9999,
+                    background: active
+                      ? `color-mix(in srgb, ${THEME.accent} 14%, var(--surface-0))`
+                      : "var(--surface-1)",
+                    border: `1px solid ${active ? THEME.accent : THEME.line}`,
+                    color: active ? THEME.accent : THEME.ink,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <ServiceLogo name={p.name} website={p.website} size={16} />
+                  <span>{p.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <Field label="Owner / Profile">
         <select
           style={input}
@@ -68,13 +173,26 @@ export function SubModal({ onClose, onSave, initialValues = null, saving = false
           ))}
         </select>
       </Field>
+
       <Field label="Service Name" error={nameError}>
-        <input
-          style={{ ...input, ...(nameError ? { borderColor: THEME.rust } : {}) }}
-          value={f.name}
-          onChange={(e) => setF({ ...f, name: e.target.value })}
-          placeholder="e.g., Netflix, Spotify"
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flexShrink: 0 }} title="Live Logo Preview">
+            <ServiceLogo
+              name={f.name || "Preview"}
+              website={f.website}
+              category={f.category}
+              size={42}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <input
+              style={{ ...input, ...(nameError ? { borderColor: THEME.rust } : {}) }}
+              value={f.name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="e.g., Netflix, Spotify, Google One, Cult.fit"
+            />
+          </div>
+        </div>
       </Field>
       <Field label="Category">
         <select
