@@ -46,6 +46,8 @@ import {
   isHomeLoan,
   loanOutstanding,
   getEffectiveRent,
+  annualizePremium,
+  getAutoDetectedDeductions,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
@@ -1466,129 +1468,23 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
 
   /* ── Deductions state (pre-filled from portfolio data) ────────── */
   const autoDetected = useMemo(() => {
-    // 80C — ELSS purchases in FY
-    const elss = (state.mutualFunds || [])
-      .filter(
-        (m: any) =>
-          (m.type || m.category || "").toUpperCase().includes("ELSS") &&
-          m.buyDate &&
-          m.buyDate >= fyStartStr &&
-          m.buyDate <= fyEndStr
-      )
-      .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
-    // 80C — PPF deposits in FY (ledger first, else yearly contribution)
-    const ppfThisYear = (state.ppfLedger || [])
-      .filter(
-        (t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal"
-      )
-      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    const ppf =
-      ppfThisYear > 0
-        ? ppfThisYear
-        : (state.ppf || []).reduce(
-            (s: number, p: any) => s + Number(p.thisYearContribution || p.yearlyContribution || 0),
-            0
-          );
-    // 80C — LIC annual premiums
-    const lic = (state.lic || []).reduce(
-      (s: number, l: any) => s + Number(l.annualPremium || 0),
-      0
-    );
-    // 80C — EPF employee contributions in FY
-    const epf = (state.epf || []).reduce((s: number, e: any) => {
-      const txs = (e.transactions || []).filter(
-        (t: any) => t.date >= fyStartStr && t.date <= fyEndStr
-      );
-      const simpleEmp = txs
-        .filter((t: any) => t.type === "employee_contribution")
-        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-      const passbookEmp = txs
-        .filter((t: any) => t.type === "monthly_contribution")
-        .reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
-      return s + simpleEmp + passbookEmp;
-    }, 0);
-    const d80C_raw = elss + ppf + lic + epf;
-    const d80C_sources =
-      [
-        elss > 0 ? `ELSS ${fmtINRFull(Math.round(elss))}` : null,
-        ppf > 0 ? `PPF ${fmtINRFull(Math.round(ppf))}` : null,
-        lic > 0 ? `LIC ${fmtINRFull(Math.round(lic))}` : null,
-        epf > 0 ? `EPF ${fmtINRFull(Math.round(epf))}` : null,
-      ]
-        .filter(Boolean)
-        .join(" + ") || null;
-
-    // HRA — rent paid in FY from rented properties (user is a tenant)
-    const hraPayments = (state.rentedProperties || []).reduce((s: number, p: any) => {
-      return (
-        s +
-        (p.payments || [])
-          .filter((pay: any) => pay.date && pay.date >= fyStartStr && pay.date <= fyEndStr)
-          .reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0)
-      );
-    }, 0);
-    // Monthly rent fallback — from rentedProperties effective rent × 12
-    const hraMonthly = (state.rentedProperties || []).reduce(
-      (s: number, p: any) => s + getEffectiveRent(p),
-      0
-    );
-    const hra_raw = hraPayments > 0 ? hraPayments : hraMonthly > 0 ? hraMonthly * 12 : 0;
-    const hra_source =
-      hra_raw > 0
-        ? hraPayments > 0
-          ? `Rent payments logged in FY ${fyStartStr.slice(0, 4)}-${fyEndStr.slice(2, 4)}`
-          : "Monthly rent × 12"
-        : null;
-
-    // Home Loan Interest — from loansTaken type "Home", approx annual interest = outstanding × rate / 100
-    const homeLoanData = (state.loansTaken || [])
-      .filter(isHomeLoan)
-      .map((l: any) => {
-        const outstanding = loanOutstanding(l);
-        const rate = Number(l.rate) || 0;
-        const annualInterest = Math.round((outstanding * rate) / 100);
-        return { lender: l.lender || "Home Loan", annualInterest };
-      });
-    const homeLoan_raw = homeLoanData.reduce((s: number, l: any) => s + l.annualInterest, 0);
-    const homeLoan_source =
-      homeLoan_raw > 0
-        ? homeLoanData.map((l) => l.lender).join(", ") + " (approx. interest)"
-        : null;
-
-    return {
-      d80C: Math.min(d80C_raw, 150_000),
-      d80C_sources,
-      hra: Math.round(hra_raw),
-      hra_source,
-      homeLoan: Math.min(homeLoan_raw, 200_000),
-      homeLoan_source,
-    };
-  }, [
-    state.mutualFunds,
-    state.ppfLedger,
-    state.ppf,
-    state.lic,
-    state.epf,
-    state.rentedProperties,
-    state.loansTaken,
-    fyStartStr,
-    fyEndStr,
-  ]);
+    return getAutoDetectedDeductions(state, fy);
+  }, [state, fy]);
 
   // Load initial deductions state from masterData overrides or fall back to auto-detected
   const overrides = state.masterData?.taxDeductions?.[fy] || {};
 
   const [deductions, setDeductions] = useState(() => ({
     d80C: overrides.d80C !== undefined ? overrides.d80C : autoDetected.d80C,
-    d80D: overrides.d80D !== undefined ? overrides.d80D : 0,
+    d80D: overrides.d80D !== undefined ? overrides.d80D : autoDetected.d80D,
     // Sec 80D cap is ₹25K normally, ₹50K if the insured (self or parents) is a
     // senior citizen — previously hardcoded to ₹25K everywhere, undercounting
     // a common real-world deduction.
     d80DSenior: overrides.d80DSenior !== undefined ? !!overrides.d80DSenior : false,
     hra: overrides.hra !== undefined ? overrides.hra : autoDetected.hra,
     homeLoan: overrides.homeLoan !== undefined ? overrides.homeLoan : autoDetected.homeLoan,
-    nps: overrides.nps !== undefined ? overrides.nps : 0,
-    d80CCD2: overrides.d80CCD2 !== undefined ? overrides.d80CCD2 : 0,
+    nps: overrides.nps !== undefined ? overrides.nps : autoDetected.nps,
+    d80CCD2: overrides.d80CCD2 !== undefined ? overrides.d80CCD2 : autoDetected.d80CCD2,
     d80G: overrides.d80G !== undefined ? overrides.d80G : 0,
     d80E: overrides.d80E !== undefined ? overrides.d80E : 0,
     d80TTA: overrides.d80TTA !== undefined ? overrides.d80TTA : 0,
@@ -1599,12 +1495,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     const ov = state.masterData?.taxDeductions?.[fy] || {};
     setDeductions({
       d80C: ov.d80C !== undefined ? ov.d80C : autoDetected.d80C,
-      d80D: ov.d80D !== undefined ? ov.d80D : 0,
+      d80D: ov.d80D !== undefined ? ov.d80D : autoDetected.d80D,
       d80DSenior: ov.d80DSenior !== undefined ? !!ov.d80DSenior : false,
       hra: ov.hra !== undefined ? ov.hra : autoDetected.hra,
       homeLoan: ov.homeLoan !== undefined ? ov.homeLoan : autoDetected.homeLoan,
-      nps: ov.nps !== undefined ? ov.nps : 0,
-      d80CCD2: ov.d80CCD2 !== undefined ? ov.d80CCD2 : 0,
+      nps: ov.nps !== undefined ? ov.nps : autoDetected.nps,
+      d80CCD2: ov.d80CCD2 !== undefined ? ov.d80CCD2 : autoDetected.d80CCD2,
       d80G: ov.d80G !== undefined ? ov.d80G : 0,
       d80E: ov.d80E !== undefined ? ov.d80E : 0,
       d80TTA: ov.d80TTA !== undefined ? ov.d80TTA : 0,
@@ -1613,8 +1509,11 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     fy,
     state.masterData?.taxDeductions,
     autoDetected.d80C,
+    autoDetected.d80D,
     autoDetected.hra,
     autoDetected.homeLoan,
+    autoDetected.nps,
+    autoDetected.d80CCD2,
   ]);
 
   const setDed = (key: string, val: string) =>
@@ -3982,19 +3881,35 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   />
                   Self or parents insured is a senior citizen (60+) — raises cap to ₹50K
                 </label>
-                <div
-                  style={{
-                    marginTop: 5,
-                    fontSize: 10,
-                    color: THEME.muted,
-                    fontWeight: 600,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <Pencil size={10} /> Enter manually — health insurance not tracked in app
-                </div>
+                {autoDetected.d80D_source ? (
+                  <div
+                    style={{
+                      marginTop: 5,
+                      fontSize: 10,
+                      color: THEME.sage,
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <CheckCircle2 size={10} /> Auto-detected from {autoDetected.d80D_source}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      marginTop: 5,
+                      fontSize: 10,
+                      color: THEME.muted,
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Pencil size={10} /> Enter manually or add policies in Health Insurance
+                  </div>
+                )}
               </div>
               <div>
                 <Field label="HRA Exemption [u/s 10(13A)]" style={{ marginBottom: 0 }}>

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   Heart,
@@ -589,6 +588,7 @@ function ClaimModal({ policy, onClose, onSave, saving = false }: any) {
 }
 
 export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, showToast }: any) {
+  const { familyProfiles } = useMasterData();
   const policies: any[] = state.healthInsurance || [];
   const [modal, setModal] = useState<any>(null);
   const [claimModal, setClaimModal] = useState<any>(null);

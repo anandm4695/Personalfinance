@@ -33,6 +33,8 @@ import {
   today,
   getGoldPricePerGram,
   GOLD_PURITY_FACTOR,
+  loanOutstanding,
+  loanGivenOutstanding,
 } from "./finance";
 
 function ym(dateStr: string): string {
@@ -141,11 +143,11 @@ export function computeNetWorthAsOf(
     0
   );
   const loansGivenValue = (s.loansGiven || []).reduce(
-    (sum: number, l: any) => sum + Number(l.outstanding || 0),
+    (sum: number, l: any) => sum + loanGivenOutstanding(l),
     0
   );
   const loansTakenValue = (s.loansTaken || []).reduce(
-    (sum: number, l: any) => sum + Number(l.outstanding || 0),
+    (sum: number, l: any) => sum + loanOutstanding(l),
     0
   );
   const rentalPropertiesAsset = (s.rentalProperties || []).reduce(
@@ -166,7 +168,14 @@ export function computeNetWorthAsOf(
     .filter((b: any) => gateInclude(String(b.orderDate || "").trim(), asOfYm))
     .reduce(
       (sum: number, b: any) =>
-        sum + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
+        sum +
+        Number(
+          b.totalInvestmentAmount ||
+          b.totalPrincipalAmount ||
+          (Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0)) ||
+          b.faceValue ||
+          0
+        ),
       0
     );
 

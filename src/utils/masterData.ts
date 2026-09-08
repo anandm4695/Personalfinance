@@ -4,6 +4,7 @@ export interface FamilyProfile {
   id: string;
   name: string;
   relation: string;
+  relationship?: string;
   dob?: string; // YYYY-MM-DD
 }
 

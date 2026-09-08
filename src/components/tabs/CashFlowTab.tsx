@@ -48,6 +48,8 @@ import {
   fdMaturity,
   rdMaturity,
   today,
+  loanOutstanding,
+  loanGivenOutstanding,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -977,7 +979,7 @@ export const CashFlowTab = ({
 
     // 1. EMIs (active loans only)
     const emiTotal = (state.loansTaken || [])
-      .filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.monthsRemaining ?? 1) > 0)
+      .filter((l: any) => loanOutstanding(l) > 0 && Number(l.monthsRemaining ?? 1) > 0)
       .reduce((sum: number, l: any) => sum + Number(l.emi || 0), 0);
     if (emiTotal > 0)
       sources.push({ name: "Loan EMIs", monthly: emiTotal, icon: CreditCard, category: "EMI" });
@@ -1207,6 +1209,40 @@ export const CashFlowTab = ({
       }
     });
 
+    // Bond Maturities (inflow)
+    (state.bonds || []).forEach((b: any) => {
+      const matDate = b.maturityDate || "";
+      if (isDateInRange(matDate, months)) {
+        const amount =
+          Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0) ||
+          Number(b.faceValue || b.totalPrincipalAmount || b.totalInvestmentAmount || 0);
+        if (amount > 0) {
+          items.push({
+            date: matDate,
+            name: `Bond Maturity — ${b.name || "Bond"}`,
+            amount,
+            category: "Bond Maturity",
+            type: "inflow",
+          });
+        }
+      }
+    });
+
+    // Loans Given Repayments (inflow)
+    (state.loansGiven || []).forEach((l: any) => {
+      const outstanding = loanGivenOutstanding(l);
+      if (outstanding <= 0 || !l.dueDate) return;
+      if (isDateInRange(l.dueDate, months)) {
+        items.push({
+          date: l.dueDate,
+          name: `Loan Repayment — ${l.borrower || "Borrower"}`,
+          amount: outstanding,
+          category: "Loan Repayment",
+          type: "inflow",
+        });
+      }
+    });
+
     // Insurance Premium Due (LIC, Term, Investment, Health)
     const todayStr = today();
     const addPremiumDue = (policies: any[], startField: string, expiryField: string) => {
@@ -1258,13 +1294,16 @@ export const CashFlowTab = ({
 
     // Loan Closures
     (state.loansTaken || []).forEach((loan: any) => {
+      if ((loan.status || "").toLowerCase() === "closed") return;
       if (!loan.monthsRemaining || !loan.emi) return;
+      const outstanding = loanOutstanding(loan);
+      if (outstanding <= 0) return;
       const closureDate = addMonthsToDateStr(todayStr, Number(loan.monthsRemaining));
       if (isDateInRange(closureDate, months)) {
         items.push({
           date: closureDate,
           name: `Loan Closure — ${loan.lender || loan.lenderBorrower || loan.type || "Loan"}`,
-          amount: Number(loan.outstanding || loan.balance || 0),
+          amount: outstanding,
           category: "Loan Closure",
           type: "outflow",
         });
@@ -1292,6 +1331,8 @@ export const CashFlowTab = ({
   }, [
     state.fixedDeposits,
     state.recurringDeposits,
+    state.bonds,
+    state.loansGiven,
     state.lic,
     state.termPlans,
     state.investmentPlans,

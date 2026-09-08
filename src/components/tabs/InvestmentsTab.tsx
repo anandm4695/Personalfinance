@@ -156,7 +156,11 @@ const bondAnnualCoupon = (b: any): number => {
 };
 
 const bondCurrentValue = (b: any): number => {
-  const principal = Number(b?.totalInvestmentAmount || b?.totalPrincipalAmount || b?.faceValue) || 0;
+  const principal =
+    Number(b?.totalInvestmentAmount || 0) ||
+    Number(b?.totalPrincipalAmount || 0) ||
+    Number(b?.numberOfUnits || 0) * Number(b?.faceValuePerUnit || 0) ||
+    Number(b?.faceValue || 0);
   const annualCoupon = bondAnnualCoupon(b);
   if (annualCoupon <= 0) return principal;
 
@@ -3533,7 +3537,14 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
 
   const totalInvested = items.reduce(
     (s: number, b: any) =>
-      s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
+      s +
+      Number(
+        b.totalInvestmentAmount ||
+          b.totalPrincipalAmount ||
+          Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0) ||
+          b.faceValue ||
+          0
+      ),
     0
   );
 
@@ -3671,7 +3682,11 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
             {filteredItems.map((b: any) => {
               const isMatured = isBondMatured(b);
               const investmentAmt = Number(
-                b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0
+                b.totalInvestmentAmount ||
+                  b.totalPrincipalAmount ||
+                  Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0) ||
+                  b.faceValue ||
+                  0
               );
               const ml = maturityCountdown(b.maturityDate);
               const isDueSoon = !isMatured && ml && ml.text.includes("d left") && !ml.matured;
@@ -3975,7 +3990,12 @@ function BondSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
                     }}
                   >
                     {[
-                      ["Principal", b.totalPrincipalAmount],
+                      [
+                        "Principal",
+                        b.totalPrincipalAmount ||
+                          (Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0)) ||
+                          b.faceValue,
+                      ],
                       ["Accrued Int.", b.totalAccruedInterest],
                       ["Consideration", b.totalConsideration],
                     ].map(([label, val]) => (

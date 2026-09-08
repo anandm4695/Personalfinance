@@ -48,6 +48,7 @@ import {
   getLocalDateString,
   addMonthsToDateStr,
   alertDismissKey,
+  loanOutstanding,
 } from "./utils/finance";
 import {
   getCurrentFY,
@@ -2561,7 +2562,7 @@ function FinanceDashboard() {
         const principalAmt =
           txn.linkedPrincipalAmount != null ? Number(txn.linkedPrincipalAmount) : amt;
         updateItem("loansTaken", lid, {
-          outstanding: Number(loan.outstanding || 0) + principalAmt,
+          outstanding: loanOutstanding(loan) + principalAmt,
           monthsRemaining: Number(loan.monthsRemaining || 0) + 1,
         });
       }
@@ -2692,15 +2693,28 @@ function FinanceDashboard() {
           t.accountId === id ? { ...t, accountId: null } : t
         );
       }
-      if (key === "loansTaken") {
-        // Deleting a loan directly (not via its linked bank transactions) otherwise leaves
-        // any auto-posted EMI transaction pointing at a linkedId that no longer exists —
-        // it keeps showing a 🔗 badge referencing a deleted loan forever.
-        next.transactions = (s.transactions || []).map((t: any) =>
-          t.linkedType === "loansTaken" && t.linkedId === id
-            ? { ...t, linkedType: null, linkedId: null }
-            : t
-        );
+      const linkableKeys = [
+        "loansTaken",
+        "creditCards",
+        "subscriptions",
+        "loansGiven",
+        "lic",
+        "termPlans",
+        "investmentPlans",
+        "rentedProperties",
+        "rentalProperties",
+        "realEstateProperties",
+      ];
+      if (linkableKeys.includes(key)) {
+        // Deleting a linked entity directly (not via its linked bank transactions) otherwise leaves
+        // any linked transaction pointing at a linkedId that no longer exists —
+        // it keeps showing a dangling badge referencing a deleted record forever.
+        next.transactions = (s.transactions || []).map((t: any) => {
+          const matches =
+            t.linkedType === key &&
+            (t.linkedId === id || (typeof t.linkedId === "string" && t.linkedId.startsWith(`${id}:`)));
+          return matches ? { ...t, linkedType: null, linkedId: null } : t;
+        });
       }
       if (key === "transactions") {
         const reconIds: string[] = s.masterData?.reconciledTxnIds || [];

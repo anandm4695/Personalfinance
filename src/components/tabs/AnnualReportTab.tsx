@@ -40,7 +40,7 @@ import {
 } from "recharts";
 import { THEME, PIE_COLORS, ASSET_CLASS_COLORS } from "../../utils/constants";
 import { getCurrentFY } from "../../utils/appConstants";
-import { fmtINR, fmtINRFull, today } from "../../utils/finance";
+import { fmtINR, fmtINRFull, today, loanOutstanding, annualizePremium } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
 import { Badge } from "../ui/Badge";
@@ -388,6 +388,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     (state.mutualFunds || []).forEach((m: any) => addDate(m.buyDate));
     (state.fixedDeposits || []).forEach((fd: any) => addDate(fd.startDate));
     (state.ppfLedger || []).forEach((t: any) => addDate(t.date));
+    (state.ppf || []).forEach((p: any) => (p.transactions || []).forEach((t: any) => addDate(t.date)));
     (state.stockSells || []).forEach((s: any) => addDate(s.sellDate || s.buyDate));
     (state.mfSells || []).forEach((m: any) => addDate(m.sellDate || m.buyDate));
     (state.taxPayments || []).forEach((p: any) => addDate(p.date));
@@ -409,6 +410,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     state.stocks,
     state.mutualFunds,
     state.fixedDeposits,
+    state.ppf,
     state.ppfLedger,
     state.stockSells,
     state.mfSells,
@@ -482,6 +484,9 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       ) ||
       (state.ppfLedger || []).some(
         (t: any) => t.date && t.date >= fyStart && t.date <= fyEnd
+      ) ||
+      (state.ppf || []).some((p: any) =>
+        (p.transactions || []).some((t: any) => t.date && t.date >= fyStart && t.date <= fyEnd)
       ) ||
       (state.stockSells || []).some(
         (s: any) => s.sellDate && s.sellDate >= fyStart && s.sellDate <= fyEnd
@@ -849,9 +854,20 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
       .filter((fd: any) => fd.startDate && fd.startDate >= fyStart && fd.startDate <= fyEnd)
       .reduce((sum: number, fd: any) => sum + Number(fd.principal || 0), 0);
 
-    const ppfAdds = (state.ppfLedger || [])
+    const ppfFromTxns = (state.ppf || []).reduce(
+      (sum: number, p: any) =>
+        sum +
+        (p.transactions || [])
+          .filter(
+            (t: any) => t.date && t.date >= fyStart && t.date <= fyEnd && t.type !== "withdrawal"
+          )
+          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
+      0
+    );
+    const ppfFromLedger = (state.ppfLedger || [])
       .filter((t: any) => t.date && t.date >= fyStart && t.date <= fyEnd && t.type !== "withdrawal")
       .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+    const ppfAdds = ppfFromTxns > 0 ? ppfFromTxns : ppfFromLedger;
 
     const sipTotal =
       (state.sips || []).reduce((s: number, sip: any) => s + Number(sip.amount || 0), 0) * 12;
@@ -925,6 +941,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     state.stocks,
     state.mutualFunds,
     state.fixedDeposits,
+    state.ppf,
     state.ppfLedger,
     state.sips,
     state.stockSells,
@@ -1130,18 +1147,18 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     const activeLoans = loans.filter(
       (l: any) =>
         (l.status || "active").toLowerCase() !== "closed" &&
-        Number(l.outstanding || 0) > 0 &&
+        loanOutstanding(l) > 0 &&
         Number(l.monthsRemaining ?? 1) > 0
     );
 
-    const totalOutstanding = activeLoans.reduce((s: number, l: any) => s + Number(l.outstanding || 0), 0);
+    const totalOutstanding = activeLoans.reduce((s: number, l: any) => s + loanOutstanding(l), 0);
     const totalPrincipal = loans.reduce((s: number, l: any) => s + Number(l.principal || 0), 0);
     const totalEMI = activeLoans.reduce((s: number, l: any) => s + Number(l.emi || l.monthlyPayment || 0), 0);
     const annualEMI = totalEMI * 12;
 
     const interestPortion = activeLoans.reduce(
       (s: number, l: any) =>
-        s + Number(l.outstanding || 0) * (Number(l.interestRate || l.rate || 0) / 100),
+        s + loanOutstanding(l) * (Number(l.interestRate || l.rate || 0) / 100),
       0
     );
     const principalRepaid = Math.max(0, annualEMI - interestPortion);
@@ -1191,17 +1208,17 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     }, 0);
 
     const termPremiums = termPlans.reduce(
-      (s: number, p: any) => s + Number(p.annualPremium || p.premium || 0),
+      (s: number, p: any) => s + annualizePremium(p.premium, p.premiumFrequency, p.annualPremium),
       0
     );
     const investPremiums = investPlans.reduce(
-      (s: number, p: any) => s + Number(p.annualPremium || p.premium || 0),
+      (s: number, p: any) => s + annualizePremium(p.premium, p.premiumFrequency, p.annualPremium),
       0
     );
-    const healthPremiums = healthPolicies.reduce((s: number, p: any) => {
-      const mult: Record<string, number> = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1 };
-      return s + Number(p.premium || 0) * (mult[p.premiumFrequency || "annual"] || 1);
-    }, 0);
+    const healthPremiums = healthPolicies.reduce(
+      (s: number, p: any) => s + annualizePremium(p.premium, p.premiumFrequency, p.annualPremium),
+      0
+    );
     const totalPremiums = licPremiums + termPremiums + investPremiums + healthPremiums;
 
     const adequacyRatio = incomeData.totalIncome > 0 ? totalLifeCover / incomeData.totalIncome : 0;
@@ -1434,7 +1451,9 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
     }
 
     const closedLoans = (state.loansTaken || []).filter(
-      (l: any) => Number(l.principal || 0) > 0 && Number(l.outstanding || 0) === 0
+      (l: any) =>
+        (l.status || "").toLowerCase() === "closed" ||
+        (Number(l.principal || 0) > 0 && loanOutstanding(l) === 0)
     );
     if (closedLoans.length > 0) {
       items.push({

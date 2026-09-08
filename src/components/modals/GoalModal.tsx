@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { THEME } from "../../utils/constants";
 import { today } from "../../utils/finance";
@@ -6,11 +5,30 @@ import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 
-export function GoalModal({ initial, onClose, onSave, saving }: any) {
+export interface Goal {
+  id?: string;
+  owner?: string;
+  name: string;
+  category: string;
+  targetAmount: number | string;
+  currentAmount: number | string;
+  priority: string;
+  startDate: string;
+  targetDate?: string;
+}
+
+interface GoalModalProps {
+  initial?: Goal | null;
+  onClose: () => void;
+  onSave: (data: Goal) => void;
+  saving?: boolean;
+}
+
+export function GoalModal({ initial, onClose, onSave, saving = false }: GoalModalProps) {
   const { goalCategories, familyProfiles } = useMasterData();
   const [clearHover, setClearHover] = useState(false);
   const [setDateHover, setSetDateHover] = useState(false);
-  const [f, setF] = useState(
+  const [f, setF] = useState<Goal>(
     initial
       ? { ...initial }
       : {

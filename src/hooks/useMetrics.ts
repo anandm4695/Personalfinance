@@ -5,9 +5,8 @@ import {
   monthsBetween,
   calculateEpfBalance,
   rdMaturity,
-  getCCDueDate,
-  calcTaxNew,
-  calcTaxOld,
+  loanOutstanding,
+  loanGivenOutstanding,
   getTaxDueForDashboard,
   getGoldPricePerGram,
   GOLD_PURITY_FACTOR,
@@ -174,7 +173,14 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
   }, 0);
   const bondValue = (pState.bonds || []).reduce(
     (s: number, b: any) =>
-      s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
+      s +
+      Number(
+        b.totalInvestmentAmount ||
+        b.totalPrincipalAmount ||
+        (Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0)) ||
+        b.faceValue ||
+        0
+      ),
     0
   );
   const ppfValue = (pState.ppf || []).reduce(
@@ -221,8 +227,7 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     return sum + Number(s.qty || 0) * price;
   }, 0);
   const loansGivenValue = (pState.loansGiven || []).reduce(
-    (s: number, l: any) =>
-      s + Number(l.outstanding != null ? l.outstanding : l.principal || l.amount || 0),
+    (s: number, l: any) => s + loanGivenOutstanding(l),
     0
   );
   const prepaidValue = (pState.prepaidCards || [])
@@ -312,12 +317,14 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     goldValue +
     govtSchemesValue;
 
-  const ccOutstanding = (pState.creditCards || []).reduce(
-    (s: number, c: any) => s + Number(c.outstanding || 0),
-    0
-  );
+  const ccOutstanding = (pState.creditCards || [])
+    .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
+    .reduce(
+      (s: number, c: any) => s + Number(c.outstanding || 0),
+      0
+    );
   const loansTakenValue = (pState.loansTaken || []).reduce(
-    (s: number, l: any) => s + Number(l.outstanding || 0),
+    (s: number, l: any) => s + loanOutstanding(l),
     0
   );
   // Same fix as rentedDepositAsset above: use the actual received-deposit ledger
@@ -434,7 +441,14 @@ export function useMetrics(
     }, 0);
     const bondValue = (sState.bonds || []).reduce(
       (s: number, b: any) =>
-        s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
+        s +
+        Number(
+          b.totalInvestmentAmount ||
+          b.totalPrincipalAmount ||
+          (Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0)) ||
+          b.faceValue ||
+          0
+        ),
       0
     );
     const ppfValue = (sState.ppf || []).reduce((s: number, p: any) => s + Number(p.balance || 0), 0);
@@ -492,7 +506,7 @@ export function useMetrics(
     );
 
     const loansGivenValue = (sState.loansGiven || []).reduce(
-      (s: number, l: any) => s + Number(l.outstanding || 0),
+      (s: number, l: any) => s + loanGivenOutstanding(l),
       0
     );
     const prepaidValue = (sState.prepaidCards || [])
@@ -512,7 +526,7 @@ export function useMetrics(
       .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
       .reduce((s: number, c: any) => s + Number(c.outstanding || 0), 0);
     const loansTakenValue = (sState.loansTaken || []).reduce(
-      (s: number, l: any) => s + Number(l.outstanding || 0),
+      (s: number, l: any) => s + loanOutstanding(l),
       0
     );
     const rentalDepositLiability = (sState.rentalProperties || []).reduce((s: number, p: any) => {
@@ -790,7 +804,7 @@ export function useMetrics(
     // explicitly 0 means fully paid). Outstanding is checked too since monthsRemaining
     // can go stale (e.g. balance edited to 0 by hand without resyncing tenure).
     const totalMonthlyEMI = (sState.loansTaken || [])
-      .filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.monthsRemaining ?? 1) > 0)
+      .filter((l: any) => (l.status || "").toLowerCase() !== "closed" && loanOutstanding(l) > 0 && Number(l.monthsRemaining ?? 1) > 0)
       .reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     const foir = monthIncome > 0 ? (totalMonthlyEMI / monthIncome) * 100 : 0;
 

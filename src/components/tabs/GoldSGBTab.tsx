@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   Coins,
@@ -277,7 +276,7 @@ export const GoldSGBTab = ({
         setForm({ ...EMPTY_GOLD });
         setEditingId(null);
       },
-      onError: (e) =>
+      onError: (e: any) =>
         showToast?.(`Failed to save gold holding: ${e?.message || "Unknown error"}`, "error"),
     }
   );
@@ -287,7 +286,7 @@ export const GoldSGBTab = ({
       await removeItem("goldHoldings", id);
     },
     {
-      onError: (e) =>
+      onError: (e: any) =>
         showToast?.(`Failed to delete gold holding: ${e?.message || "Unknown error"}`, "error"),
     }
   );
@@ -882,21 +881,17 @@ export const GoldSGBTab = ({
               </>
             )}
           </div>
-          <ModalActions>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setShowModal(false);
-                setForm({ ...EMPTY_GOLD });
-                setEditingId(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button variant="accent" onClick={handleSave} disabled={!(Number(form.grams) > 0)} loading={savingGold}>
-              Save Holding
-            </Button>
-          </ModalActions>
+          <ModalActions
+            onClose={() => {
+              setShowModal(false);
+              setForm({ ...EMPTY_GOLD });
+              setEditingId(null);
+            }}
+            onSave={handleSave}
+            saveLabel="Save Holding"
+            disabled={!(Number(form.grams) > 0)}
+            loading={savingGold}
+          />
         </Modal>
       )}
 

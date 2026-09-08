@@ -234,14 +234,24 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     const fyEnd = `${startYear + 1}-03-31`;
     const inFY = (date) => date && date >= fyStart && date <= fyEnd;
 
-    // 80C — PPF ledger (FY-scoped) takes priority over the legacy
+    // 80C — PPF account transactions / ledger (FY-scoped) takes priority over the legacy
     // thisYearContribution field, same fallback pattern as
     // getAutoDetectedDeductions in utils/finance.ts.
+    const ppfFromTxns = (state.ppf || []).reduce(
+      (sum: number, p: any) =>
+        sum +
+        (p.transactions || [])
+          .filter((t: any) => inFY(t.date) && t.type !== "withdrawal")
+          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
+      0
+    );
     const ppfLedgerThisYear = (state.ppfLedger || [])
       .filter((t) => inFY(t.date) && t.type !== "withdrawal")
       .reduce((s, t) => s + Number(t.amount || 0), 0);
     const ppfContrib =
-      ppfLedgerThisYear > 0
+      ppfFromTxns > 0
+        ? ppfFromTxns
+        : ppfLedgerThisYear > 0
         ? ppfLedgerThisYear
         : (state.ppf || []).reduce(
             (s, p) =>
@@ -268,11 +278,20 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     }, 0);
     const sec80C = Math.min(150000, ppfContrib + elss + licPremium + epfContrib);
 
-    // 80CCD(1B) — NPS
-    const npsContrib = (state.nps || []).reduce(
+    // 80CCD(1B) — NPS (check ledger transactions in FY first, then account-level contribution)
+    const npsTxnSelf = (state.nps || []).reduce((s: number, n: any) => {
+      return (
+        s +
+        (n.transactions || [])
+          .filter((t: any) => inFY(t.date))
+          .reduce((sum: number, t: any) => sum + Number(t.employeeAmount ?? t.amount ?? 0), 0)
+      );
+    }, 0);
+    const npsAccountSelf = (state.nps || []).reduce(
       (s, n) => s + Number(n.thisYearContribution || n.yearContribution || 0),
       0
     );
+    const npsContrib = npsTxnSelf > 0 ? npsTxnSelf : npsAccountSelf;
     const sec80CCD1B = Math.min(50000, npsContrib);
 
     // 80D — Health insurance. Self/family and parents carry SEPARATE

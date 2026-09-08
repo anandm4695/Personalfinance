@@ -1,6 +1,4 @@
-// @ts-nocheck
 import React from "react";
-import { THEME } from "../../utils/constants";
 import { Prv } from "../../context/PrivacyContext";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
@@ -161,7 +159,9 @@ export const StatCard = ({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            {React.cloneElement(icon as React.ReactElement, { size: 13, strokeWidth: 2.25 })}
+            {React.isValidElement(icon)
+              ? React.cloneElement(icon as React.ReactElement<any>, { size: 13, strokeWidth: 2.25 })
+              : icon}
             <div
               style={{
                 fontSize: 11,

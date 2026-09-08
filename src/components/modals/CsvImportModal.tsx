@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useRef } from "react";
 import { Download, Upload, Zap, FileText, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { Modal, ModalActions } from "../ui/Modal";

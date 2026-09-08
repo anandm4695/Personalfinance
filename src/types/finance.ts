@@ -170,9 +170,12 @@ export interface Metrics {
   // Asset breakdown
   liquidAssets: number;
   lockedAssets: number;
+  emergencyFund: any;
   realEstateAsset: number;
   realEstateOutstanding: number;
   vehicleAsset: number;
+  govtSchemesValue: number;
+  goldValue: number;
   informalLentValue: number;
   informalBorrowedValue: number;
   rentalPropertiesAsset: number;

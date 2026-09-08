@@ -34,10 +34,29 @@ const input = {
   fontSize: 14,
 };
 
-export function SubModal({ onClose, onSave, initialValues = null, saving = false }: any) {
+export interface SubscriptionItem {
+  id?: string;
+  owner?: string;
+  name: string;
+  category: string;
+  amount: number | string;
+  cycle: string;
+  renewalDate?: string;
+  remark?: string;
+  website?: string;
+}
+
+interface SubModalProps {
+  onClose: () => void;
+  onSave: (sub: SubscriptionItem) => void;
+  initialValues?: SubscriptionItem | null;
+  saving?: boolean;
+}
+
+export function SubModal({ onClose, onSave, initialValues = null, saving = false }: SubModalProps) {
   const { familyProfiles } = useMasterData();
   const [attempted, setAttempted] = useState(false);
-  const [f, setF] = useState(
+  const [f, setF] = useState<SubscriptionItem>(
     initialValues
       ? {
           owner: initialValues.owner || "self",
@@ -68,7 +87,7 @@ export function SubModal({ onClose, onSave, initialValues = null, saving = false
   const handleNameChange = (val: string) => {
     const updated = { ...f, name: val };
     // If website is empty, check if we can auto-suggest domain
-    if (!f.website.trim() && val.trim()) {
+    if (!f.website?.trim() && val.trim()) {
       const match = resolveBrand(val.trim());
       if (match?.domain) {
         updated.website = match.domain;
@@ -89,7 +108,7 @@ export function SubModal({ onClose, onSave, initialValues = null, saving = false
 
   const handleSave = () => {
     if (f.name.trim() && Number(f.amount) > 0) {
-      const resolvedDomain = f.website.trim() || resolveBrand(f.name.trim())?.domain || "";
+      const resolvedDomain = f.website?.trim() || resolveBrand(f.name.trim())?.domain || "";
       onSave({
         ...f,
         website: resolvedDomain,

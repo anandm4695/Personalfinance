@@ -390,12 +390,13 @@ export function XIRRReportTab({ state }: any) {
     // ── Bonds ───────────────────────────────────────────────────────────
     (state.bonds || []).forEach((b: any) => {
       const purchaseDate = b.orderDate || b.purchaseDate || b.settlementDate;
+      const unitVal = Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0);
       const invAmount = Number(
-        b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0
+        b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || unitVal || 0
       );
       if (!purchaseDate || invAmount <= 0) return;
 
-      const faceVal = Number(b.totalPrincipalAmount || b.faceValue || invAmount);
+      const faceVal = Number(b.totalPrincipalAmount || b.faceValue || unitVal || invAmount);
       const couponRate = Number(b.coupon || b.ytmRate || 0) / 100;
       const annualCoupon = faceVal * couponRate;
 

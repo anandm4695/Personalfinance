@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, getEffectiveRent, today } from "../../utils/finance";
+import { fmtINRFull, getEffectiveRent, today, getAutoDetectedDeductions } from "../../utils/finance";
 import { getCurrentFY, getCurrentFYStartYear } from "../../utils/appConstants";
 import { computeNetWorthAsOf, getEarliestNetWorthMonth, nextYm } from "../../utils/netWorthAsOf";
 import { Card } from "../ui/Card";
@@ -1171,57 +1171,23 @@ You have access to local tools/functions to retrieve real-time and detailed tran
   // ── Feature 22: Tax Optimizer Handler ──
   const handleGetTaxOptimization = () => {
     const fy = state.profile?.fy || getCurrentFY();
-    const fyStart = Number(fy.split("-")[0]) || getCurrentFYStartYear();
-    const fyStartStr = `${fyStart}-04-01`;
-    const fyEndStr = `${fyStart + 1}-03-31`;
-    const elss = (state.mutualFunds || [])
-      .filter(
-        (m: any) =>
-          (m.type || m.category || "").toUpperCase().includes("ELSS") &&
-          m.buyDate >= fyStartStr &&
-          m.buyDate <= fyEndStr
-      )
-      .reduce((s: number, m: any) => s + Number(m.invested || 0), 0);
-    const ppf = (state.ppf || []).reduce(
-      (s: number, p: any) => s + Number(p.thisYearContribution || p.yearlyContribution || 0),
-      0
-    );
-    const lic = (state.lic || []).reduce(
-      (s: number, l: any) => s + Number(l.annualPremium || 0),
-      0
-    );
-    const epfContrib = (state.epf || []).reduce((s: number, e: any) => {
-      return (
-        s +
-        (e.transactions || [])
-          .filter(
-            (t: any) =>
-              t.date >= fyStartStr &&
-              t.date <= fyEndStr &&
-              (t.type === "employee_contribution" || t.type === "monthly_contribution")
-          )
-          .reduce((sum: number, t: any) => sum + Number(t.amount || t.employeeShare || 0), 0)
-      );
-    }, 0);
-    const used80C = Math.min(elss + ppf + lic + epfContrib, 150000);
+    const auto = getAutoDetectedDeductions(state, fy);
+    const overrides = state.masterData?.taxDeductions?.[fy] || {};
+
+    const used80C = overrides.d80C !== undefined ? Number(overrides.d80C) : auto.d80C;
     const remaining80C = Math.max(0, 150000 - used80C);
-    // Prefer actual rent payments logged in the FY (accounts for escalation and
-    // partial-year tenancies); only fall back to the escalation-aware effective
-    // rent × 12 when no payments have been logged yet. Matches the canonical
-    // logic in finance.ts's getAutoDetectedDeductions — using the flat
-    // p.monthlyRent field here (as before) ignored both the payment ledger and
-    // any escalation tiers, understating/overstating HRA for the tax optimizer.
-    const rentPaid = (state.rentedProperties || []).reduce((s: number, p: any) => {
-      const paymentsInFY = (p.payments || [])
-        .filter((pay: any) => pay.date >= fyStartStr && pay.date <= fyEndStr)
-        .reduce((sum: number, pay: any) => sum + Number(pay.amount || 0), 0);
-      return s + (paymentsInFY > 0 ? paymentsInFY : getEffectiveRent(p) * 12);
-    }, 0);
-    const npsContrib = (state.nps || []).reduce(
-      (s: number, n: any) => s + Number(n.yearContribution || 0),
-      0
-    );
+
+    const used80D = overrides.d80D !== undefined ? Number(overrides.d80D) : auto.d80D;
+    const isSenior = (state.profile?.age || 0) >= 60 || overrides.d80DSenior;
+    const limit80D = isSenior ? 50000 : 25000;
+    const remaining80D = Math.max(0, limit80D - used80D);
+
+    const npsContrib = overrides.nps !== undefined ? Number(overrides.nps) : auto.nps;
     const remaining80CCD = Math.max(0, 50000 - npsContrib);
+
+    const rentPaid = overrides.hra !== undefined ? Number(overrides.hra) : auto.hra;
+    const homeLoanInterest = overrides.homeLoan !== undefined ? Number(overrides.homeLoan) : auto.homeLoan;
+
     return {
       fy,
       regime: state.profile?.regime || "new",
@@ -1230,20 +1196,42 @@ You have access to local tools/functions to retrieve real-time and detailed tran
           used: used80C,
           limit: 150000,
           remaining: remaining80C,
-          sources: { elss, ppf, lic, epf: epfContrib },
+          source: auto.d80C_sources,
         },
-        "80CCD_1B_NPS": { used: npsContrib, limit: 50000, remaining: remaining80CCD },
-        HRA: { rentPaidAnnually: rentPaid, eligible: rentPaid > 0 },
+        "80D_Health": {
+          used: used80D,
+          limit: limit80D,
+          remaining: remaining80D,
+          source: auto.d80D_source,
+        },
+        "80CCD_1B_NPS": {
+          used: npsContrib,
+          limit: 50000,
+          remaining: remaining80CCD,
+          source: auto.nps_source,
+        },
+        "80CCD_2_Employer_NPS": {
+          used: auto.d80CCD2,
+          source: auto.d80CCD2_source,
+        },
+        HRA: { rentPaidAnnually: rentPaid, eligible: rentPaid > 0, source: auto.hra_source },
+        "Sec_24b_HomeLoan": { interest: homeLoanInterest, limit: 200000, source: auto.homeLoan_source },
       },
       suggestions: [
         ...(remaining80C > 0
-          ? [`Invest ${fmtINRFull(remaining80C)} more in ELSS/PPF to max out 80C`]
+          ? [`Invest ${fmtINRFull(remaining80C)} more in ELSS/PPF to max out Section 80C`]
+          : []),
+        ...(remaining80D > 0
+          ? [`Pay health insurance premiums of up to ${fmtINRFull(remaining80D)} to maximize Section 80D`]
           : []),
         ...(remaining80CCD > 0
           ? [`Invest ${fmtINRFull(remaining80CCD)} in NPS for additional 80CCD(1B) deduction`]
           : []),
         ...(rentPaid > 0 && state.profile?.regime === "old"
           ? ["Claim HRA exemption under Sec 10(13A)"]
+          : []),
+        ...(homeLoanInterest > 0 && state.profile?.regime === "old"
+          ? [`Claim up to ₹2 Lakh home loan interest deduction under Section 24(b)`]
           : []),
       ],
     };

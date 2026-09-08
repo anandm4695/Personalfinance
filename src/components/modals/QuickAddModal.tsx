@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { THEME } from "../../utils/constants";
 import { today, autoCateg } from "../../utils/finance";
@@ -15,7 +14,18 @@ const input = {
   fontSize: 14,
 };
 
-export function QuickAddModal({ onClose, onSave, bankAccounts }: any) {
+interface BankAccountItem {
+  id: string;
+  bankName: string;
+}
+
+interface QuickAddModalProps {
+  onClose: () => void;
+  onSave: (data: any) => void;
+  bankAccounts: BankAccountItem[];
+}
+
+export function QuickAddModal({ onClose, onSave, bankAccounts }: QuickAddModalProps) {
   const { transactionCategories } = useMasterData();
   const [f, setF] = useState({
     date: today(),

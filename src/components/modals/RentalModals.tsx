@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Users, User, AlertCircle, CheckCircle2, TrendingUp } from "lucide-react";
 import { THEME } from "../../utils/constants";

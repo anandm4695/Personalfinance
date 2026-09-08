@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 
 interface CardProps {
@@ -47,18 +46,14 @@ export const Card: React.FC<CardProps> = ({
     columnGap,
     height,
     maxHeight,
-    ...outerStyle
+    ...restStyle
   } = style || {};
 
-  const contentStyle: React.CSSProperties = {
-    flexGrow: 1,
-    minHeight: "100%",
-    width: "100%",
+  const outerStyle: React.CSSProperties = {
+    ...restStyle,
+    display: "flex",
+    flexDirection: "column",
   };
-
-  // Ensure spotlight-wrapper is a flex column container so spotlight-content flexGrow resolves properly
-  outerStyle.display = "flex";
-  outerStyle.flexDirection = "column";
 
   if (height !== undefined) {
     outerStyle.height = height;
@@ -66,6 +61,12 @@ export const Card: React.FC<CardProps> = ({
   if (maxHeight !== undefined) {
     outerStyle.maxHeight = maxHeight;
   }
+
+  const contentStyle: React.CSSProperties = {
+    flexGrow: 1,
+    minHeight: "100%",
+    width: "100%",
+  };
 
   if (display !== undefined) contentStyle.display = display;
   if (flexDirection !== undefined) contentStyle.flexDirection = flexDirection;

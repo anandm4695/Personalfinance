@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo } from "react";
 import {
   Landmark,
@@ -28,6 +27,8 @@ import {
   annualizePremium,
   getCCDueDate,
   getEffectiveRent,
+  loanOutstanding,
+  loanGivenOutstanding,
 } from "../utils/finance";
 import { SCHEME_RULES, projectSchemeValue } from "../utils/govtSchemes";
 import { Money } from "../components/ui/Money";
@@ -55,13 +56,13 @@ import { dueStatus } from "../utils/dueStatus";
 // would invert the dependency direction. Tiny, business-logic-free helpers,
 // not the kind of duplication worth centralizing further.
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const getDaysUntil = (dateStr) => {
+const getDaysUntil = (dateStr?: string) => {
   if (!dateStr) return Infinity;
   const target = new Date(dateStr + "T00:00:00");
   const now = new Date(today() + "T00:00:00");
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 };
-const formatDate = (dateStr) => {
+const formatDate = (dateStr?: string) => {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
@@ -69,7 +70,7 @@ const formatDate = (dateStr) => {
 
 export function useMilestoneEvents(state: any, cutoffDate: string) {
   return useMemo(() => {
-    const items = [];
+    const items: any[] = [];
     const todayStr = today();
     // `cutoffDate` (computed above from the selected horizon, with proper
     // month-length clamping) is the real end of the forecast window. Every
@@ -83,7 +84,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     // too, so they keep showing regardless of the selected horizon.
 
     // FD Maturities
-    (state.fixedDeposits || []).forEach((fd) => {
+    (state.fixedDeposits || []).forEach((fd: any) => {
       if (!fd.maturityDate) return;
       if (fd.maturityDate > cutoffDate) return;
       const days = getDaysUntil(fd.maturityDate);
@@ -97,7 +98,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
             )
           : 0);
       const maturityAmt =
-        fdMaturity && tenureYears > 0
+        tenureYears > 0
           ? fdMaturity(Number(fd.principal || 0), Number(fd.rate || 0), tenureYears)
           : Number(fd.principal || 0) * (1 + Number(fd.rate || 0) / 100);
       items.push({
@@ -126,7 +127,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     });
 
     // RD Maturities
-    (state.recurringDeposits || []).forEach((rd) => {
+    (state.recurringDeposits || []).forEach((rd: any) => {
       if (!rd.maturityDate && !rd.startDate) return;
       let matDate = rd.maturityDate;
       if (!matDate && rd.startDate && rd.tenureMonths) {
@@ -136,9 +137,10 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
       }
       if (!matDate || matDate > cutoffDate) return;
       const days = getDaysUntil(matDate);
-      const matAmt = rdMaturity
-        ? rdMaturity(Number(rd.monthly || 0), Number(rd.rate || 0), Number(rd.tenureMonths || 0))
-        : Number(rd.monthly || 0) * Number(rd.tenureMonths || 0);
+      const matAmt =
+        Number(rd.tenureMonths || 0) > 0
+          ? rdMaturity(Number(rd.monthly || 0), Number(rd.rate || 0), Number(rd.tenureMonths || 0))
+          : Number(rd.monthly || 0) * Number(rd.tenureMonths || 0);
       items.push({
         id: `rd_maturity_${rd.id || matDate}`,
         type: "rd_maturity",
@@ -164,9 +166,12 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     });
 
     // Bond Maturities
-    (state.bonds || []).forEach((b) => {
+    (state.bonds || []).forEach((b: any) => {
       if (!b.maturityDate || b.maturityDate > cutoffDate) return;
       const days = getDaysUntil(b.maturityDate);
+      const faceVal =
+        Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0) ||
+        Number(b.faceValue || b.totalPrincipalAmount || 0);
       items.push({
         id: `bond_maturity_${b.id || b.maturityDate}`,
         type: "bond_maturity",
@@ -176,12 +181,12 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         name: b.name || "Bond",
         date: b.maturityDate,
         days,
-        amount: Number(b.faceValue || b.totalPrincipalAmount || 0),
+        amount: faceVal,
         color: THEME.cyan,
         detail: (
           <>
             Coupon: {b.coupon || 0}% • Face Value:{" "}
-            <Money value={b.faceValue || b.totalPrincipalAmount} variant="exact" />
+            <Money value={faceVal} variant="exact" />
           </>
         ),
       });
@@ -195,15 +200,15 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     // Note: there is also a dedicated, more sophisticated Dividend Calendar
     // tab (state.stocks + live ex-dividend data) — see audit report for the
     // overlap this creates.
-    const dividendsBySymbol = {};
-    (state.dividends || []).forEach((d) => {
+    const dividendsBySymbol: Record<string, any[]> = {};
+    (state.dividends || []).forEach((d: any) => {
       const key = d.symbol || d.name || "Unknown";
       if (!dividendsBySymbol[key]) dividendsBySymbol[key] = [];
       dividendsBySymbol[key].push(d);
     });
 
-    Object.entries(dividendsBySymbol).forEach(([symbol, divs]) => {
-      const sorted = divs.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    Object.entries(dividendsBySymbol).forEach(([symbol, divs]: [string, any[]]) => {
+      const sorted = divs.sort((a: any, b: any) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
       if (sorted.length === 0 || !sorted[0].date) return;
       const lastDiv = sorted[0];
       const nextDateStr = nextAnnualOccurrence(lastDiv.date, todayStr);
@@ -234,8 +239,8 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     // for govt-scheme premiums below (previously this block hand-rolled its
     // own `new Date(startDate)` / `setFullYear` version, which both parsed
     // dates as UTC and could overflow a Feb 29 anniversary into March).
-    const addInsurancePremium = (policies, label) => {
-      (policies || []).forEach((p) => {
+    const addInsurancePremium = (policies: any[], label: string) => {
+      (policies || []).forEach((p: any) => {
         const premium = annualizePremium(p.premium, p.premiumFrequency, p.annualPremium);
         if (!premium) return;
         const startDate = p.commencementDate || p.startDate;
@@ -303,8 +308,11 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     });
 
     // Loan EMI end dates / closures
-    (state.loansTaken || []).forEach((l) => {
+    (state.loansTaken || []).forEach((l: any) => {
+      if ((l.status || "").toLowerCase() === "closed") return;
       if (!l.monthsRemaining || !l.emi) return;
+      const outstanding = loanOutstanding(l);
+      if (outstanding <= 0) return;
       // Clamp day-of-month (see RD maturity fallback above) so long remaining
       // tenures don't overflow into the wrong month.
       const closureDateStr = addMonthsToDateStr(todayStr, Number(l.monthsRemaining));
@@ -318,11 +326,11 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
         name: `${l.lender || l.lenderBorrower || "Loan"} — Closure`,
         date: closureDateStr,
         days,
-        amount: Number(l.outstanding || 0),
+        amount: outstanding,
         color: THEME.rust,
         detail: (
           <>
-            EMI: <Money value={l.emi} variant="exact" /> • Outstanding: <Money value={l.outstanding} variant="exact" />
+            EMI: <Money value={l.emi} variant="exact" /> • Outstanding: <Money value={outstanding} variant="exact" />
           </>
         ),
       });
@@ -331,7 +339,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     // Loans Given — expected repayment due date (money coming back in).
     // Previously loans given to others never appeared in any calendar view.
     (state.loansGiven || []).forEach((l: any) => {
-      const outstanding = Number(l.outstanding || 0);
+      const outstanding = loanGivenOutstanding(l);
       if (outstanding <= 0 || !l.dueDate) return; // settled — nothing to track
       if (l.dueDate > cutoffDate) return;
       const days = getDaysUntil(l.dueDate);
@@ -360,7 +368,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     // same logic already had, so a closed card (or one where feeMonth was
     // never configured) could surface a fee milestone here that shouldn't
     // exist, silently defaulting the unset month to January.
-    (state.creditCards || []).forEach((cc) => {
+    (state.creditCards || []).forEach((cc: any) => {
       if ((cc.status || "").toLowerCase() === "closed") return;
       const feeAmt = Number(cc.annualFee || 0);
       if (!feeAmt || !cc.feeMonth) return;
@@ -401,7 +409,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     });
 
     // Subscription Renewals (yearly only — monthly ones are always upcoming)
-    (state.subscriptions || []).forEach((s) => {
+    (state.subscriptions || []).forEach((s: any) => {
       if (s.paused || !s.renewalDate) return;
       if (s.cycle !== "yearly" && s.cycle !== "quarterly" && s.cycle !== "half-yearly" && s.cycle !== "semi-annual") return;
       if (s.renewalDate > cutoffDate) return;
@@ -428,7 +436,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     // as loan closures above instead of a bare `new Date(str)` +
     // `setFullYear` + `.toISOString()` round trip, which parsed as UTC and
     // didn't guard against a Feb 29 open-date overflowing into March.
-    (state.ppf || []).forEach((p) => {
+    (state.ppf || []).forEach((p: any) => {
       const startDate = p.startDate || p.openDate;
       if (!startDate) return;
       const matDateStr = addMonthsToDateStr(startDate, 180); // 15 years
@@ -455,7 +463,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     // Govt Scheme maturities (SSY/SCSS/NSC/KVP/POST_MIS/RBI_BOND/NPS_LITE) — these
     // never appeared anywhere outside the Govt Schemes tab itself, so a matured
     // scheme (e.g. a 5-year NSC or KVP) could go unnoticed indefinitely.
-    (state.govtSchemes || []).forEach((sc) => {
+    (state.govtSchemes || []).forEach((sc: any) => {
       if (!sc.maturityDate || sc.maturityDate > cutoffDate) return;
       const rule = SCHEME_RULES[sc.schemeType];
       if (!rule || rule.growth === "none") return; // insurance schemes have no maturity corpus
@@ -484,7 +492,7 @@ export function useMilestoneEvents(state: any, cutoffDate: string) {
     });
 
     // Govt Scheme premium due (PMJJBY/PMSBY annual renewal)
-    (state.govtSchemes || []).forEach((sc) => {
+    (state.govtSchemes || []).forEach((sc: any) => {
       const rule = SCHEME_RULES[sc.schemeType];
       if (!rule || rule.growth !== "none") return;
       const premium = Number(sc.premium || 0);
@@ -752,6 +760,7 @@ export function useRecurringPayments(state: any, todayStr: string, todayDate: Da
 
     // Loan EMIs
     (state.loansTaken || []).forEach((l: any) => {
+      if ((l.status || "").toLowerCase() === "closed") return;
       if (!l.emi || Number(l.emi) <= 0) return;
       if (Number(l.monthsRemaining || 0) <= 0) return;
       items.push({

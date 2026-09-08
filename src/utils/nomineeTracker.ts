@@ -64,7 +64,13 @@ export const assetTypes: AssetTypeConfig[] = [
     nameField: "name",
     valueField: null,
     calcValue: (a: any) =>
-      Number(a.totalInvestmentAmount || a.totalPrincipalAmount || a.faceValue || 0),
+      Number(
+        a.totalInvestmentAmount ||
+        a.totalPrincipalAmount ||
+        (Number(a.numberOfUnits || 0) * Number(a.faceValuePerUnit || 0)) ||
+        a.faceValue ||
+        0
+      ),
     idLabel: (a: any) => a.isin || "",
   },
   {

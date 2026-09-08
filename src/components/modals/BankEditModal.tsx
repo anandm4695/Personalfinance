@@ -1,9 +1,7 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { THEME } from "../../utils/constants";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
-
 import { useMasterData } from "../../utils/masterData";
 
 const input = {
@@ -15,14 +13,30 @@ const input = {
   fontSize: 14,
 };
 
-export function BankEditModal({ account, onClose, onSave, saving }: any) {
+interface BankAccount {
+  id?: string;
+  owner?: string;
+  bankName?: string;
+  accountNumber?: string;
+  type?: string;
+  balance?: number | string;
+}
+
+interface BankEditModalProps {
+  account: BankAccount | null;
+  onClose: () => void;
+  onSave: (data: BankAccount) => void;
+  saving?: boolean;
+}
+
+export function BankEditModal({ account, onClose, onSave, saving = false }: BankEditModalProps) {
   const { bankAccountTypes } = useMasterData();
-  const [f, setF] = useState({
+  const [f, setF] = useState<BankAccount>({
     owner: account?.owner || "self",
     bankName: account?.bankName || "",
     accountNumber: account?.accountNumber || "",
     type: account?.type || bankAccountTypes[0] || "Savings",
-    balance: account?.balance || "",
+    balance: account?.balance != null ? account.balance : "",
   });
   return (
     <Modal title="Edit Bank Account" onClose={onClose}>
@@ -70,9 +84,9 @@ export function BankEditModal({ account, onClose, onSave, saving }: any) {
         </Field>
       </div>
       <ModalActions
-        onSave={() => f.bankName.trim() && onSave(f)}
+        onSave={() => f.bankName?.trim() && onSave(f)}
         onClose={onClose}
-        disabled={!f.bankName.trim() || saving}
+        disabled={!f.bankName?.trim() || saving}
         loading={saving}
         saveLabel="Save Changes"
       />

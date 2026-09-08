@@ -34,6 +34,7 @@ import {
   addMonthsToDateStr,
   getEffectiveRent,
   fmtINRFull,
+  loanOutstanding,
 } from "../../utils/finance";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
@@ -328,7 +329,7 @@ export function BanksTab({
       // reduce the outstanding balance. Deducting the full EMI (as before) understated
       // the true balance more and more with every payment. Store the exact principal
       // portion applied on the transaction itself so a later delete can reverse it precisely.
-      const outstandingBefore = Number(loan.outstanding || 0);
+      const outstandingBefore = loanOutstanding(loan);
       const monthlyRate = Number(loan.rate || 0) / 100 / 12;
       const interestPortion = outstandingBefore * monthlyRate;
       const principalPortion = Math.min(outstandingBefore, Math.max(0, amt - interestPortion));
@@ -2872,10 +2873,10 @@ function getLinkConfig(category: string, type: string, state: any, privacyMode?:
     return {
       label: "Loan",
       options: (state.loansTaken || [])
-        .filter((l: any) => Number(l.outstanding || 0) > 0)
+        .filter((l: any) => loanOutstanding(l) > 0)
         .map((l: any) => ({
           key: `loansTaken:${l.id}`,
-          label: `${l.lender || "Loan"} – ${l.type || ""} | EMI ${fmt(l.emi)}/mo | Outstanding ${fmt(l.outstanding)}`,
+          label: `${l.lender || "Loan"} – ${l.type || ""} | EMI ${fmt(l.emi)}/mo | Outstanding ${fmt(loanOutstanding(l))}`,
         })),
     };
   }
@@ -2924,7 +2925,7 @@ function getLinkConfig(category: string, type: string, state: any, privacyMode?:
     return {
       label: "Credit Card",
       options: (state.creditCards || [])
-        .filter((c: any) => c.status !== "closed")
+        .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
         .map((c: any) => ({
           key: `creditCards:${c.id}`,
           label: `${c.issuer || "Card"} ····${c.last4 || "????"} | Outstanding ${fmt(c.outstanding)}`,

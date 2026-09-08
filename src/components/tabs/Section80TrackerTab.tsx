@@ -80,15 +80,33 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     const fyStartStr = `${fyStartYear}-04-01`;
     const fyEndStr = `${fyStartYear + 1}-03-31`;
     const inFY = (date) => !!date && date >= fyStartStr && date <= fyEndStr;
+    const ppfFromTxns = (state.ppf || []).reduce(
+      (sum: number, p: any) =>
+        sum +
+        (p.transactions || [])
+          .filter(
+            (t: any) =>
+              t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal"
+          )
+          .reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
+      0
+    );
     const ppfLedgerThisYear = (state.ppfLedger || [])
       .filter(
-        (t) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal"
+        (t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal"
       )
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const ppfContrib =
-      ppfLedgerThisYear > 0
+      ppfFromTxns > 0
+        ? ppfFromTxns
+        : ppfLedgerThisYear > 0
         ? ppfLedgerThisYear
-        : (state.ppf || []).reduce((s, p) => s + Number(p.thisYearContribution || 0), 0);
+        : (state.ppf || []).reduce(
+            (s: number, p: any) =>
+              s +
+              Number(p.thisYearContribution || p.yearlyContribution || p.annualContribution || 0),
+            0
+          );
     // Bug fix: this previously summed ELSS "invested" and EPF employee
     // contributions across ALL TIME (no date filter at all), not just the
     // current FY — massively overstating 80C usage for anyone with ELSS/EPF

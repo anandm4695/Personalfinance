@@ -273,7 +273,15 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 6), elapsed);
     }, 0);
     const bonds = (state.bonds || []).reduce(
-      (s, b) => s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
+      (s, b) =>
+        s +
+        Number(
+          b.totalInvestmentAmount ||
+            b.totalPrincipalAmount ||
+            b.faceValue ||
+            (Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0)) ||
+            0
+        ),
       0
     );
     const ppf = (state.ppf || []).reduce((s, p) => s + Number(p.balance || 0), 0);

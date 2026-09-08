@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { Plus } from "lucide-react";
 import { THEME } from "../../utils/constants";

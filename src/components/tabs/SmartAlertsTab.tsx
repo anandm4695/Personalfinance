@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Bell,
@@ -27,7 +26,7 @@ import { EmptyState } from "../ui/EmptyState";
 const DISMISSED_ALERTS_KEY = "finance-dismissed-alerts";
 const SNOOZE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-export const SmartAlertsTab = ({ state, metrics }) => {
+export const SmartAlertsTab = ({ state, metrics }: { state: any; metrics: any }) => {
   const [filter, setFilter] = useState("all");
   // Dismissal must survive a tab switch — this tab unmounts every time the user navigates
   // away, so plain component state made a dismissed alert reappear immediately on return.
@@ -62,14 +61,20 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     }
   });
 
-  const isSnoozed = (id: string) => !!dismissed[id] && dismissed[id] > Date.now();
+  const isSnoozed = (id: string) => {
+    const expiry = dismissed[id];
+    return typeof expiry === "number" && expiry > Date.now();
+  };
 
   const dismissAlert = (id: string) => {
     setDismissed((prev) => {
-      const next = { ...prev, [id]: Date.now() + SNOOZE_MS };
+      const expiry = Date.now() + SNOOZE_MS;
+      const next = { ...prev, [id]: expiry };
       try {
         localStorage.setItem(DISMISSED_ALERTS_KEY, JSON.stringify(next));
-      } catch {}
+      } catch {
+        // localStorage not available
+      }
       return next;
     });
   };
@@ -84,15 +89,15 @@ export const SmartAlertsTab = ({ state, metrics }) => {
   const snoozedCount = Object.keys(dismissed).filter((id) => isSnoozed(id)).length;
 
   const smartAlerts = useMemo(() => {
-    const alerts = [];
+    const alerts: any[] = [];
     const now = new Date();
     const todayStr = today();
-    // Day-count helper: diffs two LOCAL midnights instead of `dateStr`'s UTC midnight vs the
+    // daysUntil must compare midnight-to-midnight against `todayStr` (local midnight), NOT the
     // real current instant `now` (which carries today's time-of-day). Mixing those made the
     // displayed "days until" for FD/bond maturities and goal deadlines drift by up to a day
     // depending on what time of day the alert was computed, and could show a same-day event as
     // 2 days away when checked before ~5:30am IST.
-    const daysUntil = (dateStr) => {
+    const daysUntil = (dateStr: string) => {
       if (!dateStr) return Infinity;
       const target = new Date(dateStr + "T00:00:00");
       const nowMidnight = new Date(todayStr + "T00:00:00");
@@ -102,17 +107,17 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     const lastMonth = `${now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()}-${String(now.getMonth() === 0 ? 12 : now.getMonth()).padStart(2, "0")}`;
 
     // 1. Spending anomaly detection
-    const monthlySpend = {};
+    const monthlySpend: Record<string, number> = {};
     (state.transactions || [])
       .filter(
-        (t) =>
+        (t: any) =>
           t.type === "debit" &&
           t.date &&
           t.category !== "Transfer" &&
           t.category !== "Self Transfer" &&
           t.category !== "Self-Transfer"
       )
-      .forEach((t) => {
+      .forEach((t: any) => {
         const ym = t.date.slice(0, 7);
         monthlySpend[ym] = (monthlySpend[ym] || 0) + Number(t.amount || 0);
       });
@@ -176,18 +181,17 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     }
 
     // 2. Category-specific anomalies
-    const catSpend = {};
-    const catAvg = {};
+    const catSpend: Record<string, Record<string, number>> = {};
     (state.transactions || [])
       .filter(
-        (t) =>
+        (t: any) =>
           t.type === "debit" &&
           t.date &&
           t.category !== "Transfer" &&
           t.category !== "Self Transfer" &&
           t.category !== "Self-Transfer"
       )
-      .forEach((t) => {
+      .forEach((t: any) => {
         const ym = t.date.slice(0, 7);
         const cat = t.category || "Uncategorized";
         if (!catSpend[cat]) catSpend[cat] = {};
@@ -225,7 +229,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     // screen already surfaces; keeping it here too was showing the same fact
     // twice). Bond maturing has no header-bell equivalent, so it stays.
     // 3b. Bond maturing soon
-    (state.bonds || []).forEach((b) => {
+    (state.bonds || []).forEach((b: any) => {
       if (b.maturityDate) {
         const days = daysUntil(b.maturityDate);
         if (days >= 0 && days <= 30) {
@@ -254,7 +258,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     // `startDate`/`totalInstallments`/`frequency`/`scheme`, never `endDate`/`name`/`fund`,
     // so the old condition and detail text could never fire/read correctly. Derive
     // completion the same way SIPTrackerTab.tsx does (monthsElapsed >= totalInstallments).
-    (state.sips || []).forEach((sip) => {
+    (state.sips || []).forEach((sip: any) => {
       if (sip.status === "stopped" || sip.status === "paused") return;
       const totalInst = Number(sip.totalInstallments || 0);
       if (totalInst <= 0 || !sip.startDate) return;
@@ -275,7 +279,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     });
 
     // 6. No transactions logged recently
-    const latestTxn = (state.transactions || []).reduce((latest, t) => {
+    const latestTxn = (state.transactions || []).reduce((latest: string, t: any) => {
       if (!t.date) return latest;
       return t.date > latest ? t.date : latest;
     }, "");
@@ -298,7 +302,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     }
 
     // 7. Goal deadlines approaching
-    (state.goals || []).forEach((g) => {
+    (state.goals || []).forEach((g: any) => {
       if (!g.targetDate) return;
       const days = daysUntil(g.targetDate);
       const progress = Number(g.targetAmount)
@@ -326,7 +330,7 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     // 7b. Life event deadlines approaching — same shape/threshold as the goal-deadline
     // alert above (life events and financial goals are structurally similar: a target
     // amount + date + progress). Previously life events surfaced no alert anywhere.
-    (state.lifeEvents || []).forEach((e) => {
+    (state.lifeEvents || []).forEach((e: any) => {
       if (!e.targetDate) return;
       const days = daysUntil(e.targetDate);
       const progress = Number(e.estimatedCost)
@@ -359,8 +363,8 @@ export const SmartAlertsTab = ({ state, metrics }) => {
 
     // 10. Subscription review
     const monthlySubs = (state.subscriptions || [])
-      .filter((s) => !s.paused)
-      .reduce((s, sub) => {
+      .filter((s: any) => !s.paused)
+      .reduce((s: number, sub: any) => {
         const amt = Number(sub.amount || 0);
         if (sub.cycle === "yearly") return s + amt / 12;
         if (sub.cycle === "half-yearly" || sub.cycle === "semi-annual") return s + amt / 6;
@@ -389,8 +393,8 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     // twice).
 
     return alerts.sort((a, b) => {
-      const order = { error: 0, warn: 1, info: 2 };
-      return order[a.level] - order[b.level];
+      const order: Record<string, number> = { error: 0, warn: 1, info: 2 };
+      return (order[a.level] ?? 99) - (order[b.level] ?? 99);
     });
   }, [state, metrics]);
 
@@ -424,8 +428,8 @@ export const SmartAlertsTab = ({ state, metrics }) => {
     if (filter !== "all" && !categories.includes(filter)) setFilter("all");
   }, [categories, filter]);
 
-  const levelColors = { error: THEME.rust, warn: THEME.gold, info: THEME.accent };
-  const levelLabels = { error: "Critical", warn: "Warning", info: "Info" };
+  const levelColors: Record<string, string> = { error: THEME.rust, warn: THEME.gold, info: THEME.accent };
+  const levelLabels: Record<string, string> = { error: "Critical", warn: "Warning", info: "Info" };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>

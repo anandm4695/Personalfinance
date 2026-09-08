@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Clock,
@@ -28,7 +27,7 @@ import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { SkeletonTableRows } from "../ui/Skeleton";
 
-const ACTION_COLORS = {
+const ACTION_COLORS: Record<string, string> = {
   ADD: THEME.sage,
   UPDATE: THEME.accent,
   DELETE: THEME.rust,
@@ -40,7 +39,7 @@ const ACTION_COLORS = {
   RESET: THEME.rust,
 };
 
-const ACTION_ICONS = {
+const ACTION_ICONS: Record<string, any> = {
   ADD: Plus,
   UPDATE: Pencil,
   DELETE: Trash2,
@@ -52,7 +51,7 @@ const ACTION_ICONS = {
   RESET: RefreshCw,
 };
 
-const ACTION_LABELS = {
+const ACTION_LABELS: Record<string, string> = {
   ADD: "Add",
   UPDATE: "Update",
   UPDATE_NPS: "Update NPS",
@@ -364,17 +363,17 @@ const getMetadataSummary = (
   return pairs.length ? pairs.slice(0, 3).join(" · ") : null;
 };
 
-export const AuditLogTab = ({ session }) => {
+export const AuditLogTab = ({ session }: { session?: any }) => {
   const { privacyMode } = usePrivacy();
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterAction, setFilterAction] = useState("all");
   const [dateRange, setDateRange] = useState("30");
   const [page, setPage] = useState(0);
-  const [expandedId, setExpandedId] = useState(null);
-  const [hoveredId, setHoveredId] = useState(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const PAGE_SIZE = 50;
 
   const fetchLogs = useCallback(async () => {
@@ -400,7 +399,7 @@ export const AuditLogTab = ({ session }) => {
         console.error("Failed to fetch logs:", error.message);
         setFetchError(`Failed to load audit log: ${error.message}`);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to fetch logs", e);
       setFetchError(`Failed to load audit log: ${e?.message || "Unknown error"}`);
     }

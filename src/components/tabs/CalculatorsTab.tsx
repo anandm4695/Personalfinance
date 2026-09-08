@@ -45,7 +45,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, fdMaturity, rdMaturity } from "../../utils/finance";
+import { fmtINR, fmtINRFull, fdMaturity, rdMaturity, loanOutstanding } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
 import { Badge } from "../ui/Badge";
@@ -1185,10 +1185,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
   const ctxNetWorth = Math.max(0, metrics?.netWorth || 0);
   const ctxMonthExpense = Math.max(0, metrics?.monthExpense || 0);
   const ctxMonthlySavings = Math.max(0, (metrics?.monthIncome || 0) - (metrics?.monthExpense || 0));
-  const ctxTotalEMIs = (state?.loansTaken || []).reduce(
-    (s: number, l: any) => s + Number(l.emi || 0),
-    0
-  );
+  const ctxTotalEMIs = (state?.loansTaken || [])
+    .filter((l: any) => (l.status || "").toLowerCase() !== "closed" && loanOutstanding(l) > 0)
+    .reduce(
+      (s: number, l: any) => s + Number(l.emi || 0),
+      0
+    );
 
   const animatedStepSipCorpus = useAnimatedNumber(stepSipResult.corpus);
   const animatedStepSipInvested = useAnimatedNumber(stepSipResult.invested);
@@ -1238,7 +1240,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     // Loans EMI (drawn directly from loansTaken state) — only loans still
     // outstanding count toward the crisis burn rate; a paid-off loan has no EMI.
     const activeEMIs = (state?.loansTaken || [])
-      .filter((l: any) => Number(l.outstanding || 0) > 0)
+      .filter((l: any) => (l.status || "").toLowerCase() !== "closed" && loanOutstanding(l) > 0)
       .reduce((sum: number, l: any) => sum + Number(l.emi || 0), 0);
     const monthlyExpense = Number(metrics?.monthExpense || 0);
 

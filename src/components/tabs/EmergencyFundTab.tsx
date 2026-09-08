@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   Shield,
@@ -27,7 +26,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, getEffectiveRent, annualizePremium } from "../../utils/finance";
+import { fmtINR, fmtINRFull, getEffectiveRent, annualizePremium, getSubscriptionMonthlyEquivalent, loanOutstanding } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { SectionTitle } from "../ui/SectionTitle";
@@ -57,7 +56,9 @@ export const EmergencyFundTab = ({ state, metrics }: any) => {
 
     // Expense breakdown for table
     const expenseBreakdown = [];
-    const emis = (state.loansTaken || []).reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
+    const emis = (state.loansTaken || [])
+      .filter((l: any) => loanOutstanding(l) > 0)
+      .reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     if (emis > 0) expenseBreakdown.push({ label: "Loan EMIs", amount: emis, icon: CreditCard, essential: true });
 
     const rent = (state.rentedProperties || [])
@@ -72,13 +73,7 @@ export const EmergencyFundTab = ({ state, metrics }: any) => {
 
     const subTotal = (state.subscriptions || [])
       .filter((s: any) => !s.paused)
-      .reduce((s: number, sub: any) => {
-        const amt = Number(sub.amount || 0);
-        if (sub.cycle === "yearly") return s + amt / 12;
-        if (sub.cycle === "half-yearly" || sub.cycle === "semi-annual") return s + amt / 6;
-        if (sub.cycle === "quarterly") return s + amt / 3;
-        return s + amt;
-      }, 0);
+      .reduce((s: number, sub: any) => s + getSubscriptionMonthlyEquivalent(sub.amount, sub.cycle), 0);
     if (subTotal > 0)
       expenseBreakdown.push({ label: "Subscriptions & Media", amount: subTotal, icon: RefreshCw, essential: false });
 

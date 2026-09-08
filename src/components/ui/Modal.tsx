@@ -1,8 +1,6 @@
-// @ts-nocheck
 import React from "react";
 import ReactDOM from "react-dom";
 import { X } from "lucide-react";
-import { THEME } from "../../utils/constants";
 import { Button } from "./Button";
 
 interface ModalProps {

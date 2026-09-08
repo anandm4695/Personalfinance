@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useRef } from "react";
 import {
   Printer,
@@ -15,7 +14,8 @@ import {
   BarChart2,
 } from "lucide-react";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { getCCDueDate } from "../../utils/finance";
+import { getCCDueDate, loanOutstanding } from "../../utils/finance";
+import { dueStatus } from "../../utils/dueStatus";
 import { computeNetWorthAsOf, getEarliestNetWorthMonth } from "../../utils/netWorthAsOf";
 import { Money } from "../ui/Money";
 import { Modal } from "../ui/Modal";
@@ -231,12 +231,28 @@ export function MonthlyReportModal({
     const txnIncomeMonth = monthTxns
       .filter((t: any) => t.type === "credit" && !isTransferCat(t.category))
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const salarySlipsMonth = (state.salarySlips || [])
+      .filter((s: any) => {
+        const sYm = s.slipMonth || (s.date ? s.date.slice(0, 7) : "");
+        return sYm === targetYm;
+      })
+      .reduce(
+        (sum: number, s: any) =>
+          sum + Number(s.netSalary ?? s.inHand ?? s.takeHome ?? s.grossSalary ?? 0),
+        0
+      );
+    const primaryIncome =
+      explicitIncomeMonth > 0
+        ? explicitIncomeMonth
+        : txnIncomeMonth > 0
+        ? txnIncomeMonth
+        : salarySlipsMonth;
     const { rentReceivedThisMonth, hasRentReceivedTxn } = getRentReceivedInfo(
       targetYm,
       monthTxns
     );
     const rentTopUp = rentReceivedThisMonth > 0 && !hasRentReceivedTxn ? rentReceivedThisMonth : 0;
-    return (explicitIncomeMonth > 0 ? explicitIncomeMonth : txnIncomeMonth) + rentTopUp;
+    return primaryIncome + rentTopUp;
   };
 
   // Rent paid via the Rented Properties ledger (not logged as a transaction) — shared by
@@ -291,10 +307,11 @@ export function MonthlyReportModal({
     (s: number, i: any) => s + Number(i.amount || 0),
     0
   );
+  const creditTxnsMonth = txns.filter((t: any) => t.type === "credit" && !isTransferCat(t.category));
   const incomeSourceEntries =
     explicitIncomeMonth > 0
       ? incomeLedgerMonth
-      : txns.filter((t: any) => t.type === "credit" && !isTransferCat(t.category));
+      : creditTxnsMonth;
   const incomeCatMap: Record<string, number> = {};
   const { rentReceivedThisMonth, hasRentReceivedTxn } = getRentReceivedInfo(ym, txns);
   if (rentReceivedThisMonth > 0 && !hasRentReceivedTxn) {
@@ -304,6 +321,19 @@ export function MonthlyReportModal({
     const c = e.source || e.category || "Other Income";
     incomeCatMap[c] = (incomeCatMap[c] || 0) + Number(e.amount || 0);
   });
+  const currentMonthSlips = (state.salarySlips || []).filter((s: any) => {
+    const sYm = s.slipMonth || (s.date ? s.date.slice(0, 7) : "");
+    return sYm === ym;
+  });
+  if (explicitIncomeMonth === 0 && creditTxnsMonth.length === 0 && currentMonthSlips.length > 0) {
+    const slipsTotal = currentMonthSlips.reduce(
+      (sum: number, s: any) => sum + Number(s.netSalary ?? s.inHand ?? s.takeHome ?? s.grossSalary ?? 0),
+      0
+    );
+    if (slipsTotal > 0) {
+      incomeCatMap["Salary"] = (incomeCatMap["Salary"] || 0) + slipsTotal;
+    }
+  }
   const incomeBySource = Object.entries(incomeCatMap).sort(([, a], [, b]) => b - a);
 
   // Top expense categories (excluding internal transfers and investment moves)
@@ -391,7 +421,7 @@ export function MonthlyReportModal({
       const done = current >= target;
       return { name: g.name || "Goal", target, current, pct, done };
     })
-    .sort((a, b) => b.pct - a.pct);
+    .sort((a: any, b: any) => b.pct - a.pct);
 
   // Subscriptions that renewed this month
   const subsThisMonth = (state.subscriptions || [])
@@ -406,8 +436,8 @@ export function MonthlyReportModal({
             : Number(s.amount || 0),
       cycle: s.cycle || "monthly",
     }))
-    .sort((a, b) => b.amount - a.amount);
-  const totalSubsThisMonth = subsThisMonth.reduce((s, sub) => s + sub.amount, 0);
+    .sort((a: any, b: any) => b.amount - a.amount);
+  const totalSubsThisMonth = subsThisMonth.reduce((s: number, sub: any) => s + sub.amount, 0);
 
   // Upcoming / scheduled dues — only for current or future months
   const showDues = !isPastMonth;
@@ -428,13 +458,39 @@ export function MonthlyReportModal({
         if (due)
           upcoming.push({ label: `${c.issuer} CC`, amount: Number(c.outstanding || 0), date: due });
       });
-    (state.loansTaken || []).forEach((l: any) => {
-      upcoming.push({
-        label: `${l.lender} ${l.type} Loan`,
-        amount: Number(l.emi || 0),
-        date: "Monthly EMI",
+    (state.loansTaken || [])
+      .filter(
+        (l: any) =>
+          (l.status || "").toLowerCase() !== "closed" &&
+          loanOutstanding(l) > 0 &&
+          Number(l.emi || 0) > 0
+      )
+      .forEach((l: any) => {
+        upcoming.push({
+          label: `${l.lender || "Loan"} ${l.type || ""} EMI`.trim(),
+          amount: Number(l.emi || 0),
+          date: "Monthly EMI",
+        });
       });
-    });
+    const billHistory = (billId: string) =>
+      (state.billPaymentHistory || [])
+        .filter((h: any) => h.billId === billId)
+        .sort((a: any, b: any) => (b.paidDate || "").localeCompare(a.paidDate || ""));
+    (state.billPayments || [])
+      .filter((b: any) => Number(b.amount || 0) > 0 && b.dueDay)
+      .forEach((b: any) => {
+        const hist = billHistory(b.id);
+        const lastPaid = hist[0]?.paidDate;
+        const st = dueStatus(Number(b.dueDay), lastPaid);
+        if (!st.paid) {
+          const due = getCCDueDate(b, now);
+          upcoming.push({
+            label: `${b.nickname || b.provider || "Utility"} Bill`,
+            amount: Number(b.amount || 0),
+            date: due || `Day ${b.dueDay}`,
+          });
+        }
+      });
   }
 
   // Net worth: for the current month always use live metrics to avoid stale snapshots;
@@ -962,7 +1018,7 @@ export function MonthlyReportModal({
           {goalRows.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <SectionLabel>Goal Progress</SectionLabel>
-              {goalRows.map((g) => (
+              {goalRows.map((g: any) => (
                 <div key={g.name} style={{ marginBottom: 10 }}>
                   <div
                     style={{
@@ -1014,7 +1070,7 @@ export function MonthlyReportModal({
               <SectionLabel>
                 Subscriptions This Month · <Money value={totalSubsThisMonth} variant="full" />
               </SectionLabel>
-              {subsThisMonth.map((s, i) => (
+              {subsThisMonth.map((s: any, i: number) => (
                 <div
                   key={i}
                   style={{

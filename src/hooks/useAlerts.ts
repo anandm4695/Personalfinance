@@ -7,6 +7,7 @@ import {
   calcTaxNewByFY,
   calcTaxOldByFY,
   alertDismissKey,
+  loanOutstanding,
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
 import { dueStatus } from "../utils/dueStatus";
@@ -46,7 +47,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     // Over-budget categories (uses budget inheritance: current month → latest prior month → legacy)
     const ym = today().slice(0, 7);
     const monthSpend: Record<string, number> = {};
-    state.transactions
+    (state.transactions || [])
       .filter((t: any) => t.date && t.date.startsWith(ym) && t.type === "debit")
       .forEach((t: any) => {
         const cat = t.category || "Uncategorized";
@@ -62,21 +63,21 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     }, 0);
     if (rentPaid > 0 && !monthSpend["Rent"]) monthSpend["Rent"] = rentPaid;
 
-    const specificBudgets = state.budgets.filter((b: any) => b.budgetMonth === ym);
+    const specificBudgets = (state.budgets || []).filter((b: any) => b.budgetMonth === ym);
     let budgetsForAlerts: any[];
     if (specificBudgets.length > 0) {
       budgetsForAlerts = specificBudgets;
     } else {
-      const priorBudgets = state.budgets.filter((b: any) => b.budgetMonth && b.budgetMonth < ym);
+      const priorBudgets = (state.budgets || []).filter((b: any) => b.budgetMonth && b.budgetMonth < ym);
       if (priorBudgets.length > 0) {
         const months = Array.from(
           new Set(priorBudgets.map((b: any) => b.budgetMonth))
         ).sort() as string[];
-        budgetsForAlerts = state.budgets.filter(
+        budgetsForAlerts = (state.budgets || []).filter(
           (b: any) => b.budgetMonth === months[months.length - 1]
         );
       } else {
-        budgetsForAlerts = state.budgets.filter((b: any) => !b.budgetMonth);
+        budgetsForAlerts = (state.budgets || []).filter((b: any) => !b.budgetMonth);
       }
     }
     budgetsForAlerts.forEach((b: any) => {
@@ -92,7 +93,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     });
     // CC due in ≤10 days — anchor both ends to local midnight to avoid IST timezone off-by-one
     const todayMidnight = new Date(today() + "T00:00:00").getTime();
-    state.creditCards
+    (state.creditCards || [])
       // Autopay cards settle themselves — mirrors the same suppression already applied to
       // recurring bills (`!b.dueDay || b.autoPay` below) so this alert doesn't nag about a
       // payment the user has no manual action to take on.
@@ -120,7 +121,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
         }
       });
     // Goals behind schedule
-    state.goals.forEach((g: any) => {
+    (state.goals || []).forEach((g: any) => {
       const progress = Number(g.targetAmount)
         ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
         : 0;
@@ -185,7 +186,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     }
     // Subscription renewals in ≤7 days — compare midnight-to-midnight to avoid IST off-by-one
     const todayMidnightMs = new Date(today() + "T00:00:00").getTime();
-    state.subscriptions
+    (state.subscriptions || [])
       .filter((s: any) => s.renewalDate && !s.paused)
       .forEach((s: any) => {
         const days = Math.ceil(
@@ -218,7 +219,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     // not the sum of each card's sub-limit — same dedup as useMetrics.ts/CreditTab.tsx, otherwise
     // this alert's utilization comes out artificially low for anyone using a shared pool and can
     // fail to fire when it should.
-    const activeCCForAlert = state.creditCards.filter(
+    const activeCCForAlert = (state.creditCards || []).filter(
       (c: any) => (c.status || "").toLowerCase() !== "closed"
     );
     const ccGroupPoolsForAlert: Record<string, number> = {};
@@ -303,7 +304,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
     // FOIR: use unfiltered household income + unfiltered loans for a consistent household metric.
     // Excludes internal transfers — a self-transfer between the user's own accounts isn't real
     // income, and counting it would understate FOIR%, masking a genuinely risky EMI burden.
-    const unfilteredMonthlyIncome = state.transactions
+    const unfilteredMonthlyIncome = (state.transactions || [])
       .filter(
         (t: any) =>
           t.date &&
@@ -314,8 +315,13 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
           t.category !== "Self-Transfer"
       )
       .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
-    const totalEMIForAlert = state.loansTaken
-      .filter((l: any) => Number(l.outstanding || 0) > 0 && Number(l.monthsRemaining ?? 1) > 0)
+    const totalEMIForAlert = (state.loansTaken || [])
+      .filter(
+        (l: any) =>
+          (l.status || "").toLowerCase() !== "closed" &&
+          loanOutstanding(l) > 0 &&
+          Number(l.monthsRemaining ?? 1) > 0
+      )
       .reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
     if (unfilteredMonthlyIncome > 0 && totalEMIForAlert > 0) {
       const foirPct = (totalEMIForAlert / unfilteredMonthlyIncome) * 100;
@@ -421,7 +427,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
       }
     });
     // Low bank balance alert — flag accounts below ₹5,000
-    state.bankAccounts.forEach((acc: any) => {
+    (state.bankAccounts || []).forEach((acc: any) => {
       const bal = Number(acc.balance || 0);
       if (bal > 0 && bal < 5000) {
         list.push({

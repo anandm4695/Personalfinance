@@ -1,5 +1,6 @@
 import { STORAGE_KEY } from "./constants";
 import { getCurrentFY, getCurrentFYStartYear } from "./appConstants";
+import { isSeniorCitizen } from "./masterData";
 
 export const loadState = () => {
   try {
@@ -209,7 +210,7 @@ export const getEmergencyFundLiquidAssets = (
 // budget-able but aren't real spend — see MonthlyReportModal's same exclusion),
 // then falls back to a bottom-up sum of known recurring commitments, then to
 // the transaction-derived `monthExpense` metric.
-export const getEmergencyFundMonthlyExpense = (state: any, fallbackMonthExpense: number): number => {
+export const getEmergencyFundMonthlyExpense = (state: any, fallbackMonthExpense: number = 0): number => {
   const isNonExpenseBudgetCat = (cat: string) =>
     ["Transfer", "Self Transfer", "Self-Transfer", "Investment"].includes(cat || "");
   const budgetTotal = (state?.budgets || [])
@@ -217,19 +218,19 @@ export const getEmergencyFundMonthlyExpense = (state: any, fallbackMonthExpense:
     .reduce((s: number, b: any) => s + Number(b.monthly || b.monthlyLimit || 0), 0);
   if (budgetTotal > 0) return budgetTotal;
 
-  const emis = (state?.loansTaken || []).reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
+  const emis = (state?.loansTaken || [])
+    .filter(
+      (l: any) =>
+        (l.status || "").toLowerCase() !== "closed" &&
+        (l.outstanding == null || Number(l.outstanding) > 0 || Number(l.principal || 0) > 0)
+    )
+    .reduce((s: number, l: any) => s + Number(l.emi || 0), 0);
   const sips = (state?.sips || [])
     .filter((s: any) => s.status !== "stopped")
     .reduce((s: number, si: any) => s + Number(si.amount || 0), 0);
   const subs = (state?.subscriptions || [])
     .filter((s: any) => !s.paused)
-    .reduce((s: number, sub: any) => {
-      const amt = Number(sub.amount || 0);
-      if (sub.cycle === "yearly") return s + amt / 12;
-      if (sub.cycle === "half-yearly" || sub.cycle === "semi-annual") return s + amt / 6;
-      if (sub.cycle === "quarterly") return s + amt / 3;
-      return s + amt;
-    }, 0);
+    .reduce((s: number, sub: any) => s + getSubscriptionMonthlyEquivalent(sub.amount, sub.cycle), 0);
   const recurring = (state?.recurringExpenses || []).reduce(
     (s: number, r: any) => s + Number(r.amount || 0),
     0
@@ -510,33 +511,8 @@ export const rdMaturity = (monthly: number, rate: number, months: number) => {
 };
 
 export const calcTaxNew = (income: number) => {
-  // FY 2025-26 new-regime standard deduction — must be subtracted before slabbing
-  // (previously omitted here, causing tax to be overstated by ~3x for a ₹13L income).
-  const stdDed = 75_000;
-  const taxable = Math.max(0, income - stdDed);
-  let tax = 0;
-  const slabs = [
-    [400000, 0],
-    [800000, 0.05],
-    [1200000, 0.1],
-    [1600000, 0.15],
-    [2000000, 0.2],
-    [2400000, 0.25],
-    [Infinity, 0.3],
-  ];
-  let prev = 0;
-  for (const [limit, rate] of slabs) {
-    if (taxable > prev) {
-      tax += (Math.min(taxable, limit) - prev) * rate;
-      prev = limit;
-    } else break;
-  }
-  // Section 87A rebate: zero tax if taxable income ≤ ₹12L
-  if (taxable <= 1200000) tax = 0;
-  // Marginal relief (FY 2025-26): for taxable income 12L–~13.1L, cap tax at (taxable − 12L)
-  else if (taxable < 1310000) tax = Math.min(tax, taxable - 1200000);
-  const cess = tax * 0.04;
-  return { tax, cess, total: tax + cess };
+  const res = calcTaxNewByFY(income, "2025-26");
+  return { tax: res.tax, cess: res.cess, total: res.total, surcharge: res.surcharge, taxable: res.taxable, stdDed: res.stdDed };
 };
 
 export const calcTaxOld = (income: number, deductions = 0) => {
@@ -562,7 +538,7 @@ export const calcTaxOld = (income: number, deductions = 0) => {
 
 // ── Surcharge u/s 115BAC (new) / normal slab (old) ──────────────────────────
 // Applies only when gross income > ₹50L. New regime capped at 25%.
-const calcSurcharge = (grossIncome: number, baseTax: number, regime: "new" | "old"): number => {
+function calcSurcharge(grossIncome: number, baseTax: number, regime: "new" | "old"): number {
   if (grossIncome <= 5_000_000) return 0;
 
   // `threshold` is the surcharge slab boundary just crossed; `prevRate` is the
@@ -629,7 +605,7 @@ export interface TaxResult {
 }
 
 // FY-aware new regime: handles FY 2025-26, 2024-25, 2023-24, 2020-23
-export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
+export function calcTaxNewByFY(grossIncome: number, fy: string): TaxResult {
   const fyStart = Number((fy || getCurrentFY()).split("-")[0]) || getCurrentFYStartYear();
 
   let stdDed: number;
@@ -802,11 +778,11 @@ export const calcTaxNewByFY = (grossIncome: number, fy: string): TaxResult => {
 };
 
 // FY-aware old regime: slabs unchanged since FY 2014-15, deductions vary
-export const calcTaxOldByFY = (
+export function calcTaxOldByFY(
   grossIncome: number,
   totalDeductions: number,
   fy: string
-): TaxResult => {
+): TaxResult {
   const fyStart = Number((fy || getCurrentFY()).split("-")[0]) || getCurrentFYStartYear();
   // Old regime std deduction: ₹40K (FY 2018-19 to 2019-20), ₹50K (FY 2020-21 onwards)
   const stdDed = fyStart >= 2020 ? 50_000 : 40_000;
@@ -892,16 +868,31 @@ export const isHomeLoan = (l: any): boolean => (l?.type || "").trim().toLowerCas
 // Missing `outstanding` (legacy/imported rows) is treated as "not yet paid down"
 // (falls back to the original principal) rather than silently as a zero balance —
 // keep this fallback identical everywhere this figure is derived.
-export const loanOutstanding = (l: any): number =>
-  l?.outstanding != null ? Number(l.outstanding) || 0 : Number(l?.principal || 0);
+export const loanOutstanding = (l: any): number => {
+  if ((l?.status || "").toLowerCase() === "closed") return 0;
+  if (l?.outstanding != null && l.outstanding !== "") return Number(l.outstanding) || 0;
+  return Number(l?.principal || 0);
+};
+
+export const loanGivenOutstanding = (l: any): number => {
+  if ((l?.status || "").toLowerCase() === "closed") return 0;
+  if (l?.outstanding != null && l.outstanding !== "") return Number(l.outstanding) || 0;
+  return Number(l?.principal || l?.amount || 0);
+};
 
 export interface AutoDetectedDeductions {
   d80C: number;
   d80C_sources: string | null;
+  d80D: number;
+  d80D_source: string | null;
   hra: number;
   hra_source: string | null;
   homeLoan: number;
   homeLoan_source: string | null;
+  nps: number;
+  nps_source: string | null;
+  d80CCD2: number;
+  d80CCD2_source: string | null;
 }
 
 export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedDeductions => {
@@ -920,33 +911,36 @@ export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedD
         m.buyDate <= fyEndStr
     )
     .reduce((s: number, m: any) => s + Number(m.invested || m.investedAmount || 0), 0);
-
-  // 80C — PPF deposits in FY (ledger first, else yearly contribution)
-  const ppfThisYear = (state.ppfLedger || [])
+  const ppfFromTxns = (state.ppf || []).reduce(
+    (sum: number, p: any) =>
+      sum +
+      (p.transactions || [])
+        .filter(
+          (t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal"
+        )
+        .reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
+    0
+  );
+  const ppfFromLedger = (state.ppfLedger || [])
     .filter(
       (t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr && t.type !== "withdrawal"
     )
     .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+  const ppfThisYear = ppfFromTxns > 0 ? ppfFromTxns : ppfFromLedger;
   const ppf =
     ppfThisYear > 0
       ? ppfThisYear
       : (state.ppf || []).reduce(
-          (s: number, p: any) => s + Number(p.thisYearContribution || p.yearlyContribution || 0),
+          (s: number, p: any) =>
+            s + Number(p.thisYearContribution || p.yearlyContribution || p.annualContribution || 0),
           0
         );
 
   // 80C — LIC annual premiums
   const lic = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
 
-  // 80C — EPF employee contributions in FY
-  // Bug fix: this previously filtered on t.type === "employee", but no EPF
-  // transaction is ever created with that type string — calculateEpfBalance()
-  // (this same file) and every EPF-writing tab (InvestmentsTab, etc.) use
-  // "employee_contribution" for simple entries or "monthly_contribution"
-  // with an employeeShare field for passbook entries. As a result EPF
-  // contributions were silently never counted toward the 80C auto-detection
-  // (and thus never fed into getTaxDueForDashboard's old-regime estimate).
-  const epf = (state.epf || []).reduce((s: number, e: any) => {
+  // 80C — EPF employee contributions in FY (passbook transactions first, falling back to salary slip EPF)
+  const epfPassbook = (state.epf || []).reduce((s: number, e: any) => {
     const txs = (e.transactions || []).filter(
       (t: any) => t.date >= fyStartStr && t.date <= fyEndStr
     );
@@ -958,14 +952,115 @@ export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedD
       .reduce((sum: number, t: any) => sum + Number(t.employeeShare || 0), 0);
     return s + simple + passbook;
   }, 0);
+  const salarySlipEpf = (state.salarySlips || [])
+    .filter(
+      (s: any) =>
+        s.slipMonth &&
+        s.slipMonth >= fyStartStr.slice(0, 7) &&
+        s.slipMonth <= fyEndStr.slice(0, 7)
+    )
+    .reduce(
+      (sum: number, s: any) =>
+        sum + Number(s.pfEmployee || s.epf || s.providentFund || 0),
+      0
+    );
+  const epf = epfPassbook > 0 ? epfPassbook : salarySlipEpf;
 
-  const d80C_raw = elss + ppf + lic + epf;
+  // 80C — NSC and Sukanya Samriddhi (SSY) Govt schemes
+  const annualizeGovt = (amt: number, freq: string) => {
+    const num = Number(amt || 0);
+    if (freq === "monthly") return num * 12;
+    if (freq === "quarterly") return num * 4;
+    if (freq === "half_yearly") return num * 2;
+    if (freq === "one_time") return 0;
+    return num;
+  };
+  const nsc = (state.govtSchemes || [])
+    .filter((sc: any) => (sc.schemeType || "").toUpperCase() === "NSC")
+    .reduce(
+      (s: number, sc: any) => s + annualizeGovt(sc.contributionAmount, sc.frequency || "annual"),
+      0
+    );
+  const ssy = (state.govtSchemes || [])
+    .filter((sc: any) => (sc.schemeType || "").toUpperCase() === "SSY")
+    .reduce(
+      (s: number, sc: any) => s + annualizeGovt(sc.contributionAmount, sc.frequency || "annual"),
+      0
+    );
+
+  // 80C — Home Loan Principal Repayment
+  const homeLoans = (state.loansTaken || []).filter(isHomeLoan);
+  const homeLoanPrincipal = homeLoans.reduce((s: number, l: any) => {
+    const outstanding = loanOutstanding(l);
+    const rate = Number(l.rate) || 0;
+    const annualInterest = Math.round((outstanding * rate) / 100);
+    const annualEMI = Number(l.emi || 0) * 12;
+    return s + Math.max(0, annualEMI - annualInterest);
+  }, 0);
+
+  const d80C_raw = elss + ppf + lic + epf + nsc + ssy + homeLoanPrincipal;
   const d80C_sources =
     [
       elss > 0 ? `ELSS ₹${Math.round(elss).toLocaleString("en-IN")}` : null,
       ppf > 0 ? `PPF ₹${Math.round(ppf).toLocaleString("en-IN")}` : null,
       lic > 0 ? `LIC ₹${Math.round(lic).toLocaleString("en-IN")}` : null,
       epf > 0 ? `EPF ₹${Math.round(epf).toLocaleString("en-IN")}` : null,
+      nsc > 0 ? `NSC ₹${Math.round(nsc).toLocaleString("en-IN")}` : null,
+      ssy > 0 ? `SSY ₹${Math.round(ssy).toLocaleString("en-IN")}` : null,
+      homeLoanPrincipal > 0
+        ? `Home Loan Principal ₹${Math.round(homeLoanPrincipal).toLocaleString("en-IN")}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" + ") || null;
+
+  // 80D — Health insurance premiums (Self/Family + Parents)
+  const PARENT_RELATION_RE = /parent|father|mother|dad|mom|papa|mummy|-in-law/i;
+  const isParentsPolicy = (p: any) =>
+    (p.insuredMembers || []).some((m: any) => PARENT_RELATION_RE.test(m?.relation || ""));
+  const healthPolicies = state.healthInsurance || [];
+  const selfHealthPremium = healthPolicies
+    .filter((p: any) => !isParentsPolicy(p))
+    .reduce(
+      (s: number, p: any) => s + annualizePremium(p.premium, p.premiumFrequency, p.annualPremium),
+      0
+    );
+  const parentsHealthPremium = healthPolicies
+    .filter(isParentsPolicy)
+    .reduce(
+      (s: number, p: any) => s + annualizePremium(p.premium, p.premiumFrequency, p.annualPremium),
+      0
+    );
+
+  const selfProfile = (state.masterData?.familyProfiles || []).find((p: any) => p.id === "self");
+  const spouseProfile = (state.masterData?.familyProfiles || []).find(
+    (p: any) => p.id === "wife" || /spouse|wife|husband/i.test(p?.relation || "")
+  );
+  const isSelfSenior = isSeniorCitizen(selfProfile?.dob) || (state.profile?.age || 0) >= 60;
+  const isSpouseSenior = isSeniorCitizen(spouseProfile?.dob);
+  const sec80D_self_limit = isSelfSenior || isSpouseSenior ? 50_000 : 25_000;
+
+  const isAnyParentSenior =
+    (state.masterData?.familyProfiles || []).some(
+      (p: any) => PARENT_RELATION_RE.test(p?.relation || "") && isSeniorCitizen(p?.dob)
+    ) ||
+    healthPolicies.some((p: any) =>
+      (p.insuredMembers || []).some(
+        (m: any) => PARENT_RELATION_RE.test(m?.relation || "") && isSeniorCitizen(m?.dob)
+      )
+    );
+  const sec80D_parents_limit = isAnyParentSenior ? 50_000 : 25_000;
+  const sec80D_self_used = Math.min(selfHealthPremium, sec80D_self_limit);
+  const sec80D_parents_used = Math.min(parentsHealthPremium, sec80D_parents_limit);
+  const d80D_raw = sec80D_self_used + sec80D_parents_used;
+  const d80D_sources =
+    [
+      sec80D_self_used > 0
+        ? `Self/Family ₹${Math.round(sec80D_self_used).toLocaleString("en-IN")}`
+        : null,
+      sec80D_parents_used > 0
+        ? `Parents ₹${Math.round(sec80D_parents_used).toLocaleString("en-IN")}`
+        : null,
     ]
       .filter(Boolean)
       .join(" + ") || null;
@@ -1009,13 +1104,56 @@ export const getAutoDetectedDeductions = (state: any, fy: string): AutoDetectedD
       ? homeLoanData.map((l: any) => l.lender).join(", ") + " (approx. interest)"
       : null;
 
+  // 80CCD(1B) — NPS extra self contribution (max ₹50,000)
+  // Checks both account ledger transactions in FY and account-level contribution
+  const npsTxnSelf = (state.nps || []).reduce((s: number, n: any) => {
+    return (
+      s +
+      (n.transactions || [])
+        .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr)
+        .reduce((sum: number, t: any) => sum + Number(t.employeeAmount ?? t.amount ?? 0), 0)
+    );
+  }, 0);
+  const npsAccountSelf = (state.nps || []).reduce(
+    (s: number, n: any) => s + Number(n.thisYearContribution || n.yearContribution || 0),
+    0
+  );
+  const npsContrib = npsTxnSelf > 0 ? npsTxnSelf : npsAccountSelf;
+  const nps_used = Math.min(npsContrib, 50_000);
+  const nps_source =
+    nps_used > 0 ? `NPS ₹${Math.round(nps_used).toLocaleString("en-IN")}` : null;
+
+  // 80CCD(2) — Employer NPS contribution
+  // Checks both account ledger transactions in FY and account-level employerContribution
+  const npsTxnEmployer = (state.nps || []).reduce((s: number, n: any) => {
+    return (
+      s +
+      (n.transactions || [])
+        .filter((t: any) => t.date && t.date >= fyStartStr && t.date <= fyEndStr)
+        .reduce((sum: number, t: any) => sum + Number(t.employerAmount || 0), 0)
+    );
+  }, 0);
+  const npsAccountEmployer = (state.nps || []).reduce(
+    (s: number, n: any) => s + Number(n.employerContribution || 0),
+    0
+  );
+  const npsEmployer = npsTxnEmployer > 0 ? npsTxnEmployer : npsAccountEmployer;
+  const d80CCD2_source =
+    npsEmployer > 0 ? `Employer NPS ₹${Math.round(npsEmployer).toLocaleString("en-IN")}` : null;
+
   return {
     d80C: Math.min(d80C_raw, 150_000),
     d80C_sources,
+    d80D: d80D_raw,
+    d80D_source: d80D_sources,
     hra: Math.round(hra_raw),
     hra_source,
     homeLoan: Math.min(homeLoan_raw, 200_000),
     homeLoan_source,
+    nps: nps_used,
+    nps_source,
+    d80CCD2: npsEmployer,
+    d80CCD2_source,
   };
 };
 
@@ -1033,11 +1171,11 @@ export const getTaxDueForDashboard = (state: any, annualIncome: number): number 
     const overrides = state.masterData?.taxDeductions?.[fy] || {};
 
     const d80C = overrides.d80C !== undefined ? overrides.d80C : auto.d80C;
-    const d80D = overrides.d80D !== undefined ? overrides.d80D : 0;
+    const d80D = overrides.d80D !== undefined ? overrides.d80D : auto.d80D;
     const hra = overrides.hra !== undefined ? overrides.hra : auto.hra;
     const homeLoan = overrides.homeLoan !== undefined ? overrides.homeLoan : auto.homeLoan;
-    const nps = overrides.nps !== undefined ? overrides.nps : 0;
-    const d80CCD2 = overrides.d80CCD2 !== undefined ? overrides.d80CCD2 : 0;
+    const nps = overrides.nps !== undefined ? overrides.nps : auto.nps;
+    const d80CCD2 = overrides.d80CCD2 !== undefined ? overrides.d80CCD2 : auto.d80CCD2;
     const d80G = overrides.d80G !== undefined ? overrides.d80G : 0;
     const d80E = overrides.d80E !== undefined ? overrides.d80E : 0;
     const d80TTA = overrides.d80TTA !== undefined ? overrides.d80TTA : 0;
@@ -1049,7 +1187,7 @@ export const getTaxDueForDashboard = (state: any, annualIncome: number): number 
     const totalOldDeductions =
       stdDedOld +
       Math.min(d80C, 150_000) +
-      Math.min(d80D, 25_000) +
+      Math.min(d80D, 100_000) +
       hra +
       Math.min(homeLoan, 200_000) +
       Math.min(nps, 50_000) +

@@ -1,7 +1,5 @@
-// @ts-nocheck
 import React from "react";
 import { Loader2 } from "lucide-react";
-import { THEME } from "../../utils/constants";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger" | "accent";

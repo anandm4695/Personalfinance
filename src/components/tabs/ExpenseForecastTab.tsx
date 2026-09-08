@@ -154,6 +154,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
   // read as if it recurs every month) and "Recent (3m)" reflects the actual last 3 calendar
   // months rather than the last 3 months the category happened to have any spend in.
   const categoryStats = useMemo(() => {
+    if (!historicalData.length) return [];
     const allCats = new Set();
     historicalData.forEach((m) => {
       Object.keys(m).forEach((key) => {

@@ -1619,24 +1619,28 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
   const [modal, setModal] = useState<null | "lic" | "term" | "invest">(null);
   const [editPolicy, setEditPolicy] = useState<any>(null);
 
-  const totalLICAssured = state.lic.reduce((s: number, l: any) => s + Number(l.sumAssured || 0), 0);
-  const totalTermCover = state.termPlans.reduce(
+  const licList: any[] = state.lic || [];
+  const termList: any[] = state.termPlans || [];
+  const investList: any[] = state.investmentPlans || [];
+
+  const totalLICAssured = licList.reduce((s: number, l: any) => s + Number(l.sumAssured || 0), 0);
+  const totalTermCover = termList.reduce(
     (s: number, t: any) => s + Number(t.coverAmount || 0),
     0
   );
-  const totalInvestMaturity = (state.investmentPlans || []).reduce(
+  const totalInvestMaturity = investList.reduce(
     (s: number, ip: any) => s + Number(ip.expectedMaturityAmount || 0),
     0
   );
-  const licAnnualPremium = state.lic.reduce(
+  const licAnnualPremium = licList.reduce(
     (s: number, l: any) => s + Number(l.annualPremium || 0),
     0
   );
-  const termAnnualPremium = state.termPlans.reduce(
+  const termAnnualPremium = termList.reduce(
     (s: number, t: any) => s + Number(t.annualPremium || 0),
     0
   );
-  const investAnnualPremium = (state.investmentPlans || []).reduce(
+  const investAnnualPremium = investList.reduce(
     (s: number, ip: any) => s + Number(ip.annualPremium || 0),
     0
   );
@@ -1702,7 +1706,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
     const rows = [
       "Type,Plan Name,Insurer,Cover/Assured (₹),Annual Premium (₹),Total Paid (₹),Maturity/Expiry Date,Owner",
     ];
-    state.lic.forEach((l: any) => {
+    licList.forEach((l: any) => {
       const paid =
         (l.transactions || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0) ||
         Number(l.premiumPaid || 0);
@@ -1719,7 +1723,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
         ].join(",")
       );
     });
-    state.termPlans.forEach((t: any) => {
+    termList.forEach((t: any) => {
       const paid =
         (t.transactions || []).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0) ||
         Number(t.premiumPaid || 0);
@@ -1736,7 +1740,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
         ].join(",")
       );
     });
-    (state.investmentPlans || []).forEach((ip: any) => {
+    investList.forEach((ip: any) => {
       const paid =
         (ip.transactions || []).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0) ||
         Number(ip.premiumPaid || 0);
@@ -1763,7 +1767,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
   };
 
   const hasPolicies =
-    state.lic.length > 0 || state.termPlans.length > 0 || (state.investmentPlans || []).length > 0;
+    licList.length > 0 || termList.length > 0 || investList.length > 0;
 
   const premiumData = [
     { name: "LIC Premiums", value: licAnnualPremium, color: THEME.rust },
@@ -1784,7 +1788,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
   // mirrors the identical per-card calc further below for each policy type (LIC,
   // Term, Investment) so this list never disagrees with what the card itself shows.
   const upcomingPremiums = [
-    ...state.lic.map((l: any) => {
+    ...licList.map((l: any) => {
       const paid =
         (l.transactions || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0) ||
         Number(l.premiumPaid || 0);
@@ -1801,7 +1805,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
         nextDue: getNextPremiumDue(l.commencementDate, l.maturityDate),
       };
     }),
-    ...state.termPlans.map((t: any) => {
+    ...termList.map((t: any) => {
       const paid =
         (t.transactions || []).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0) ||
         Number(t.premiumPaid || 0);
@@ -2208,7 +2212,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
             </Button>
           </div>
         </div>
-        {state.lic.length === 0 ? (
+        {licList.length === 0 ? (
           <EmptyState
             icon={Shield}
             dotColor={THEME.gold}
@@ -2226,7 +2230,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
               gap: 16,
             }}
           >
-            {state.lic.map((l: any) => {
+            {licList.map((l: any) => {
               const paid =
                 (l.transactions || []).reduce(
                   (sum: number, t: any) => sum + Number(t.amount || 0),
@@ -2539,7 +2543,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
             Add Plan
           </Button>
         </div>
-        {state.termPlans.length === 0 ? (
+        {termList.length === 0 ? (
           <EmptyState
             icon={Heart}
             dotColor={THEME.pink}
@@ -2557,7 +2561,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
               gap: 16,
             }}
           >
-            {state.termPlans.map((t: any) => {
+            {termList.map((t: any) => {
               const paid =
                 (t.transactions || []).reduce(
                   (sum: number, tx: any) => sum + Number(tx.amount || 0),
@@ -3292,9 +3296,9 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
         <AddInsuranceModal
           sub={
             modal ||
-            (state.lic.some((l: any) => l.id === editPolicy?.id)
+            (licList.some((l: any) => l.id === editPolicy?.id)
               ? "lic"
-              : state.termPlans.some((t: any) => t.id === editPolicy?.id)
+              : termList.some((t: any) => t.id === editPolicy?.id)
                 ? "term"
                 : "invest")
           }

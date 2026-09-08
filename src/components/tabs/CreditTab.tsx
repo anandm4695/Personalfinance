@@ -568,7 +568,7 @@ export function CreditTab({
   // Existing shared group names — passed to modals for datalist suggestions
   const existingGroups: string[] = [
     ...new Set(
-      state.creditCards.filter((c: any) => c.sharedGroup).map((c: any) => c.sharedGroup as string)
+      (state.creditCards || []).filter((c: any) => c.sharedGroup).map((c: any) => c.sharedGroup as string)
     ),
   ];
 
@@ -721,10 +721,10 @@ export function CreditTab({
         {sub !== "borrowed" &&
           sub !== "lent" &&
           sub !== "optimizer" &&
-          !(sub === "taken" && !state.loansTaken.length) &&
-          !(sub === "given" && !state.loansGiven.length) &&
-          !(sub === "cc" && !state.creditCards.length) &&
-          !(sub === "prepaid" && !state.prepaidCards.length) && (
+          !(sub === "taken" && !(state.loansTaken || []).length) &&
+          !(sub === "given" && !(state.loansGiven || []).length) &&
+          !(sub === "cc" && !(state.creditCards || []).length) &&
+          !(sub === "prepaid" && !(state.prepaidCards || []).length) && (
             <Button variant="accent" icon={<Plus size={14} />} onClick={() => setModal(sub)}>
               Add {activeMeta.label.split(" ")[0]}
             </Button>
@@ -735,7 +735,7 @@ export function CreditTab({
         {sub === "cc" && (
           <>
             {(() => {
-              const activeCards = state.creditCards.filter(
+              const activeCards = (state.creditCards || []).filter(
                 (c: any) => (c.status || "active").toLowerCase() !== "closed"
               );
               // For shared-pool cards, count the pool limit once (max across group), not the sum of sub-limits
@@ -803,7 +803,7 @@ export function CreditTab({
                       ? utilPct > 100
                         ? `Over limit by ${utilPct - 100}%`
                         : `${100 - utilPct}% of limit free`
-                      : activeCards.length === 0 && state.creditCards.length > 0
+                      : activeCards.length === 0 && (state.creditCards || []).length > 0
                         ? "All cards closed"
                         : "No cards yet",
                   value: fmtINRFull(totalAvailable),
@@ -1080,7 +1080,7 @@ export function CreditTab({
 
       {editId && sub === "cc" && (
         <CCModal
-          initial={state.creditCards.find((x: any) => x.id === editId)}
+          initial={(state.creditCards || []).find((x: any) => x.id === editId)}
           onClose={() => setEditId(null)}
           onSave={(v: any) => saveCCEdit(editId, v)}
           saving={savingCCEdit}
@@ -1089,7 +1089,7 @@ export function CreditTab({
       )}
       {editId && sub === "prepaid" && (
         <PrepaidModal
-          initial={state.prepaidCards.find((x: any) => x.id === editId)}
+          initial={(state.prepaidCards || []).find((x: any) => x.id === editId)}
           onClose={() => setEditId(null)}
           onSave={(v: any) => savePrepaidEdit(editId, v)}
           saving={savingPrepaidEdit}
@@ -1097,7 +1097,7 @@ export function CreditTab({
       )}
       {editId && sub === "taken" && (
         <LoanTakenModal
-          initial={state.loansTaken.find((x: any) => x.id === editId)}
+          initial={(state.loansTaken || []).find((x: any) => x.id === editId)}
           onClose={() => setEditId(null)}
           onSave={(v: any) => saveLoanTakenEdit(editId, v)}
           saving={savingLoanTakenEdit}
@@ -1105,7 +1105,7 @@ export function CreditTab({
       )}
       {editId && sub === "given" && (
         <LoanGivenModal
-          initial={state.loansGiven.find((x: any) => x.id === editId)}
+          initial={(state.loansGiven || []).find((x: any) => x.id === editId)}
           onClose={() => setEditId(null)}
           onSave={(v: any) => saveLoanGivenEdit(editId, v)}
           saving={savingLoanGivenEdit}

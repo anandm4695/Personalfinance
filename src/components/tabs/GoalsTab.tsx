@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";

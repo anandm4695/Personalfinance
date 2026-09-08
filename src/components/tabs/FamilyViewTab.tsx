@@ -44,6 +44,8 @@ import {
   today,
   getGoldPricePerGram,
   GOLD_PURITY_FACTOR,
+  loanOutstanding,
+  loanGivenOutstanding,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -259,7 +261,15 @@ const memberAssets = (state, owner, marketData) => {
     return s + (txTotal > 0 ? txTotal : Number(l.premiumPaid || 0));
   }, 0);
   const bonds = filter(state.bonds).reduce(
-    (s, b) => s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
+    (s, b) =>
+      s +
+      Number(
+        b.totalInvestmentAmount ||
+        b.totalPrincipalAmount ||
+        (Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0)) ||
+        b.faceValue ||
+        0
+      ),
     0
   );
   const investmentPlans = filter(state.investmentPlans).reduce((s, ip) => {
@@ -276,7 +286,7 @@ const memberAssets = (state, owner, marketData) => {
     (s, v) => s + Number(v.currentValue || v.purchasePrice || 0),
     0
   );
-  const loansGiven = filter(state.loansGiven).reduce((s, l) => s + Number(l.outstanding || 0), 0);
+  const loansGiven = filter(state.loansGiven).reduce((s, l) => s + loanGivenOutstanding(l), 0);
   const prepaid = filter(state.prepaidCards)
     .filter((p) => (p.status || "").toLowerCase() !== "closed")
     .reduce((s, p) => {
@@ -330,7 +340,7 @@ const memberAssets = (state, owner, marketData) => {
   );
 
   // Liabilities
-  const loans = filter(state.loansTaken).reduce((s, l) => s + Number(l.outstanding || 0), 0);
+  const loans = filter(state.loansTaken).reduce((s, l) => s + loanOutstanding(l), 0);
   const cc = filter(state.creditCards)
     .filter((c) => (c.status || "").toLowerCase() !== "closed")
     .reduce((s, c) => s + Number(c.outstanding || 0), 0);

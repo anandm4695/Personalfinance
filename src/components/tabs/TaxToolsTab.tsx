@@ -148,11 +148,11 @@ const AdvanceTaxSection = ({ state, metrics }) => {
     const auto = getAutoDetectedDeductions(state, fy);
     const overrides = state.masterData?.taxDeductions?.[fy] || {};
     const d80C = overrides.d80C !== undefined ? overrides.d80C : auto.d80C;
-    const d80D = overrides.d80D !== undefined ? overrides.d80D : 0;
+    const d80D = overrides.d80D !== undefined ? overrides.d80D : auto.d80D;
     const hra = overrides.hra !== undefined ? overrides.hra : auto.hra;
     const homeLoan = overrides.homeLoan !== undefined ? overrides.homeLoan : auto.homeLoan;
-    const nps = overrides.nps !== undefined ? overrides.nps : 0;
-    const d80CCD2 = overrides.d80CCD2 !== undefined ? overrides.d80CCD2 : 0;
+    const nps = overrides.nps !== undefined ? overrides.nps : auto.nps;
+    const d80CCD2 = overrides.d80CCD2 !== undefined ? overrides.d80CCD2 : auto.d80CCD2;
     const d80G = overrides.d80G !== undefined ? overrides.d80G : 0;
     const d80E = overrides.d80E !== undefined ? overrides.d80E : 0;
     const d80TTA = overrides.d80TTA !== undefined ? overrides.d80TTA : 0;
@@ -160,7 +160,7 @@ const AdvanceTaxSection = ({ state, metrics }) => {
     const totalOldDeductions =
       stdDedOld +
       Math.min(d80C, 150000) +
-      Math.min(d80D, 25000) +
+      Math.min(d80D, 100000) +
       hra +
       Math.min(homeLoan, 200000) +
       Math.min(nps, 50000) +

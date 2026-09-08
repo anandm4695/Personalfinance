@@ -176,7 +176,15 @@ export function SubscriptionsTab({ state, addItem, removeItem, updateItem, metri
     try {
       const step = getSubscriptionCycleStep(s.cycle);
       const currentRenewal = s.renewalDate || today();
-      const newRenewalDate = addMonthsToDateStr(currentRenewal, step);
+      let newRenewalDate: string;
+      if (currentRenewal < today()) {
+        newRenewalDate = getNextSubscriptionRenewal(currentRenewal, s.cycle, today());
+        if (newRenewalDate <= today()) {
+          newRenewalDate = addMonthsToDateStr(newRenewalDate, step);
+        }
+      } else {
+        newRenewalDate = addMonthsToDateStr(currentRenewal, step);
+      }
       await updateItem("subscriptions", id, {
         renewalDate: newRenewalDate,
         lastPaidAmount: s.amount,

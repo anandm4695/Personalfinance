@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   Calculator,
@@ -64,13 +63,36 @@ const tdCenter: React.CSSProperties = {
   fontWeight: 700,
 };
 
+export interface AmortizationScheduleItem {
+  month: number;
+  emi: number;
+  principal: number;
+  interest: number;
+  balance: number;
+  totalInterest: number;
+  totalPrincipal: number;
+  dateLabel?: string;
+}
+
+export interface AmortizationResult {
+  emi: number;
+  schedule: AmortizationScheduleItem[];
+  totalInterest: number;
+  totalMonths: number;
+}
+
+export interface LumpSumPrepayment {
+  month: number;
+  amount: number;
+}
+
 export const generateAmortization = (
-  principal,
-  annualRate,
-  tenureMonths,
-  extraMonthly = 0,
-  lumpSum = null
-) => {
+  principal: number,
+  annualRate: number,
+  tenureMonths: number,
+  extraMonthly: number = 0,
+  lumpSum: LumpSumPrepayment | null = null
+): AmortizationResult => {
   if (!tenureMonths || tenureMonths <= 0) {
     return { emi: 0, schedule: [], totalInterest: 0, totalMonths: 0 };
   }
@@ -82,7 +104,7 @@ export const generateAmortization = (
         (Math.pow(1 + monthlyRate, tenureMonths) - 1)
       : principal / tenureMonths;
 
-  const schedule = [];
+  const schedule: AmortizationScheduleItem[] = [];
   let balance = principal;
   let totalInterest = 0;
   let totalPrincipal = 0;
@@ -127,8 +149,8 @@ export const generateAmortization = (
 // Projects a schedule row's calendar date from today — loans don't store a
 // disbursement date, so this is the same "starting now" anchor the rest of
 // the calculator already uses (balance = today's outstanding, tenure = months remaining).
-const addMonths = (date, n) => new Date(date.getFullYear(), date.getMonth() + n, 1);
-const formatMonthYear = (date) => date.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+const addMonths = (date: Date, n: number) => new Date(date.getFullYear(), date.getMonth() + n, 1);
+const formatMonthYear = (date: Date) => date.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
 
 /* ─── CUSTOM TOOLTIP ──────────────────────────────────────────────────────── */
 const ChartTooltip = ({ active, payload, label, formatter }: any) => {
@@ -172,17 +194,17 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
   );
 };
 
-export const LoanAmortizationTab = ({ state }) => {
+export const LoanAmortizationTab: React.FC<{ state: any }> = ({ state }) => {
   const { privacyMode } = usePrivacy();
   const loans = useMemo(
     // A loan with `outstanding` explicitly at 0 is paid off — only fall back to
     // `principal` when `outstanding` is genuinely missing (legacy/imported rows),
     // otherwise a settled loan reappears here as if it were still active.
-    () => [...(state.loansTaken || [])].filter((l) => loanOutstanding(l) > 0),
+    () => [...(state.loansTaken || [])].filter((l: any) => loanOutstanding(l) > 0),
     [state.loansTaken]
   );
 
-  const [selectedLoan, setSelectedLoan] = useState(null);
+  const [selectedLoan, setSelectedLoan] = useState<string | null>(null);
   const [customPrincipal, setCustomPrincipal] = useState(0);
   const [customRate, setCustomRate] = useState(0);
   const [customTenure, setCustomTenure] = useState(0);
@@ -659,7 +681,7 @@ export const LoanAmortizationTab = ({ state }) => {
           </div>
 
           {/* Prepayment Savings */}
-          {savings && (
+          {savings && extraAmort && (
             <Card
               style={{
                 padding: 24,
@@ -829,8 +851,8 @@ export const LoanAmortizationTab = ({ state }) => {
                     width={85}
                   />
                   <Tooltip
-                    formatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
-                    content={<ChartTooltip formatter={(v) => fmtINRFull(v)} />}
+                    formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(Number(v) || 0))}
+                    content={<ChartTooltip formatter={(v: any) => fmtINRFull(Number(v) || 0)} />}
                     cursor={{ stroke: THEME.line }}
                   />
                   <Legend
@@ -905,8 +927,8 @@ export const LoanAmortizationTab = ({ state }) => {
                     width={85}
                   />
                   <Tooltip
-                    formatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))}
-                    content={<ChartTooltip formatter={(v) => fmtINRFull(v)} />}
+                    formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(Number(v) || 0))}
+                    content={<ChartTooltip formatter={(v: any) => fmtINRFull(Number(v) || 0)} />}
                     cursor={{ fill: THEME.line, opacity: 0.4 }}
                   />
                   <Legend

@@ -545,7 +545,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
   const ownerScopedCreditCards = useMemo(
     () =>
       ownerFilter === "all"
-        ? state.creditCards
+        ? state.creditCards || []
         : (state.creditCards || []).filter((c: any) => c.owner === ownerFilter),
     [state.creditCards, ownerFilter]
   );

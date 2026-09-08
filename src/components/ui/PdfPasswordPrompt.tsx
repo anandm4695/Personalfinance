@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { Lock, Eye, EyeOff, X } from "lucide-react";
 import { THEME } from "../../utils/constants";
