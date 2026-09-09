@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   FileText,
@@ -964,7 +963,23 @@ function DocRow({
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const DocumentVaultTab = ({ state, addItem, removeItem, updateItem, session, showToast }) => {
+interface DocumentVaultTabProps {
+  state: any;
+  addItem?: any;
+  removeItem?: any;
+  updateItem?: any;
+  session?: any;
+  showToast?: (msg: string, type?: string) => void;
+}
+
+export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
+  state,
+  addItem,
+  removeItem,
+  updateItem,
+  session,
+  showToast,
+}) => {
   const { familyProfiles } = useMasterData();
   // Will & Nominee Tracker also writes into the `documents` table (type: "will" |
   // "key_contact") for its own estate-planning records — exclude those here so a

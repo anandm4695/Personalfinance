@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo } from "react";
 import {
   TrendingUp,
@@ -202,7 +201,19 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile = "all" }) => {
+interface NetWorthTimelineTabProps {
+  state: any;
+  metrics: any;
+  marketData?: any;
+  activeProfile?: string;
+}
+
+export const NetWorthTimelineTab: React.FC<NetWorthTimelineTabProps> = ({
+  state,
+  metrics,
+  marketData,
+  activeProfile = "all",
+}) => {
   const { privacyMode } = usePrivacy();
   const [projectionYears, setProjectionYears] = useState(5);
   const [selectedPreset, setSelectedPreset] = useState(1);
@@ -243,7 +254,7 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
   const history = useMemo(() => {
     const todayYm = today().slice(0, 7);
     const startYm = getEarliestNetWorthMonth(state);
-    const findVal = (breakdown, name) => breakdown.find((x) => x.name === name)?.value || 0;
+    const findVal = (breakdown: any[], name: string) => breakdown.find((x: any) => x.name === name)?.value || 0;
     const points = [];
     let cursor = startYm;
     while (cursor <= todayYm) {
@@ -482,47 +493,57 @@ export const NetWorthTimelineTab = ({ state, metrics, marketData, activeProfile 
 
           {/* Card 3: CAGR */}
           {(() => {
-            const cagrKnown = stats.cagr !== null;
-            const cagrPositive = cagrKnown && stats.cagr >= 0;
-            const accentColor = !cagrKnown ? THEME.muted : cagrPositive ? THEME.sage : THEME.rust;
-            return (
-              <StatCard
-                label="Compounded CAGR"
-                value={cagrKnown ? `${stats.cagr.toFixed(1)}%` : "N/A"}
-                numericValue={cagrKnown ? stats.cagr : undefined}
-                formatValue={cagrKnown ? (n: number) => `${n.toFixed(1)}%` : undefined}
-                icon={<Zap />}
-                color={accentColor}
-                sub={
-                  cagrKnown ? (
-                    <Badge
-                      variant={
-                        stats.cagr >= 15
-                          ? "sage"
-                          : stats.cagr >= 10
-                            ? "accent"
-                            : stats.cagr >= 5
-                              ? "gold"
-                              : "muted"
-                      }
-                      style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}
-                    >
-                      {stats.cagr >= 15
-                        ? "Aggressive Build"
-                        : stats.cagr >= 10
-                          ? "Steady Growth"
-                          : stats.cagr >= 5
-                            ? "Conservative"
-                            : "Flat Growth"}
-                    </Badge>
-                  ) : (
+            const cagrVal = stats.cagr;
+            if (cagrVal === null || cagrVal === undefined) {
+              return (
+                <StatCard
+                  label="Compounded CAGR"
+                  value="N/A"
+                  numericValue={undefined}
+                  icon={<Zap />}
+                  color={THEME.muted}
+                  sub={
                     <Badge
                       variant="muted"
                       style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}
                     >
                       Needs positive start
                     </Badge>
-                  )
+                  }
+                />
+              );
+            }
+            const cagrPositive = cagrVal >= 0;
+            const accentColor = cagrPositive ? THEME.sage : THEME.rust;
+            return (
+              <StatCard
+                label="Compounded CAGR"
+                value={`${cagrVal.toFixed(1)}%`}
+                numericValue={cagrVal}
+                formatValue={(n: number) => `${n.toFixed(1)}%`}
+                icon={<Zap />}
+                color={accentColor}
+                sub={
+                  <Badge
+                    variant={
+                      cagrVal >= 15
+                        ? "sage"
+                        : cagrVal >= 10
+                          ? "accent"
+                          : cagrVal >= 5
+                            ? "gold"
+                            : "muted"
+                    }
+                    style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}
+                  >
+                    {cagrVal >= 15
+                      ? "Aggressive Build"
+                      : cagrVal >= 10
+                        ? "Steady Growth"
+                        : cagrVal >= 5
+                          ? "Conservative"
+                          : "Flat Growth"}
+                  </Badge>
                 }
               />
             );

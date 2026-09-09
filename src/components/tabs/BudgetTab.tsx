@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
@@ -2098,7 +2097,7 @@ export function BudgetTab({
                         {re.isActive && !hasPaid && selectedMonth <= curMonthStr && (
                           <Button
                             variant="accent"
-                            size="xs"
+                            size="sm"
                             onClick={() => handleQuickPostTransaction(re)}
                             loading={postingId === re.id}
                             disabled={postingId === re.id}

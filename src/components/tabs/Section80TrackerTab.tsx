@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useMemo } from "react";
 import {
   Shield,
@@ -65,7 +64,12 @@ const ProgressBar = ({ used, limit, color }: { used: number; limit: number; colo
   </div>
 );
 
-export const Section80TrackerTab = ({ state, metrics }) => {
+interface Section80TrackerTabProps {
+  state: any;
+  metrics?: any;
+}
+
+export const Section80TrackerTab: React.FC<Section80TrackerTabProps> = ({ state }) => {
   const { familyProfiles } = useMasterData();
   const data = useMemo(() => {
     // Bug fix: PPF contributions were only read from the (older)
@@ -79,7 +83,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     const fyStartYear = Number(currentFY.split("-")[0]) || new Date().getFullYear();
     const fyStartStr = `${fyStartYear}-04-01`;
     const fyEndStr = `${fyStartYear + 1}-03-31`;
-    const inFY = (date) => !!date && date >= fyStartStr && date <= fyEndStr;
+    const inFY = (date: string | undefined | null) => !!date && date >= fyStartStr && date <= fyEndStr;
     const ppfFromTxns = (state.ppf || []).reduce(
       (sum: number, p: any) =>
         sum +
@@ -115,20 +119,20 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     // TaxFilingHelperTab.tsx hit and fixed the identical bug — mirror the
     // same FY-scoping (buyDate for ELSS, transaction date for EPF) here.
     const elss = (state.mutualFunds || [])
-      .filter((m) => (m.category || m.type || "").toLowerCase().includes("elss") && inFY(m.buyDate))
-      .reduce((s, m) => s + Number(m.invested || 0), 0);
-    const licPremium = (state.lic || []).reduce((s, l) => s + Number(l.annualPremium || 0), 0);
-    const epfPassbookContrib = (state.epf || []).reduce((s, e) => {
+      .filter((m: any) => (m.category || m.type || "").toLowerCase().includes("elss") && inFY(m.buyDate))
+      .reduce((s: number, m: any) => s + Number(m.invested || 0), 0);
+    const licPremium = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
+    const epfPassbookContrib = (state.epf || []).reduce((s: number, e: any) => {
       const txns = e.transactions || [];
       return (
         s +
         txns
           .filter(
-            (t) =>
+            (t: any) =>
               (t.type === "employee_contribution" || t.type === "monthly_contribution") &&
               inFY(t.date)
           )
-          .reduce((sum, t) => sum + Number(t.employeeShare || t.amount || 0), 0)
+          .reduce((sum: number, t: any) => sum + Number(t.employeeShare || t.amount || 0), 0)
       );
     }, 0);
     const salarySlipEpf = (state.salarySlips || [])
@@ -152,16 +156,16 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     // data. Wire them in using the same annualizeContribution() helper the
     // Govt Schemes tab itself uses for its "Annual Outflow" stat.
     const nscInvestment = (state.govtSchemes || [])
-      .filter((sc) => sc.schemeType === "NSC")
+      .filter((sc: any) => sc.schemeType === "NSC")
       .reduce(
-        (s, sc) =>
+        (s: number, sc: any) =>
           s + annualizeContribution(Number(sc.contributionAmount || 0), sc.frequency || "annual"),
         0
       );
     const sukanyaSamriddhi = (state.govtSchemes || [])
-      .filter((sc) => sc.schemeType === "SSY")
+      .filter((sc: any) => sc.schemeType === "SSY")
       .reduce(
-        (s, sc) =>
+        (s: number, sc: any) =>
           s + annualizeContribution(Number(sc.contributionAmount || 0), sc.frequency || "annual"),
         0
       );
@@ -171,10 +175,10 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     // split than a flat "~30% of EMI" guess, without needing a loan-origination
     // date to run a full schedule.
     const homeLoanInterest = homeLoans.reduce(
-      (s, l) => s + loanOutstanding(l) * (Number(l.rate || 0) / 100),
+      (s: number, l: any) => s + loanOutstanding(l) * (Number(l.rate || 0) / 100),
       0
     );
-    const homeLoanAnnualEMI = homeLoans.reduce((s, l) => s + Number(l.emi || 0) * 12, 0);
+    const homeLoanAnnualEMI = homeLoans.reduce((s: number, l: any) => s + Number(l.emi || 0) * 12, 0);
     const homeLoanPrincipal = Math.max(0, homeLoanAnnualEMI - homeLoanInterest);
     // No tuition-fee tracking exists anywhere else in the app's data model
     // (no dedicated field or ledger), so this genuinely can't be auto-wired
@@ -189,8 +193,8 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     // with a pension-plan premium logged under Investment Plans got zero
     // credit for it here despite the data already existing.
     const pensionContrib = (state.investmentPlans || [])
-      .filter((p) => (p.name || "").toLowerCase().includes("pension"))
-      .reduce((s, p) => s + Number(p.annualPremium || 0), 0);
+      .filter((p: any) => (p.name || "").toLowerCase().includes("pension"))
+      .reduce((s: number, p: any) => s + Number(p.annualPremium || 0), 0);
 
     const sec80C_items = [
       { label: "EPF (Employee)", amount: epfContrib, icon: Briefcase },
@@ -203,14 +207,14 @@ export const Section80TrackerTab = ({ state, metrics }) => {
       { label: "Sukanya Samriddhi (SSY)", amount: sukanyaSamriddhi, icon: Star },
     ].filter((i) => i.amount > 0);
 
-    const sec80C_total = sec80C_items.reduce((s, i) => s + i.amount, 0);
+    const sec80C_total = sec80C_items.reduce((s: number, i: any) => s + i.amount, 0);
     const sec80C_limit = 150000;
     const sec80C_used = Math.min(sec80C_total, sec80C_limit);
     const sec80C_remaining = Math.max(0, sec80C_limit - sec80C_total);
 
     // 80CCD(1B) — NPS extra
     const npsContrib = (state.nps || []).reduce(
-      (s, n) => s + Number(n.thisYearContribution || n.yearContribution || 0),
+      (s: number, n: any) => s + Number(n.thisYearContribution || n.yearContribution || 0),
       0
     );
     const sec80CCD1B_limit = 50000;
@@ -219,7 +223,7 @@ export const Section80TrackerTab = ({ state, metrics }) => {
 
     // 80CCD(2) — Employer NPS
     const npsEmployer = (state.nps || []).reduce(
-      (s, n) => s + Number(n.employerContribution || 0),
+      (s: number, n: any) => s + Number(n.employerContribution || 0),
       0
     );
 
@@ -238,22 +242,22 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     // each policy's insured-member relations (a policy is treated as a
     // "parents" policy if any insured member's relation looks like a
     // parent) — an heuristic, but the closest signal the data model has.
-    const HEALTH_PREMIUM_MULT = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1 };
-    const toAnnualHealthPremium = (amount, freq) =>
+    const HEALTH_PREMIUM_MULT: Record<string, number> = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1 };
+    const toAnnualHealthPremium = (amount: any, freq: string) =>
       Number(amount || 0) * (HEALTH_PREMIUM_MULT[freq] || 1);
     const PARENT_RELATION_RE = /parent|father|mother|dad|mom|papa|mummy|-in-law/i;
-    const isParentsPolicy = (p) =>
-      (p.insuredMembers || []).some((m) => PARENT_RELATION_RE.test(m?.relation || ""));
+    const isParentsPolicy = (p: any) =>
+      (p.insuredMembers || []).some((m: any) => PARENT_RELATION_RE.test(m?.relation || ""));
     const healthPolicies = state.healthInsurance || [];
     const selfHealthPremium = healthPolicies
-      .filter((p) => !isParentsPolicy(p))
-      .reduce((s, p) => s + toAnnualHealthPremium(p.premium, p.premiumFrequency || "annual"), 0);
+      .filter((p: any) => !isParentsPolicy(p))
+      .reduce((s: number, p: any) => s + toAnnualHealthPremium(p.premium, p.premiumFrequency || "annual"), 0);
     const parentsHealthPremium = healthPolicies
       .filter(isParentsPolicy)
-      .reduce((s, p) => s + toAnnualHealthPremium(p.premium, p.premiumFrequency || "annual"), 0);
-    const selfProfile = (familyProfiles || []).find((p) => p.id === "self");
+      .reduce((s: number, p: any) => s + toAnnualHealthPremium(p.premium, p.premiumFrequency || "annual"), 0);
+    const selfProfile = (familyProfiles || []).find((p: any) => p.id === "self");
     const spouseProfile = (familyProfiles || []).find(
-      (p) => p.id === "wife" || /spouse|wife|husband/i.test(p.relation || "")
+      (p: any) => p.id === "wife" || /spouse|wife|husband/i.test(p.relation || "")
     );
     const isSelfSenior = isSeniorCitizen(selfProfile?.dob);
     const isSelfOrSpouseSenior = isSelfSenior || isSeniorCitizen(spouseProfile?.dob);
@@ -263,11 +267,11 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     // Check parents' senior citizen status from familyProfiles or insured members
     const isAnyParentSenior =
       (familyProfiles || []).some(
-        (p) => PARENT_RELATION_RE.test(p.relation || "") && isSeniorCitizen(p.dob)
+        (p: any) => PARENT_RELATION_RE.test(p.relation || "") && isSeniorCitizen(p.dob)
       ) ||
-      healthPolicies.some((p) =>
+      healthPolicies.some((p: any) =>
         (p.insuredMembers || []).some(
-          (m) => PARENT_RELATION_RE.test(m?.relation || "") && isSeniorCitizen(m?.dob)
+          (m: any) => PARENT_RELATION_RE.test(m?.relation || "") && isSeniorCitizen(m?.dob)
         )
       );
     // Section 80D: Parents' cap is ₹50,000 if parents are senior citizens (60+), else ₹25,000
@@ -280,15 +284,15 @@ export const Section80TrackerTab = ({ state, metrics }) => {
     // Under Section 80TTB, resident senior citizens (60+) get up to ₹50,000 deduction on savings + FD/RD interest
     // Non-senior citizens get Section 80TTA limit of ₹10,000 on savings interest only
     const savingsInterest = (state.bankAccounts || [])
-      .filter((a) => (a.type || "").toLowerCase() === "savings")
-      .reduce((s, a) => s + Number(a.balance || 0) * (Number(a.interestRate || 3.0) / 100), 0);
+      .filter((a: any) => (a.type || "").toLowerCase() === "savings")
+      .reduce((s: number, a: any) => s + Number(a.balance || 0) * (Number(a.interestRate || 3.0) / 100), 0);
     const depositInterest = isSelfSenior
       ? (state.fixedDeposits || []).reduce(
-          (s, d) => s + Number(d.principal || 0) * (Number(d.interestRate || 6.5) / 100),
+          (s: number, d: any) => s + Number(d.principal || 0) * (Number(d.interestRate || 6.5) / 100),
           0
         ) +
         (state.recurringDeposits || []).reduce(
-          (s, r) => s + Number(r.monthlyDeposit || 0) * 12 * (Number(r.interestRate || 6.5) / 100),
+          (s: number, r: any) => s + Number(r.monthlyDeposit || 0) * 12 * (Number(r.interestRate || 6.5) / 100),
           0
         )
       : 0;
@@ -303,8 +307,8 @@ export const Section80TrackerTab = ({ state, metrics }) => {
 
     // HRA exemption (estimate)
     const monthlyRent = (state.rentedProperties || [])
-      .filter((p) => p.isActive !== false)
-      .reduce((s, p) => s + getEffectiveRent(p), 0);
+      .filter((p: any) => p.isActive !== false)
+      .reduce((s: number, p: any) => s + getEffectiveRent(p), 0);
     const annualRent = monthlyRent * 12;
 
     const totalDeductions =
@@ -462,14 +466,14 @@ export const Section80TrackerTab = ({ state, metrics }) => {
                         cy="50%"
                         outerRadius={100}
                         dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
                       >
                         {pieData.map((_, i) => (
                           <Cell key={i} fill={COLORS[i % COLORS.length]} />
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(v) => <Money value={v} variant="full" />}
+                        formatter={(v: any) => <Money value={v} variant="full" />}
                         contentStyle={{
                           background: "var(--surface-0)",
                           border: `1px solid ${THEME.line}`,

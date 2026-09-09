@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   Calculator,
@@ -114,7 +113,12 @@ const ADVANCE_TAX_DEADLINES = [
   { label: "Q4 — 15 Mar", date: "03-15", cumPct: 100 },
 ];
 
-const AdvanceTaxSection = ({ state, metrics }) => {
+interface AdvanceTaxSectionProps {
+  state: any;
+  metrics: any;
+}
+
+const AdvanceTaxSection: React.FC<AdvanceTaxSectionProps> = ({ state, metrics }) => {
   const fyList = useMemo(
     () => buildFYList(state),
     [state.income, state.transactions, state.taxPayments]
@@ -173,14 +177,14 @@ const AdvanceTaxSection = ({ state, metrics }) => {
 
   const tdsPaid = useMemo(() => {
     return (state.taxPayments || [])
-      .filter((t) => t.fy === fy && (t.taxType === "TDS" || t.type === "TDS"))
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
+      .filter((t: any) => t.fy === fy && (t.taxType === "TDS" || t.type === "TDS"))
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
   }, [state.taxPayments, fy]);
 
   const advanceTaxPaid = useMemo(() => {
     return (state.taxPayments || [])
-      .filter((t) => t.fy === fy && (t.taxType === "Advance Tax" || t.type === "Advance Tax"))
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
+      .filter((t: any) => t.fy === fy && (t.taxType === "Advance Tax" || t.type === "Advance Tax"))
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
   }, [state.taxPayments, fy]);
 
   const netTaxDue = Math.max(0, taxLiability - tdsPaid);
@@ -491,10 +495,14 @@ const AdvanceTaxSection = ({ state, metrics }) => {
 
 // ── HRA Rent Receipt Generator (B4) ─────────────────────────────────────────
 
-const HraReceiptSection = ({ state }) => {
+interface HraReceiptSectionProps {
+  state: any;
+}
+
+const HraReceiptSection: React.FC<HraReceiptSectionProps> = ({ state }) => {
   const { privacyMode } = usePrivacy();
   const [selectedProperty, setSelectedProperty] = useState("");
-  const [months, setMonths] = useState([]);
+  const [months, setMonths] = useState<string[]>([]);
   const [landlordName, setLandlordName] = useState("");
   const [landlordPan, setLandlordPan] = useState("");
   const [landlordAddress, setLandlordAddress] = useState("");
@@ -523,10 +531,10 @@ const HraReceiptSection = ({ state }) => {
     return result;
   }, [fyStart]);
 
-  const selectedProp = rentedProps.find((p) => p.id === selectedProperty);
+  const selectedProp = rentedProps.find((p: any) => p.id === selectedProperty);
 
-  const toggleMonth = (key) => {
-    setMonths((prev) =>
+  const toggleMonth = (key: string) => {
+    setMonths((prev: string[]) =>
       prev.includes(key) ? prev.filter((m) => m !== key) : [...prev, key].sort()
     );
   };
@@ -553,7 +561,7 @@ const HraReceiptSection = ({ state }) => {
 
   const printReceipts = () => {
     const receipts = getReceiptData();
-    const totalRent = receipts.reduce((s, r) => s + r.amount, 0);
+    const totalRent = receipts.reduce((s: number, r: any) => s + r.amount, 0);
     const html = `
       <!DOCTYPE html>
       <html>
@@ -676,7 +684,7 @@ const HraReceiptSection = ({ state }) => {
                     style={{ padding: "8px 12px", fontSize: 14 }}
                   >
                     <option value="">— Select —</option>
-                    {rentedProps.map((p) => (
+                    {rentedProps.map((p: any) => (
                       <option key={p.id} value={p.id}>
                         {p.name || p.address || "Property"} —{" "}
                         {privacyMode ? "••••" : fmtINRFull(getEffectiveRent(p))}/mo
@@ -953,7 +961,14 @@ const HraReceiptSection = ({ state }) => {
 
 // ── Form 26AS Reconciliation (B2) ───────────────────────────────────────────
 
-const Form26ASSection = ({ state, addItem, removeItem }) => {
+interface Form26ASSectionProps {
+  state: any;
+  addItem: any;
+  removeItem: any;
+  showToast?: (msg: string, type?: string) => void;
+}
+
+const Form26ASSection: React.FC<Form26ASSectionProps> = ({ state, addItem, removeItem, showToast }) => {
   // Form 26AS entries now live in state.form26as — a real Supabase-synced,
   // per-profile-owner-filtered array (see database/84_form26as.sql and the
   // addItem/removeItem plumbing in App.tsx). This used to be a raw
@@ -963,7 +978,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
   const entries = state.form26as || [];
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<{ id: string; deductor: string } | null>(null);
   const [newEntry, setNewEntry] = useState({
     deductor: "",
     tan: "",
@@ -978,7 +993,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
   const [fy, setFy] = useState(state.profile?.fy || fyList[0] || getCurrentFY());
 
   const taxPayments = useMemo(() => {
-    return (state.taxPayments || []).filter((t) => t.fy === fy);
+    return (state.taxPayments || []).filter((t: any) => t.fy === fy);
   }, [state.taxPayments, fy]);
 
   const addEntry = async () => {
@@ -995,21 +1010,21 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
       });
       setNewEntry({ deductor: "", tan: "", amount: "", dateOfPayment: "", section: "192" });
       setShowAdd(false);
-    } catch (e) {
+    } catch (e: any) {
       showToast?.(`Failed to save 26AS entry: ${e?.message || "Unknown error"}`, "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const doDeleteEntry = async (id) => {
+  const doDeleteEntry = async (id: string) => {
     try {
       await removeItem("form26as", id);
-    } catch (e) {
+    } catch (e: any) {
       showToast?.(`Failed to delete 26AS entry: ${e?.message || "Unknown error"}`, "error");
     }
   };
-  const deleteEntry = (id, deductor) => {
+  const deleteEntry = (id: string, deductor: string) => {
     setConfirmDeleteId({ id, deductor });
   };
 
@@ -1024,13 +1039,13 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
     const y = dt.getMonth() >= 3 ? dt.getFullYear() : dt.getFullYear() - 1;
     return `${y}-${String(y + 1).slice(-2)}`;
   };
-  const entriesForFY = entries.filter((e) => entryFY(e) === fy);
-  const total26AS = entriesForFY.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const entriesForFY = entries.filter((e: any) => entryFY(e) === fy);
+  const total26AS = entriesForFY.reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
   const animatedTotal26AS = useAnimatedNumber(total26AS);
   const appTdsAmounts = taxPayments
-    .filter((t) => t.taxType === "TDS" || t.type === "TDS")
-    .map((t) => Number(t.amount || 0));
-  const totalApp = appTdsAmounts.reduce((s, a) => s + a, 0);
+    .filter((t: any) => t.taxType === "TDS" || t.type === "TDS")
+    .map((t: any) => Number(t.amount || 0));
+  const totalApp = appTdsAmounts.reduce((s: number, a: number) => s + a, 0);
   const animatedTotalApp = useAnimatedNumber(totalApp);
   const mismatch = Math.abs(total26AS - totalApp);
   const animatedMismatch = useAnimatedNumber(mismatch);
@@ -1041,7 +1056,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
   // (within a ₹1 rounding tolerance). Purely a computed UI hint — no new
   // column/state needed, and never blocks editing/deleting.
   const isEntryMatched = (amount: number) =>
-    appTdsAmounts.some((a) => Math.abs(a - Number(amount || 0)) < 1);
+    appTdsAmounts.some((a: number) => Math.abs(a - Number(amount || 0)) < 1);
 
   const SECTIONS = [
     "192",
@@ -1343,7 +1358,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {entriesForFY.map((e) => (
+                  {entriesForFY.map((e: any) => (
                     <tr
                       key={e.id}
                       className="table-row-hover"
@@ -1436,7 +1451,7 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {taxPayments.map((t) => (
+                  {taxPayments.map((t: any) => (
                     <tr
                       key={t.id}
                       className="table-row-hover"
@@ -1483,7 +1498,22 @@ const Form26ASSection = ({ state, addItem, removeItem }) => {
 
 // ── Main Tab ─────────────────────────────────────────────────────────────────
 
-export const TaxToolsTab = ({ state, metrics, addItem, removeItem, updateItem, showToast }) => {
+interface TaxToolsTabProps {
+  state: any;
+  metrics: any;
+  addItem?: any;
+  removeItem?: any;
+  updateItem?: any;
+  showToast?: (msg: string, type?: string) => void;
+}
+
+export const TaxToolsTab: React.FC<TaxToolsTabProps> = ({
+  state,
+  metrics,
+  addItem,
+  removeItem,
+  showToast,
+}) => {
   const [activeSection, setActiveSection] = useState("advance");
 
   const sections = [
@@ -1518,7 +1548,12 @@ export const TaxToolsTab = ({ state, metrics, addItem, removeItem, updateItem, s
 
       {activeSection === "advance" && <AdvanceTaxSection state={state} metrics={metrics} />}
       {activeSection === "26as" && (
-        <Form26ASSection state={state} addItem={addItem} removeItem={removeItem} />
+        <Form26ASSection
+          state={state}
+          addItem={addItem}
+          removeItem={removeItem}
+          showToast={showToast}
+        />
       )}
       {activeSection === "hra" && <HraReceiptSection state={state} />}
     </div>
