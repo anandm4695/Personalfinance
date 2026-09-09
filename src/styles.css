@@ -290,6 +290,19 @@ textarea:focus {
   border-color: var(--t-accent);
   box-shadow: var(--shadow-focus);
 }
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"],
+.form-input[aria-invalid="true"] {
+  border-color: var(--t-rust) !important;
+}
+input[aria-invalid="true"]:focus,
+select[aria-invalid="true"]:focus,
+textarea[aria-invalid="true"]:focus,
+.form-input[aria-invalid="true"]:focus {
+  border-color: var(--t-rust) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--t-rust) 25%, transparent) !important;
+}
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
   opacity: 0.7;

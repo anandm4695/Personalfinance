@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { CalendarClock, Milestone } from "lucide-react";
 import { THEME } from "../../utils/constants";

@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Coins,
@@ -909,13 +908,13 @@ export function DividendCalendarTab({ state, marketData }: any) {
                     borderRadius: 14,
                     background: isPast
                       ? "transparent"
-                      : r.daysToEx <= 3
+                      : r.daysToEx !== null && r.daysToEx <= 3
                         ? "color-mix(in srgb, var(--t-rust) 5%, transparent)"
                         : "var(--surface-0)",
                     border: `1.5px solid ${
                       isPast
                         ? THEME.line
-                        : r.daysToEx <= 3
+                        : r.daysToEx !== null && r.daysToEx <= 3
                           ? "color-mix(in srgb, var(--t-rust) 25%, transparent)"
                           : THEME.line
                     }`,

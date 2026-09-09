@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   Calendar,
@@ -130,20 +129,20 @@ const MONTH_NAMES = [
   "Dec",
 ];
 
-const getDaysUntil = (dateStr) => {
+const getDaysUntil = (dateStr: string) => {
   if (!dateStr) return Infinity;
   const target = new Date(dateStr + "T00:00:00");
   const now = new Date(today() + "T00:00:00");
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 };
 
-const formatDate = (dateStr) => {
+const formatDate = (dateStr: string) => {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 };
 
-const getUrgencyColor = (days) => {
+const getUrgencyColor = (days: number) => {
   if (days < 0) return THEME.rust;
   if (days <= 7) return THEME.gold;
   if (days <= 30) return THEME.gold;
@@ -151,7 +150,7 @@ const getUrgencyColor = (days) => {
   return THEME.sage;
 };
 
-const getUrgencyLabel = (days) => {
+const getUrgencyLabel = (days: number) => {
   if (days < 0) return "Overdue";
   if (days === 0) return "Today";
   if (days <= 7) return `${days}d`;
@@ -171,6 +170,11 @@ export const FinancialCalendarTab = ({
   // the merged Calendar tab — suppresses this component's own SectionTitle
   // since the wrapper already renders one shared header + view toggle.
   embedded = false,
+}: {
+  state: any;
+  metrics?: any;
+  onNavigateToTab?: (tab: string) => void;
+  embedded?: boolean;
 }) => {
   const [horizon, setHorizon] = useState(6);
   const [activeFilter, setActiveFilter] = useState("all");
@@ -229,7 +233,7 @@ export const FinancialCalendarTab = ({
       .reduce((s, e) => s + (e.amount || 0), 0);
 
     // Monthly breakdown
-    const monthlyMap = {};
+    const monthlyMap: Record<string, { inflow: number; outflow: number; events: number }> = {};
     liveEvents
       .filter((e) => e.days >= 0)
       .forEach((e) => {
@@ -346,7 +350,7 @@ export const FinancialCalendarTab = ({
   }
 
   // Group events by month
-  const groupedByMonth = {};
+  const groupedByMonth: Record<string, any[]> = {};
   filteredEvents.forEach((e) => {
     const m = e.date?.slice(0, 7) || "unknown";
     if (!groupedByMonth[m]) groupedByMonth[m] = [];

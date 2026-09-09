@@ -7,12 +7,27 @@ interface FieldProps {
   labelStyle?: React.CSSProperties;
   error?: string;
   hint?: string;
+  required?: boolean;
 }
 
-export const Field: React.FC<FieldProps> = ({ label, children, style, labelStyle, error, hint }) => {
+export const Field: React.FC<FieldProps> = ({
+  label,
+  children,
+  style,
+  labelStyle,
+  error,
+  hint,
+  required,
+}) => {
   const autoId = React.useId();
   const errorId = `${autoId}-error`;
   const hintId = `${autoId}-hint`;
+  const isRequired = Boolean(required || (typeof label === "string" && label.trim().endsWith("*")));
+  const displayLabel =
+    typeof label === "string" && label.trim().endsWith("*")
+      ? label.trim().slice(0, -1).trim()
+      : label;
+
   const onlyChild =
     React.Children.count(children) === 1 && React.isValidElement(children)
       ? (children as React.ReactElement<any>)
@@ -31,6 +46,7 @@ export const Field: React.FC<FieldProps> = ({ label, children, style, labelStyle
         id: onlyChild.props?.id || fieldId,
         "aria-invalid": error ? true : onlyChild.props?.["aria-invalid"],
         "aria-describedby": describedBy || undefined,
+        ...(isRequired ? { "aria-required": true } : {}),
       })
     : children;
 
@@ -49,7 +65,15 @@ export const Field: React.FC<FieldProps> = ({ label, children, style, labelStyle
           ...labelStyle,
         }}
       >
-        {label}
+        {displayLabel}
+        {isRequired && (
+          <span
+            style={{ color: "var(--t-rust)", marginLeft: 4, fontWeight: 700 }}
+            aria-hidden="true"
+          >
+            *
+          </span>
+        )}
       </label>
       {content}
       {error && (

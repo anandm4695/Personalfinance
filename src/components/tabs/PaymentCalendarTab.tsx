@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useMemo, useState } from "react";
 import {
   Calendar,
@@ -43,8 +42,7 @@ import { Money } from "../ui/Money";
 // Reuses BillPaymentTab's exact "is this bill paid for its current cycle" formula
 // (cross-referenced against billPaymentHistory) instead of re-deriving a second,
 // inevitably-divergent version of the same logic here. This is the same shared
-// import the app-wide useAlerts hook already uses for the identical reason.
-import { dueStatus } from "./BillPaymentTab";
+import { dueStatus } from "../../utils/dueStatus";
 import { useRecurringPayments } from "../../hooks/useFinancialEvents";
 
 const MONTH_NAMES = [
@@ -588,13 +586,13 @@ export function PaymentCalendarTab({ state, addItem, showToast, embedded = false
                 />
                 <Tooltip
                   cursor={{ fill: THEME.line, opacity: 0.4 }}
-                  content={<BarTooltip formatter={(v) => (privacyMode ? "••••" : fmtINRFull(v))} />}
+                  content={<BarTooltip formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(v))} />}
                 />
                 <Bar
                   dataKey="total"
                   radius={[4, 4, 0, 0]}
                   maxBarSize={40}
-                  onClick={(d) => setViewDate({ year: d.payload.year, month: d.payload.month })}
+                  onClick={(d: any) => setViewDate({ year: d.payload.year, month: d.payload.month })}
                   style={{ cursor: "pointer" }}
                 >
                   {chartData.map((m, i) => (

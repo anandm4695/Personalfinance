@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   FileText,
@@ -82,9 +81,17 @@ const ITR_CHECKLIST = [
   { id: "itr_form", label: "Correct ITR form selected", category: "Filing" },
 ];
 
-export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
+export const TaxFilingHelperTab = ({
+  state,
+  metrics,
+  updateMasterData,
+}: {
+  state: any;
+  metrics?: any;
+  updateMasterData?: (key: string, val: any) => void;
+}) => {
   const { familyProfiles } = useMasterData();
-  const [checkedItems, setCheckedItems] = useState(() => {
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>(() => {
     const saved = state.masterData?._taxChecklist || {};
     return saved;
   });
@@ -110,8 +117,8 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
 
   const [selectedFY, setSelectedFY] = useState(state.profile?.fy || availableFYs[0] || getCurrentFY());
 
-  const toggleCheck = (id) => {
-    setCheckedItems((prev) => {
+  const toggleCheck = (id: string) => {
+    setCheckedItems((prev: Record<string, boolean>) => {
       const next = { ...prev, [id]: !prev[id] };
       if (typeof updateMasterData === "function") {
         updateMasterData("_taxChecklist", next);
@@ -125,28 +132,28 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     const [startYear] = fy.split("-").map(Number);
     const fyStart = `${startYear}-04-01`;
     const fyEnd = `${startYear + 1}-03-31`;
-    const inFY = (date) => date && date >= fyStart && date <= fyEnd;
+    const inFY = (date: string) => Boolean(date && date >= fyStart && date <= fyEnd);
 
     // Salary income from bank/income ledger
     const salaryIncome = (state.income || [])
-      .filter((i) => inFY(i.date) && (i.source || "").toLowerCase().includes("salary"))
-      .reduce((s, i) => s + Number(i.amount || 0), 0);
+      .filter((i: any) => inFY(i.date) && (i.source || "").toLowerCase().includes("salary"))
+      .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
 
     // Bank interest & Other income (deduplicated)
     const interestIncomeLogged = (state.income || [])
-      .filter((i) => inFY(i.date) && (i.source || i.category || "").toLowerCase().includes("interest"))
-      .reduce((s, i) => s + Number(i.amount || 0), 0);
+      .filter((i: any) => inFY(i.date) && (i.source || i.category || "").toLowerCase().includes("interest"))
+      .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
 
     const otherIncome = (state.income || [])
       .filter(
-        (i) =>
+        (i: any) =>
           inFY(i.date) &&
           !(i.source || "").toLowerCase().includes("salary") &&
           !(i.source || i.category || "").toLowerCase().includes("interest")
       )
-      .reduce((s, i) => s + Number(i.amount || 0), 0);
+      .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
 
-    const fdInterestEstimate = (state.fixedDeposits || []).reduce((s, fd) => {
+    const fdInterestEstimate = (state.fixedDeposits || []).reduce((s: number, fd: any) => {
       const rate = Number(fd.rate || 0);
       const principal = Number(fd.principal || 0);
       return s + (principal * rate) / 100;
@@ -166,28 +173,28 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     // active properties, same actual-over-projected fallback pattern used
     // for PPF/EPF below and in RentalTab.tsx's own FY total.
     const rentalReceiptsLedger = (state.rentalProperties || []).reduce(
-      (s, p) =>
+      (s: number, p: any) =>
         s +
         (p.receipts || [])
-          .filter((r) => inFY(r.date))
-          .reduce((ss, r) => ss + Number(r.amount || 0), 0),
+          .filter((r: any) => inFY(r.date))
+          .reduce((ss: number, r: any) => ss + Number(r.amount || 0), 0),
       0
     );
     const rentalIncomeEstimate = (state.rentalProperties || [])
-      .filter((p) => p.isActive !== false)
-      .reduce((s, p) => s + getEffectiveRent(p) * 12, 0);
+      .filter((p: any) => p.isActive !== false)
+      .reduce((s: number, p: any) => s + getEffectiveRent(p) * 12, 0);
     const rentalIncome = rentalReceiptsLedger > 0 ? rentalReceiptsLedger : rentalIncomeEstimate;
 
     // Dividend income
     const dividendIncome = (state.dividends || [])
-      .filter((d) => inFY(d.date))
-      .reduce((s, d) => s + Number(d.amount || 0), 0);
+      .filter((d: any) => inFY(d.date))
+      .reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
 
     // Capital gains
-    const stockSellsThisFY = (state.stockSells || []).filter((s) => inFY(s.sellDate || s.date));
-    const mfSellsThisFY = (state.mfSells || []).filter((s) => inFY(s.sellDate || s.date));
-    const stockGains = stockSellsThisFY.reduce((s, t) => s + Number(t.profit || 0), 0);
-    const mfGains = mfSellsThisFY.reduce((s, t) => s + Number(t.profit || 0), 0);
+    const stockSellsThisFY = (state.stockSells || []).filter((s: any) => inFY(s.sellDate || s.date));
+    const mfSellsThisFY = (state.mfSells || []).filter((s: any) => inFY(s.sellDate || s.date));
+    const stockGains = stockSellsThisFY.reduce((s: number, t: any) => s + Number(t.profit || 0), 0);
+    const mfGains = mfSellsThisFY.reduce((s: number, t: any) => s + Number(t.profit || 0), 0);
     // Presence of any sale record (profit or loss) — not just a net-positive
     // gain — is what actually triggers the Schedule CG / ITR-2 requirement,
     // so this is tracked separately from the totalIncome figure below (which
@@ -232,7 +239,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     const [startYear] = fy.split("-").map(Number);
     const fyStart = `${startYear}-04-01`;
     const fyEnd = `${startYear + 1}-03-31`;
-    const inFY = (date) => date && date >= fyStart && date <= fyEnd;
+    const inFY = (date: string) => Boolean(date && date >= fyStart && date <= fyEnd);
 
     // 80C — PPF account transactions / ledger (FY-scoped) takes priority over the legacy
     // thisYearContribution field, same fallback pattern as
@@ -246,34 +253,34 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
       0
     );
     const ppfLedgerThisYear = (state.ppfLedger || [])
-      .filter((t) => inFY(t.date) && t.type !== "withdrawal")
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
+      .filter((t: any) => inFY(t.date) && t.type !== "withdrawal")
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     const ppfContrib =
       ppfFromTxns > 0
         ? ppfFromTxns
         : ppfLedgerThisYear > 0
         ? ppfLedgerThisYear
         : (state.ppf || []).reduce(
-            (s, p) =>
+            (s: number, p: any) =>
               s +
               Number(p.thisYearContribution || p.yearlyContribution || p.annualContribution || 0),
             0
           );
     const elss = (state.mutualFunds || [])
       .filter(
-        (m) => (m.category || m.type || "").toLowerCase().includes("elss") && inFY(m.buyDate)
+        (m: any) => (m.category || m.type || "").toLowerCase().includes("elss") && inFY(m.buyDate)
       )
-      .reduce((s, m) => s + Number(m.invested || 0), 0);
-    const licPremium = (state.lic || []).reduce((s, l) => s + Number(l.annualPremium || 0), 0);
-    const epfContrib = (state.epf || []).reduce((s, e) => {
+      .reduce((s: number, m: any) => s + Number(m.invested || 0), 0);
+    const licPremium = (state.lic || []).reduce((s: number, l: any) => s + Number(l.annualPremium || 0), 0);
+    const epfContrib = (state.epf || []).reduce((s: number, e: any) => {
       const txns = e.transactions || [];
       const empContrib = txns
         .filter(
-          (t) =>
+          (t: any) =>
             (t.type === "employee_contribution" || t.type === "monthly_contribution") &&
             inFY(t.date)
         )
-        .reduce((sum, t) => sum + Number(t.employeeShare || t.amount || 0), 0);
+        .reduce((sum: number, t: any) => sum + Number(t.employeeShare || t.amount || 0), 0);
       return s + empContrib;
     }, 0);
     const sec80C = Math.min(150000, ppfContrib + elss + licPremium + epfContrib);
@@ -288,7 +295,7 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
       );
     }, 0);
     const npsAccountSelf = (state.nps || []).reduce(
-      (s, n) => s + Number(n.thisYearContribution || n.yearContribution || 0),
+      (s: number, n: any) => s + Number(n.thisYearContribution || n.yearContribution || 0),
       0
     );
     const npsContrib = npsTxnSelf > 0 ? npsTxnSelf : npsAccountSelf;
@@ -361,21 +368,21 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     // Home loan interest
     const homeLoanInterest = (state.loansTaken || [])
       .filter(isHomeLoan)
-      .reduce((s, l) => s + loanOutstanding(l) * (Number(l.rate || 0) / 100), 0);
+      .reduce((s: number, l: any) => s + loanOutstanding(l) * (Number(l.rate || 0) / 100), 0);
     const sec24 = Math.min(200000, homeLoanInterest);
 
     // 80TTA / 80TTB (senior citizens 60+ get up to ₹50,000 under 80TTB across savings and deposits)
-    const savingsInterest = (state.bankAccounts || []).reduce((s, a) => {
+    const savingsInterest = (state.bankAccounts || []).reduce((s: number, a: any) => {
       if ((a.type || "").toLowerCase() === "savings") return s + Number(a.balance || 0) * (Number(a.interestRate || 3.0) / 100);
       return s;
     }, 0);
     const depositInterest = isSelfSenior
       ? (state.fixedDeposits || []).reduce(
-          (s, d) => s + Number(d.principal || 0) * (Number(d.interestRate || 6.5) / 100),
+          (s: number, d: any) => s + Number(d.principal || 0) * (Number(d.interestRate || 6.5) / 100),
           0
         ) +
         (state.recurringDeposits || []).reduce(
-          (s, r) => s + Number(r.monthlyDeposit || 0) * 12 * (Number(r.interestRate || 6.5) / 100),
+          (s: number, r: any) => s + Number(r.monthlyDeposit || 0) * 12 * (Number(r.interestRate || 6.5) / 100),
           0
         )
       : 0;
@@ -408,11 +415,11 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     const [startYear] = fy.split("-").map(Number);
     const fyStart = `${startYear}-04-01`;
     const fyEnd = `${startYear + 1}-03-31`;
-    const inFY = (date) => date && date >= fyStart && date <= fyEnd;
+    const inFY = (date: string) => Boolean(date && date >= fyStart && date <= fyEnd);
 
     const incomeTds = (state.income || [])
-      .filter((i) => inFY(i.date))
-      .reduce((s, i) => s + Number(i.tds || 0), 0);
+      .filter((i: any) => inFY(i.date))
+      .reduce((s: number, i: any) => s + Number(i.tds || 0), 0);
     const salarySlipTds = (state.salarySlips || [])
       .filter(
         (s: any) =>
@@ -427,8 +434,8 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
     const tds = incomeTds > 0 ? incomeTds : salarySlipTds;
 
     const advanceTax = (state.taxPayments || [])
-      .filter((t) => t.fy === fy)
-      .reduce((s, t) => s + Number(t.amount || 0), 0);
+      .filter((t: any) => t.fy === fy)
+      .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
     return { tds, advanceTax, total: tds + advanceTax };
   }, [state, selectedFY]);
 
@@ -515,9 +522,9 @@ export const TaxFilingHelperTab = ({ state, metrics, updateMasterData }) => {
       reasons.push("You have capital gains/losses from stocks or mutual funds this FY");
     }
     const ownedCount = (state.realEstateProperties || []).filter(
-      (p) => p.status !== "sold"
+      (p: any) => p.status !== "sold"
     ).length;
-    const letOutCount = (state.rentalProperties || []).filter((p) => p.isActive !== false).length;
+    const letOutCount = (state.rentalProperties || []).filter((p: any) => p.isActive !== false).length;
     const housePropertyCount = Math.max(ownedCount, letOutCount);
     if (housePropertyCount > 1) {
       reasons.push(`You have ${housePropertyCount} house properties on record`);
