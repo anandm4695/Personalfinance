@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import { AlertCircle, Bot, CheckCircle, GitMerge, UploadCloud, X } from "lucide-react";
 import { THEME } from "../../utils/constants";

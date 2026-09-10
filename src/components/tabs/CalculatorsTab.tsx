@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   TrendingUp,
@@ -532,7 +531,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
     // always true and "Est. FI Target Age" collapsed to the current age.
     const targetCorpus = fireResult.reqCorpus || 15000000;
 
-    const getYearsToTarget = (startNW, annualSave, target) => {
+    const getYearsToTarget = (startNW: number, annualSave: number, target: number) => {
       if (startNW >= target) return 0;
       let cw = startNW;
       for (let y = 1; y <= 50; y++) {
@@ -5363,7 +5362,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                     />
                     <Tooltip
-                      formatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
+                      formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(Number(v || 0)))}
                       cursor={{ fill: THEME.line, opacity: 0.4 }}
                       contentStyle={{
                         background: "var(--t-card-bg)",
@@ -5659,7 +5658,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       tickFormatter={(v: number) => (privacyMode ? "••••" : fmtINRFull(v))}
                     />
                     <Tooltip
-                      formatter={(v: number, name: string) => [privacyMode ? "••••" : fmtINRFull(v), name]}
+                      formatter={(v: any, name: any) => [privacyMode ? "••••" : fmtINRFull(Number(v || 0)), name]}
                       cursor={{ stroke: THEME.line }}
                       contentStyle={{
                         background: "var(--t-card-bg)",
@@ -5670,7 +5669,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state }
                       }}
                       labelStyle={{ color: THEME.ink }}
                       itemStyle={{ color: THEME.ink }}
-                      labelFormatter={(age: number) => `Age ${age}`}
+                      labelFormatter={(age: any) => `Age ${age}`}
                     />
                     <Legend verticalAlign="top" height={36} />
                     {riSources.map((src, i) => {

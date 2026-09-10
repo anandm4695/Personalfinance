@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo, useCallback } from "react";
 import {
   Upload,
@@ -161,20 +160,25 @@ const parseCASText = (text: string) => {
   return holdings;
 };
 
-export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all" }) => {
+export const CASImportTab: React.FC<{
+  state: any;
+  addItem?: any;
+  updateItem?: any;
+  activeProfile?: string;
+}> = ({ state, addItem, updateItem, activeProfile = "all" }) => {
   const { familyProfiles } = useMasterData();
-  const [parsedFunds, setParsedFunds] = useState([]);
+  const [parsedFunds, setParsedFunds] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState(null);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
   const [imported, setImported] = useState(0);
-  const [parseMethod, setParseMethod] = useState("pdf"); // "pdf" | "text" | "csv"
+  const [parseMethod, setParseMethod] = useState<"pdf" | "text" | "csv">("pdf");
   const [rawText, setRawText] = useState("");
   const [csvInputFocused, setCsvInputFocused] = useState(false);
   const [csvParsing, setCsvParsing] = useState(false);
   const [parseError, setParseError] = useState("");
   const [owner, setOwner] = useState(activeProfile !== "all" ? activeProfile : "self");
 
-  const runParse = useCallback((text) => {
+  const runParse = useCallback((text: string) => {
     setParseError("");
     const holdings = parseCASText(text);
     if (holdings.length === 0) {
@@ -193,12 +197,12 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
     runParse(rawText);
   }, [rawText, runParse]);
 
-  const pdfExtract = useCasPdfExtract((text) => {
+  const pdfExtract = useCasPdfExtract((text: string) => {
     setRawText(text);
     runParse(text);
   });
 
-  const handleCSV = useCallback((e) => {
+  const handleCSV = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setParseError("");
@@ -289,9 +293,9 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
     // — matching each occurrence only against a snapshot of *existing saved* funds would let
     // both slip through as separate "new" holdings. Dedupe within this batch first, keeping
     // the last occurrence (later sections of a CAS are typically the more complete one).
-    const dedupeKey = (f) => (f.folio ? `folio:${f.folio}` : `name:${(f.scheme || "").toLowerCase()}`);
-    const deduped = new Map();
-    rawToImport.forEach((f) => deduped.set(dedupeKey(f), f));
+    const dedupeKey = (f: any) => (f.folio ? `folio:${f.folio}` : `name:${(f.scheme || "").toLowerCase()}`);
+    const deduped = new Map<string, any>();
+    rawToImport.forEach((f: any) => deduped.set(dedupeKey(f), f));
     const toImport = Array.from(deduped.values());
 
     const existingMFs = state.mutualFunds || [];
@@ -304,7 +308,7 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
         // can legitimately exist under multiple folios, so name must never override
         // a folio mismatch. Only fall back to name matching when neither side has
         // folio info to compare.
-        const existing = existingMFs.find((m) => {
+        const existing = existingMFs.find((m: any) => {
           if (m.folioNumber && f.folio) return m.folioNumber === f.folio;
           return (
             !m.folioNumber &&
@@ -355,7 +359,7 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
 
       setImported(toImport.length);
       setParsedFunds([]);
-    } catch (e) {
+    } catch (e: any) {
       setParseError(
         `Import failed partway through (${e?.message || "unknown error"}) — some holdings above may already be saved. Re-check your list before importing again.`
       );
@@ -366,11 +370,11 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
   };
 
   const stats = useMemo(() => {
-    const selected = parsedFunds.filter((f) => f.selected);
-    const totalValue = selected.reduce((s, f) => s + f.value, 0);
-    const byCat = {};
-    selected.forEach((f) => {
-      byCat[f.category] = (byCat[f.category] || 0) + f.value;
+    const selected = parsedFunds.filter((f: any) => f.selected);
+    const totalValue = selected.reduce((s: number, f: any) => s + Number(f.value || 0), 0);
+    const byCat: Record<string, number> = {};
+    selected.forEach((f: any) => {
+      byCat[f.category] = (byCat[f.category] || 0) + Number(f.value || 0);
     });
     return { count: selected.length, totalValue, byCat };
   }, [parsedFunds]);
@@ -425,7 +429,7 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
           aria-label="Import method"
           style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}
         >
-          {["pdf", "text", "csv"].map((m) => (
+          {(["pdf", "text", "csv"] as const).map((m) => (
             <button
               key={m}
               onClick={() => {
@@ -646,7 +650,7 @@ export const CASImportTab = ({ state, addItem, updateItem, activeProfile = "all"
             </h3>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               {Object.entries(stats.byCat)
-                .sort((a, b) => b[1] - a[1])
+                .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
                 .map(([cat, val]) => (
                   <div
                     key={cat}

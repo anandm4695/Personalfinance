@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useState, useMemo, useEffect } from "react";
 import {
   BarChart3,
@@ -89,7 +88,7 @@ const MONTH_NAMES = [
   "Dec",
 ];
 
-const getMonthLabel = (ym) => {
+const getMonthLabel = (ym: string) => {
   const [y, m] = ym.split("-");
   return `${MONTH_NAMES[parseInt(m) - 1]} '${y.slice(-2)}`;
 };
@@ -278,7 +277,12 @@ const ComparisonSplitCard = ({
   );
 };
 
-export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activeProfile = "all" }) => {
+export const ComparisonReportsTab: React.FC<{
+  state: any;
+  metrics?: any;
+  marketData?: any;
+  activeProfile?: string;
+}> = ({ state, metrics, marketData = {}, activeProfile = "all" }) => {
   const { privacyMode } = usePrivacy();
   // ── Inject print styles (scoped to this tab, cleaned up on unmount) ──
   useEffect(() => {
@@ -296,7 +300,7 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
   const lastYM = `${now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()}-${String(now.getMonth() === 0 ? 12 : now.getMonth()).padStart(2, "0")}`;
 
   // Fiscal-year period key helpers (FY runs Apr–Mar; quarters/halves anchored to FY start year)
-  const getFYQuarterKey = (ym) => {
+  const getFYQuarterKey = (ym: string) => {
     const [yStr, mStr] = ym.split("-");
     const y = parseInt(yStr, 10);
     const m = parseInt(mStr, 10);
@@ -305,7 +309,7 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
     if (m >= 10 && m <= 12) return `${y}-Q3`;
     return `${y - 1}-Q4`;
   };
-  const getFYHalfKey = (ym) => {
+  const getFYHalfKey = (ym: string) => {
     const [yStr, mStr] = ym.split("-");
     const y = parseInt(yStr, 10);
     const m = parseInt(mStr, 10);
@@ -313,18 +317,18 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
     if (m >= 10 && m <= 12) return `${y}-H2`;
     return `${y - 1}-H2`;
   };
-  const getFYYearKey = (ym) => {
+  const getFYYearKey = (ym: string) => {
     const [yStr, mStr] = ym.split("-");
     const y = parseInt(yStr, 10);
     const m = parseInt(mStr, 10);
     return String(m >= 4 ? y : y - 1);
   };
 
-  const monthsInQuarter = (key) => {
+  const monthsInQuarter = (key: string) => {
     const [fyStr, qStr] = key.split("-Q");
     const fy = parseInt(fyStr, 10);
     const q = parseInt(qStr, 10);
-    const table = {
+    const table: Record<number, [number, number][]> = {
       1: [
         [fy, 4],
         [fy, 5],
@@ -346,9 +350,9 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
         [fy + 1, 3],
       ],
     };
-    return table[q].map(([y, m]) => `${y}-${String(m).padStart(2, "0")}`);
+    return (table[q] || []).map(([y, m]) => `${y}-${String(m).padStart(2, "0")}`);
   };
-  const monthsInHalf = (key) => {
+  const monthsInHalf = (key: string) => {
     const [fyStr, hStr] = key.split("-H");
     const fy = parseInt(fyStr, 10);
     const h = parseInt(hStr, 10);
@@ -358,14 +362,14 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
       ...[1, 2, 3].map((m) => `${fy + 1}-${String(m).padStart(2, "0")}`),
     ];
   };
-  const monthsInYear = (key) => {
+  const monthsInYear = (key: string) => {
     const fy = parseInt(key, 10);
     return [
       ...[4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => `${fy}-${String(m).padStart(2, "0")}`),
       ...[1, 2, 3].map((m) => `${fy + 1}-${String(m).padStart(2, "0")}`),
     ];
   };
-  const monthsForPeriod = (periodType, key) =>
+  const monthsForPeriod = (periodType: string, key: string) =>
     periodType === "month"
       ? [key]
       : periodType === "quarter"
@@ -374,21 +378,21 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
           ? monthsInHalf(key)
           : monthsInYear(key);
 
-  const getQuarterLabel = (key) => {
+  const getQuarterLabel = (key: string) => {
     const [fyStr, qStr] = key.split("-Q");
     const fy = parseInt(fyStr, 10);
     return `Q${qStr} FY${String(fy).slice(-2)}-${String(fy + 1).slice(-2)}`;
   };
-  const getHalfLabel = (key) => {
+  const getHalfLabel = (key: string) => {
     const [fyStr, hStr] = key.split("-H");
     const fy = parseInt(fyStr, 10);
     return `H${hStr} FY${String(fy).slice(-2)}-${String(fy + 1).slice(-2)}`;
   };
-  const getYearLabel = (key) => {
+  const getYearLabel = (key: string) => {
     const fy = parseInt(key, 10);
     return `FY ${fy}-${String(fy + 1).slice(-2)}`;
   };
-  const getPeriodLabel = (periodType, key) =>
+  const getPeriodLabel = (periodType: string, key: string) =>
     periodType === "month"
       ? getMonthLabel(key)
       : periodType === "quarter"
@@ -397,7 +401,7 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
           ? getHalfLabel(key)
           : getYearLabel(key);
 
-  const prevPeriodKey = (periodType, key) => {
+  const prevPeriodKey = (periodType: string, key: string) => {
     if (periodType === "month") {
       const [y, m] = key.split("-").map(Number);
       const py = m === 1 ? y - 1 : y;
@@ -427,7 +431,7 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
   const [periodA, setPeriodA] = useState(currentYM);
   const [periodB, setPeriodB] = useState(lastYM);
 
-  const handleModeChange = (mode) => {
+  const handleModeChange = (mode: string) => {
     setCompMode(mode);
     const defaultA =
       mode === "month"
@@ -446,16 +450,16 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
   // on the "Transfer" category) inflated both income and expense here, and an Investment
   // SIP debit counted as "expense" here while the Dashboard excludes it, so this tab's
   // period totals and category deltas silently disagreed with every other report.
-  const isTransferCat = (cat) => ["Transfer", "Self Transfer", "Self-Transfer"].includes(cat || "");
+  const isTransferCat = (cat?: string) => ["Transfer", "Self Transfer", "Self-Transfer"].includes(cat || "");
 
   // Monthly expense totals + category breakdown (debit transactions)
   const monthlyExpense = useMemo(() => {
-    const map = {};
+    const map: Record<string, { total: number; cats: Record<string, number> }> = {};
     (state.transactions || [])
       .filter(
-        (t) => t.type === "debit" && t.date && !isTransferCat(t.category) && t.category !== "Investment"
+        (t: any) => t.type === "debit" && t.date && !isTransferCat(t.category) && t.category !== "Investment"
       )
-      .forEach((t) => {
+      .forEach((t: any) => {
         const ym = t.date.slice(0, 7);
         const cat = t.category || "Uncategorized";
         if (!map[ym]) map[ym] = { total: 0, cats: {} };
@@ -465,12 +469,12 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
     // Rent paid via the Rented Properties ledger (not logged as a transaction) — same
     // ledger-vs-transaction reconciliation useMetrics.ts/MonthlyReportModal.tsx apply, so a
     // household paying rent purely through that ledger isn't silently missing from this tab.
-    (state.rentedProperties || []).forEach((p) => {
-      (p.payments || []).forEach((pay) => {
+    (state.rentedProperties || []).forEach((p: any) => {
+      (p.payments || []).forEach((pay: any) => {
         if (!pay.date) return;
         const ym = pay.date.slice(0, 7);
         const hasRentTxn = (state.transactions || []).some(
-          (t) => t.date?.slice(0, 7) === ym && t.type === "debit" && (t.category || "").toLowerCase() === "rent"
+          (t: any) => t.date?.slice(0, 7) === ym && t.type === "debit" && (t.category || "").toLowerCase() === "rent"
         );
         if (hasRentTxn) return;
         if (!map[ym]) map[ym] = { total: 0, cats: {} };
@@ -485,10 +489,10 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
   // prefer the manual income ledger over credit transactions (avoids double-counting
   // the same income when both are logged for a period).
   const monthlyIncomeLedger = useMemo(() => {
-    const map = {};
+    const map: Record<string, number> = {};
     (state.income || [])
-      .filter((i) => i.date)
-      .forEach((i) => {
+      .filter((i: any) => i.date)
+      .forEach((i: any) => {
         const ym = i.date.slice(0, 7);
         map[ym] = (map[ym] || 0) + Number(i.amount || 0);
       });
@@ -496,10 +500,10 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
   }, [state.income]);
 
   const monthlyIncomeTxn = useMemo(() => {
-    const map = {};
+    const map: Record<string, number> = {};
     (state.transactions || [])
-      .filter((t) => t.type === "credit" && t.date && !isTransferCat(t.category))
-      .forEach((t) => {
+      .filter((t: any) => t.type === "credit" && t.date && !isTransferCat(t.category))
+      .forEach((t: any) => {
         const ym = t.date.slice(0, 7);
         map[ym] = (map[ym] || 0) + Number(t.amount || 0);
       });
@@ -510,10 +514,10 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
   // so the category table can mirror whichever source (manual ledger or credit
   // transactions) won for that month's total, instead of double-counting both.
   const monthlyIncomeCatLedger = useMemo(() => {
-    const map = {};
+    const map: Record<string, Record<string, number>> = {};
     (state.income || [])
-      .filter((i) => i.date)
-      .forEach((i) => {
+      .filter((i: any) => i.date)
+      .forEach((i: any) => {
         const ym = i.date.slice(0, 7);
         const cat = i.category || i.source || "Other";
         if (!map[ym]) map[ym] = {};
@@ -523,10 +527,10 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
   }, [state.income]);
 
   const monthlyIncomeCatTxn = useMemo(() => {
-    const map = {};
+    const map: Record<string, Record<string, number>> = {};
     (state.transactions || [])
-      .filter((t) => t.type === "credit" && t.date && !isTransferCat(t.category))
-      .forEach((t) => {
+      .filter((t: any) => t.type === "credit" && t.date && !isTransferCat(t.category))
+      .forEach((t: any) => {
         const ym = t.date.slice(0, 7);
         const cat = t.category || "Uncategorized";
         if (!map[ym]) map[ym] = {};
@@ -571,19 +575,19 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
   }, [compMode, availableMonths, availableQuarters, availableHalves, availableYears, periodA, periodB]);
 
   const comp = useMemo(() => {
-    const aggregate = (key) => {
+    const aggregate = (key: string) => {
       const months = monthsForPeriod(compMode, key);
       let total = 0;
       let incomeLedgerTotal = 0;
       let incomeTxnTotal = 0;
-      const expenseCats = {};
-      const incomeCats = {};
-      months.forEach((ym) => {
+      const expenseCats: Record<string, number> = {};
+      const incomeCats: Record<string, number> = {};
+      months.forEach((ym: string) => {
         const e = monthlyExpense[ym];
         if (e) {
           total += e.total;
-          Object.entries(e.cats).forEach(([cat, amt]: any) => {
-            expenseCats[cat] = (expenseCats[cat] || 0) + amt;
+          Object.entries(e.cats).forEach(([cat, amt]) => {
+            expenseCats[cat] = (expenseCats[cat] || 0) + Number(amt || 0);
           });
         }
         const monthLedgerTotal = monthlyIncomeLedger[ym] || 0;
@@ -593,8 +597,8 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
         // category split never mixes both sources for the same month's income.
         const catSource = monthLedgerTotal > 0 ? monthlyIncomeCatLedger[ym] : monthlyIncomeCatTxn[ym];
         if (catSource) {
-          Object.entries(catSource).forEach(([cat, amt]: any) => {
-            incomeCats[cat] = (incomeCats[cat] || 0) + amt;
+          Object.entries(catSource).forEach(([cat, amt]) => {
+            incomeCats[cat] = (incomeCats[cat] || 0) + Number(amt || 0);
           });
         }
       });
@@ -605,8 +609,8 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
     const current = aggregate(periodA);
     const previous = aggregate(periodB);
 
-    const buildCategoryComps = (currCats, prevCats) => {
-      const allCats = new Set([...Object.keys(currCats), ...Object.keys(prevCats)]);
+    const buildCategoryComps = (currCats: Record<string, number>, prevCats: Record<string, number>) => {
+      const allCats = new Set<string>([...Object.keys(currCats), ...Object.keys(prevCats)]);
       return [...allCats]
         .map((cat) => {
           const curr = currCats[cat] || 0;
@@ -652,7 +656,7 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
       }
       return reconstructed.netWorth;
     };
-    const findNW = (months) => {
+    const findNW = (months: string[]) => {
       if (months.includes(currentYM)) return metrics.netWorth || 0;
       return nwForMonth(months[months.length - 1]);
     };
@@ -697,12 +701,12 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
 
   const filteredCategoryComps = useMemo(() => {
     const q = catSearch.trim().toLowerCase();
-    return q ? activeCategoryComps.filter((c) => c.category.toLowerCase().includes(q)) : activeCategoryComps;
+    return q ? activeCategoryComps.filter((c: any) => c.category.toLowerCase().includes(q)) : activeCategoryComps;
   }, [activeCategoryComps, catSearch]);
 
   // Chart data for category comparison
   const chartData = useMemo(() => {
-    return filteredCategoryComps.slice(0, 10).map((c) => ({
+    return filteredCategoryComps.slice(0, 10).map((c: any) => ({
       category: c.category.length > 12 ? c.category.slice(0, 12) + "…" : c.category,
       [comp.currentLabel]: c.current,
       [comp.previousLabel]: c.previous,
@@ -710,14 +714,14 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
   }, [filteredCategoryComps, comp.currentLabel, comp.previousLabel]);
 
   const handleExportCSV = () => {
-    const rows = filteredCategoryComps.map((c) => ({
+    const rows = filteredCategoryComps.map((c: any) => ({
       category: c.category,
       current: c.current,
       previous: c.previous,
       delta: c.delta,
       pct: c.isNew ? "New" : `${c.pctChange > 0 ? "+" : ""}${c.pctChange.toFixed(1)}%`,
     }));
-    const safe = (s) => String(s).replace(/[^a-zA-Z0-9]+/g, "_");
+    const safe = (s: any) => String(s).replace(/[^a-zA-Z0-9]+/g, "_");
     exportArrayToCSV(
       rows,
       [
@@ -739,7 +743,11 @@ export const ComparisonReportsTab = ({ state, metrics, marketData = {}, activePr
   // `higherIsBetter` flips the sentiment color: for Expenses, an increase is bad (rust,
   // the default); for Income and Net Worth, an increase is good (sage) — without this,
   // a rising income or net worth was painted red, the same color as overspending.
-  const DeltaIndicator = ({ value, showAmount = true, higherIsBetter = false }) => {
+  const DeltaIndicator: React.FC<{
+    value: number;
+    showAmount?: boolean;
+    higherIsBetter?: boolean;
+  }> = ({ value, showAmount = true, higherIsBetter = false }) => {
     if (!value || Math.abs(value) < 1) {
       return (
         <Badge variant="muted">

@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   BarChart3,
@@ -137,7 +136,11 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
   );
 };
 
-export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
+export const PerformanceBenchmarkTab: React.FC<{
+  state: any;
+  metrics?: any;
+  marketData?: any;
+}> = ({ state, metrics, marketData }) => {
   const [period, setPeriod] = useState("1y");
 
   // Calculate portfolio returns
@@ -152,7 +155,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     let equityInvested = 0;
     let equityCurrent = 0;
     let earliestStockDate: string | null = null;
-    stocks.forEach((s) => {
+    stocks.forEach((s: any) => {
       const qty = Number(s.qty || 0);
       const avg = Number(s.avgPrice || 0);
       const exch = s.exchange || "NSE";
@@ -169,7 +172,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     let mfInvested = 0;
     let mfCurrent = 0;
     let earliestMFDate: string | null = null;
-    mfs.forEach((m) => {
+    mfs.forEach((m: any) => {
       const units = Number(m.units || 0);
       const buyNav = Number(m.buyNav || 0);
       const currNav = Number(m.currentNav || m.buyNav || 0);
@@ -179,12 +182,12 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     });
 
     // FD returns
-    const fdValue = fds.reduce((s, f) => s + Number(f.principal || 0), 0);
+    const fdValue = fds.reduce((s: number, f: any) => s + Number(f.principal || 0), 0);
     const avgFDRate =
-      fds.length > 0 ? fds.reduce((s, f) => s + Number(f.rate || 0), 0) / fds.length : 0;
+      fds.length > 0 ? fds.reduce((s: number, f: any) => s + Number(f.rate || 0), 0) / fds.length : 0;
 
     // PPF returns
-    const ppfValue = ppfAccs.reduce((s, p) => s + Number(p.balance || 0), 0);
+    const ppfValue = ppfAccs.reduce((s: number, p: any) => s + Number(p.balance || 0), 0);
 
     // Gold returns
     const goldPricePerGram = getGoldPricePerGram(state);
@@ -192,13 +195,13 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     // apply the same purity discount used everywhere else (GoldSGBTab, useMetrics,
     // RebalancingTab); omitting it overstated goldValue/goldReturn for non-24K holdings.
     let earliestGoldDate: string | null = null;
-    const goldValue = goldHoldings.reduce((s, g) => {
+    const goldValue = goldHoldings.reduce((s: number, g: any) => {
       const purityMul = g.type === "physical" ? GOLD_PURITY_FACTOR[g.purity] || 1 : 1;
       if (g.purchaseDate && (!earliestGoldDate || g.purchaseDate < earliestGoldDate))
         earliestGoldDate = g.purchaseDate;
       return s + Number(g.grams || 0) * goldPricePerGram * purityMul;
     }, 0);
-    const goldInvested = goldHoldings.reduce((s, g) => s + Number(g.purchasePrice || 0), 0);
+    const goldInvested = goldHoldings.reduce((s: number, g: any) => s + Number(g.purchasePrice || 0), 0);
 
     // Benchmarks (Nifty/gold/FD/inflation) are annualised (1Y/3Y/5Y) figures, so the
     // portfolio side of the comparison must also be annualised (CAGR), not a raw
@@ -207,7 +210,7 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
     // Fall back to the absolute return only when there's no buy-date to annualise from
     // (e.g. legacy holdings without a stored purchase date).
     const equityCAGR =
-      equityInvested > 0 ? calcCAGR(equityInvested, equityCurrent, earliestStockDate) : null;
+      equityInvested > 0 && earliestStockDate ? calcCAGR(equityInvested, equityCurrent, earliestStockDate) : null;
     const equityReturn =
       equityCAGR != null
         ? equityCAGR
@@ -215,11 +218,11 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
           ? ((equityCurrent - equityInvested) / equityInvested) * 100
           : 0;
 
-    const mfCAGR = mfInvested > 0 ? calcCAGR(mfInvested, mfCurrent, earliestMFDate) : null;
+    const mfCAGR = mfInvested > 0 && earliestMFDate ? calcCAGR(mfInvested, mfCurrent, earliestMFDate) : null;
     const mfReturn =
       mfCAGR != null ? mfCAGR : mfInvested > 0 ? ((mfCurrent - mfInvested) / mfInvested) * 100 : 0;
 
-    const goldCAGR = goldInvested > 0 ? calcCAGR(goldInvested, goldValue, earliestGoldDate) : null;
+    const goldCAGR = goldInvested > 0 && earliestGoldDate ? calcCAGR(goldInvested, goldValue, earliestGoldDate) : null;
     const goldReturn =
       goldCAGR != null
         ? goldCAGR
@@ -568,8 +571,8 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
               tickLine={false}
             />
             <Tooltip
-              formatter={(v) => `${v.toFixed(1)}%`}
-              content={<ChartTooltip formatter={(v) => `${v.toFixed(1)}%`} />}
+              formatter={(v: any) => `${Number(v || 0).toFixed(1)}%`}
+              content={<ChartTooltip formatter={(v: any) => `${Number(v || 0).toFixed(1)}%`} />}
               cursor={{ fill: THEME.line, opacity: 0.4 }}
             />
             <Bar
@@ -634,8 +637,8 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
                 tickLine={false}
               />
               <Tooltip
-                formatter={(v) => `${v.toFixed(1)}%`}
-                content={<ChartTooltip formatter={(v) => `${v.toFixed(1)}%`} />}
+                formatter={(v: any) => `${Number(v || 0).toFixed(1)}%`}
+                content={<ChartTooltip formatter={(v: any) => `${Number(v || 0).toFixed(1)}%`} />}
                 cursor={{ fill: THEME.line, opacity: 0.4 }}
               />
               <Legend
@@ -703,8 +706,8 @@ export const PerformanceBenchmarkTab = ({ state, metrics, marketData }) => {
                 strokeWidth={2.5}
               />
               <Tooltip
-                formatter={(v: number) => `${Math.round(v)}/100`}
-                content={<ChartTooltip formatter={(v: number) => `${Math.round(v)}/100`} />}
+                formatter={(v: any) => `${Math.round(Number(v || 0))}/100`}
+                content={<ChartTooltip formatter={(v: any) => `${Math.round(Number(v || 0))}/100`} />}
               />
             </RadarChart>
           </ResponsiveContainer></div>
