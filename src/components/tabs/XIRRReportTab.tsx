@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useMemo, useState } from "react";
 import {
   TrendingUp,

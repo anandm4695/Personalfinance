@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   Calendar,
@@ -28,7 +27,7 @@ import {
   Legend,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, today } from "../../utils/finance";
+import { fmtINR, fmtINRFull, today, uid } from "../../utils/finance";
 import {
   useMasterData,
   formatProfileOption,
@@ -112,13 +111,20 @@ const formatTimeAway = (targetDate: Date, now: Date) => {
   return `${(diffDays / 365.25).toFixed(1)} years away`;
 };
 
-export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updateItem, showToast = undefined }) => {
+export const LifeEventPlannerTab: React.FC<{
+  state: any;
+  metrics?: any;
+  addItem?: any;
+  removeItem?: any;
+  updateItem?: any;
+  showToast?: (msg: string, type?: string) => void;
+}> = ({ state, metrics, addItem, removeItem, updateItem, showToast }) => {
   const { privacyMode } = usePrivacy();
   const { familyProfiles } = useMasterData();
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...EMPTY_EVENT });
-  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const events = useMemo(() => {
     return [...(state.lifeEvents || [])].sort((a, b) =>
@@ -181,8 +187,8 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
   }, [events]);
 
   const timeline = useMemo(() => {
-    const yearMap = {};
-    enrichedEvents.forEach((e) => {
+    const yearMap: Record<string, { year: string; saved: number; gap: number; total: number; events: any[] }> = {};
+    enrichedEvents.forEach((e: any) => {
       if (e.isPast) return;
       const year = e.targetDate?.slice(0, 4) || "Unknown";
       if (!yearMap[year]) yearMap[year] = { year, saved: 0, gap: 0, total: 0, events: [] };
@@ -192,7 +198,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
       yearMap[year].total += e.inflatedCost;
       yearMap[year].events.push(e);
     });
-    return Object.values(yearMap).sort((a, b) => a.year.localeCompare(b.year));
+    return Object.values(yearMap).sort((a: any, b: any) => a.year.localeCompare(b.year));
   }, [enrichedEvents]);
 
   const monthlySurplus = Math.max(0, (metrics?.monthIncome || 0) - (metrics?.monthExpense || 0));
@@ -235,7 +241,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
     }
   };
 
-  const handleEdit = (e) => {
+  const handleEdit = (e: any) => {
     setSaveError(null);
     setForm({
       name: e.name,
@@ -367,7 +373,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                 tick={{ fontSize: 11, fill: THEME.muted }}
               />
               <Tooltip
-                formatter={(v) => <Money value={v} variant="full" />}
+                formatter={(v: any) => <Money value={Number(v || 0)} variant="full" />}
                 cursor={{ fill: "var(--t-line)", opacity: 0.4 }}
                 contentStyle={tooltipStyle()}
                 labelStyle={{ color: "var(--t-ink)" }}
@@ -585,7 +591,7 @@ export const LifeEventPlannerTab = ({ state, metrics, addItem, removeItem, updat
                   <div style={{ fontSize: 11, color: THEME.muted }}>
                     Target: {e.targetDate} • Inflation: {e.evType.inflationRate}% p.a.
                   </div>
-                  <Badge variant={PRIORITY_BADGE[e.priority] || "muted"} size="xs">
+                  <Badge variant={(PRIORITY_BADGE as any)[e.priority] || "muted"} size="xs">
                     {(e.priority || "medium").toUpperCase()} PRIORITY
                   </Badge>
                 </div>
