@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect, useMemo } from "react";
 import { ResponsiveContainer, AreaChart, XAxis, YAxis, Tooltip, Area } from "recharts";
 import {
@@ -75,6 +74,7 @@ interface InvestmentsTabProps {
   fetchMfNavs?: () => void;
   fetchingMfNavs?: boolean;
   mfMarketDataTs?: number | null;
+  showToast?: (msg: string, type?: any) => void;
 }
 
 // Mirrors Demat's `marketData[yfSym]?.price ?? st.currentPrice` fallback: prefer the

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import {
@@ -2689,7 +2688,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       ["s6", 6],
       ["s12", 12],
       ["s24", 24],
-    ].find(([id]) => !earned.has(id)) as [string, number] | undefined;
+    ].find(([id]) => !earned.has(id as string)) as [string, number] | undefined;
     if (nextS)
       prog[nextS[0]] = {
         current: streak,
@@ -3753,10 +3752,10 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     // Combined monthly need across ALL active goals — a goal can look affordable
     // in isolation while the household can't actually fund every goal at once.
     const totalMonthlyNeeded = computed
-      .filter((g) => !g.achieved && g.monthsLeft > 0)
-      .reduce((sum, g) => sum + g.monthlyNeeded, 0);
+      .filter((g: any) => !g.achieved && g.monthsLeft > 0)
+      .reduce((sum: number, g: any) => sum + g.monthlyNeeded, 0);
     const combinedShortfall = Math.max(0, totalMonthlyNeeded - monthlySavings);
-    return computed.map((g) => ({
+    return computed.map((g: any) => ({
       ...g,
       totalMonthlyNeeded,
       combinedShortfall,
@@ -6809,8 +6808,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             }}
                             labelStyle={{ color: THEME.muted }}
                             itemStyle={{ color: THEME.ink }}
-                            formatter={(value: number) =>
-                              privacyMode ? "••••" : fmtINRFull(value)
+                            formatter={(value: any) =>
+                              privacyMode ? "••••" : fmtINRFull(Number(value) || 0)
                             }
                           />
                           <Legend
@@ -8397,9 +8396,9 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                 );
                 if (activeProfiles.length < 2) return null;
 
-                const familyNW = activeProfiles.reduce((s, p) => s + p.nw, 0);
-                const maxNW = Math.max(...activeProfiles.map((p) => p.nw));
-                const familyCover = activeProfiles.reduce((s, p) => s + p.totalCover, 0);
+                const familyNW = activeProfiles.reduce((s: number, p: any) => s + p.nw, 0);
+                const maxNW = Math.max(...activeProfiles.map((p: any) => p.nw));
+                const familyCover = activeProfiles.reduce((s: number, p: any) => s + p.totalCover, 0);
 
                 // Insurance adequacy: 10x annual income
                 const incomeTxns = (state.transactions || []).filter(
@@ -8490,8 +8489,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                       </div>
                       <div style={{ display: "grid", gap: 10 }}>
                         {activeProfiles
-                          .sort((a, b) => b.nw - a.nw)
-                          .map((p, i) => {
+                          .sort((a: any, b: any) => b.nw - a.nw)
+                          .map((p: any, i: number) => {
                             const pct = maxNW > 0 ? (p.nw / maxNW) * 100 : 0;
                             const share = familyNW > 0 ? ((p.nw / familyNW) * 100).toFixed(1) : "0";
                             return (
@@ -8700,8 +8699,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                         {/* Per-member cover breakdown */}
                         <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
                           {activeProfiles
-                            .filter((p) => p.totalCover > 0)
-                            .map((p, i) => (
+                            .filter((p: any) => p.totalCover > 0)
+                            .map((p: any, i: number) => (
                               <div
                                 key={p.id}
                                 style={{
@@ -9007,7 +9006,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               </div>
                             );
                           }
-                          return subList.map((item, idx) => (
+                          return subList.map((item: any, idx: number) => (
                             <div
                               key={idx}
                               style={{
@@ -9648,7 +9647,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                               activeCapIndex !== null
                                 ? metrics.stockCapBreakdown[activeCapIndex]?.value
                                 : selectedCapClass
-                                  ? metrics.stockCapBreakdown.find((x) => x.name === selectedCapClass)
+                                  ? metrics.stockCapBreakdown.find((x: any) => x.name === selectedCapClass)
                                       ?.value || 0
                                   : metrics.stockValue
                             }
@@ -9664,7 +9663,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 ? metrics.stockCapBreakdown[activeCapIndex]?.value
                                 : selectedCapClass
                                   ? metrics.stockCapBreakdown.find(
-                                      (x) => x.name === selectedCapClass
+                                      (x: any) => x.name === selectedCapClass
                                     )?.value || 0
                                   : metrics.stockValue;
                             const total = metrics.stockValue || 1;
@@ -10297,7 +10296,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                   max="100"
                                   value={targetPct}
                                   onChange={(e) =>
-                                    setRebalTargets((prev) => ({
+                                    setRebalTargets((prev: any) => ({
                                       ...prev,
                                       [key]: Math.max(
                                         0,
@@ -10801,7 +10800,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               .filter((s: any) => s.symbol && s.value > 0);
 
             const directStockMap: Record<string, number> = {};
-            userStocks.forEach((s) => {
+            userStocks.forEach((s: any) => {
               const sym = s.symbol.toUpperCase();
               directStockMap[sym] = (directStockMap[sym] || 0) + s.value;
             });
@@ -11031,7 +11030,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             Affected Funds
                           </div>
                           <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
-                            {fundsWithOverlap} / {mfs.filter((f) => f.matchedIndex).length} Funds
+                            {fundsWithOverlap} / {mfs.filter((f: any) => f.matchedIndex).length} Funds
                           </div>
                         </div>
                       </div>
@@ -12504,7 +12503,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           }}
                           labelStyle={{ color: THEME.muted }}
                           itemStyle={{ color: THEME.ink }}
-                          formatter={(value: any, name: string) => {
+                          formatter={(value: any, name: any) => {
                             const labelMap: Record<string, string> = {
                               netWorth: "Nominal Net Worth",
                               realNetWorth: "Real (Inflation Adj.)",
@@ -15836,7 +15835,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                     }}
                     labelStyle={{ color: THEME.muted }}
                     itemStyle={{ color: THEME.ink }}
-                    formatter={(v: any, name: string) => [
+                    formatter={(v: any, name: any) => [
                       typeof v === "number" ? v.toFixed(1) : v,
                       name,
                     ]}

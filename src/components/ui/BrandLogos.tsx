@@ -764,11 +764,13 @@ export const BankLogo = ({
   name,
   size = 40,
   borderRadius,
+  accentColor,
 }: {
   bankName?: string;
   name?: string;
   size?: number;
   borderRadius?: number;
+  accentColor?: string;
 }) => <BrandLogo name={bankName || name || "Bank"} size={size} borderRadius={borderRadius} />;
 
 export const MFLogo = ({

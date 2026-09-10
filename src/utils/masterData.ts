@@ -19,6 +19,7 @@ export interface MasterData {
   prepaidCardTypes: string[];
   ccNetworks: string[];
   familyProfiles: FamilyProfile[];
+  [key: string]: any;
 }
 
 /**

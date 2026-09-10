@@ -1,4 +1,3 @@
-// @ts-nocheck
 import "./styles.css";
 import React, { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import {
@@ -77,7 +76,7 @@ import { MobileNav } from "./components/layout/MobileNav";
 // eagerly — with 52 tabs all statically imported, every tab's code shipped in the
 // single main bundle regardless of which one a session ever visits (2.9MB+ chunk).
 // Splitting per-tab means a session only downloads the tabs it actually opens.
-const lazyTab = (loader, exportName) => React.lazy(() => loader().then((m) => ({ default: m[exportName] })));
+const lazyTab = (loader: () => Promise<any>, exportName: string): React.ComponentType<any> => React.lazy(() => loader().then((m: any) => ({ default: m[exportName] })));
 
 const AnalyticsTab = lazyTab(() => import("./components/tabs/AnalyticsTab"), "AnalyticsTab");
 const InvestmentsTab = lazyTab(() => import("./components/tabs/InvestmentsTab"), "InvestmentsTab");
@@ -292,7 +291,7 @@ function FinanceDashboard() {
   const [isFetchingInitialData, setIsFetchingInitialData] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [tab, setTab] = useState("analytics");
-  const [subTab, setSubTab] = useState(null);
+  const [subTab, setSubTab] = useState<string | null>(null);
   const [marketDataTs, setMarketDataTs] = useState<number | null>(null);
   const [marketData, setMarketData] = useState<any>(() => {
     try {
@@ -368,7 +367,7 @@ function FinanceDashboard() {
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const isSidebarCompact = sidebarMinimized && !sidebarHovered;
 
-  const [state, setState] = useState(() => {
+  const [state, setState] = useState<any>(() => {
     // 1. If we just reset, start with default state
     if (
       window.location.search.includes("reset=success") ||
@@ -377,18 +376,18 @@ function FinanceDashboard() {
       return DEFAULT_STATE;
     }
 
-    const saved = loadState() || {};
-    const newState = { ...DEFAULT_STATE };
+    const saved = (loadState() || {}) as any;
+    const newState: any = { ...DEFAULT_STATE };
 
     // Ensure every top-level key from DEFAULT_STATE exists in newState
     // and that array keys are actually arrays.
     Object.keys(DEFAULT_STATE).forEach((key) => {
-      if (Array.isArray(DEFAULT_STATE[key])) {
+      if (Array.isArray((DEFAULT_STATE as any)[key])) {
         newState[key] = Array.isArray(saved[key]) ? saved[key] : [];
-      } else if (typeof DEFAULT_STATE[key] === "object" && DEFAULT_STATE[key] !== null) {
-        newState[key] = { ...DEFAULT_STATE[key], ...(saved[key] || {}) };
+      } else if (typeof (DEFAULT_STATE as any)[key] === "object" && (DEFAULT_STATE as any)[key] !== null) {
+        newState[key] = { ...(DEFAULT_STATE as any)[key], ...(saved[key] || {}) };
       } else {
-        newState[key] = saved[key] !== undefined ? saved[key] : DEFAULT_STATE[key];
+        newState[key] = saved[key] !== undefined ? saved[key] : (DEFAULT_STATE as any)[key];
       }
     });
 
@@ -451,8 +450,8 @@ function FinanceDashboard() {
 
   // Helper to update settings
   const updateSettings = useCallback(
-    async (updates: Partial<typeof settings>) => {
-      setState((s) => ({
+    async (updates: any) => {
+      setState((s: any) => ({
         ...s,
         settings: { ...(s.settings || DEFAULT_STATE.settings), ...updates },
       }));
@@ -499,7 +498,7 @@ function FinanceDashboard() {
   const updateMasterData = useCallback(
     async (key: string, newValue: any) => {
       let merged: any = null;
-      setState((s) => {
+      setState((s: any) => {
         merged = { ...(s.masterData || DEFAULT_MASTER_DATA), [key]: newValue };
         return { ...s, masterData: merged };
       });
@@ -517,7 +516,7 @@ function FinanceDashboard() {
   // Helper to update profile
   const updateProfile = useCallback(
     async (updates: any) => {
-      setState((s) => ({
+      setState((s: any) => ({
         ...s,
         profile: { ...s.profile, ...updates },
       }));
@@ -548,7 +547,7 @@ function FinanceDashboard() {
   const updateDismissedAlerts = useCallback(
     async (newDismissed: Record<string, number>) => {
       let mergedMaster: any = null;
-      setState((s) => {
+      setState((s: any) => {
         mergedMaster = { ...(s.masterData || DEFAULT_MASTER_DATA), _dismissedAlerts: newDismissed };
         return {
           ...s,
@@ -593,7 +592,7 @@ function FinanceDashboard() {
       // Markers of the old MOCK_DATA
       return (
         (Array.isArray(s.bankAccounts) &&
-          s.bankAccounts.some((b) => b.id === "1" || b.id === "2")) ||
+          s.bankAccounts.some((b: any) => b.id === "1" || b.id === "2")) ||
         (s.profile?.name === "Anand" && (!session || session.user.id === "offline-user"))
       );
     };
@@ -611,7 +610,7 @@ function FinanceDashboard() {
     try {
       supabase.auth
         .getSession()
-        .then(({ data: { session: supaSession }, error }) => {
+        .then(({ data: { session: supaSession }, error }: any) => {
           if (!error && supaSession) {
             // Real Supabase session — clear any stale demo session and use real one
             sessionStorage.removeItem("demo_session");
@@ -628,7 +627,7 @@ function FinanceDashboard() {
         });
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, supaSession) => {
+      } = supabase.auth.onAuthStateChange((_event: any, supaSession: any) => {
         if (supaSession) {
           sessionStorage.removeItem("demo_session");
           setSession(supaSession);
@@ -863,14 +862,14 @@ function FinanceDashboard() {
           supabase
             .from("user_settings")
             .upsert({ user_id: userId, master_data: fixedMaster })
-            .then(({ error: e }) => {
+            .then(({ error: e }: any) => {
               if (e) console.error("[masterData categories backfill]", e.message);
             });
         }
       }
 
       // Use functional setState so failed queries fall back to current state instead of wiping data
-      setState((currentState) => {
+      setState((currentState: any) => {
         if (!prof.data && !hasAnyData) {
           // Logged in but truly no cloud data — clear local state
           return DEFAULT_STATE;
@@ -955,8 +954,8 @@ function FinanceDashboard() {
           ...(!bnds.error && bnds.data != null ? { bonds: snakeToCamel(bnds.data) } : {}),
           ...(!pn.error && pn.data != null
             ? {
-                ppf: snakeToCamel(pn.data.filter((x) => x.type === "PPF")),
-                nps: snakeToCamel(pn.data.filter((x) => x.type === "NPS")).map((n: any) => {
+                ppf: snakeToCamel(pn.data.filter((x: any) => x.type === "PPF")),
+                nps: snakeToCamel(pn.data.filter((x: any) => x.type === "NPS")).map((n: any) => {
                   const meta =
                     n.establishments &&
                     typeof n.establishments === "object" &&
@@ -979,7 +978,7 @@ function FinanceDashboard() {
                     employerContribution: n.employerContribution || 0,
                   };
                 }),
-                epf: snakeToCamel(pn.data.filter((x) => x.type === "EPF")),
+                epf: snakeToCamel(pn.data.filter((x: any) => x.type === "EPF")),
               }
             : {}),
           ...(!ccs.error && ccs.data != null
@@ -993,11 +992,11 @@ function FinanceDashboard() {
           ...(!pcs.error && pcs.data != null ? { prepaidCards: snakeToCamel(pcs.data) } : {}),
           ...(!lns.error && lns.data != null
             ? {
-                loansTaken: snakeToCamel(lns.data.filter((x) => !x.is_lent)).map((l: any) => ({
+                loansTaken: snakeToCamel(lns.data.filter((x: any) => !x.is_lent)).map((l: any) => ({
                   ...l,
                   lender: l.lenderBorrower || l.lender || "",
                 })),
-                loansGiven: snakeToCamel(lns.data.filter((x) => x.is_lent)).map((l: any) => ({
+                loansGiven: snakeToCamel(lns.data.filter((x: any) => x.is_lent)).map((l: any) => ({
                   ...l,
                   borrower: l.lenderBorrower || l.borrower || "",
                   lender: l.lenderBorrower || l.lender || "",
@@ -1031,18 +1030,18 @@ function FinanceDashboard() {
           ...(!infLns.error && infLns.data != null
             ? {
                 informalBorrowed: snakeToCamel(
-                  infLns.data.filter((x) => x.direction === "borrowed")
+                  infLns.data.filter((x: any) => x.direction === "borrowed")
                 ),
-                informalLent: snakeToCamel(infLns.data.filter((x) => x.direction === "lent")),
+                informalLent: snakeToCamel(infLns.data.filter((x: any) => x.direction === "lent")),
               }
             : {}),
           ...(!rentP.error && rentP.data != null
             ? {
                 rentalProperties: snakeToCamel(
-                  rentP.data.filter((x) => x.property_type === "out")
+                  rentP.data.filter((x: any) => x.property_type === "out")
                 ).map((x: any) => ({ ...x, propertyType: x.propertyTypeDetail || "shop" })),
                 rentedProperties: snakeToCamel(
-                  rentP.data.filter((x) => x.property_type === "in")
+                  rentP.data.filter((x: any) => x.property_type === "in")
                 ).map((x: any) => ({ ...x, propertyType: x.propertyTypeDetail || "shop" })),
               }
             : {}),
@@ -1500,7 +1499,7 @@ function FinanceDashboard() {
         return;
       }
       if (e.key === "p") {
-        setPrivacyMode((p) => !p);
+        setPrivacyMode(!privacyMode);
         return;
       }
       if (e.key === "?") {
@@ -1564,8 +1563,9 @@ function FinanceDashboard() {
 
     const nowBf = new Date();
     const currentYm = `${nowBf.getFullYear()}-${String(nowBf.getMonth() + 1).padStart(2, "0")}`;
+    const uid3 = session?.user?.id;
 
-    setState((s) => {
+    setState((s: any) => {
       const corrected = (s.netWorthHistory || []).map((h: any) => {
         // Current month was already corrected by the auto-snapshot above — skip it
         if (h.month === currentYm) return h;
@@ -1574,33 +1574,71 @@ function FinanceDashboard() {
         // before the last day of that month. Fall back to premiumPaid if no dated
         // transactions exist (slightly overstates very old months, but better than 0).
         const investAtMonth = (s.investmentPlans || []).reduce((a: number, ip: any) => {
-          const datedTxns = (ip.transactions || []).filter(
-            (t: any) => t.date && t.date.slice(0, 7) <= h.month
-          );
-          if (datedTxns.length > 0) {
-            return a + datedTxns.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+          const txnsBeforeMonth = (ip.transactions || []).filter((t: any) => {
+            if (!t.date) return false;
+            const tYm = t.date.slice(0, 7);
+            return tYm <= h.month;
+          });
+          if (txnsBeforeMonth.length > 0) {
+            return (
+              a +
+              txnsBeforeMonth.reduce(
+                (sum: number, t: any) => sum + (Number(t.amount) || Number(ip.premium) || 0),
+                0
+              )
+            );
           }
-          return a + Number(ip.premiumPaid || 0);
+          // No dated txns: if the plan started on or before this month, use premiumPaid
+          const planStartYm = ip.startDate ? ip.startDate.slice(0, 7) : null;
+          if (!planStartYm || planStartYm <= h.month) {
+            return a + (Number(ip.premiumPaid) || 0);
+          }
+          return a;
         }, 0);
 
-        if (investAtMonth === 0) return h;
-        return { ...h, netWorth: h.netWorth + investAtMonth };
+        const epfAtMonth = (s.ppfNps || [])
+          .filter((p: any) => p.type === "epf")
+          .reduce((a: number, p: any) => {
+            const startYm = p.startDate ? p.startDate.slice(0, 7) : null;
+            if (!startYm || startYm <= h.month) {
+              return a + (Number(p.currentBalance) || Number(p.balance) || 0);
+            }
+            return a;
+          }, 0);
+
+        if (investAtMonth > 0 || epfAtMonth > 0) {
+          const newDebt = Math.max(0, (Number(h.debt) || 0) + investAtMonth + epfAtMonth);
+          const newNw =
+            (Number(h.cash) || 0) +
+            (Number(h.equity) || 0) +
+            newDebt +
+            (Number(h.realEstate) || 0) +
+            (Number(h.vehicles) || 0) -
+            (Number(h.liabilities) || 0);
+          return { ...h, debt: newDebt, netWorth: newNw };
+        }
+        return h;
       });
 
-      const uid3 = session?.user?.id;
       if (uid3 && uid3 !== "offline-user") {
-        // Persist every corrected snapshot to Supabase
-        corrected.forEach((h: any) => {
-          if (h.month === currentYm) return; // already persisted by auto-snapshot
-          supabase
-            .from("net_worth_history")
-            .upsert(
-              { user_id: uid3, month: h.month, net_worth: h.netWorth },
-              { onConflict: "user_id,month" }
-            )
-            .then(() => {});
-        });
-        // Set the "done" flag so this never runs again on any device
+        supabase
+          .from("net_worth_history")
+          .upsert(
+            corrected.map((h: any) => ({
+              user_id: uid3,
+              month: h.month,
+              net_worth: h.netWorth,
+              cash: h.cash,
+              equity: h.equity,
+              debt: h.debt,
+              real_estate: h.realEstate,
+              vehicles: h.vehicles,
+              liabilities: h.liabilities,
+            })),
+            { onConflict: "user_id,month" }
+          )
+          .then(() => {});
+
         const newMaster = { ...(s.masterData || {}), _nwBackfillV2: true };
         supabase
           .from("user_settings")
@@ -1608,7 +1646,6 @@ function FinanceDashboard() {
           .then(() => {});
         return { ...s, netWorthHistory: corrected, masterData: newMaster };
       }
-
       return {
         ...s,
         netWorthHistory: corrected,
@@ -1616,7 +1653,7 @@ function FinanceDashboard() {
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded]); // intentionally runs once after initial load
+  }, [loaded]);
 
   // One-time cleanup: remove netWorthHistory entries that are clearly corrupted —
   // defined as any past-month entry whose stored value is less than 10% of the current
@@ -1632,7 +1669,7 @@ function FinanceDashboard() {
     const threshold = currentNw * 0.1; // 10% of current net worth
     const uid4 = session?.user?.id;
 
-    setState((s) => {
+    setState((s: any) => {
       const cleaned = (s.netWorthHistory || []).filter(
         (h: any) => h.month === currentYm || h.netWorth >= threshold
       );
@@ -1677,11 +1714,11 @@ function FinanceDashboard() {
     if (state.masterData?._caRoundingFixV1) return;
     const actions = state.corporateActions || [];
     if (actions.length === 0) {
-      setState((s) => ({ ...s, masterData: { ...(s.masterData || {}), _caRoundingFixV1: true } }));
+      setState((s: any) => ({ ...s, masterData: { ...(s.masterData || {}), _caRoundingFixV1: true } }));
       return;
     }
 
-    setState((s) => {
+    setState((s: any) => {
       const stockUpdates: { id: string; qty: string; avgPrice: string }[] = [];
       let stocks = [...(s.stocks || [])];
 
@@ -1787,7 +1824,7 @@ function FinanceDashboard() {
             "id",
             zeroMfs.map((m: any) => m.id)
           )
-          .then(({ error }) => {
+          .then(({ error }: any) => {
             if (error) console.error("[cleanZeroHoldings: mutual_funds]", error.message);
           });
       }
@@ -1799,7 +1836,7 @@ function FinanceDashboard() {
             "id",
             zeroStocks.map((s: any) => s.id)
           )
-          .then(({ error }) => {
+          .then(({ error }: any) => {
             if (error) console.error("[cleanZeroHoldings: stocks]", error.message);
           });
       }
@@ -1872,8 +1909,8 @@ function FinanceDashboard() {
       lastSnapshotNwRef.current = nw;
       const nowSnap = new Date();
       const ym = `${nowSnap.getFullYear()}-${String(nowSnap.getMonth() + 1).padStart(2, "0")}`;
-      setState((s) => {
-        const history = (s.netWorthHistory || []).filter((h) => h.month !== ym);
+      setState((s: any) => {
+        const history = (s.netWorthHistory || []).filter((h: any) => h.month !== ym);
         const cashVal = (s.bankAccounts || []).reduce(
           (sum: number, b: any) => sum + (Number(b.balance) || 0),
           0
@@ -2062,7 +2099,7 @@ function FinanceDashboard() {
     return parts.length ? `${label}: ${parts.join(" — ")}` : label;
   };
 
-  const addItem = async (key, item) => {
+  const addItem = async (key: string, item: any) => {
     const userId = session?.user?.id;
     // Auto-assign owner so items satisfy the DB NOT NULL constraint on ppf_nps
     // and other tables, and appear correctly under the active profile filter.
@@ -2145,7 +2182,7 @@ function FinanceDashboard() {
       itemWithOwner.id && (isUuid(itemWithOwner.id) || isTextIdTable) ? itemWithOwner.id : uid();
 
     let syncFailed = false;
-    setState((s) => {
+    setState((s: any) => {
       const next: any = {
         ...s,
         [key]: [...((s[key] as any[]) || []), { ...itemWithOwner, id: newId }],
@@ -2236,28 +2273,27 @@ function FinanceDashboard() {
         const tryUpsert = () => supabase.from(table).upsert(cleanItem, { onConflict: "id" });
 
         pendingWritesRef.current++;
-        let firstErrResult;
+        let firstErr: any = null;
         try {
-          firstErrResult = await tryUpsert();
+          const { error } = await tryUpsert();
+          firstErr = error;
         } finally {
           pendingWritesRef.current--;
         }
-        let { error: firstErr } = firstErrResult;
 
         if (!firstErr) {
-          // Auto-update bank balance in DB when a transaction is recorded
-          if (key === "transactions" && itemWithOwner.accountId && userId) {
+          // Success — auto-update linked bank balance in DB if a transaction was added
+          if (key === "transactions" && itemWithOwner.accountId) {
             const delta =
               itemWithOwner.type === "credit"
                 ? Number(itemWithOwner.amount || 0)
                 : -Number(itemWithOwner.amount || 0);
-            // Re-read fresh balance from DB to avoid stale-closure race condition
             supabase
               .from("bank_accounts")
               .select("balance")
               .eq("id", itemWithOwner.accountId)
               .single()
-              .then(({ data: freshAccount, error: fetchErr }) => {
+              .then(({ data: freshAccount, error: fetchErr }: any) => {
                 if (fetchErr) {
                   console.error("[Balance fetch]", fetchErr.message);
                   return;
@@ -2267,7 +2303,7 @@ function FinanceDashboard() {
                   .from("bank_accounts")
                   .update({ balance: Number(freshAccount.balance || 0) + delta })
                   .eq("id", itemWithOwner.accountId)
-                  .then(({ error: e }) => {
+                  .then(({ error: e }: any) => {
                     if (e) console.error("[Balance auto-update]", e.message);
                   });
               });
@@ -2283,7 +2319,7 @@ function FinanceDashboard() {
             supabase
               .from("user_settings")
               .upsert({ user_id: userId, master_data: newMaster })
-              .then(({ error: e }) => {
+              .then(({ error: e }: any) => {
                 if (e) console.error("[masterData sync]", e.message);
               });
           }
@@ -2310,7 +2346,7 @@ function FinanceDashboard() {
             } else {
               console.error("[Supabase] Upsert retry failed (schema/auth):", retryErr);
               showToast(`Sync error: ${retryErr.message}`, "error");
-              setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
+              setState((s: any) => ({ ...s, [key]: (s[key] || []).filter((x: any) => x.id !== newId) }));
             }
           }, 8000);
         } else if (firstErr.code === "PGRST204") {
@@ -2342,7 +2378,7 @@ function FinanceDashboard() {
           } else {
             console.error(`Supabase Upsert Error (${table}):`, currentErr);
             showToast(`Sync failed [${currentErr.code}]: ${currentErr.message}`, "error");
-            setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
+            setState((s: any) => ({ ...s, [key]: (s[key] || []).filter((x: any) => x.id !== newId) }));
           }
         } else if (firstErr.code === "42P01") {
           // Table does not exist — revert from state and show clear migration instruction
@@ -2361,7 +2397,7 @@ function FinanceDashboard() {
           console.error(`[Supabase] Table "${table}" missing. Run: ${migFile}`);
           showToast(`DB table missing — run ${migFile} in Supabase SQL Editor`, "error");
           setMissingTables((prev) => (prev.includes(table) ? prev : [...prev, table]));
-          setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
+          setState((s: any) => ({ ...s, [key]: (s[key] || []).filter((x: any) => x.id !== newId) }));
           syncFailed = true;
         } else {
           // Schema / auth / constraint error — revert immediately and show details
@@ -2380,7 +2416,7 @@ function FinanceDashboard() {
             errMsg = "Save failed: owner field missing — please reload the page and try again.";
           }
           showToast(errMsg, "error");
-          setState((s) => ({ ...s, [key]: s[key].filter((x: any) => x.id !== newId) }));
+          setState((s: any) => ({ ...s, [key]: (s[key] || []).filter((x: any) => x.id !== newId) }));
           syncFailed = true;
         }
       }
@@ -2405,7 +2441,7 @@ function FinanceDashboard() {
       return { ...item, id: newId, owner: ownerVal };
     });
 
-    setState((s) => {
+    setState((s: any) => {
       // Calculate deltas per account
       const deltas: Record<string, number> = {};
       txnsWithIds.forEach((item) => {
@@ -2475,7 +2511,7 @@ function FinanceDashboard() {
         showToast(`Sync error: ${upsertErr.message}`, "error");
         // Revert transactions from state on error
         const addedIds = txnsWithIds.map((x) => x.id);
-        setState((s) => ({
+        setState((s: any) => ({
           ...s,
           transactions: s.transactions.filter((x: any) => !addedIds.includes(x.id)),
         }));
@@ -2624,7 +2660,7 @@ function FinanceDashboard() {
     }
   };
 
-  const removeItem = async (key, id) => {
+  const removeItem = async (key: string, id: any) => {
     const userId = session?.user?.id;
     const deletedItem = (state[key] || []).find((x: any) => x.id === id);
     const itemToDelete = key === "stocks" ? state.stocks.find((x: any) => x.id === id) : null;
@@ -2662,7 +2698,7 @@ function FinanceDashboard() {
     // record doesn't stay out of sync after the bank transaction itself is deleted.
     reverseLinkedTransactionEffect(txnToDelete);
 
-    setState((s) => {
+    setState((s: any) => {
       const next: any = { ...s, [key]: (s[key] || []).filter((x: any) => x.id !== id) };
       if (key === "wishlists") {
         next.wishlistItems = (s.wishlistItems || []).filter((x: any) => x.watchlistId !== id);
@@ -2764,7 +2800,7 @@ function FinanceDashboard() {
               .select("balance")
               .eq("id", txnToDelete.accountId)
               .single()
-              .then(({ data: freshAccount, error: fetchErr }) => {
+              .then(({ data: freshAccount, error: fetchErr }: any) => {
                 if (fetchErr) {
                   console.error("[Balance fetch]", fetchErr.message);
                   return;
@@ -2774,7 +2810,7 @@ function FinanceDashboard() {
                   .from("bank_accounts")
                   .update({ balance: Number(freshAccount.balance || 0) + delta })
                   .eq("id", txnToDelete.accountId)
-                  .then(({ error: e }) => {
+                  .then(({ error: e }: any) => {
                     if (e) console.error("[Balance auto-reverse]", e.message);
                   });
               });
@@ -2793,7 +2829,7 @@ function FinanceDashboard() {
             supabase
               .from("user_settings")
               .upsert({ user_id: userId, master_data: newMaster })
-              .then(({ error: e }) => {
+              .then(({ error: e }: any) => {
                 if (e) console.error("[masterData sync]", e.message);
               });
           }
@@ -2881,7 +2917,7 @@ function FinanceDashboard() {
       }
     });
 
-    setState((s) => {
+    setState((s: any) => {
       const next: any = {
         ...s,
         transactions: (s.transactions || []).filter((t: any) => !idSet.has(t.id)),
@@ -2975,14 +3011,14 @@ function FinanceDashboard() {
     }
   };
 
-  const updateItem = async (key, id, patch) => {
+  const updateItem = async (key: string, id: any, patch: any) => {
     const userId = session?.user?.id;
     const wasApplied =
       key === "transactions" && (state.masterData?.balanceAppliedTxnIds || []).includes(id);
     const oldTxn = key === "transactions" ? state.transactions.find((x: any) => x.id === id) : null;
 
-    setState((s) => {
-      const next: any = { ...s, [key]: s[key].map((x) => (x.id === id ? { ...x, ...patch } : x)) };
+    setState((s: any) => {
+      const next: any = { ...s, [key]: (s[key] || []).map((x: any) => (x.id === id ? { ...x, ...patch } : x)) };
       if (wasApplied && oldTxn) {
         const updatedTxn = { ...oldTxn, ...patch };
         const oldDelta =
@@ -3172,7 +3208,7 @@ function FinanceDashboard() {
                 .select("balance")
                 .eq("id", oldTxn.accountId)
                 .single()
-                .then(({ data: freshAccount, error: fetchErr }) => {
+                .then(({ data: freshAccount, error: fetchErr }: any) => {
                   if (fetchErr) {
                     console.error("[Balance fetch]", fetchErr.message);
                     return;
@@ -3182,7 +3218,7 @@ function FinanceDashboard() {
                     .from("bank_accounts")
                     .update({ balance: Number(freshAccount.balance || 0) + adjustment })
                     .eq("id", oldTxn.accountId)
-                    .then(({ error: e }) => {
+                    .then(({ error: e }: any) => {
                       if (e) console.error("[Balance edit-update]", e.message);
                     });
                 });
@@ -3194,7 +3230,7 @@ function FinanceDashboard() {
               .select("balance")
               .eq("id", oldTxn.accountId)
               .single()
-              .then(({ data: freshOld, error: fetchErr }) => {
+              .then(({ data: freshOld, error: fetchErr }: any) => {
                 if (fetchErr) {
                   console.error("[Balance fetch]", fetchErr.message);
                   return;
@@ -3204,7 +3240,7 @@ function FinanceDashboard() {
                   .from("bank_accounts")
                   .update({ balance: Number(freshOld.balance || 0) - oldDelta })
                   .eq("id", oldTxn.accountId)
-                  .then(({ error: e }) => {
+                  .then(({ error: e }: any) => {
                     if (e) console.error("[Balance edit-reverse]", e.message);
                   });
               });
@@ -3213,7 +3249,7 @@ function FinanceDashboard() {
               .select("balance")
               .eq("id", updatedTxn.accountId)
               .single()
-              .then(({ data: freshNew, error: fetchErr }) => {
+              .then(({ data: freshNew, error: fetchErr }: any) => {
                 if (fetchErr) {
                   console.error("[Balance fetch]", fetchErr.message);
                   return;
@@ -3223,7 +3259,7 @@ function FinanceDashboard() {
                   .from("bank_accounts")
                   .update({ balance: Number(freshNew.balance || 0) + newDelta })
                   .eq("id", updatedTxn.accountId)
-                  .then(({ error: e }) => {
+                  .then(({ error: e }: any) => {
                     if (e) console.error("[Balance edit-apply]", e.message);
                   });
               });
@@ -3322,7 +3358,7 @@ function FinanceDashboard() {
     // localStorage (see the always-on saveStateLocal effect) and into the pre-login
     // Auth screen's .dark-theme class (see useTheme.ts), stomping the real preference
     // the user had set before they'd even logged back in.
-    setState((s) => ({ ...DEFAULT_STATE, settings: s.settings }));
+    setState((s: any) => ({ ...DEFAULT_STATE, settings: s.settings }));
     setActiveProfile("all");
     try {
       localStorage.removeItem("finance_credit_scores");
@@ -3458,7 +3494,7 @@ function FinanceDashboard() {
       ...push("govt_schemes", data.govtSchemes),
       ...push("salary_slips", data.salarySlips),
       ...push("form_26as", data.form26as),
-      ...(data.netWorthHistory || []).map((entry) =>
+      ...(data.netWorthHistory || []).map((entry: any) =>
         supabase.from("net_worth_history").upsert(
           {
             user_id: userId,
@@ -3479,10 +3515,10 @@ function FinanceDashboard() {
     await Promise.allSettled(ops);
   };
 
-  const countRecords = (obj) =>
-    Object.values(obj || {}).reduce((n, v) => n + (Array.isArray(v) ? v.length : 0), 0);
+  const countRecords = (obj: any) =>
+    Object.values(obj || {}).reduce((n: number, v: any) => n + (Array.isArray(v) ? v.length : 0), 0);
 
-  const importJSON = (e) => {
+  const importJSON = (e: any) => {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.name.endsWith(".json") && file.type !== "application/json") {
@@ -3512,7 +3548,7 @@ function FinanceDashboard() {
       try {
         let parsed;
         try {
-          parsed = JSON.parse(ev.target.result);
+          parsed = JSON.parse((ev?.target?.result as string) || "{}");
         } catch {
           showToast("Invalid backup file — check JSON format", "error");
           input.value = "";
@@ -3647,7 +3683,7 @@ function FinanceDashboard() {
     });
   };
 
-  const d = DENSITY[density] || DENSITY.normal;
+  const d = (DENSITY as Record<string, any>)[density] || DENSITY.normal;
 
   const isSupabaseConfigured = !!(
     import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes("placeholder")
@@ -3958,7 +3994,7 @@ function FinanceDashboard() {
                   setSubTab={setSubTab}
                   showToast={showToast}
                   dashboardWidgets={state.masterData?.dashboardWidgets}
-                  onUpdateWidgets={(widgets) => updateMasterData("dashboardWidgets", widgets)}
+                  onUpdateWidgets={(widgets: any) => updateMasterData("dashboardWidgets", widgets)}
                   activeProfile={activeProfile}
                 />
               )}
@@ -4367,17 +4403,17 @@ function FinanceDashboard() {
                   darkMode={darkMode}
                   toggleDarkMode={() => updateSettings({ darkMode: !darkMode })}
                   accentKey={accentKey}
-                  setAccentKey={(v) => updateSettings({ accentKey: v })}
+                  setAccentKey={(v: any) => updateSettings({ accentKey: v })}
                   density={density}
-                  setDensity={(v) => updateSettings({ density: v })}
+                  setDensity={(v: any) => updateSettings({ density: v })}
                   radiusKey={radiusKey}
-                  setRadiusKey={(v) => updateSettings({ radiusKey: v })}
+                  setRadiusKey={(v: any) => updateSettings({ radiusKey: v })}
                   fontKey={fontKey}
-                  setFontKey={(v) => updateSettings({ fontKey: v })}
+                  setFontKey={(v: any) => updateSettings({ fontKey: v })}
                   bgStyle={bgStyle}
-                  setBgStyle={(v) => updateSettings({ bgStyle: v })}
+                  setBgStyle={(v: any) => updateSettings({ bgStyle: v })}
                   animSpeed={animSpeed}
-                  setAnimSpeed={(v) => updateSettings({ animSpeed: v })}
+                  setAnimSpeed={(v: any) => updateSettings({ animSpeed: v })}
                   masterData={state.masterData || DEFAULT_MASTER_DATA}
                   updateMasterData={updateMasterData}
                   emailSettings={settings}
