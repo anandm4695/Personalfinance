@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   CreditCard,
@@ -839,12 +838,9 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                   {delta !== null && (
                     <StatCard
                       label="Recent Change"
-                      value={
-                        <span style={{ color: delta > 0 ? THEME.sage : delta < 0 ? THEME.rust : THEME.muted }}>
-                          {delta > 0 ? "+" : ""}
-                          {delta} pts
-                        </span>
-                      }
+                      value={`${delta > 0 ? "+" : ""}${delta} pts`}
+                      numericValue={delta}
+                      formatValue={(n) => `${n > 0 ? "+" : ""}${n} pts`}
                       icon={delta > 0 ? <TrendingUp size={18} /> : delta < 0 ? <TrendingDown size={18} /> : <Minus size={18} />}
                       color={delta > 0 ? THEME.sage : delta < 0 ? THEME.rust : THEME.muted}
                       sub={delta > 0 ? "Score increased!" : delta < 0 ? "Score dropped" : "No change"}
@@ -919,7 +915,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                       <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                       <YAxis domain={[300, 900]} tick={{ fontSize: 11 }} />
                       <Tooltip
-                        formatter={(v: number) => [v, "Score"]}
+                        formatter={(v: any) => [v, "Score"]}
                         contentStyle={{
                           background: THEME.card,
                           border: `1.5px solid ${THEME.border}`,

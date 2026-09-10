@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import {
@@ -3798,7 +3797,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
           amountLabel="Deposit Amount Received (₹)"
           saveLabel="Log Deposit Receipt"
           onClose={() => setShowLogModal(null)}
-          onSave={(data) => handleAddDepositOut(showLogModal.property, data)}
+          onSave={(data: any) => handleAddDepositOut(showLogModal.property, data)}
           saving={savingLog}
         />
       )}

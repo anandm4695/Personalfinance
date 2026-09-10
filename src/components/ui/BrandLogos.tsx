@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useState, useEffect } from "react";
 import { THEME } from "../../utils/constants";
 

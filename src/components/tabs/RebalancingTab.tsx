@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useState, useMemo, useEffect } from "react";
 import {
   PieChart as PieIcon,
@@ -110,7 +109,7 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
   );
 };
 
-const PRESETS = {
+const PRESETS: Record<string, any> = {
   aggressive: {
     label: "Aggressive (80/15/5)",
     equity: 80,
@@ -159,7 +158,13 @@ const loadRebalPrefs = () => {
   }
 };
 
-export const RebalancingTab = ({ state, metrics, marketData }) => {
+interface RebalancingTabProps {
+  state: any;
+  metrics?: any;
+  marketData?: any;
+}
+
+export const RebalancingTab: React.FC<RebalancingTabProps> = ({ state, metrics, marketData }) => {
   const { privacyMode } = usePrivacy();
   const [savedPrefs] = useState(loadRebalPrefs);
   const [selectedPreset, setSelectedPreset] = useState(
@@ -197,7 +202,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
   const customTargetInvalid = useCustom && Math.abs(customTargetSum - 100) > 0.5;
 
   const allocation = useMemo(() => {
-    const equityStocks = (state.stocks || []).reduce((s, st) => {
+    const equityStocks = (state.stocks || []).reduce((s: number, st: any) => {
       const price = (() => {
         if (marketData) {
           const sym = `${(st.symbol || "").replace(/\.(NS|BO)$/i, "")}.${(st.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
@@ -208,15 +213,10 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       return s + (Number(st.qty) || 0) * price;
     }, 0);
 
-    // Single pass classifier: every fund's value lands somewhere (equity,
-    // debt, or gold-MF). The old two-reduce version silently dropped any
-    // fund whose category matched neither list — which included "Hybrid"
-    // and "International", both real, selectable categories elsewhere in
-    // the app — so that money vanished from the portfolio total entirely.
     let equityMF = 0;
     let debtMF = 0;
     let goldMF = 0;
-    (state.mutualFunds || []).forEach((m) => {
+    (state.mutualFunds || []).forEach((m: any) => {
       const val = (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0);
       const cat = (m.category || m.type || "").toLowerCase();
       const isGold = ["gold", "silver"].some((k) => cat.includes(k));
@@ -244,22 +244,17 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       if (isGold) {
         goldMF += val;
       } else if (isHybrid) {
-        // Hybrid/Balanced/Multi-Asset funds blend equity and debt. Split
-        // 65:35 — the minimum equity share Indian hybrid funds hold to
-        // qualify for equity taxation — instead of dropping the value.
         equityMF += val * 0.65;
         debtMF += val * 0.35;
       } else if (isDebt) {
         debtMF += val;
       } else {
-        // Equity, ELSS, Index, "International", or any unrecognized/blank
-        // category defaults to equity rather than being excluded.
         equityMF += val;
       }
     });
 
-    const fd = (state.fixedDeposits || []).reduce((s, f) => s + Number(f.principal || 0), 0);
-    const rd = (state.recurringDeposits || []).reduce((s, r) => {
+    const fd = (state.fixedDeposits || []).reduce((s: number, f: any) => s + Number(f.principal || 0), 0);
+    const rd = (state.recurringDeposits || []).reduce((s: number, r: any) => {
       const now = new Date();
       const start = r.startDate ? new Date(r.startDate + "T00:00:00") : now;
       const totalMonths = Number(r.tenureMonths || 0);
@@ -273,7 +268,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 6), elapsed);
     }, 0);
     const bonds = (state.bonds || []).reduce(
-      (s, b) =>
+      (s: number, b: any) =>
         s +
         Number(
           b.totalInvestmentAmount ||
@@ -284,7 +279,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
         ),
       0
     );
-    const ppf = (state.ppf || []).reduce((s, p) => s + Number(p.balance || 0), 0);
+    const ppf = (state.ppf || []).reduce((s: number, p: any) => s + Number(p.balance || 0), 0);
     const nps = (state.nps || []).reduce((s: number, n: any) => {
       const bal = Number(n.balance) || 0;
       if (bal > 0) return s + bal;
@@ -297,8 +292,8 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
         )
       );
     }, 0);
-    const epf = (state.epf || []).reduce((s, e) => s + calculateEpfBalance(e), 0);
-    const cash = (state.bankAccounts || []).reduce((s, a) => s + Number(a.balance || 0), 0);
+    const epf = (state.epf || []).reduce((s: number, e: any) => s + calculateEpfBalance(e), 0);
+    const cash = (state.bankAccounts || []).reduce((s: number, a: any) => s + Number(a.balance || 0), 0);
     const prepaidCards = (state.prepaidCards || [])
       .filter((pc: any) => (pc.status || "").toLowerCase() !== "closed")
       .reduce((s: number, pc: any) => {
@@ -312,7 +307,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
         return s + (loaded - spent);
       }, 0);
     const govtSchemes = (state.govtSchemes || []).reduce(
-      (s, sc) => s + Number(sc.currentBalance || 0),
+      (s: number, sc: any) => s + Number(sc.currentBalance || 0),
       0
     );
     const lic = (state.lic || []).reduce((s: number, l: any) => {
@@ -331,29 +326,33 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     }, 0);
 
     const goldPricePerGram = getGoldPricePerGram(state);
-    const goldPhysical = (state.goldHoldings || []).reduce((s, g) => {
+    const goldPhysical = (state.goldHoldings || []).reduce((s: number, g: any) => {
       const grams = Number(g.grams || 0);
       const purityMul = g.type === "physical" ? GOLD_PURITY_FACTOR[g.purity] || 1 : 1;
       return s + grams * goldPricePerGram * purityMul;
     }, 0);
     const gold = goldPhysical + goldMF;
 
+    const debt = debtMF + fd + rd + bonds + ppf + epf + govtSchemes + lic + investPlans;
     const equity = equityStocks + equityMF;
-    const debt = debtMF + fd + rd + bonds + ppf + epf + lic + investPlans + govtSchemes;
-    const cashTotal = cash + prepaidCards;
-    const total = equity + debt + gold + cashTotal + nps;
+    const total = equity + debt + gold + cash + prepaidCards + nps;
+
+    const equityPct = total ? (equity / total) * 100 : 0;
+    const debtPct = total ? ((debt + nps) / total) * 100 : 0;
+    const goldPct = total ? (gold / total) * 100 : 0;
+    const cashPct = total ? ((cash + prepaidCards) / total) * 100 : 0;
 
     return {
-      equity,
-      debt,
-      gold,
-      cash: cashTotal,
-      nps,
       total,
-      equityPct: total ? (equity / total) * 100 : 0,
-      debtPct: total ? ((debt + nps) / total) * 100 : 0,
-      goldPct: total ? (gold / total) * 100 : 0,
-      cashPct: total ? (cashTotal / total) * 100 : 0,
+      equity,
+      debt: debt + nps,
+      gold,
+      cash: cash + prepaidCards,
+      equityPct,
+      debtPct,
+      goldPct,
+      cashPct,
+      nps,
       breakdown: {
         equityStocks,
         equityMF,
@@ -362,11 +361,11 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
         rd,
         bonds,
         ppf,
-        nps,
         epf,
+        nps,
+        govtSchemes,
         lic,
         investPlans,
-        govtSchemes,
         goldPhysical,
         goldMF,
         cash,
@@ -377,7 +376,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
 
   const suggestions = useMemo(() => {
     if (!allocation.total) return [];
-    const items = [];
+    const items: any[] = [];
     const classes = [
       {
         name: "Equity",
@@ -389,7 +388,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
         name: "Debt",
         current: allocation.debtPct,
         target: target.debt,
-        value: allocation.debt + allocation.nps,
+        value: allocation.debt,
       },
       {
         name: "Gold",
@@ -428,18 +427,13 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
     return Math.max(0, 100 - (d1 + d2 + d3 + d4));
   }, [allocation, target]);
 
-  // "Deploy new money" — instead of selling overweight assets, spread a
-  // fresh lump sum (bonus, maturity payout, new SIP) across the underweight
-  // classes proportional to how far each is below target. If nothing is
-  // underweight, split proportional to target weights so the money still
-  // has somewhere sensible to go.
   const deploymentPlan = useMemo(() => {
     const amt = Number(newMoneyAmount) || 0;
     if (!amt || !allocation.total) return [];
     const newTotal = allocation.total + amt;
     const classes = [
       { name: "Equity", current: allocation.equity, target: target.equity },
-      { name: "Debt", current: allocation.debt + allocation.nps, target: target.debt },
+      { name: "Debt", current: allocation.debt, target: target.debt },
       { name: "Gold", current: allocation.gold, target: target.gold || 0 },
       { name: "Cash", current: allocation.cash, target: target.cash },
     ];
@@ -447,10 +441,10 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
       ...c,
       gap: Math.max(0, (c.target / 100) * newTotal - c.current),
     }));
-    const totalGap = gaps.reduce((s, g) => s + g.gap, 0);
-    const base = totalGap > 0 ? gaps.filter((g) => g.gap > 0) : classes.filter((c) => c.target > 0);
+    const totalGap = gaps.reduce((s: number, g: any) => s + g.gap, 0);
+    const base = totalGap > 0 ? gaps.filter((g) => g.gap > 0) : gaps.filter((c) => c.target > 0);
     const baseTotal =
-      totalGap > 0 ? totalGap : base.reduce((s, c) => s + c.target, 0);
+      totalGap > 0 ? totalGap : base.reduce((s: number, c: any) => s + c.target, 0);
     if (!baseTotal) return [];
     return base
       .map((c) => ({
@@ -772,7 +766,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                     max={100}
                     value={customTarget[k]}
                     onChange={(e) =>
-                      setCustomTarget((p) => ({ ...p, [k]: Number(e.target.value) }))
+                      setCustomTarget((p: any) => ({ ...p, [k]: Number(e.target.value) }))
                     }
                     style={{
                       width: 50,
@@ -992,8 +986,8 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                     axisLine={false}
                   />
                   <Tooltip
-                    formatter={(v) => `${v}%`}
-                    content={<ChartTooltip formatter={(v) => `${v}%`} />}
+                    formatter={(v: any) => `${v}%`}
+                    content={<ChartTooltip formatter={(v: any) => `${v}%`} />}
                     cursor={{ fill: THEME.line, opacity: 0.4 }}
                   />
                   <Bar dataKey="Current" fill={THEME.accent} radius={[6, 6, 0, 0]} />
@@ -1054,7 +1048,7 @@ export const RebalancingTab = ({ state, metrics, marketData }) => {
                       />
                     ))}
                   </Pie>
-                  <Tooltip content={<ChartTooltip formatter={(v) => `${v}%`} />} />
+                  <Tooltip content={<ChartTooltip formatter={(v: any) => `${v}%`} />} />
                   {activeTargetIndex !== null && targetPieData[activeTargetIndex] ? (
                     <>
                       <text
