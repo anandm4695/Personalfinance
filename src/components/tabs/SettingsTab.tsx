@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Database,
@@ -233,7 +232,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
   const [pendingReset, setPendingReset] = useState(false);
   const [dupWarning, setDupWarning] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const defaultItems: string[] = DEFAULT_MASTER_DATA[listKey] || [];
+  const defaultItems: string[] = (DEFAULT_MASTER_DATA as Record<string, any>)[listKey] || [];
   const isDirty = JSON.stringify([...items].sort()) !== JSON.stringify([...defaultItems].sort());
 
   const sortAZ = () => {
@@ -1139,7 +1138,7 @@ function ProfileSection({ state, updateProfile, showToast }: any) {
   // Sync if parent profile changes (e.g., DB load after mount). Keyed on name only so
   // in-progress edits aren't wiped on every keystroke that triggers a parent re-render.
   useEffect(() => {
-    setProf((p) => ({ ...p, ...state.profile }));
+    setProf((p: any) => ({ ...p, ...state.profile }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.profile?.name]);
 

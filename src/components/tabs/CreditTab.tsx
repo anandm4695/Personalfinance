@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   Plus,
@@ -566,11 +565,11 @@ export function CreditTab({
   const [editId, setEditId] = useState<string | null>(null);
 
   // Existing shared group names — passed to modals for datalist suggestions
-  const existingGroups: string[] = [
-    ...new Set(
+  const existingGroups: string[] = Array.from(
+    new Set<string>(
       (state.creditCards || []).filter((c: any) => c.sharedGroup).map((c: any) => c.sharedGroup as string)
-    ),
-  ];
+    )
+  );
 
   const { run: saveNewCC, loading: savingNewCC } = useAsyncAction(
     async (v: any) => {
@@ -7128,7 +7127,7 @@ function InformalLoanView({ direction, items, onAddPerson, onUpdate, onRemove, o
       ownerLabel,
     };
   });
-  const overdueCount = enrichedItems.filter((x) => x.isOverdue).length;
+  const overdueCount = enrichedItems.filter((x: any) => x.isOverdue).length;
 
   const fmtD = (d: string) =>
     d

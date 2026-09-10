@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   Send,
@@ -249,7 +248,8 @@ const MarkdownRenderer = ({ text }: { text: string }) => {
     // sub-bullets are absorbed into their parent <li> even when Gemini puts a
     // blank line between the numbered item and its bullets.
     if (/^\d+\. /.test(line)) {
-      const startNum = parseInt(line.match(/^(\d+)\./)[1], 10);
+      const match = line.match(/^(\d+)\./);
+      const startNum = match ? parseInt(match[1], 10) : 1;
       const items: { text: string; subs: string[] }[] = [];
       while (i < rawLines.length) {
         // Skip one blank line between numbered items so the whole list stays together
@@ -1770,7 +1770,7 @@ You have access to local tools/functions to retrieve real-time and detailed tran
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({
         model: "gemini-2.5-flash",
-        tools: [{ functionDeclarations }],
+        tools: [{ functionDeclarations: functionDeclarations as any }],
       });
 
       // First message: create a new chat session and prepend full financial context.

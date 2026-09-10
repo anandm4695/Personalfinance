@@ -7,6 +7,7 @@ interface BadgeProps {
   size?: "xs" | "md";
   className?: string;
   style?: React.CSSProperties;
+  title?: string;
   onClick?: (e: React.MouseEvent) => void;
 }
 
@@ -21,6 +22,7 @@ export const Badge: React.FC<BadgeProps> = ({
   size = "md",
   className = "",
   style,
+  title,
   onClick,
 }) => {
   const variantClass = `badge-${variant}`;
@@ -37,6 +39,7 @@ export const Badge: React.FC<BadgeProps> = ({
     <span
       className={`badge ${variantClass} ${className}`}
       style={{ ...SIZE_STYLE[size], ...(onClick ? { cursor: "pointer" } : {}), ...style }}
+      title={title}
       onClick={onClick}
       {...(onClick ? { role: "button", tabIndex: 0, onKeyDown: handleKeyDown } : {})}
     >

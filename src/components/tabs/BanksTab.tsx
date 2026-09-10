@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Plus,
@@ -971,8 +970,8 @@ export function BanksTab({
           share,
         };
       })
-      .sort((a, b) => b.share - a.share)
-      .map((w, i) => ({ ...w, color: CHART_PALETTE[i % CHART_PALETTE.length] }));
+      .sort((a: any, b: any) => b.share - a.share)
+      .map((w: any, i: number) => ({ ...w, color: CHART_PALETTE[i % CHART_PALETTE.length] }));
 
     return {
       monthlySavingsRate: savingsRate,
@@ -983,7 +982,7 @@ export function BanksTab({
 
   const chartColorById = useMemo(() => {
     const map: Record<string, string> = {};
-    liquidityWeights.forEach((w) => {
+    liquidityWeights.forEach((w: any) => {
       map[w.id] = w.color;
     });
     return map;
@@ -1400,7 +1399,7 @@ export function BanksTab({
                   boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
                 }}
               >
-                {liquidityWeights.map((w) => (
+                {liquidityWeights.map((w: any) => (
                   <div
                     key={w.id}
                     title={`${w.name}: ${w.share.toFixed(1)}%`}
@@ -3359,7 +3358,7 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave, savin
         >
           <Link2 size={12} style={{ verticalAlign: -2, marginRight: 2 }} /> This transaction is
           linked to a{" "}
-          {
+          {(
             {
               creditCards: "credit card",
               loansTaken: "loan",
@@ -3370,7 +3369,8 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave, savin
               termPlans: "insurance policy",
               investmentPlans: "investment plan",
               subscriptions: "subscription",
-            }[txn.linkedType] || "linked"
+            } as Record<string, string>
+          )[txn.linkedType] || "linked"
           }{" "}
           record. Changing the amount here will not update that record — delete and re-add the
           transaction instead if the amount was wrong.
