@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Car,
@@ -2235,7 +2234,7 @@ function VehicleCard({
                   },
                   {
                     label: "Fitness Validity",
-                    value: vehicle.fitnessUpto ? formatDate(vehicle.fitnessUpto) : "15 Yrs from Reg",
+                    value: vehicle.fitnessUpto ? fmtDate(vehicle.fitnessUpto) : "15 Yrs from Reg",
                     icon: Shield,
                     color: THEME.cyan,
                   },

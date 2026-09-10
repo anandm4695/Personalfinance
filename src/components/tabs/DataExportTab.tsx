@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useCallback } from "react";
 import {
   Download,
@@ -77,16 +76,16 @@ const DATA_SECTIONS = [
 // Always wrap the value in quotes if it needs escaping (comma/quote/newline), doubling any
 // internal quotes — an unquoted stringified object containing a comma otherwise shifts every
 // subsequent CSV column for that row.
-const csvCell = (val) => {
+const csvCell = (val: any) => {
   if (val === null || val === undefined) return "";
   const str = typeof val === "object" ? JSON.stringify(val) : String(val);
   if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
   return str;
 };
 
-const toCSV = (data, label) => {
+const toCSV = (data: any[], _label?: string) => {
   if (!Array.isArray(data) || data.length === 0) return null;
-  const allKeys = new Set();
+  const allKeys = new Set<string>();
   data.forEach((row) => Object.keys(row).forEach((k) => allKeys.add(k)));
   const headers = [...allKeys].filter((k) => k !== "id" && k !== "userId" && k !== "user_id");
   const rows = data.map((row) => headers.map((h) => csvCell(row[h])).join(","));
@@ -95,7 +94,14 @@ const toCSV = (data, label) => {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export const DataExportTab = ({
+export const DataExportTab: React.FC<{
+  state: any;
+  exportJSON?: () => void;
+  onRestoreBackup?: (data: any) => void;
+  showToast?: (msg: string, type?: string) => void;
+  lastBackupTs?: string | number | null;
+  isCloudSynced?: boolean;
+}> = ({
   state,
   exportJSON,
   onRestoreBackup,
@@ -110,14 +116,15 @@ export const DataExportTab = ({
 
   const daysSinceBackup =
     lastBackupTs != null ? Math.floor((Date.now() - new Date(lastBackupTs).getTime()) / DAY_MS) : null;
+  const backupDateLabel = lastBackupTs != null ? new Date(lastBackupTs).toLocaleString() : "";
   const backupStatus =
-    daysSinceBackup === null
+    daysSinceBackup === null || !backupDateLabel
       ? { label: "Never backed up", color: THEME.rust }
       : daysSinceBackup < 7
-        ? { label: new Date(lastBackupTs).toLocaleString(), color: THEME.sage }
+        ? { label: backupDateLabel, color: THEME.sage }
         : daysSinceBackup <= 30
-          ? { label: new Date(lastBackupTs).toLocaleString(), color: THEME.gold }
-          : { label: new Date(lastBackupTs).toLocaleString(), color: THEME.rust };
+          ? { label: backupDateLabel, color: THEME.gold }
+          : { label: backupDateLabel, color: THEME.rust };
   const isStale = daysSinceBackup === null || daysSinceBackup > 30;
 
   const dataCounts = DATA_SECTIONS.map((s) => ({
@@ -130,7 +137,7 @@ export const DataExportTab = ({
     .filter((d) => selectedSections.has(d.key))
     .reduce((s, d) => s + d.count, 0);
 
-  const toggleSection = (key) => {
+  const toggleSection = (key: string) => {
     setSelectedSections((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -150,7 +157,7 @@ export const DataExportTab = ({
       if (showToast) showToast("Full backup exported successfully.", "success");
       return;
     }
-    const exportData = { _exportDate: today(), _version: "2.0" };
+    const exportData: Record<string, any> = { _exportDate: today(), _version: "2.0" };
     DATA_SECTIONS.forEach((s) => {
       if (selectedSections.has(s.key) && state[s.key]) {
         exportData[s.key] = state[s.key];
@@ -171,7 +178,7 @@ export const DataExportTab = ({
   }, [state, selectedSections, showToast, exportJSON]);
 
   const handleExportCSV = useCallback(() => {
-    const csvFiles = [];
+    const csvFiles: { name: string; csv: string }[] = [];
     DATA_SECTIONS.forEach((s) => {
       if (!selectedSections.has(s.key) || !state[s.key] || !state[s.key].length) return;
       const csv = toCSV(state[s.key], s.label);

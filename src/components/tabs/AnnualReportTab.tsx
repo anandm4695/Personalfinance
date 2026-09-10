@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   FileText,
@@ -1334,7 +1333,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
      (j) KEY HIGHLIGHTS
      ═══════════════════════════════════════════════════════════════ */
   const highlights = useMemo(() => {
-    const items: { icon: any; text: string; color: string }[] = [];
+    const items: { icon: any; text: React.ReactNode; color: string }[] = [];
 
     if (expenseData.highestExpense) {
       const e = expenseData.highestExpense;
@@ -2699,7 +2698,7 @@ export const AnnualReportTab = ({ state, metrics, marketData, activeProfile = "a
                       color={THEME.accent}
                     />
                   </div>
-                  {goalsData.topGoals.map((g) => (
+                  {goalsData.topGoals.map((g: any) => (
                     <div key={g.name} style={{ marginBottom: 12 }}>
                       <div
                         style={{

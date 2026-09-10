@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   TrendingUp,
@@ -113,24 +112,28 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
   );
 };
 
-export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
+export const ExpenseForecastTab: React.FC<{
+  state: any;
+  metrics?: any;
+  setTab?: (tab: string) => void;
+}> = ({ state, metrics, setTab }) => {
   const { privacyMode } = usePrivacy();
   const [forecastMonths, setForecastMonths] = useState(6);
   const [catFilter, setCatFilter] = useState("");
 
   // Historical monthly expenses by category
   const historicalData = useMemo(() => {
-    const monthMap = {};
+    const monthMap: Record<string, { total: number; categories: Record<string, number> }> = {};
     (state.transactions || [])
       .filter(
-        (t) =>
+        (t: any) =>
           t.type === "debit" &&
           t.date &&
           t.category !== "Transfer" &&
           t.category !== "Self Transfer" &&
           t.category !== "Self-Transfer"
       )
-      .forEach((t) => {
+      .forEach((t: any) => {
         const ym = t.date.slice(0, 7);
         const cat = t.category || "Uncategorized";
         if (!monthMap[ym]) monthMap[ym] = { total: 0, categories: {} };
@@ -155,8 +158,8 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
   // months rather than the last 3 months the category happened to have any spend in.
   const categoryStats = useMemo(() => {
     if (!historicalData.length) return [];
-    const allCats = new Set();
-    historicalData.forEach((m) => {
+    const allCats = new Set<string>();
+    historicalData.forEach((m: any) => {
       Object.keys(m).forEach((key) => {
         if (key === "month" || key === "label" || key === "total") return;
         allCats.add(key);
@@ -166,8 +169,8 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
     const N = historicalData.length;
 
     return Array.from(allCats)
-      .map((cat) => {
-        const series = historicalData.map((m) => Number(m[cat] || 0));
+      .map((cat: string) => {
+        const series = historicalData.map((m: any) => Number(m[cat] || 0));
         const avg = series.reduce((s, v) => s + v, 0) / N;
 
         const recentCount = Math.min(3, N);
@@ -209,12 +212,12 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
   }, [categoryStats, catFilter]);
 
   const handleExportForecast = () => {
-    const trendLabel = { up: "Rising", down: "Falling", stable: "Stable", new: "New" };
-    const rows = categoryStats.map((c) => ({
+    const trendLabel: Record<string, string> = { up: "Rising", down: "Falling", stable: "Stable", new: "New" };
+    const rows = categoryStats.map((c: any) => ({
       category: c.category,
       monthlyAvg: c.avg,
       recent3m: c.recentAvg,
-      trend: trendLabel[c.trend],
+      trend: trendLabel[c.trend] || c.trend,
       min: c.min,
       max: c.max,
     }));
@@ -235,7 +238,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
   // Builds one future month's forecast point using the seasonal-blend model. Shared by the
   // chart's selectable horizon and the fixed 12-month projection used for headline stats, so
   // the two never disagree about methodology.
-  const buildForecastPoint = (monthsAhead) => {
+  const buildForecastPoint = (monthsAhead: number) => {
     const now = new Date();
     const d = new Date(now.getFullYear(), now.getMonth() + monthsAhead, 1);
     const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -297,8 +300,8 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
 
   // Seasonal patterns
   const seasonalPatterns = useMemo(() => {
-    const monthTotals = {};
-    historicalData.forEach((h) => {
+    const monthTotals: Record<number, number[]> = {};
+    historicalData.forEach((h: any) => {
       const m = parseInt(h.month.split("-")[1]) - 1;
       if (!monthTotals[m]) monthTotals[m] = [];
       monthTotals[m].push(h.total);
@@ -306,7 +309,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
 
     return MONTH_NAMES.map((name, i) => {
       const vals = monthTotals[i] || [];
-      const avg = vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+      const avg = vals.length > 0 ? vals.reduce((s: number, v: number) => s + v, 0) / vals.length : 0;
       return { month: name, avg: Math.round(avg) };
     });
   }, [historicalData]);
@@ -718,7 +721,7 @@ export const ExpenseForecastTab = ({ state, metrics, setTab }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredCategoryStats.slice(0, 15).map((c) => (
+              {filteredCategoryStats.slice(0, 15).map((c: any) => (
                 <tr
                   key={c.category}
                   style={{ borderBottom: `1px solid ${THEME.line}` }}
