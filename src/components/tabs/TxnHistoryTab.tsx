@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useState, useMemo, useCallback } from "react";
 import {
   Trash2,

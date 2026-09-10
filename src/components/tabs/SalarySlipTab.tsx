@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useState, useCallback, useMemo } from "react";
 import {
   Briefcase,
@@ -1324,7 +1323,7 @@ export function SalarySlipTab({ state, addItem, removeItem, updateItem, showToas
                     tickLine={false}
                   />
                   <Tooltip
-                    content={<ChartTooltip formatter={(v) => fmtINRFull(v)} />}
+                    content={<ChartTooltip formatter={(v: any) => fmtINRFull(Number(v || 0))} />}
                     cursor={{ fill: THEME.line, opacity: 0.4 }}
                   />
                   <Legend

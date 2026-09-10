@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useMemo } from "react";
 import {
   Users,
@@ -209,33 +208,33 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // can be jointly held (`owners: [{id, sharePct}]`); this falls back to the
 // legacy single `owner` field (100% share) for properties saved before joint
 // ownership existed.
-const realEstateShareFor = (property, owner) => {
+const realEstateShareFor = (property: any, owner: string): number => {
   if (Array.isArray(property.owners) && property.owners.length > 0) {
-    const match = property.owners.find((o) => o?.id === owner);
+    const match = property.owners.find((o: any) => o?.id === owner);
     return match ? Number(match.sharePct || 0) / 100 : 0;
   }
   return property.owner === owner ? 1 : 0;
 };
 
-const memberAssets = (state, owner, marketData) => {
-  const filter = (arr) => (arr || []).filter((a) => a.owner === owner);
+const memberAssets = (state: any, owner: string, marketData?: any) => {
+  const filter = (arr: any[] | undefined) => (arr || []).filter((a: any) => a.owner === owner);
 
-  const cash = filter(state.bankAccounts).reduce((s, a) => s + Number(a.balance || 0), 0);
-  const fd = filter(state.fixedDeposits).reduce((s, f) => s + Number(f.principal || 0), 0);
-  const rd = filter(state.recurringDeposits).reduce((s, r) => {
+  const cash = filter(state.bankAccounts).reduce((s: number, a: any) => s + Number(a.balance || 0), 0);
+  const fd = filter(state.fixedDeposits).reduce((s: number, f: any) => s + Number(f.principal || 0), 0);
+  const rd = filter(state.recurringDeposits).reduce((s: number, r: any) => {
     const elapsed = r.startDate
       ? Math.min(Number(r.tenureMonths || 0), Math.max(0, monthsBetween(r.startDate, today())))
       : Number(r.tenureMonths || 0);
     return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), elapsed);
   }, 0);
-  const stocks = filter(state.stocks).reduce((s, st) => {
+  const stocks = filter(state.stocks).reduce((s: number, st: any) => {
     const yfSym = `${(st.symbol || "").replace(/\.(NS|BO)$/i, "")}.${(st.exchange || "NSE") === "BSE" ? "BO" : "NS"}`;
     const md = (marketData || {})[yfSym];
     const livePrice = md?.price ?? Number(st.currentPrice || 0);
     const fallbackPrice = livePrice || Number(st.avgPrice || 0);
     return s + Number(st.qty || 0) * fallbackPrice;
   }, 0);
-  const mf = filter(state.mutualFunds).reduce((s, m) => {
+  const mf = filter(state.mutualFunds).reduce((s: number, m: any) => {
     const liveNav = Number(m.currentNav || 0);
     const fallbackNav =
       liveNav ||
@@ -243,25 +242,25 @@ const memberAssets = (state, owner, marketData) => {
       (Number(m.units || 1) > 0 ? Number(m.invested || 0) / Number(m.units || 1) : 0);
     return s + Number(m.units || 0) * fallbackNav;
   }, 0);
-  const ppf = filter(state.ppf).reduce((s, p) => s + Number(p.balance || 0), 0);
-  const nps = filter(state.nps).reduce((s, n) => {
+  const ppf = filter(state.ppf).reduce((s: number, p: any) => s + Number(p.balance || 0), 0);
+  const nps = filter(state.nps).reduce((s: number, n: any) => {
     const bal = Number(n.balance) || 0;
     if (bal > 0) return s + bal;
     return (
       s +
       (n.transactions || []).reduce(
-        (ss, t) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
+        (ss: number, t: any) => ss + (Number(t.employeeAmount) || 0) + (Number(t.employerAmount) || 0),
         0
       )
     );
   }, 0);
-  const epf = filter(state.epf).reduce((s, e) => s + calculateEpfBalance(e), 0);
-  const lic = filter(state.lic).reduce((s, l) => {
-    const txTotal = (l.transactions || []).reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const epf = filter(state.epf).reduce((s: number, e: any) => s + calculateEpfBalance(e), 0);
+  const lic = filter(state.lic).reduce((s: number, l: any) => {
+    const txTotal = (l.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
     return s + (txTotal > 0 ? txTotal : Number(l.premiumPaid || 0));
   }, 0);
   const bonds = filter(state.bonds).reduce(
-    (s, b) =>
+    (s: number, b: any) =>
       s +
       Number(
         b.totalInvestmentAmount ||
@@ -272,46 +271,46 @@ const memberAssets = (state, owner, marketData) => {
       ),
     0
   );
-  const investmentPlans = filter(state.investmentPlans).reduce((s, ip) => {
-    const txTotal = (ip.transactions || []).reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const investmentPlans = filter(state.investmentPlans).reduce((s: number, ip: any) => {
+    const txTotal = (ip.transactions || []).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
     return s + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0));
   }, 0);
   const re = (state.realEstateProperties || [])
-    .filter((p) => p.status !== "sold")
+    .filter((p: any) => p.status !== "sold")
     .reduce(
-      (s, r) => s + Number(r.marketValue || r.agreementValue || 0) * realEstateShareFor(r, owner),
+      (s: number, r: any) => s + Number(r.marketValue || r.agreementValue || 0) * realEstateShareFor(r, owner),
       0
     );
   const vehicles = filter(state.vehicles).reduce(
-    (s, v) => s + Number(v.currentValue || v.purchasePrice || 0),
+    (s: number, v: any) => s + Number(v.currentValue || v.purchasePrice || 0),
     0
   );
-  const loansGiven = filter(state.loansGiven).reduce((s, l) => s + loanGivenOutstanding(l), 0);
+  const loansGiven = filter(state.loansGiven).reduce((s: number, l: any) => s + loanGivenOutstanding(l), 0);
   const prepaid = filter(state.prepaidCards)
-    .filter((p) => (p.status || "").toLowerCase() !== "closed")
-    .reduce((s, p) => {
+    .filter((p: any) => (p.status || "").toLowerCase() !== "closed")
+    .reduce((s: number, p: any) => {
       const txns = p.transactions || [];
       const loaded = txns
-        .filter((t) => t.type === "load")
-        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+        .filter((t: any) => t.type === "load")
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
       const spent = txns
-        .filter((t) => t.type === "spend")
-        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+        .filter((t: any) => t.type === "spend")
+        .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
       return s + (loaded - spent);
     }, 0);
-  const rentedDeposit = filter(state.rentedProperties || []).reduce((s, p) => {
+  const rentedDeposit = filter(state.rentedProperties || []).reduce((s: number, p: any) => {
     const actualDeposit =
       p.depositTransactions && p.depositTransactions.length > 0
-        ? p.depositTransactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+        ? p.depositTransactions.reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0)
         : Number(p.securityDeposit || 0);
     const returned = Number(p.depositReturned || 0);
     return s + Math.max(0, actualDeposit - returned);
   }, 0);
-  const informalLent = filter(state.informalLent || []).reduce((s, person) => {
+  const informalLent = filter(state.informalLent || []).reduce((s: number, person: any) => {
     const tranches = person.tranches || [];
     const payments = person.payments || [];
-    const totalT = tranches.reduce((sum, t) => sum + Number(t.amount || 0), 0);
-    const totalP = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+    const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
     const net =
       tranches.length > 0 || payments.length > 0
         ? Math.max(0, totalT - totalP)
@@ -319,13 +318,13 @@ const memberAssets = (state, owner, marketData) => {
     return s + net;
   }, 0);
   const rentalProps = filter(state.rentalProperties || []).reduce(
-    (s, r) => s + Number(r.propertyValue || 0),
+    (s: number, r: any) => s + Number(r.propertyValue || 0),
     0
   );
   const goldPrice = getGoldPricePerGram(state);
-  const gold = filter(state.goldHoldings || []).reduce((s, h) => {
+  const gold = filter(state.goldHoldings || []).reduce((s: number, h: any) => {
     const grams = Number(h.grams || 0);
-    const purityMul = h.type === "physical" ? GOLD_PURITY_FACTOR[h.purity] || 1 : 1;
+    const purityMul = h.type === "physical" ? (GOLD_PURITY_FACTOR as any)[h.purity] || 1 : 1;
     return s + grams * goldPrice * purityMul;
   }, 0);
   // Was entirely missing from this tab — govt schemes (SSY/NSC/KVP/SCSS/
@@ -335,29 +334,29 @@ const memberAssets = (state, owner, marketData) => {
   // (useMetrics.ts's govtSchemesValue, same currentBalance sum, no
   // scheme-type filtering).
   const govtSchemes = filter(state.govtSchemes).reduce(
-    (s, sc) => s + Number(sc.currentBalance || 0),
+    (s: number, sc: any) => s + Number(sc.currentBalance || 0),
     0
   );
 
   // Liabilities
-  const loans = filter(state.loansTaken).reduce((s, l) => s + loanOutstanding(l), 0);
+  const loans = filter(state.loansTaken).reduce((s: number, l: any) => s + loanOutstanding(l), 0);
   const cc = filter(state.creditCards)
-    .filter((c) => (c.status || "").toLowerCase() !== "closed")
-    .reduce((s, c) => s + Number(c.outstanding || 0), 0);
-  const rentalDepositLiab = filter(state.rentalProperties || []).reduce((s, p) => {
+    .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
+    .reduce((s: number, c: any) => s + Number(c.outstanding || 0), 0);
+  const rentalDepositLiab = filter(state.rentalProperties || []).reduce((s: number, p: any) => {
     const actualDeposit =
       p.depositTransactions && p.depositTransactions.length > 0
-        ? p.depositTransactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+        ? p.depositTransactions.reduce((sum: number, tx: any) => sum + Number(tx.amount || 0), 0)
         : Number(p.securityDeposit || 0);
-    const deducted = (p.depositDeductions || []).reduce((a, d) => a + Number(d.amount || 0), 0);
+    const deducted = (p.depositDeductions || []).reduce((a: number, d: any) => a + Number(d.amount || 0), 0);
     const returned = Number(p.depositReturned || 0);
     return s + Math.max(0, actualDeposit - deducted - returned);
   }, 0);
-  const informalBorrowed = filter(state.informalBorrowed || []).reduce((s, person) => {
+  const informalBorrowed = filter(state.informalBorrowed || []).reduce((s: number, person: any) => {
     const tranches = person.tranches || [];
     const payments = person.payments || [];
-    const totalT = tranches.reduce((sum, t) => sum + Number(t.amount || 0), 0);
-    const totalP = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+    const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
     const net =
       tranches.length > 0 || payments.length > 0
         ? Math.max(0, totalT - totalP)
@@ -366,17 +365,17 @@ const memberAssets = (state, owner, marketData) => {
   }, 0);
   const realEstateOutstanding = (() => {
     const ucShares = (state.realEstateProperties || [])
-      .filter((p) => p.status === "under-construction")
-      .map((p) => ({ p, share: realEstateShareFor(p, owner) }))
-      .filter(({ share }) => share > 0);
+      .filter((p: any) => p.status === "under-construction")
+      .map((p: any) => ({ p, share: realEstateShareFor(p, owner) }))
+      .filter(({ share }: any) => share > 0);
     if (ucShares.length === 0) return 0;
-    return ucShares.reduce((sum, { p, share }) => {
+    return ucShares.reduce((sum: number, { p, share }: any) => {
       const demanded = (state.realEstateDemands || [])
-        .filter((d) => d.propertyId === p.id)
-        .reduce((s, d) => s + Number(d.totalAmount || d.amount || 0), 0);
+        .filter((d: any) => d.propertyId === p.id)
+        .reduce((s: number, d: any) => s + Number(d.totalAmount || d.amount || 0), 0);
       const paid = (state.realEstatePayments || [])
-        .filter((pay) => pay.propertyId === p.id)
-        .reduce((s, pay) => s + Number(pay.amount || 0), 0);
+        .filter((pay: any) => pay.propertyId === p.id)
+        .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0);
       return sum + Math.max(0, demanded - paid) * share;
     }, 0);
   })();
@@ -437,7 +436,7 @@ const memberAssets = (state, owner, marketData) => {
   };
 };
 
-const getAllocationData = (m) => {
+const getAllocationData = (m: any) => {
   const items = [
     { name: "Cash", value: m.cash },
     { name: "Fixed Deposits", value: m.fd },
@@ -463,29 +462,29 @@ const getAllocationData = (m) => {
   return items.filter((i) => i.value > 0);
 };
 
-const getTopHoldings = (state, owner) => {
-  const holdings = [];
+const getTopHoldings = (state: any, owner: string) => {
+  const holdings: { name: string; value: number; type: string }[] = [];
 
   (state.stocks || [])
-    .filter((s) => s.owner === owner)
-    .forEach((s) => {
+    .filter((s: any) => s.owner === owner)
+    .forEach((s: any) => {
       const val = (Number(s.qty) || 0) * (Number(s.currentPrice) || Number(s.avgPrice) || 0);
       if (val > 0)
         holdings.push({ name: s.symbol || s.name || "Stock", value: val, type: "Stock" });
     });
 
   (state.mutualFunds || [])
-    .filter((m) => m.owner === owner)
-    .forEach((m) => {
+    .filter((m: any) => m.owner === owner)
+    .forEach((m: any) => {
       const val = (Number(m.units) || 0) * (Number(m.currentNav) || Number(m.buyNav) || 0);
       if (val > 0)
         holdings.push({ name: m.schemeName || m.name || "MF", value: val, type: "Mutual Fund" });
     });
 
   (state.realEstateProperties || [])
-    .map((r) => ({ r, share: realEstateShareFor(r, owner) }))
-    .filter(({ share }) => share > 0)
-    .forEach(({ r, share }) => {
+    .map((r: any) => ({ r, share: realEstateShareFor(r, owner) }))
+    .filter(({ share }: { share: number }) => share > 0)
+    .forEach(({ r, share }: { r: any; share: number }) => {
       const val = Number(r.marketValue || r.agreementValue || 0) * share;
       if (val > 0)
         holdings.push({
@@ -496,15 +495,15 @@ const getTopHoldings = (state, owner) => {
     });
 
   (state.fixedDeposits || [])
-    .filter((f) => f.owner === owner)
-    .forEach((f) => {
+    .filter((f: any) => f.owner === owner)
+    .forEach((f: any) => {
       const val = Number(f.principal || 0);
       if (val > 0) holdings.push({ name: f.bank || "FD", value: val, type: "FD" });
     });
 
   (state.bankAccounts || [])
-    .filter((b) => b.owner === owner)
-    .forEach((b) => {
+    .filter((b: any) => b.owner === owner)
+    .forEach((b: any) => {
       const val = Number(b.balance || 0);
       if (val > 0)
         holdings.push({ name: b.bankName || b.name || "Bank", value: val, type: "Cash" });
@@ -514,7 +513,11 @@ const getTopHoldings = (state, owner) => {
   return holdings.slice(0, 3);
 };
 
-export const FamilyViewTab = ({ state, metrics, marketData }) => {
+export const FamilyViewTab: React.FC<{
+  state: any;
+  metrics?: any;
+  marketData?: any;
+}> = ({ state, metrics, marketData }) => {
   const { familyProfiles } = useMasterData();
   const { privacyMode } = usePrivacy();
   const dark = state.settings?.darkMode ?? false;
@@ -533,11 +536,11 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       const color = colors[idx % colors.length];
 
       const licCover = (state.lic || [])
-        .filter((l) => l.owner === p.id)
-        .reduce((s, l) => s + Number(l.sumAssured || 0), 0);
+        .filter((l: any) => l.owner === p.id)
+        .reduce((s: number, l: any) => s + Number(l.sumAssured || 0), 0);
       const termCover = (state.termPlans || [])
-        .filter((t) => t.owner === p.id)
-        .reduce((s, t) => s + Number(t.coverAmount || 0), 0);
+        .filter((t: any) => t.owner === p.id)
+        .reduce((s: number, t: any) => s + Number(t.coverAmount || 0), 0);
       const totalLifeCover = licCover + termCover;
 
       // Sum this member's income ledger entries within the current FY — was
@@ -549,8 +552,8 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       // skew "10x income" life-cover adequacy here without matching the same
       // check anywhere else in the app.
       const memberIncome = (state.income || [])
-        .filter((i) => i.owner === p.id && i.date && new Date(i.date) >= fyStart)
-        .reduce((s, i) => s + Number(i.amount || 0), 0);
+        .filter((i: any) => i.owner === p.id && i.date && new Date(i.date) >= fyStart)
+        .reduce((s: number, i: any) => s + Number(i.amount || 0), 0);
 
       return {
         ...p,
@@ -577,7 +580,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
   }, [state, dark, marketData, familyProfiles]);
 
   const unownedAssets = useMemo(() => {
-    const flagged = [];
+    const flagged: any[] = [];
     const allArrays = [
       { key: "bankAccounts", label: "Bank Account" },
       { key: "fixedDeposits", label: "Fixed Deposit" },
@@ -608,7 +611,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
     const profileIds = familyProfiles.map((p) => p.id);
 
     allArrays.forEach(({ key, label }) => {
-      (state[key] || []).forEach((item) => {
+      (state[key] || []).forEach((item: any) => {
         if (!item.owner || item.owner === "all" || !profileIds.includes(item.owner)) {
           flagged.push({
             type: label,
@@ -652,11 +655,11 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
 
     return classes
       .map((c) => {
-        const row = { name: c.label };
+        const row: Record<string, any> = { name: c.label };
         let hasValue = false;
         familyData.activeMembers.forEach((m) => {
-          row[m.name] = m[c.key] || 0;
-          if (m[c.key] > 0) hasValue = true;
+          row[m.name] = (m as any)[c.key] || 0;
+          if ((m as any)[c.key] > 0) hasValue = true;
         });
         return hasValue ? row : null;
       })
@@ -792,7 +795,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
           >
             {activeMembers.map((m) => {
               const pct = totalNetWorth > 0 ? (m.netWorth / totalNetWorth) * 100 : 0;
-              const MemberIcon = MEMBER_ICONS[m.id] || User;
+              const MemberIcon = (MEMBER_ICONS as any)[m.id] || User;
               return (
                 <div
                   key={m.id}
@@ -1078,7 +1081,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
         }}
       >
         {activeMembers.map((m) => {
-          const MemberIcon = MEMBER_ICONS[m.id] || User;
+          const MemberIcon = (MEMBER_ICONS as any)[m.id] || User;
           const pct = totalNetWorth > 0 ? ((m.netWorth / totalNetWorth) * 100).toFixed(1) : "0";
           return (
             <Card
@@ -1302,7 +1305,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                           {m.allocation.map((d, i) => (
                             <Cell
                               key={i}
-                              fill={ASSET_CLASS_COLORS[d.name] || PIE_COLORS[i % PIE_COLORS.length]}
+                              fill={(ASSET_CLASS_COLORS as any)[d.name] || PIE_COLORS[i % PIE_COLORS.length]}
                             />
                           ))}
                         </Pie>
@@ -1330,7 +1333,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                               height: 7,
                               borderRadius: "50%",
                               background:
-                                ASSET_CLASS_COLORS[d.name] || PIE_COLORS[i % PIE_COLORS.length],
+                                (ASSET_CLASS_COLORS as any)[d.name] || PIE_COLORS[i % PIE_COLORS.length],
                               flexShrink: 0,
                             }}
                           />
@@ -1534,7 +1537,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
                       <LabelList
                         dataKey={m.name}
                         position="top"
-                        formatter={(v: number) => (v > 0 ? (privacyMode ? "••••" : fmtINRFull(v)) : "")}
+                        formatter={(v: any) => (Number(v || 0) > 0 ? (privacyMode ? "••••" : fmtINRFull(Number(v || 0))) : "")}
                         style={{ fill: THEME.muted, fontSize: 9, fontWeight: 700 }}
                       />
                     </Bar>
@@ -1553,7 +1556,7 @@ export const FamilyViewTab = ({ state, metrics, marketData }) => {
       <Card style={{ padding: 24 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {activeMembers.map((m) => {
-            const MemberIcon = MEMBER_ICONS[m.id] || User;
+            const MemberIcon = (MEMBER_ICONS as any)[m.id] || User;
             const hasIncome = m.memberIncome > 0;
             const isAdequate = m.coverageRatio >= 10;
             const hasCoverage = m.totalLifeCover > 0;
