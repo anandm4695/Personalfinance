@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo } from "react";
 import {
   TrendingUp,
@@ -370,7 +369,7 @@ function SalarySourcingModal({
                 </div>
               </div>
             </div>
-            <Badge variant="neutral">Default</Badge>
+            <Badge variant="muted">Default</Badge>
           </div>
         </div>
 

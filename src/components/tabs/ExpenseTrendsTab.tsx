@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 import React, { useState, useMemo } from "react";
 import {
   TrendingUp,
@@ -395,8 +394,8 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
     // actually present in the already period-filtered `expenses`, not the
     // real today's date — otherwise viewing a past period shows ₹0 for
     // both columns while "Period Total" is correct.
-    const presentMonthKeys = Array.from(
-      new Set(expenses.map((t: any) => getMonthKey(t.date)))
+    const presentMonthKeys: string[] = Array.from(
+      new Set<string>(expenses.map((t: any) => getMonthKey(t.date)))
     ).sort();
     const shiftMonthKey = (key: string, delta: number) => {
       const [y, m] = key.split("-").map(Number);
@@ -404,10 +403,10 @@ export const ExpenseTrendsTab = ({ state, metrics }: any) => {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     };
     const now = new Date();
-    const thisMonthKey =
+    const thisMonthKey: string =
       presentMonthKeys[presentMonthKeys.length - 1] ||
       `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const lastMonthKey = shiftMonthKey(thisMonthKey, -1);
+    const lastMonthKey: string = shiftMonthKey(thisMonthKey, -1);
     const avg3Keys: string[] = [1, 2, 3].map((i) => shiftMonthKey(thisMonthKey, -i));
 
     const catMonthMap: Record<string, Record<string, number>> = {};

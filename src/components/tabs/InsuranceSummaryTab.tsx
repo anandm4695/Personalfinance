@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import {
   Shield,
@@ -108,7 +107,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
     return `${yStr}-${mStr}-${dayStr}`;
   })();
 
-  const [lic, setLic] = useState(() => {
+  const [lic, setLic] = useState<any>(() => {
     if (policy) {
       return {
         id: policy.id,
@@ -121,6 +120,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
         commencementDate: policy.commencementDate || "",
         maturityDate: policy.maturityDate || "",
         policyTerm: policy.policyTerm || "",
+        premiumPayingTerm: policy.premiumPayingTerm || "",
         transactions: policy.transactions || [],
       };
     }
@@ -134,13 +134,14 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
       commencementDate: todayStr,
       maturityDate: futureStr20,
       policyTerm: "20",
+      premiumPayingTerm: "",
       transactions: [],
     };
   });
 
   const handleFieldChange = (field: string, val: any) => {
     setFormError("");
-    setLic((prev) => {
+    setLic((prev: any) => {
       const nextLic = { ...prev, [field]: val };
       if (
         (field === "commencementDate" || field === "policyTerm") &&
@@ -163,7 +164,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
 
   const handleTermFieldChange = (field: string, val: any) => {
     setFormError("");
-    setTerm((prev) => {
+    setTerm((prev: any) => {
       const nextTerm = { ...prev, [field]: val };
       if ((field === "startDate" || field === "term") && nextTerm.startDate && nextTerm.term) {
         const commDate = new Date(nextTerm.startDate);
@@ -182,7 +183,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
 
   const handleInvestFieldChange = (field: string, val: any) => {
     setFormError("");
-    setInvest((prev) => {
+    setInvest((prev: any) => {
       const nextInvest = { ...prev, [field]: val };
       if (
         (field === "commencementDate" || field === "policyTerm") &&
@@ -203,7 +204,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
     });
   };
 
-  const [term, setTerm] = useState(() => {
+  const [term, setTerm] = useState<any>(() => {
     if (policy) {
       return {
         id: policy.id,
@@ -233,7 +234,7 @@ const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showT
     };
   });
 
-  const [invest, setInvest] = useState(() => {
+  const [invest, setInvest] = useState<any>(() => {
     if (policy) {
       return {
         id: policy.id,
@@ -2263,7 +2264,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
                 >
                   {/* Header */}
                   <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <InsurerLogo name="LIC" isLic />
+                    <LicLogo size={40} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{

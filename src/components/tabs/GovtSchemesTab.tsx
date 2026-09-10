@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Shield,
@@ -86,8 +85,29 @@ import {
   APY_CONTRIBUTION_TABLE,
 } from "../../utils/govtSchemes";
 
+interface SchemeDefinition {
+  value: string;
+  label: string;
+  shortLabel: string;
+  category: string;
+  description: string;
+  color: string;
+  icon: any;
+  fields: string[];
+  hasBalance: boolean;
+  officialRate: number;
+  tenure: string;
+  taxBadge: string;
+  payoutType: string;
+  eligibility: string;
+  hideContribution?: boolean;
+  balanceLabel?: string;
+  balancePlaceholder?: string;
+  balanceCardLabel?: string;
+}
+
 // Master Schemes definition with enhanced metadata, branding colors, and tax benefits
-const SCHEMES = [
+const SCHEMES: SchemeDefinition[] = [
   {
     value: "APY",
     label: "APY — Atal Pension Yojana",
@@ -1307,7 +1327,7 @@ function SchemeRatesDirectory({ onTrackScheme }: { onTrackScheme: (scheme: any) 
                       if (dAge === null) return null;
                       return (
                         <div style={{ fontSize: 11, fontWeight: 700, color: dAge <= 10 ? THEME.success : THEME.textMuted, marginTop: 4 }}>
-                          {dAge <= 10 ? `✓ ${daughter.name} (${dAge}y) is eligible` : `ℹ ${daughter.name} (${dAge}y) exceeds 10y limit`}
+                          {dAge <= 10 ? `✓ ${daughter?.name || "Daughter"} (${dAge}y) is eligible` : `ℹ ${daughter?.name || "Daughter"} (${dAge}y) exceeds 10y limit`}
                         </div>
                       );
                     })()}
@@ -1560,45 +1580,26 @@ export function GovtSchemesTab({
   // ─── CSV EXPORT ───────────────────────────────────────────────────────────
   const handleExportCSV = () => {
     if (schemes.length === 0) return;
-    const headers = [
-      "Scheme Code",
-      "Scheme Name",
-      "Beneficiary",
-      "Owner",
-      "Account Number",
-      "Current Balance",
-      "Interest Rate %",
-      "Contribution",
-      "Frequency",
-      "Annual Premium",
-      "Coverage Amount",
-      "Monthly Pension",
-      "Start Date",
-      "Maturity Date",
-      "Nominee",
-      "Bank",
-      "Notes",
+    const columns = [
+      { key: "schemeType", label: "Scheme Code" },
+      { key: "schemeName", label: "Scheme Name" },
+      { key: "memberName", label: "Beneficiary" },
+      { key: "owner", label: "Owner" },
+      { key: "accountNumber", label: "Account Number" },
+      { key: "currentBalance", label: "Current Balance" },
+      { key: "interestRate", label: "Interest Rate %" },
+      { key: "contributionAmount", label: "Contribution" },
+      { key: "frequency", label: "Frequency" },
+      { key: "premium", label: "Annual Premium" },
+      { key: "coverageAmount", label: "Coverage Amount" },
+      { key: "pensionAmount", label: "Monthly Pension" },
+      { key: "startDate", label: "Start Date" },
+      { key: "maturityDate", label: "Maturity Date" },
+      { key: "nominee", label: "Nominee" },
+      { key: "bankAccount", label: "Bank" },
+      { key: "notes", label: "Notes" },
     ];
-    const rows = schemes.map((s) => [
-      s.schemeType || "",
-      s.schemeName || "",
-      s.memberName || "",
-      s.owner || "self",
-      s.accountNumber || "",
-      s.currentBalance || 0,
-      s.interestRate || "",
-      s.contributionAmount || 0,
-      s.frequency || "",
-      s.premium || 0,
-      s.coverageAmount || 0,
-      s.pensionAmount || 0,
-      s.startDate || "",
-      s.maturityDate || "",
-      s.nominee || "",
-      s.bankAccount || "",
-      s.notes || "",
-    ]);
-    exportArrayToCSV("Government_Schemes_Portfolio.csv", headers, rows);
+    exportArrayToCSV(schemes, columns, "Government_Schemes_Portfolio.csv");
     showToast?.("Government schemes exported to CSV", "success");
   };
 
@@ -2389,7 +2390,7 @@ export function GovtSchemesTab({
                               {sc.schemeName || meta.label.split("—")[0].trim()}
                             </span>
                             {sc.memberName && (
-                              <Badge variant="pink" style={{ fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                              <Badge variant="violet" style={{ fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}>
                                 <Users size={11} /> {sc.memberName}
                               </Badge>
                             )}
