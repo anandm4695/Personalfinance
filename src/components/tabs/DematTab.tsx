@@ -2048,8 +2048,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
               >
                 {[
                   { id: "all" as const, label: "All Returns" },
-                  { id: "profit" as const, label: "In Profit 🟢" },
-                  { id: "loss" as const, label: "In Loss 🔴" },
+                  { id: "profit" as const, label: "In Profit" },
+                  { id: "loss" as const, label: "In Loss" },
                 ].map((p) => (
                   <button
                     key={p.id}

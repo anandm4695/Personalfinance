@@ -1224,10 +1224,13 @@ export function DebtPayoffOptimizer({ state }: DebtPayoffOptimizerProps) {
             Select Strategic Payoff Algorithm
           </div>
           {activeLoans.length > 1 && interestDiffVsOtherPlan > 1 && (
-            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-              💡 <b style={{ color: THEME.ink }}>{cheaperPlan}</b> saves{" "}
-              <Money value={interestDiffVsOtherPlan} variant="exact" /> more interest than{" "}
-              {cheaperPlan === "Avalanche" ? "Snowball" : "Avalanche"}
+            <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Lightbulb size={13} style={{ color: THEME.gold }} />
+              <span>
+                <b style={{ color: THEME.ink }}>{cheaperPlan}</b> saves{" "}
+                <Money value={interestDiffVsOtherPlan} variant="exact" /> more interest than{" "}
+                {cheaperPlan === "Avalanche" ? "Snowball" : "Avalanche"}
+              </span>
             </span>
           )}
         </div>

@@ -382,7 +382,7 @@ function BillForm({ initial, state, onSave, onClose, saving = false }: any) {
               <optgroup label="Bank Accounts (Auto-debits Banking Ledger)">
                 {banks.map((b: any) => (
                   <option key={b.id} value={`bank:${b.id}`}>
-                    🏦 {b.bankName} - {b.accountName || b.accountNumber || "Savings"}
+                    {b.bankName} - {b.accountName || b.accountNumber || "Savings"}
                   </option>
                 ))}
               </optgroup>
@@ -391,7 +391,7 @@ function BillForm({ initial, state, onSave, onClose, saving = false }: any) {
               <optgroup label="Credit Cards (Auto-adds to Card Ledger)">
                 {creditCards.map((c: any) => (
                   <option key={c.id} value={`cc:${c.id}`}>
-                    💳 {c.cardName || c.bank} Card
+                    {c.cardName || c.bank} Card
                   </option>
                 ))}
               </optgroup>
@@ -556,7 +556,7 @@ function PaymentForm({ bill, state, onSave, onClose, saving = false }: any) {
               <optgroup label="Bank Accounts (Auto-creates debit txn)">
                 {banks.map((b: any) => (
                   <option key={b.id} value={`bank:${b.id}`}>
-                    🏦 {b.bankName} - {b.accountName || b.accountNumber || "Savings"}
+                    {b.bankName} - {b.accountName || b.accountNumber || "Savings"}
                   </option>
                 ))}
               </optgroup>
@@ -565,7 +565,7 @@ function PaymentForm({ bill, state, onSave, onClose, saving = false }: any) {
               <optgroup label="Credit Cards (Auto-adds card expense)">
                 {creditCards.map((c: any) => (
                   <option key={c.id} value={`cc:${c.id}`}>
-                    💳 {c.cardName || c.bank} Card
+                    {c.cardName || c.bank} Card
                   </option>
                 ))}
               </optgroup>
@@ -722,12 +722,12 @@ export function BillPaymentTab({ state, addItem, removeItem, updateItem, showToa
       if (sourceKey.startsWith("bank:")) {
         const bankId = sourceKey.slice(5);
         const b = bankAccounts.find((x: any) => x.id === bankId);
-        return b ? `🏦 ${b.bankName}` : "🏦 Bank";
+        return b ? b.bankName : "Bank";
       }
       if (sourceKey.startsWith("cc:")) {
         const ccId = sourceKey.slice(3);
         const c = creditCards.find((x: any) => x.id === ccId);
-        return c ? `💳 ${c.cardName || c.bank}` : "💳 Credit Card";
+        return c ? `${c.cardName || c.bank} Card` : "Credit Card";
       }
       return null;
     },

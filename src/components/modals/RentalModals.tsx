@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, Users, User, AlertCircle, CheckCircle2, TrendingUp, Landmark } from "lucide-react";
+import { Plus, Trash2, Users, User, AlertCircle, CheckCircle2, TrendingUp, Landmark, Info } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { today, fmtINRFull, getEffectiveRent } from "../../utils/finance";
@@ -526,8 +526,8 @@ export function RentalPropertyModal({ initial, onClose, onSave, saving, bankAcco
                 </option>
               ))}
             </select>
-            <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
-              💡 Rent receipts logged for this property will auto-credit into this bank account without duplicate entry.
+            <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+              <Info size={11} /> Rent receipts logged for this property will auto-credit into this bank account without duplicate entry.
             </div>
           </Field>
         )}
@@ -1276,8 +1276,8 @@ export function RentedInPropertyModal({ initial, onClose, onSave, saving, bankAc
                 </option>
               ))}
             </select>
-            <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
-              💡 Rent payments logged for this property will auto-debit from this bank account without duplicate entry.
+            <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+              <Info size={11} /> Rent payments logged for this property will auto-debit from this bank account without duplicate entry.
             </div>
           </Field>
         )}
@@ -1596,8 +1596,8 @@ export function RentalDepositTxModal({
                     </option>
                   ))}
                 </select>
-                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
-                  💡 Automatically records ₹{Number(f.amount || 0).toLocaleString("en-IN")} in the selected bank account ledger.
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                  <Info size={12} /> Automatically records ₹{Number(f.amount || 0).toLocaleString("en-IN")} in the selected bank account ledger.
                 </div>
               </>
             )}

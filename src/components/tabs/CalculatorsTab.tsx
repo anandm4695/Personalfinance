@@ -6257,8 +6257,11 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
                   </div>
                 </div>
 
-                <div style={{ marginTop: 20, padding: 12, borderRadius: 8, background: "color-mix(in srgb, var(--surface-1) 80%, transparent)", border: `1px solid ${THEME.line}`, fontSize: 11, color: THEME.muted, lineHeight: 1.4 }}>
-                  💡 <em>Note:</em> Leave encashment received during service is fully taxable. The exemption applies specifically at retirement, superannuation, or resignation.
+                <div style={{ marginTop: 20, padding: 12, borderRadius: 8, background: "color-mix(in srgb, var(--surface-1) 80%, transparent)", border: `1px solid ${THEME.line}`, fontSize: 11, color: THEME.muted, lineHeight: 1.4, display: "flex", alignItems: "flex-start", gap: 6 }}>
+                  <Info size={14} style={{ marginTop: 2, flexShrink: 0, color: THEME.accent }} />
+                  <span>
+                    <em>Note:</em> Leave encashment received during service is fully taxable. The exemption applies specifically at retirement, superannuation, or resignation.
+                  </span>
                 </div>
               </Card>
             </div>

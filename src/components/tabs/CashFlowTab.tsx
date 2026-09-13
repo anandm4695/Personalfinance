@@ -2519,7 +2519,9 @@ export const CashFlowTab = ({
                           textAlign: "center",
                         }}
                       >
-                        ⚡ {m.eventsCount} one-time event{m.eventsCount > 1 ? "s" : ""}
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                          <Zap size={10} /> {m.eventsCount} one-time event{m.eventsCount > 1 ? "s" : ""}
+                        </span>
                       </div>
                     )}
                   </div>

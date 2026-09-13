@@ -23,6 +23,10 @@ import {
   Award,
   ChevronRight,
   TrendingUp,
+  Home,
+  Car,
+  Briefcase,
+  GraduationCap,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -273,7 +277,7 @@ const ChartTooltip = ({ active, payload, label, formatter }: any) => {
 /* ─── POPULAR INDIAN LOAN PRESETS ─────────────────────────────────────────── */
 interface LoanPreset {
   title: string;
-  icon: string;
+  icon: React.ReactNode;
   principal: number;
   rate: number;
   tenureYears: number;
@@ -283,7 +287,7 @@ interface LoanPreset {
 const LOAN_PRESETS: LoanPreset[] = [
   {
     title: "Home Loan",
-    icon: "🏠",
+    icon: <Home size={13} />,
     principal: 5000000,
     rate: 8.5,
     tenureYears: 20,
@@ -291,7 +295,7 @@ const LOAN_PRESETS: LoanPreset[] = [
   },
   {
     title: "Car Loan",
-    icon: "🚗",
+    icon: <Car size={13} />,
     principal: 1200000,
     rate: 9.0,
     tenureYears: 5,
@@ -299,7 +303,7 @@ const LOAN_PRESETS: LoanPreset[] = [
   },
   {
     title: "Personal Loan",
-    icon: "💼",
+    icon: <Briefcase size={13} />,
     principal: 500000,
     rate: 12.5,
     tenureYears: 3,
@@ -307,7 +311,7 @@ const LOAN_PRESETS: LoanPreset[] = [
   },
   {
     title: "Education Loan",
-    icon: "🎓",
+    icon: <GraduationCap size={13} />,
     principal: 2000000,
     rate: 9.75,
     tenureYears: 8,
@@ -2321,7 +2325,8 @@ export const LoanAmortizationTab: React.FC<{ state: any }> = ({ state }) => {
                                   title="Prepayment accelerated month"
                                   style={{
                                     display: "inline-flex",
-                                    padding: "1px 4px",
+                                    alignItems: "center",
+                                    padding: "2px 4px",
                                     borderRadius: 4,
                                     fontSize: 9,
                                     fontWeight: 800,
@@ -2329,7 +2334,7 @@ export const LoanAmortizationTab: React.FC<{ state: any }> = ({ state }) => {
                                     color: "#fff",
                                   }}
                                 >
-                                  ⚡
+                                  <Zap size={9} />
                                 </span>
                               )}
                             </div>

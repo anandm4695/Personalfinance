@@ -445,7 +445,7 @@ export const RentalLedgerModal: React.FC<RentalLedgerModalProps> = ({
                               }}
                               title={`Synced with ${bank.bankName}`}
                             >
-                              🏦 {bank.bankName}
+                              <Building2 size={11} /> {bank.bankName}
                             </span>
                           )}
                         </td>
@@ -607,7 +607,7 @@ export const RentalLedgerModal: React.FC<RentalLedgerModalProps> = ({
                               }}
                               title={`Synced with ${bank.bankName}`}
                             >
-                              🏦 {bank.bankName}
+                              <Building2 size={11} /> {bank.bankName}
                             </span>
                           )}
                         </div>

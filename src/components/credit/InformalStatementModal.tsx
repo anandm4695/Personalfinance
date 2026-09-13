@@ -70,7 +70,7 @@ export function InformalStatementModal({
       : "—";
 
   const generateStatementText = () => {
-    let text = `📄 *STATEMENT OF ACCOUNT*\n`;
+    let text = `*STATEMENT OF ACCOUNT*\n`;
     text += `*Party:* ${personName}\n`;
     text += `*Date:* ${new Date().toLocaleDateString("en-IN", {
       day: "numeric",
@@ -110,7 +110,7 @@ export function InformalStatementModal({
         text += `\n*UPI Payment ID:* ${upiId.trim()}\n`;
       }
     } else {
-      text += `✅ *Account is fully settled and cleared.*\n`;
+      text += `*Account is fully settled and cleared.*\n`;
     }
 
     return text;
@@ -254,7 +254,7 @@ export function InformalStatementModal({
                     cursor: "pointer",
                   }}
                 >
-                  Friendly 😊
+                  Friendly
                 </button>
                 <button
                   type="button"
@@ -275,7 +275,7 @@ export function InformalStatementModal({
                     cursor: "pointer",
                   }}
                 >
-                  Formal 👔
+                  Formal
                 </button>
                 <button
                   type="button"
@@ -296,7 +296,7 @@ export function InformalStatementModal({
                     cursor: "pointer",
                   }}
                 >
-                  Urgent ⚠️
+                  Urgent
                 </button>
               </>
             )}
@@ -320,7 +320,7 @@ export function InformalStatementModal({
                 cursor: "pointer",
               }}
             >
-              Full Ledger 📑
+              Full Ledger
             </button>
           </div>
         </Field>

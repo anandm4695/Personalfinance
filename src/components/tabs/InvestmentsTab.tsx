@@ -4475,7 +4475,7 @@ function MFCsvPanel({ onImport, onClose }: any) {
             }}
           >
             <div style={{ fontSize: 12, fontWeight: 700, color: THEME.sage }}>
-              ✓ {csvPreview.length} rows parsed and ready for import
+              {csvPreview.length} rows parsed and ready for import
             </div>
             <button
               style={{ ...btnStyle, background: THEME.sage, color: THEME.darkInk }}
@@ -4656,7 +4656,7 @@ function MFCsvPanel({ onImport, onClose }: any) {
             textAlign: "center" as const,
           }}
         >
-          ✓ Import completed successfully!
+          Import completed successfully!
         </div>
       )}
     </Card>
