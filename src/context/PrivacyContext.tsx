@@ -47,10 +47,17 @@ export const PrivacyProvider = ({ children }: { children: React.ReactNode }) => 
 
 export const usePrivacy = () => useContext(PrivacyContext);
 
-/** Renders •••• when privacy mode is on, otherwise renders children as-is. */
-export const Prv = ({ children }: { children: React.ReactNode }) => {
+/** Renders •••• when privacy mode is on, otherwise renders children/value as-is. */
+export const Prv = ({
+  children,
+  value,
+}: {
+  children?: React.ReactNode;
+  value?: React.ReactNode;
+}) => {
   const { privacyMode } = usePrivacy();
-  if (!privacyMode) return <>{children}</>;
+  const content = children !== undefined ? children : value;
+  if (!privacyMode) return <>{content}</>;
   return (
     <span
       aria-label="Amount hidden — privacy mode is on"

@@ -154,6 +154,18 @@ describe("EPF (EPFO) Section & Computation Logic", () => {
     expect(screen.getByText("Tax Engine (₹2.5L Limit)")).toBeDefined();
     expect(screen.getByText("EPFO Rules & Claims")).toBeDefined();
 
+    // Verify StatCards are rendered with labels, subtitles and values
+    expect(screen.getAllByText("Total EPF Corpus").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Employee Share").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Employer Share").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("EPS Pension Fund").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("EPFO Interest Earned").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("EPF + EPS accumulated balance")).toBeDefined();
+    expect(screen.getByText("12% contribution + interest")).toBeDefined();
+    expect(screen.getByText("3.67% PF share + interest")).toBeDefined();
+    expect(screen.getByText("8.33% EPS pension corpus")).toBeDefined();
+    expect(screen.getByText("Compounded sovereign return")).toBeDefined();
+
     // Switch to Calculators view
     fireEvent.click(screen.getByText("EPF & EPS Calculators"));
     expect(screen.getByText("EPF & VPF Retirement Corpus Projector")).toBeDefined();

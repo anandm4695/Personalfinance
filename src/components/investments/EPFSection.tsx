@@ -781,35 +781,49 @@ export function EPFSection({
         }}
       >
         <StatCard
-          title="Total EPF Corpus"
-          value={<Prv value={<Money value={animCorpus} variant="full" />} />}
-          subtitle="EPF + EPS accumulated balance"
-          icon={<Shield size={20} color={THEME.accent} />}
-          badge={{ text: "Active", variant: "accent" }}
+          label="Total EPF Corpus"
+          value={fmtINRFull(portfolioStats.totalCorpus)}
+          numericValue={portfolioStats.totalCorpus}
+          formatValue={fmtINRFull}
+          sub="EPF + EPS accumulated balance"
+          color={THEME.accent}
+          icon={<Shield size={16} />}
         />
         <StatCard
-          title="Employee Share"
-          value={<Prv value={<Money value={animEmployee} variant="full" />} />}
-          subtitle="12% contribution + interest"
-          icon={<TrendingUp size={20} color={THEME.accent} />}
+          label="Employee Share"
+          value={fmtINRFull(portfolioStats.totalEmployee)}
+          numericValue={portfolioStats.totalEmployee}
+          formatValue={fmtINRFull}
+          sub="12% contribution + interest"
+          color={THEME.accent}
+          icon={<TrendingUp size={16} />}
         />
         <StatCard
-          title="Employer Share"
-          value={<Prv value={<Money value={animEmployer} variant="full" />} />}
-          subtitle="3.67% PF share + interest"
-          icon={<Building size={20} color={THEME.cyan} />}
+          label="Employer Share"
+          value={fmtINRFull(portfolioStats.totalEmployer)}
+          numericValue={portfolioStats.totalEmployer}
+          formatValue={fmtINRFull}
+          sub="3.67% PF share + interest"
+          color={THEME.cyan}
+          icon={<Building size={16} />}
         />
         <StatCard
-          title="EPS Pension Fund"
-          value={<Prv value={<Money value={animPension} variant="full" />} />}
-          subtitle="8.33% EPS pension corpus"
-          icon={<Coins size={20} color={THEME.gold} />}
+          label="EPS Pension Fund"
+          value={fmtINRFull(portfolioStats.totalPension)}
+          numericValue={portfolioStats.totalPension}
+          formatValue={fmtINRFull}
+          sub="8.33% EPS pension corpus"
+          color={THEME.gold}
+          icon={<Coins size={16} />}
         />
         <StatCard
-          title="EPFO Interest Earned"
-          value={<Prv value={<Money value={animInterest} variant="full" />} />}
-          subtitle="Compounded sovereign return"
-          icon={<Sparkles size={20} color={THEME.sage} />}
+          label="EPFO Interest Earned"
+          value={fmtINRFull(portfolioStats.totalInterest)}
+          numericValue={portfolioStats.totalInterest}
+          formatValue={fmtINRFull}
+          sub="Compounded sovereign return"
+          color={THEME.sage}
+          icon={<Sparkles size={16} />}
         />
       </div>
 
@@ -1159,7 +1173,7 @@ function EPFAccountCardRedesigned({
           )}
         </div>
         <div style={{ fontSize: 26, fontWeight: 800, color: THEME.accent, letterSpacing: "-0.02em" }}>
-          <Prv value={<Money value={metrics.finalCorpus} variant="full" />} />
+          <Money value={metrics.finalCorpus} variant="full" />
         </div>
 
         {/* 3 Split Cards */}
@@ -1176,19 +1190,19 @@ function EPFAccountCardRedesigned({
           <div>
             <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Employee (12%)</div>
             <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent, marginTop: 2 }}>
-              <Prv value={<Money value={metrics.closingEmployee} variant="full" />} />
+              <Money value={metrics.closingEmployee} variant="full" />
             </div>
           </div>
           <div>
             <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>Employer (3.67%)</div>
             <div style={{ fontSize: 13, fontWeight: 800, color: THEME.cyan, marginTop: 2 }}>
-              <Prv value={<Money value={metrics.closingEmployer} variant="full" />} />
+              <Money value={metrics.closingEmployer} variant="full" />
             </div>
           </div>
           <div>
             <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>EPS Pension</div>
             <div style={{ fontSize: 13, fontWeight: 800, color: THEME.gold, marginTop: 2 }}>
-              <Prv value={<Money value={metrics.closingPension} variant="full" />} />
+              <Money value={metrics.closingPension} variant="full" />
             </div>
           </div>
         </div>
@@ -1213,7 +1227,7 @@ function EPFAccountCardRedesigned({
         >
           <div style={{ fontSize: 10, color: THEME.muted }}>Interest Earned</div>
           <div style={{ fontWeight: 700, color: THEME.sage, marginTop: 2 }}>
-            <Prv value={<Money value={metrics.totalInterest} variant="full" />} />
+            <Money value={metrics.totalInterest} variant="full" />
           </div>
         </div>
         <div
@@ -1642,10 +1656,10 @@ function EPFPassbookView({
                         )}
                       </td>
                       <td style={{ ...tdStyle, textAlign: "right", fontFamily: "monospace" }}>
-                        {t.epfWages ? <Prv value={<Money value={t.epfWages} variant="full" />} /> : "—"}
+                        {t.epfWages ? <Money value={t.epfWages} variant="full" /> : "—"}
                       </td>
                       <td style={{ ...tdStyle, textAlign: "right", fontFamily: "monospace" }}>
-                        {t.epsWages ? <Prv value={<Money value={t.epsWages} variant="full" />} /> : "—"}
+                        {t.epsWages ? <Money value={t.epsWages} variant="full" /> : "—"}
                       </td>
                       <td
                         style={{
@@ -1656,7 +1670,7 @@ function EPFPassbookView({
                         }}
                       >
                         {empShare !== 0 ? (
-                          <Prv value={<Money value={empShare} variant="full" />} />
+                          <Money value={empShare} variant="full" />
                         ) : (
                           "—"
                         )}
@@ -1670,7 +1684,7 @@ function EPFPassbookView({
                         }}
                       >
                         {erShare > 0 ? (
-                          <Prv value={<Money value={erShare} variant="full" />} />
+                          <Money value={erShare} variant="full" />
                         ) : (
                           "—"
                         )}
@@ -1684,7 +1698,7 @@ function EPFPassbookView({
                         }}
                       >
                         {penShare > 0 ? (
-                          <Prv value={<Money value={penShare} variant="full" />} />
+                          <Money value={penShare} variant="full" />
                         ) : (
                           "—"
                         )}
@@ -1725,19 +1739,19 @@ function EPFPassbookView({
                     Page Total Summary ({transactions.length} entries)
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right" }}>
-                    <Prv value={<Money value={passbookTotals.sumEPFWages} variant="full" />} />
+                    <Money value={passbookTotals.sumEPFWages} variant="full" />
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right" }}>
-                    <Prv value={<Money value={passbookTotals.sumEPSWages} variant="full" />} />
+                    <Money value={passbookTotals.sumEPSWages} variant="full" />
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right", color: THEME.accent }}>
-                    <Prv value={<Money value={passbookTotals.sumEmployee} variant="full" />} />
+                    <Money value={passbookTotals.sumEmployee} variant="full" />
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right", color: THEME.cyan }}>
-                    <Prv value={<Money value={passbookTotals.sumEmployer} variant="full" />} />
+                    <Money value={passbookTotals.sumEmployer} variant="full" />
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right", color: THEME.gold }}>
-                    <Prv value={<Money value={passbookTotals.sumPension} variant="full" />} />
+                    <Money value={passbookTotals.sumPension} variant="full" />
                   </td>
                   <td />
                 </tr>
