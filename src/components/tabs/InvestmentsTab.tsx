@@ -57,6 +57,7 @@ import { StatCard } from "../ui/StatCard";
 import { ConfirmDialog } from "../ui/Feedback";
 import { MFCasPanel } from "./MFCasPanel";
 import { FixedDepositsSection } from "../investments/FixedDepositsSection";
+import { RecurringDepositsSection } from "../investments/RecurringDepositsSection";
 // Shared with CapitalGainsTab so LTCG/STCG shown here always agrees with the actual tax
 // report — see the isLongTerm doc comment there for the Section 2(42A) anniversary-date
 // rules (day-of-month aware, strict >, not a naive "> 365 days" count).
@@ -1534,12 +1535,14 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
         );
       case "rd":
         return (
-          <RDSection
-            items={state.recurringDeposits}
+          <RecurringDepositsSection
+            items={state.recurringDeposits || []}
             removeItem={removeItem}
             updateItem={updateItem}
+            addItem={addItem}
             onAdd={onAdd}
             showToast={showToast}
+            activeProfile={activeProfile}
           />
         );
       case "bond":

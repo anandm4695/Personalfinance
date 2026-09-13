@@ -201,9 +201,10 @@ describe("Matured Bond Accounting & Calculation Fix", () => {
     expect(html).toContain("Active (1)");
     expect(html).toContain("Matured (1)");
 
-    // StatCard active indicators
-    expect(html).toContain("1 Matured");
-    expect(html).toContain("ALL 100% DEPOSITED");
-    expect(html).toContain("100% COMPLETED");
+    // StatCard and Matured badge indicators
+    expect(html).toContain("Monthly SIP Total");
+    expect(html).toContain("Total Deposited");
+    expect(html).toContain("Current Accrued");
+    expect(html).toContain("Matured");
   });
 });
