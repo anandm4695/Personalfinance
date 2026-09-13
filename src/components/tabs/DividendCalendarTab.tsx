@@ -15,7 +15,23 @@ import {
   ChevronLeft,
   ChevronRight,
   Landmark,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Plus,
+  Sparkles,
+  Info,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact, today, getLocalDateString, exportArrayToCSV } from "../../utils/finance";
 import { Card } from "../ui/Card";
@@ -23,6 +39,8 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
+import { Modal } from "../ui/Modal";
 import { Prv } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 import { StockLogo } from "./DematTab";
@@ -85,8 +103,8 @@ const urgencyLabel = (days: number | null): string => {
   if (days === null) return "—";
   if (days < 0) return `${Math.abs(days)}d ago`;
   if (days === 0) return "Today!";
-  if (days <= 7) return `${days}d`;
-  if (days <= 30) return `${days}d`;
+  if (days <= 7) return `${days}d left`;
+  if (days <= 30) return `${days}d left`;
   return `${Math.ceil(days / 7)}w`;
 };
 
@@ -96,7 +114,7 @@ const tsToDate = (ts: number | null | undefined): string | null => {
   return new Date(Number(ts) * 1000).toISOString().slice(0, 10);
 };
 
-export function DividendCalendarTab({ state, marketData }: any) {
+export function DividendCalendarTab({ state, marketData, addItem, showToast }: any) {
   const todayStr = today();
   const [exData, setExData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
@@ -108,6 +126,8 @@ export function DividendCalendarTab({ state, marketData }: any) {
   const [sortKey, setSortKey] = useState("estDivIncome");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [timelineFilter, setTimelineFilter] = useState<"all" | "7d" | "30d" | "90d">("all");
+  const [selectedDayEvents, setSelectedDayEvents] = useState<{ date: string; ex: any[]; pay: any[] } | null>(null);
   const [calMonth, setCalMonth] = useState(() => {
     const d = new Date(todayStr + "T00:00:00");
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -125,35 +145,31 @@ export function DividendCalendarTab({ state, marketData }: any) {
     }
   };
 
-  // Group portfolio buy-lots into one entry per symbol+exchange, and derive
-  // the correct Yahoo Finance ticker (base symbol + .NS/.BO exchange suffix —
-  // without it, Yahoo resolves to the wrong/foreign security, e.g. bare
-  // "INFY" returns the US-listed Infosys ADR instead of the NSE stock).
+  // Group portfolio buy-lots into one entry per symbol+exchange
   const stockGroups = useMemo(() => {
     const map = new Map<string, any>();
-    (state.stocks || []).forEach((s: any) => {
+    (state?.stocks || []).forEach((s: any) => {
       if (!s.symbol || Number(s.qty || 0) <= 0) return;
       const base = String(s.symbol).replace(/\.(NS|BO)$/i, "");
       const exchange = s.exchange || "NSE";
       const yfSym = `${base}.${exchange === "BSE" ? "BO" : "NS"}`;
       const key = `${base}|${exchange}`;
       const qty = Number(s.qty || 0);
-      // Same fallback chain used app-wide (see useMetrics.ts stockValue calc):
-      // live market price first, then the stock's stored currentPrice, then
-      // avgPrice — since currentPrice on a lot is only set once at buy-time
-      // and isn't kept in sync, it's frequently 0/stale on its own.
+      const avgPrice = Number(s.avgPrice || 0);
       const livePrice = marketData?.[yfSym]?.price;
       const currentPrice =
         Number(livePrice ?? 0) || Number(s.currentPrice || 0) || Number(s.avgPrice || 0);
+
       if (!map.has(key)) {
-        map.set(key, { symbol: base, exchange, yfSym, qty: 0, currentValue: 0 });
+        map.set(key, { symbol: base, exchange, yfSym, qty: 0, currentValue: 0, investedValue: 0 });
       }
       const g = map.get(key);
       g.qty += qty;
       g.currentValue += qty * currentPrice;
+      g.investedValue += qty * avgPrice;
     });
     return Array.from(map.values());
-  }, [state.stocks, marketData]);
+  }, [state?.stocks, marketData]);
 
   // Unique Yahoo Finance symbols to fetch ex-dividend/yield data for
   const symbols = useMemo<string[]>(
@@ -162,12 +178,6 @@ export function DividendCalendarTab({ state, marketData }: any) {
   );
 
   const fetchExDates = async () => {
-    // Guard against duplicate concurrent runs — `symbols` is rebuilt (new
-    // array reference) whenever `marketData` refreshes in the background
-    // (live-price polling elsewhere in the app), which re-fires the
-    // auto-fetch effect below on every such tick until `fetched` flips true.
-    // Without this guard, a slow first fetch could get raced by a second one,
-    // burning through the endpoint's 30-req/60s rate limit for no benefit.
     if (fetchingRef.current || symbols.length === 0) return;
     fetchingRef.current = true;
     setLoading(true);
@@ -195,9 +205,6 @@ export function DividendCalendarTab({ state, marketData }: any) {
     setFetched(true);
     setLoading(false);
     fetchingRef.current = false;
-    // Surface partial/total fetch failures instead of silently showing "—"
-    // for every column, which was previously indistinguishable from "this
-    // stock simply doesn't pay dividends."
     if (failed.length > 0) {
       setError(
         failed.length === symbols.length
@@ -214,30 +221,22 @@ export function DividendCalendarTab({ state, marketData }: any) {
     }
   }, [symbols]);
 
-  // Build enriched rows — one per distinct stock+exchange (not per buy-lot),
-  // so a stock bought across multiple lots doesn't show up multiple times
-  // with fragmented quantities/values, and a stock dual-listed on both NSE
-  // and BSE still gets two distinct rows.
+  // Build enriched rows
   const stockRows = useMemo(() => {
     return stockGroups.map((g: any) => {
       const info = exData[g.yfSym] || {};
       const exDate = tsToDate(info.exDividendDate);
       const divPayDate = tsToDate(info.dividendDate);
-      // Yahoo's `dividendYield` is computed off `dividendRate` (the forward
-      // indicated annual rate), not `trailingAnnualDividendRate` (actual
-      // trailing 12mo payout). Prioritizing the trailing figure here made the
-      // displayed "Div/Share" and "Yield %" reconcile to different numbers —
-      // e.g. INFY.NS: dividendRate=50 (yield-consistent) vs a stale/bad
-      // trailingAnnualDividendRate=0.52. Use dividendRate first so the two
-      // figures agree.
       const divRate = Number(info.dividendRate || info.trailingAnnualDividendRate || 0);
       const divYield = Number(info.dividendYield || 0) * 100;
       const currentPrice = g.qty > 0 ? g.currentValue / g.qty : 0;
+      const avgPrice = g.qty > 0 ? g.investedValue / g.qty : 0;
       const estDivIncome = divRate * g.qty;
+      const yieldOnCost = avgPrice > 0 ? (divRate / avgPrice) * 100 : 0;
       const daysToEx = getDaysUntil(exDate);
 
       // Past dividends received for this symbol
-      const pastDivs = (state.dividends || [])
+      const pastDivs = (state?.dividends || [])
         .filter((d: any) => d.symbol === g.symbol || d.fundName === g.symbol)
         .sort((a: any, b: any) =>
           (b.recordDate || b.paymentDate || "").localeCompare(a.recordDate || a.paymentDate || "")
@@ -251,11 +250,14 @@ export function DividendCalendarTab({ state, marketData }: any) {
         exchange: g.exchange,
         qty: g.qty,
         currentPrice,
+        avgPrice,
         currentValue: g.currentValue,
+        investedValue: g.investedValue,
         exDate,
         divPayDate,
         divRate,
         divYield,
+        yieldOnCost,
         estDivIncome,
         daysToEx,
         lastDiv,
@@ -263,17 +265,21 @@ export function DividendCalendarTab({ state, marketData }: any) {
         isDivPayer: divRate > 0,
       };
     });
-  }, [stockGroups, state.dividends, exData, fetched]);
+  }, [stockGroups, state?.dividends, exData, fetched]);
 
   // Upcoming ex-dates within 90 days (or past 7 days)
-  const upcomingExDates = useMemo(
-    () =>
-      stockRows
-        .filter((r) => r.daysToEx !== null && r.daysToEx >= -7 && r.daysToEx <= 90)
-        .filter((r) => matchesSearch(r.symbol))
-        .sort((a, b) => (a.daysToEx ?? 999) - (b.daysToEx ?? 999)),
-    [stockRows, searchQuery]
-  );
+  const upcomingExDates = useMemo(() => {
+    return stockRows
+      .filter((r) => r.daysToEx !== null && r.daysToEx >= -7 && r.daysToEx <= 90)
+      .filter((r) => {
+        if (timelineFilter === "7d") return r.daysToEx !== null && r.daysToEx <= 7 && r.daysToEx >= 0;
+        if (timelineFilter === "30d") return r.daysToEx !== null && r.daysToEx <= 30 && r.daysToEx >= 0;
+        if (timelineFilter === "90d") return r.daysToEx !== null && r.daysToEx <= 90 && r.daysToEx >= 0;
+        return true;
+      })
+      .filter((r) => matchesSearch(r.symbol))
+      .sort((a, b) => (a.daysToEx ?? 999) - (b.daysToEx ?? 999));
+  }, [stockRows, searchQuery, timelineFilter]);
 
   const dividendPayers = useMemo(
     () => stockRows.filter((r) => r.isDivPayer).sort((a, b) => b.divYield - a.divYield),
@@ -282,7 +288,26 @@ export function DividendCalendarTab({ state, marketData }: any) {
 
   const totalEstIncome = dividendPayers.reduce((s, r) => s + r.estDivIncome, 0);
   const totalPortValue = stockRows.reduce((s, r) => s + r.currentValue, 0);
+  const totalInvestedValue = stockRows.reduce((s, r) => s + r.investedValue, 0);
   const portfolioYield = totalPortValue > 0 ? (totalEstIncome / totalPortValue) * 100 : 0;
+  const portfolioYoC = totalInvestedValue > 0 ? (totalEstIncome / totalInvestedValue) * 100 : 0;
+
+  // Monthly Projected Cashflow Seasonality from upcoming ex-dates
+  const monthlyProjectedSeasonality = useMemo(() => {
+    const list = MONTH_NAMES.map((name, i) => ({ month: name, monthIdx: i, amount: 0, count: 0 }));
+    stockRows.forEach((r) => {
+      const dStr = r.exDate || r.divPayDate;
+      if (dStr && r.estDivIncome > 0) {
+        const d = new Date(dStr + "T00:00:00");
+        if (!isNaN(d.getTime())) {
+          const m = d.getMonth();
+          list[m].amount += r.estDivIncome;
+          list[m].count += 1;
+        }
+      }
+    });
+    return list;
+  }, [stockRows]);
 
   // Sorted + search-filtered rows for the holdings table
   const tableRows = useMemo(() => {
@@ -300,6 +325,8 @@ export function DividendCalendarTab({ state, marketData }: any) {
           return r.divRate;
         case "divYield":
           return r.divYield;
+        case "yieldOnCost":
+          return r.yieldOnCost;
         case "exDate":
           return r.exDate || "";
         case "divPayDate":
@@ -359,6 +386,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
       currentValue: Math.round(r.currentValue),
       divPerShare: r.divRate ? r.divRate.toFixed(2) : "",
       yieldPct: r.divYield ? `${r.divYield.toFixed(2)}%` : "",
+      yieldOnCost: r.yieldOnCost ? `${r.yieldOnCost.toFixed(2)}%` : "",
       exDate: r.exDate || "",
       payDate: r.divPayDate || "",
       estAnnual: r.estDivIncome ? Math.round(r.estDivIncome) : "",
@@ -373,6 +401,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
         { key: "currentValue", label: "Current Value" },
         { key: "divPerShare", label: "Div / Share" },
         { key: "yieldPct", label: "Yield %" },
+        { key: "yieldOnCost", label: "Yield on Cost %" },
         { key: "exDate", label: "Ex-date" },
         { key: "payDate", label: "Pay Date" },
         { key: "estAnnual", label: "Est. Annual" },
@@ -382,18 +411,16 @@ export function DividendCalendarTab({ state, marketData }: any) {
     );
   };
 
-  // Mutual fund dividend / IDCW payouts — MFs don't have predictable
-  // ex-dates like stocks, so these come purely from the manually/auto
-  // logged ledger (state.dividends), not a live feed.
+  // Mutual fund dividend / IDCW payouts
   const mfDividends = useMemo(
     () =>
-      (state.dividends || [])
+      (state?.dividends || [])
         .filter((d: any) => d.type === "mf" || (!d.symbol && d.fundName))
         .filter((d: any) => matchesSearch(d.fundName))
         .sort((a: any, b: any) =>
           (b.recordDate || b.paymentDate || "").localeCompare(a.recordDate || a.paymentDate || "")
         ),
-    [state.dividends, searchQuery]
+    [state?.dividends, searchQuery]
   );
   const mfTotals = mfDividends.reduce(
     (acc: any, d: any) => {
@@ -429,7 +456,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
     );
   };
 
-  if (symbols.length === 0 && mfDividends.length === 0 && (state.dividends || []).length === 0) {
+  if (symbols.length === 0 && mfDividends.length === 0 && (state?.dividends || []).length === 0) {
     return (
       <div>
         <SectionTitle sub="Ex-dividend dates & income projections for your stock portfolio">
@@ -452,7 +479,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
       align: "left",
       accessor: (r) => (
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <StockLogo yfSym={r.yfSym} size={28} />
+          <StockLogo yfSym={r.yfSym} size={30} />
           <div>
             <div style={{ fontWeight: 800, color: THEME.ink }}>{r.symbol}</div>
             {r.exchange && (
@@ -501,11 +528,18 @@ export function DividendCalendarTab({ state, marketData }: any) {
       sortable: true,
       align: "right",
       accessor: (r) => (
-        <span
-          style={{ color: r.divYield > 0 ? THEME.sage : THEME.muted, fontWeight: r.divYield > 0 ? 700 : 500 }}
-        >
-          {r.divYield > 0 ? `${r.divYield.toFixed(2)}%` : loading ? "…" : "—"}
-        </span>
+        <div style={{ textAlign: "right" }}>
+          <span
+            style={{ color: r.divYield > 0 ? THEME.sage : THEME.muted, fontWeight: r.divYield > 0 ? 700 : 500 }}
+          >
+            {r.divYield > 0 ? `${r.divYield.toFixed(2)}%` : loading ? "…" : "—"}
+          </span>
+          {r.yieldOnCost > 0 && r.yieldOnCost !== r.divYield && (
+            <div style={{ fontSize: 10, color: THEME.gold, fontWeight: 600 }}>
+              YoC: {r.yieldOnCost.toFixed(2)}%
+            </div>
+          )}
+        </div>
       ),
     },
     {
@@ -514,9 +548,16 @@ export function DividendCalendarTab({ state, marketData }: any) {
       sortable: true,
       align: "right",
       accessor: (r) => (
-        <span style={{ color: r.exDate ? THEME.ink : THEME.muted, whiteSpace: "nowrap" }}>
-          {r.exDate ? formatDate(r.exDate) : loading ? "…" : "—"}
-        </span>
+        <div style={{ textAlign: "right" }}>
+          <span style={{ color: r.exDate ? THEME.ink : THEME.muted, whiteSpace: "nowrap", fontWeight: 600 }}>
+            {r.exDate ? formatDate(r.exDate) : loading ? "…" : "—"}
+          </span>
+          {r.daysToEx !== null && r.daysToEx >= 0 && r.daysToEx <= 30 && (
+            <div style={{ fontSize: 10, color: urgencyColor(r.daysToEx), fontWeight: 700 }}>
+              {urgencyLabel(r.daysToEx)}
+            </div>
+          )}
+        </div>
       ),
     },
     {
@@ -617,6 +658,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
       className="tab-content-enter"
       style={{ display: "flex", flexDirection: "column", gap: 24 }}
     >
+      {/* ── Header ── */}
       <div
         style={{
           display: "flex",
@@ -680,21 +722,25 @@ export function DividendCalendarTab({ state, marketData }: any) {
         </div>
       </div>
 
-      {/* Plain-English explainer — "ex-dividend date" is not obvious to a lay
-          user, and it's the single most important date on this whole screen. */}
+      {/* Plain-English explainer */}
       <div
         style={{
-          padding: "10px 14px",
-          borderRadius: 10,
+          padding: "12px 16px",
+          borderRadius: 12,
           background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
           border: `1px solid color-mix(in srgb, ${THEME.gold} 22%, transparent)`,
-          fontSize: 12,
-          color: THEME.muted,
+          fontSize: 12.5,
+          color: THEME.ink,
+          lineHeight: 1.5,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 10,
         }}
       >
-        <b style={{ color: THEME.ink }}>What's an ex-dividend date?</b> You must own the stock{" "}
-        <i>before</i> this date to receive the upcoming dividend — buying on or after it means you
-        miss that payout. The "Pay Date" is when the dividend actually lands in your account.
+        <Info size={16} color={THEME.gold} style={{ flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <b>Ex-Dividend Rule</b>: You must hold the stock <i>before</i> the ex-dividend date to be eligible for the upcoming payout. Buying on or after this date excludes you from that distribution. The <b>Pay Date</b> is when funds hit your bank account.
+        </div>
       </div>
 
       {/* Summary stats */}
@@ -712,6 +758,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
           formatValue={fmtINRFull}
           icon={<Coins />}
           color={THEME.sage}
+          caption={portfolioYoC > 0 ? `Yield on Cost: ${portfolioYoC.toFixed(2)}%` : undefined}
         />
         <StatCard
           label="Portfolio Div. Yield"
@@ -720,6 +767,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
           formatValue={(n) => (n > 0 ? `${n.toFixed(2)}%` : "—")}
           icon={<TrendingUp />}
           color={THEME.accent}
+          caption="Forward indicated market yield"
         />
         <StatCard
           label="Upcoming Ex-dates"
@@ -728,14 +776,56 @@ export function DividendCalendarTab({ state, marketData }: any) {
           formatValue={(n) => String(Math.round(n))}
           icon={<Calendar />}
           color={THEME.gold}
+          caption="Within ±90 days timeline"
         />
         <StatCard
           label="Dividend Payers"
           value={`${dividendPayers.length} / ${stockRows.length}`}
           icon={<BarChart3 />}
           color={THEME.muted}
+          caption={`${((dividendPayers.length / Math.max(1, stockRows.length)) * 100).toFixed(0)}% of stock holdings`}
         />
       </div>
+
+      {/* Seasonality Cashflow Projection Bar Chart */}
+      {totalEstIncome > 0 && (
+        <Card style={{ padding: 20, border: `1.5px solid ${THEME.line}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: THEME.ink }}>
+                Estimated Monthly Dividend Seasonality
+              </div>
+              <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 2 }}>
+                Cashflow projection based on announced & historical declaration cycles
+              </div>
+            </div>
+          </div>
+          <div style={{ height: 160, width: "100%" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyProjectedSeasonality} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} opacity={0.5} />
+                <XAxis dataKey="month" stroke={THEME.muted} fontSize={11} tickLine={false} />
+                <YAxis
+                  stroke={THEME.muted}
+                  fontSize={11}
+                  tickFormatter={(v) => `₹${v >= 1000 ? (v / 1000).toFixed(0) + "k" : v}`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--surface-0)",
+                    border: `1px solid ${THEME.line}`,
+                    borderRadius: 10,
+                    boxShadow: "var(--shadow-md)",
+                    fontSize: 12,
+                  }}
+                  formatter={(val: any) => [fmtINRExact(Number(val)), "Projected Payout"]}
+                />
+                <Bar dataKey="amount" fill={THEME.sage} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      )}
 
       {/* Search + view toggle */}
       {stockRows.length > 0 && (
@@ -797,6 +887,40 @@ export function DividendCalendarTab({ state, marketData }: any) {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {viewMode === "list" && (
+              <div
+                style={{
+                  display: "flex",
+                  border: `1.5px solid ${THEME.line}`,
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+              >
+                {[
+                  { id: "all", label: "All" },
+                  { id: "7d", label: "7 Days" },
+                  { id: "30d", label: "30 Days" },
+                  { id: "90d", label: "90 Days" },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setTimelineFilter(f.id as any)}
+                    style={{
+                      padding: "6px 10px",
+                      border: "none",
+                      background: timelineFilter === f.id ? "var(--t-accent)" : "var(--surface-0)",
+                      color: timelineFilter === f.id ? "#fff" : THEME.muted,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div
               style={{
                 display: "flex",
@@ -896,6 +1020,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
             {upcomingExDates.map((r) => {
               const uc = urgencyColor(r.daysToEx);
               const isPast = (r.daysToEx ?? 0) < 0;
+              const isUrgent = r.daysToEx !== null && r.daysToEx >= 0 && r.daysToEx <= 3;
               return (
                 <div
                   key={r.key}
@@ -908,14 +1033,14 @@ export function DividendCalendarTab({ state, marketData }: any) {
                     borderRadius: 14,
                     background: isPast
                       ? "transparent"
-                      : r.daysToEx !== null && r.daysToEx <= 3
+                      : isUrgent
                         ? "color-mix(in srgb, var(--t-rust) 5%, transparent)"
                         : "var(--surface-0)",
                     border: `1.5px solid ${
                       isPast
                         ? THEME.line
-                        : r.daysToEx !== null && r.daysToEx <= 3
-                          ? "color-mix(in srgb, var(--t-rust) 25%, transparent)"
+                        : isUrgent
+                          ? "color-mix(in srgb, var(--t-rust) 30%, transparent)"
                           : THEME.line
                     }`,
                     opacity: isPast ? 0.65 : 1,
@@ -931,12 +1056,29 @@ export function DividendCalendarTab({ state, marketData }: any) {
                         fontWeight: 800,
                         fontSize: 14,
                         color: THEME.ink,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
                       }}
                     >
                       {r.symbol}
                       {r.exchange && (
-                        <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, marginLeft: 6 }}>
+                        <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
                           {r.exchange}
+                        </span>
+                      )}
+                      {isUrgent && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            background: THEME.rust,
+                            color: "#fff",
+                            fontWeight: 700,
+                          }}
+                        >
+                          Action Required
                         </span>
                       )}
                     </div>
@@ -999,7 +1141,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
       {viewMode === "list" && stockRows.length > 0 && upcomingExDates.length === 0 && (
         <Card style={{ padding: 24, border: `1.5px solid ${THEME.line}`, textAlign: "center" }}>
           <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>
-            No ex-dividend dates in the next 90 days
+            No ex-dividend dates in the selected timeframe
             {searchQuery ? ` matching "${searchQuery}"` : ""}.
           </div>
         </Card>
@@ -1054,11 +1196,11 @@ export function DividendCalendarTab({ state, marketData }: any) {
           <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: THEME.rust, display: "inline-block" }} />
-              Ex-dividend date
+              Ex-dividend date (Must own before)
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: THEME.sage, display: "inline-block" }} />
-              Pay date
+              Pay date (Cash credit)
             </div>
           </div>
 
@@ -1088,20 +1230,35 @@ export function DividendCalendarTab({ state, marketData }: any) {
                 ...(events?.ex || []).map((r) => ({ ...r, kind: "ex" })),
                 ...(events?.pay || []).map((r) => ({ ...r, kind: "pay" })),
               ];
+              const hasEvents = chips.length > 0;
+
               return (
                 <div
                   key={dateStr}
+                  onClick={() => {
+                    if (hasEvents) {
+                      setSelectedDayEvents({
+                        date: dateStr,
+                        ex: events?.ex || [],
+                        pay: events?.pay || [],
+                      });
+                    }
+                  }}
                   style={{
-                    minHeight: 78,
+                    minHeight: 82,
                     borderRadius: 10,
                     border: `1.5px solid ${isToday ? THEME.accent : THEME.line}`,
                     background: isToday
                       ? "color-mix(in srgb, var(--t-accent) 6%, transparent)"
-                      : "var(--surface-0)",
+                      : hasEvents
+                        ? "color-mix(in srgb, var(--surface-1) 50%, var(--surface-0))"
+                        : "var(--surface-0)",
                     padding: "6px 6px",
                     display: "flex",
                     flexDirection: "column",
                     gap: 3,
+                    cursor: hasEvents ? "pointer" : "default",
+                    transition: "all 0.15s ease",
                   }}
                 >
                   <div
@@ -1145,6 +1302,101 @@ export function DividendCalendarTab({ state, marketData }: any) {
             })}
           </div>
         </Card>
+      )}
+
+      {/* ── Day Details Modal (when clicked in calendar) ── */}
+      {selectedDayEvents && (
+        <Modal
+          isOpen={!!selectedDayEvents}
+          onClose={() => setSelectedDayEvents(null)}
+          title={`Dividend Events on ${formatDate(selectedDayEvents.date)}`}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "8px 0" }}>
+            {selectedDayEvents.ex.length > 0 && (
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: THEME.rust, marginBottom: 8 }}>
+                  Ex-Dividend Dates (Must Own Before Today)
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {selectedDayEvents.ex.map((item) => (
+                    <div
+                      key={`modal-ex-${item.key}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: `1px solid ${THEME.line}`,
+                        background: "var(--surface-0)",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <StockLogo yfSym={item.yfSym} size={32} />
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>
+                            {item.symbol}
+                          </div>
+                          <div style={{ fontSize: 11, color: THEME.muted }}>
+                            {item.qty} shares • Rate: ₹{item.divRate.toFixed(2)}/sh
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontWeight: 800, color: THEME.sage }}>
+                          <Money value={item.estDivIncome} variant="exact" />
+                        </div>
+                        <div style={{ fontSize: 10, color: THEME.muted }}>Est. Total</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedDayEvents.pay.length > 0 && (
+              <div style={{ marginTop: selectedDayEvents.ex.length > 0 ? 10 : 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: THEME.sage, marginBottom: 8 }}>
+                  Pay Dates (Credit Landing in Bank)
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {selectedDayEvents.pay.map((item) => (
+                    <div
+                      key={`modal-pay-${item.key}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: `1px solid ${THEME.line}`,
+                        background: "var(--surface-0)",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <StockLogo yfSym={item.yfSym} size={32} />
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>
+                            {item.symbol}
+                          </div>
+                          <div style={{ fontSize: 11, color: THEME.muted }}>
+                            {item.qty} shares • ₹{item.divRate.toFixed(2)}/sh
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontWeight: 800, color: THEME.sage }}>
+                          <Money value={item.estDivIncome} variant="exact" />
+                        </div>
+                        <div style={{ fontSize: 10, color: THEME.muted }}>Cash Credit</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
       )}
 
       {/* All holdings table */}
@@ -1224,10 +1476,7 @@ export function DividendCalendarTab({ state, marketData }: any) {
         </Card>
       )}
 
-      {/* Mutual fund dividend / IDCW payouts — separate from the live stock
-          feed above since MFs don't have predictable ex-dates; this is a
-          read-only summary of what's logged in the Dividend Tracker
-          (Investments → Dividends). */}
+      {/* Mutual fund dividend / IDCW payouts */}
       {mfDividends.length > 0 && (
         <Card style={{ border: `1.5px solid ${THEME.line}` }}>
           <div style={{ padding: 20 }}>
