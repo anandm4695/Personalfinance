@@ -35,23 +35,19 @@ describe("LoanAmortizationTab Premium UI Statically", () => {
 
     // Verify key elements and classes render correctly
     expect(html).toContain("Loan Amortization");
-    expect(html).toContain("Loan Source");
+    expect(html).toContain("Loan Simulation Source");
     expect(html).toContain("Monthly EMI");
-    expect(html).toContain("Total Interest");
-    expect(html).toContain("Total Payment");
-    expect(html).toContain("Loan Closes In");
-    expect(html).toContain("Balance Over Time");
-    expect(html).toContain("Yearly Principal vs Interest");
-    expect(html).toContain("Full Amortization Schedule");
+    expect(html).toContain("Total Interest Payable");
+    expect(html).toContain("Total Loan Cost");
+    expect(html).toContain("Payoff Timeline");
+    expect(html).toContain("Outstanding Balance Trajectory");
+    expect(html).toContain("Annual Principal vs Interest Split");
+    expect(html).toContain("Amortization Ledger");
   });
 });
 
 describe("generateAmortization", () => {
   it("reports each row's emi as the actual cash paid that month, so the schedule's emi column sums to total principal + total interest even when a prepayment caps the final installment", () => {
-    // Bug: the final (capped) installment's displayed "emi" was computed as
-    // Math.round(emi + (balance > 0 ? extraMonthly : 0)) — since balance hits exactly 0
-    // on the closing month, this dropped the extra prepayment from the last row's emi
-    // and didn't reflect the true (smaller) final payment, i.e. interest + principal.
     const { schedule, totalInterest } = generateAmortization(
       50000,
       10,
@@ -65,9 +61,6 @@ describe("generateAmortization", () => {
     // Actual cash paid that month must equal interest + principal for that row.
     expect(last.emi).toBe(last.principal + last.interest);
 
-    // Sum of displayed monthly emi values should reconcile with total principal +
-    // total interest (within per-row rounding tolerance), which fails under the old
-    // formula whenever a prepayment caps the final installment.
     const totalPrincipal = last.totalPrincipal;
     const sumEmi = schedule.reduce((s, r) => s + r.emi, 0);
     expect(Math.abs(sumEmi - (totalPrincipal + totalInterest))).toBeLessThanOrEqual(
@@ -75,8 +68,27 @@ describe("generateAmortization", () => {
     );
   });
 
-  it("returns zero interest, zero schedule, and totalMonths 0 for a non-positive tenure", () => {
-    const result = generateAmortization(100000, 8, 0);
-    expect(result).toEqual({ emi: 0, schedule: [], totalInterest: 0, totalMonths: 0 });
+  it("returns zero interest, zero schedule, and totalMonths 0 for a non-positive tenure or non-positive principal", () => {
+    const resultTenure = generateAmortization(100000, 8, 0);
+    expect(resultTenure).toEqual({ emi: 0, schedule: [], totalInterest: 0, totalMonths: 0 });
+
+    const resultPrincipal = generateAmortization(0, 8, 120);
+    expect(resultPrincipal).toEqual({ emi: 0, schedule: [], totalInterest: 0, totalMonths: 0 });
+  });
+
+  it("calculates crossover month and halfway month correctly", () => {
+    const result = generateAmortization(5000000, 8.5, 240);
+    expect(result.crossoverMonth).toBeDefined();
+    expect(result.halfwayMonth).toBeDefined();
+    expect(result.crossoverMonth).toBeGreaterThan(0);
+    expect(result.halfwayMonth).toBeGreaterThan(result.crossoverMonth || 0);
+  });
+
+  it("handles recurring annual bonus prepayment properly", () => {
+    const standard = generateAmortization(2500000, 8.5, 240);
+    const withAnnualBonus = generateAmortization(2500000, 8.5, 240, 0, null, 100000);
+
+    expect(withAnnualBonus.totalMonths).toBeLessThan(standard.totalMonths);
+    expect(withAnnualBonus.totalInterest).toBeLessThan(standard.totalInterest);
   });
 });
