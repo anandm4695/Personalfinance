@@ -4234,7 +4234,12 @@ function FinanceDashboard() {
                 <FamilyViewTab state={state} metrics={metrics} marketData={marketData} />
               )}
               {tab === "emergencyfund" && (
-                <EmergencyFundTab state={filteredState} metrics={metrics} />
+                <EmergencyFundTab
+                  state={filteredState}
+                  metrics={metrics}
+                  setTab={setTab}
+                  showToast={showToast}
+                />
               )}
               {tab === "nominees" && (
                 <NomineeTrackerTab
