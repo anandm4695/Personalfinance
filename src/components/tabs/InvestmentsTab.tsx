@@ -62,6 +62,7 @@ import { BondsSection } from "../investments/BondsSection";
 import { PPFSection } from "../investments/PPFSection";
 import { NPSSection } from "../investments/NPSSection";
 import { EPFSection } from "../investments/EPFSection";
+import { MutualFundsSection } from "../investments/MutualFundsSection";
 // Shared with CapitalGainsTab so LTCG/STCG shown here always agrees with the actual tax
 // report — see the isLongTerm doc comment there for the Section 2(42A) anniversary-date
 // rules (day-of-month aware, strict >, not a naive "> 365 days" count).
@@ -1599,7 +1600,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
         );
       case "mf":
         return (
-          <MFSection
+          <MutualFundsSection
             items={state.mutualFunds}
             mfSells={state.mfSells || []}
             addItem={addItem}

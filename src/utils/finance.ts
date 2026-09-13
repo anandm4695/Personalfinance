@@ -1450,13 +1450,47 @@ export const calcXIRR = (cashFlows: CashFlow[]): number | null => {
   return null;
 };
 
+// ── Section 2(42A) Long Term Holding Period Checker ──────────────────────────
+export const isLongTerm = (
+  buyDate: string,
+  sellDate: string,
+  monthsThreshold: number = 12
+): boolean => {
+  if (!buyDate || !sellDate) return false;
+  const parseLocalDate = (d: string) => {
+    const [y, m, day] = d.split("-").map(Number);
+    return new Date(y, m - 1, day);
+  };
+  const buy = parseLocalDate(buyDate);
+  const sell = parseLocalDate(sellDate);
+  const anniversary = new Date(buy.getFullYear(), buy.getMonth() + monthsThreshold, buy.getDate());
+  return sell > anniversary;
+};
+
 // ── CSV Export Utility ─────────────────────────────────────────────────────────
 export const exportArrayToCSV = (
   data: any[],
-  columns: { key: string; label: string }[],
-  filename: string
+  columnsOrFilename: { key: string; label: string }[] | string,
+  optionalFilename?: string
 ) => {
   if (!data || data.length === 0) return;
+
+  let columns: { key: string; label: string }[];
+  let filename: string;
+
+  if (typeof columnsOrFilename === "string") {
+    filename = columnsOrFilename;
+    const keys = Object.keys(data[0] || {});
+    columns = keys.map((k) => ({ key: k, label: k }));
+  } else {
+    columns = columnsOrFilename;
+    filename = optionalFilename || "export.csv";
+  }
+
+  if (!filename.endsWith(".csv")) {
+    filename += ".csv";
+  }
+
   const header = columns.map((c) => `"${c.label}"`).join(",");
   const rows = data.map((row) =>
     columns
@@ -1469,7 +1503,7 @@ export const exportArrayToCSV = (
       .join(",")
   );
   const csv = [header, ...rows].join("\n");
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -1477,3 +1511,4 @@ export const exportArrayToCSV = (
   a.click();
   URL.revokeObjectURL(url);
 };
+
