@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import React from "react";
 import { renderToString } from "react-dom/server";
 import { InvestmentsTab } from "../components/tabs/InvestmentsTab";
+import { YieldTrackerSection, YieldTracker } from "../components/investments/YieldTrackerSection";
 
 describe("Investments Portfolio — Yield Tracker Accounting & Calculation Audit", () => {
   const mockState = {
@@ -102,6 +103,15 @@ describe("Investments Portfolio — Yield Tracker Accounting & Calculation Audit
         balance: 300000,
       },
     ],
+    rentalProperties: [
+      {
+        id: "rent_1",
+        name: "Prestige Lakeview Flat 402",
+        monthlyRent: 35000,
+        marketValue: 8500000,
+        isActive: true,
+      },
+    ],
     mutualFunds: [],
     stocks: [
       {
@@ -144,6 +154,7 @@ describe("Investments Portfolio — Yield Tracker Accounting & Calculation Audit
     expect(html).toContain("Govt / Post Office Schemes");
     expect(html).toContain("Recurring Deposits");
     expect(html).toContain("Dividends (TTM)");
+    expect(html).toContain("Rental Income");
     expect(html).toContain("EPF / EPFO");
     expect(html).toContain("PPF (Public Provident)");
     expect(html).toContain("NPS Growth (Est.)");
@@ -155,17 +166,6 @@ describe("Investments Portfolio — Yield Tracker Accounting & Calculation Audit
   });
 
   it("computes accurate yield mathematics excluding matured instruments", () => {
-    // Active FD (100k @ 7.5% quarterly) = 100000 * ((1 + 0.075/4)^4 - 1) = ~7,713.59
-    // Active Bond (100k @ 7.5%) = 7,500
-    // Active SCSS (1.5M @ 8.2%) = 123,000
-    // Active RD (5k/mo @ 7% for 12m) = (62,317 - 60,000) / 1 = ~2,317
-    // PPF (200k from ledger @ 7.1%) = 14,200
-    // EPF (500k @ 8.25%) = 41,250
-    // Dividends TTM (10k - 1k TDS) = 9,000
-    // Total Contractual Cash Yield = ~204,980
-    // NPS Est Growth (300k @ 10%) = 30,000
-    // Total Annual Yield = ~234,980
-
     const html = renderToString(
       <InvestmentsTab
         state={mockState}
@@ -193,6 +193,7 @@ describe("Investments Portfolio — Yield Tracker Accounting & Calculation Audit
       nps: [],
       stocks: [],
       mutualFunds: [],
+      rentalProperties: [],
     };
 
     const html = renderToString(
@@ -208,4 +209,26 @@ describe("Investments Portfolio — Yield Tracker Accounting & Calculation Audit
     expect(html).toContain("No Yield Data Yet");
     expect(html).toContain("Add Fixed Deposits, Bonds, PPF, EPF, Recurring Deposits, Govt Schemes");
   });
+
+  it("renders YieldTrackerSection directly with all 5 view tabs and tax slab options", () => {
+    const html = renderToString(<YieldTrackerSection state={mockState} />);
+
+    // Header & controls
+    expect(html).toContain("Yield &amp; Passive Income Tracker");
+    expect(html).toContain("Tax Slab:");
+    expect(html).toContain("Export CSV");
+    expect(html).toContain("Print");
+
+    // 5 Executive view tabs
+    expect(html).toContain("Executive Overview");
+    expect(html).toContain("Granular Asset Ledger");
+    expect(html).toContain("Cash Flow &amp; Payout Calendar");
+    expect(html).toContain("Tax Efficiency &amp; Real Yield");
+    expect(html).toContain("FIRE &amp; Target Simulator");
+
+    // Post-Tax Real Yield tile
+    expect(html).toContain("Post-Tax Real Yield");
+    expect(html).toContain("Tax-Free");
+  });
 });
+
