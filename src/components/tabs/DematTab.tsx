@@ -1789,12 +1789,23 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", gap: 4 }}>
+                      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                         <button
                           onClick={() => setEditDematId(d.id)}
                           className="icon-btn"
-                          style={{ padding: 5 }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: THEME.muted,
+                            padding: "4px 6px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderRadius: 6,
+                          }}
                           title="Edit Demat"
+                          aria-label="Edit Demat"
                         >
                           <Pencil size={13} />
                         </button>
@@ -1806,8 +1817,19 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                             });
                           }}
                           className="icon-btn danger"
-                          style={{ padding: 5 }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: THEME.rust,
+                            padding: "4px 6px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderRadius: 6,
+                          }}
                           title="Delete Demat"
+                          aria-label="Delete Demat"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -2155,7 +2177,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                     <th style={{ ...thStyle, textAlign: "right" }}>Current Value</th>
                     <th style={{ ...thStyle, textAlign: "right" }}>Weight</th>
                     <th style={{ ...thStyle, textAlign: "right" }}>Day's P&amp;L</th>
-                    <th style={{ ...thStyle, textAlign: "right", paddingRight: 20 }}>Total Return</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Total Return</th>
+                    <th style={{ ...thStyle, textAlign: "right", paddingRight: 20 }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2379,7 +2402,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                           </td>
 
                           {/* Total Return */}
-                          <td style={{ ...tdStyle, textAlign: "right", paddingRight: 20 }}>
+                          <td style={{ ...tdStyle, textAlign: "right" }}>
                             <div
                               style={{
                                 fontWeight: 850,
@@ -2399,6 +2422,66 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                               {totalPnlPct >= 0 ? "+" : "−"}{Math.abs(totalPnlPct).toFixed(2)}%
                             </div>
                           </td>
+
+                          {/* Actions */}
+                          <td style={{ ...tdStyle, textAlign: "right", paddingRight: 20 }}>
+                            <div
+                              style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={() => {
+                                  if (lots.length === 1) {
+                                    setEditStockId(lots[0].id);
+                                  } else {
+                                    toggleExpand(yfSym);
+                                  }
+                                }}
+                                className="icon-btn"
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  color: THEME.muted,
+                                  padding: "4px 6px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  borderRadius: 6,
+                                }}
+                                title={lots.length === 1 ? "Edit Holding" : "View & Edit Lots"}
+                                aria-label="Edit Holding"
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setConfirmAction({
+                                    message: `Delete ${lots.length > 1 ? `all ${lots.length} lots of` : ""} ${base} (${totalQty} shares total)?`,
+                                    onConfirm: () => {
+                                      lots.forEach((l: any) => removeItem("stocks", l.id));
+                                    },
+                                  });
+                                }}
+                                className="icon-btn danger"
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  color: THEME.rust,
+                                  padding: "4px 6px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  borderRadius: 6,
+                                }}
+                                title="Delete Holding"
+                                aria-label="Delete Holding"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
 
                         {/* ── EXPANDABLE LOT & INTELLIGENCE DRAWER ── */}
@@ -2409,7 +2492,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                               background: `linear-gradient(180deg, color-mix(in srgb, ${THEME.accent} 4%, var(--surface-0)) 0%, var(--surface-0) 100%)`,
                             }}
                           >
-                            <td colSpan={10} style={{ padding: "20px 24px", borderBottom: `1.5px solid ${THEME.line}` }}>
+                            <td colSpan={11} style={{ padding: "20px 24px", borderBottom: `1.5px solid ${THEME.line}` }}>
                               <div className="demat-drawer-content" style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                                 {/* Chart Left Panel */}
                                 {isLive && (
@@ -2629,7 +2712,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                                                   <Money value={lCurr} variant="full" />
                                                 </td>
                                                 <td style={{ ...tdStyle, padding: "8px 10px", textAlign: "right" }}>
-                                                  <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                                                  <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", alignItems: "center" }}>
                                                     <button
                                                       onClick={(e) => {
                                                         e.stopPropagation();
@@ -2642,10 +2725,21 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                                                         });
                                                       }}
                                                       className="icon-btn danger"
-                                                      style={{ padding: 4 }}
+                                                      style={{
+                                                        background: "none",
+                                                        border: "none",
+                                                        cursor: "pointer",
+                                                        color: THEME.rust,
+                                                        padding: "3px 6px",
+                                                        display: "inline-flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        borderRadius: 6,
+                                                      }}
                                                       title="Sell Lot"
+                                                      aria-label="Sell Lot"
                                                     >
-                                                      <ArrowLeftRight size={11} />
+                                                      <ArrowLeftRight size={12} />
                                                     </button>
                                                     <button
                                                       onClick={(e) => {
@@ -2653,10 +2747,21 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                                                         setEditStockId(lot.id);
                                                       }}
                                                       className="icon-btn"
-                                                      style={{ padding: 4 }}
+                                                      style={{
+                                                        background: "none",
+                                                        border: "none",
+                                                        cursor: "pointer",
+                                                        color: THEME.muted,
+                                                        padding: "3px 6px",
+                                                        display: "inline-flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        borderRadius: 6,
+                                                      }}
                                                       title="Edit Lot"
+                                                      aria-label="Edit Lot"
                                                     >
-                                                      <Pencil size={11} />
+                                                      <Pencil size={12} />
                                                     </button>
                                                     <button
                                                       onClick={(e) => {
@@ -2667,10 +2772,21 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                                                         });
                                                       }}
                                                       className="icon-btn danger"
-                                                      style={{ padding: 4 }}
+                                                      style={{
+                                                        background: "none",
+                                                        border: "none",
+                                                        cursor: "pointer",
+                                                        color: THEME.rust,
+                                                        padding: "3px 6px",
+                                                        display: "inline-flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        borderRadius: 6,
+                                                      }}
                                                       title="Delete Lot"
+                                                      aria-label="Delete Lot"
                                                     >
-                                                      <Trash2 size={11} />
+                                                      <Trash2 size={12} />
                                                     </button>
                                                   </div>
                                                 </td>
@@ -3077,7 +3193,19 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                             setShowWishlistItemModal(true);
                           }}
                           className="icon-btn"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: THEME.muted,
+                            padding: "4px 6px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderRadius: 6,
+                          }}
                           title="Add Scrip to Watchlist"
+                          aria-label="Add Scrip"
                         >
                           <Plus size={14} />
                         </button>
@@ -3087,7 +3215,19 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                             setEditWishlistId(wl.id);
                           }}
                           className="icon-btn"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: THEME.muted,
+                            padding: "4px 6px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderRadius: 6,
+                          }}
                           title="Edit Watchlist"
+                          aria-label="Edit Watchlist"
                         >
                           <Pencil size={13} />
                         </button>
@@ -3100,7 +3240,19 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                             });
                           }}
                           className="icon-btn danger"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: THEME.rust,
+                            padding: "4px 6px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderRadius: 6,
+                          }}
                           title="Delete Watchlist"
+                          aria-label="Delete Watchlist"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -3225,17 +3377,46 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                                           </Button>
                                           <button
                                             className="icon-btn"
+                                            style={{
+                                              background: "none",
+                                              border: "none",
+                                              cursor: "pointer",
+                                              color: THEME.muted,
+                                              padding: "3px 6px",
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                              borderRadius: 6,
+                                            }}
                                             onClick={() => setEditWishlistItemId(it.id)}
                                             title="Edit Item"
+                                            aria-label="Edit Item"
                                           >
                                             <Pencil size={12} />
                                           </button>
                                           <button
                                             className="icon-btn danger"
-                                            onClick={() => removeItem("wishlistItems", it.id)}
-                                            title="Remove Item"
+                                            style={{
+                                              background: "none",
+                                              border: "none",
+                                              cursor: "pointer",
+                                              color: THEME.rust,
+                                              padding: "3px 6px",
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                              borderRadius: 6,
+                                            }}
+                                            onClick={() => {
+                                              setConfirmAction({
+                                                message: `Remove "${it.symbol}" from watchlist?`,
+                                                onConfirm: () => removeItem("wishlistItems", it.id),
+                                              });
+                                            }}
+                                            title="Delete Item"
+                                            aria-label="Delete Item"
                                           >
-                                            <X size={13} />
+                                            <Trash2 size={12} />
                                           </button>
                                         </div>
                                       </td>
