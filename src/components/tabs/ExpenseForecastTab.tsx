@@ -2283,7 +2283,7 @@ export const ExpenseForecastTab: React.FC<{
                   <BarChart
                     data={historicalData.slice(-12).map((h) => ({
                       month: h.label,
-                      amount: Number(h[selectedCatData.category] || 0),
+                      amount: Number((h as any)[selectedCatData.category] || 0),
                     }))}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} vertical={false} />
