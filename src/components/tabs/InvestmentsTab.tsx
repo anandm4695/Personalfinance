@@ -56,6 +56,7 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
 import { ConfirmDialog } from "../ui/Feedback";
 import { MFCasPanel } from "./MFCasPanel";
+import { FixedDepositsSection } from "../investments/FixedDepositsSection";
 // Shared with CapitalGainsTab so LTCG/STCG shown here always agrees with the actual tax
 // report — see the isLongTerm doc comment there for the Section 2(42A) anniversary-date
 // rules (day-of-month aware, strict >, not a naive "> 365 days" count).
@@ -302,6 +303,15 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
     years: "",
     startDate: today(),
     maturityDate: "",
+    fdNumber: "",
+    accountNumber: "",
+    owner: defaultOwner,
+    interestPayout: "cumulative",
+    depositType: "standard",
+    autoRenew: "none",
+    nominee: "",
+    tag: "",
+    notes: "",
   });
   const calcFdMaturity = (startDate: string, years: string) => {
     if (!startDate || !years || isNaN(Number(years))) return "";
@@ -455,7 +465,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
               style={inp}
               value={fd.bank}
               onChange={(e) => setFdField("bank", e.target.value)}
-              placeholder="e.g. SBI, HDFC Bank"
+              placeholder="e.g. SBI, HDFC Bank, ICICI Bank"
             />
           </Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -475,7 +485,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
                 value={fd.rate}
                 onChange={(e) => setFdField("rate", e.target.value)}
                 placeholder="7.5"
-                step="0.1"
+                step="0.05"
               />
             </Field>
             <Field label="Tenure (Years)">
@@ -485,7 +495,7 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
                 value={fd.years}
                 onChange={(e) => setFdField("years", e.target.value)}
                 placeholder="2"
-                step="0.5"
+                step="0.25"
               />
             </Field>
             <Field label="Start Date">
@@ -497,14 +507,77 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
               />
             </Field>
           </div>
-          <Field label="Maturity Date">
-            <input
-              style={inp}
-              type="date"
-              value={fd.maturityDate}
-              onChange={(e) => setFdField("maturityDate", e.target.value)}
-            />
-          </Field>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label="Maturity Date">
+              <input
+                style={inp}
+                type="date"
+                value={fd.maturityDate}
+                onChange={(e) => setFdField("maturityDate", e.target.value)}
+              />
+            </Field>
+            <Field label="FD / Certificate #">
+              <input
+                style={inp}
+                value={fd.fdNumber}
+                onChange={(e) => setFdField("fdNumber", e.target.value)}
+                placeholder="e.g. FD1093847"
+              />
+            </Field>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label="Account Owner">
+              <select
+                style={inp}
+                value={fd.owner}
+                onChange={(e) => setFdField("owner", e.target.value)}
+              >
+                <option value="self">Self</option>
+                {familyProfiles
+                  .filter((p: any) => p.id !== "self")
+                  .map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+              </select>
+            </Field>
+            <Field label="Deposit Type">
+              <select
+                style={inp}
+                value={fd.depositType}
+                onChange={(e) => setFdField("depositType", e.target.value)}
+              >
+                <option value="standard">Standard Bank FD</option>
+                <option value="tax_saver">5-Year Tax Saver (Sec 80C)</option>
+                <option value="senior">Senior Citizen FD (+0.5%)</option>
+                <option value="nbfc">Corporate / NBFC FD</option>
+              </select>
+            </Field>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label="Interest Payout">
+              <select
+                style={inp}
+                value={fd.interestPayout}
+                onChange={(e) => setFdField("interestPayout", e.target.value)}
+              >
+                <option value="cumulative">Cumulative (Quarterly Compounding)</option>
+                <option value="monthly">Monthly Interest Payout</option>
+                <option value="quarterly">Quarterly Interest Payout</option>
+                <option value="half_yearly">Half-Yearly Payout</option>
+                <option value="annual">Annual Payout</option>
+              </select>
+            </Field>
+            <Field label="Nominee Name">
+              <input
+                style={inp}
+                value={fd.nominee}
+                onChange={(e) => setFdField("nominee", e.target.value)}
+                placeholder="e.g. Spouse / Son"
+              />
+            </Field>
+          </div>
           {fd.principal && fd.rate && fd.years && (
             <div
               style={{
@@ -1449,12 +1522,14 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
     switch (sub) {
       case "fd":
         return (
-          <FDSection
-            items={state.fixedDeposits}
+          <FixedDepositsSection
+            items={state.fixedDeposits || []}
             removeItem={removeItem}
             updateItem={updateItem}
+            addItem={addItem}
             onAdd={onAdd}
             showToast={showToast}
+            activeProfile={activeProfile}
           />
         );
       case "rd":
@@ -2010,121 +2085,6 @@ function EditBondModal({ bond: initial, onClose, onSave, saving }: any) {
   );
 }
 
-/* ── Edit FD Modal ───────────────────────────────────────────────────── */
-function EditFDModal({ fd: initial, onClose, onSave, saving }: any) {
-  const [form, setForm] = useState({
-    bank: initial.bank || "",
-    principal: initial.principal != null ? String(initial.principal) : "",
-    rate: initial.rate != null ? String(initial.rate) : "",
-    years: initial.years != null ? String(initial.years) : "",
-    startDate: initial.startDate || today(),
-    maturityDate: initial.maturityDate || "",
-  });
-
-  const calcMaturity = (sd: string, yrs: string) => {
-    if (!sd || !yrs || isNaN(Number(yrs))) return "";
-    // Bug fix: see calcFdMaturity in AddInvestmentModal — the old setMonth+toISOString round
-    // trip both overflowed day-of-month (31 Jan + 1mo → March) and was UTC-timezone-fragile.
-    return addMonthsToDateStr(sd, Math.round(Number(yrs) * 12));
-  };
-  const setField = (field: string, value: string) => {
-    setForm((prev) => {
-      const next = { ...prev, [field]: value };
-      if (field === "startDate" || field === "years") {
-        const sd = field === "startDate" ? value : prev.startDate;
-        const yrs = field === "years" ? value : prev.years;
-        next.maturityDate = calcMaturity(sd, yrs);
-      }
-      return next;
-    });
-  };
-
-  const maturity = fdMaturity(Number(form.principal), Number(form.rate), Number(form.years));
-
-  return (
-    <Modal title="Edit Fixed Deposit" onClose={onClose}>
-      <Field label="Bank / Institution">
-        <input
-          style={inp}
-          value={form.bank}
-          onChange={(e) => setField("bank", e.target.value)}
-          placeholder="e.g. SBI, HDFC Bank"
-        />
-      </Field>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Principal Amount (₹)">
-          <input
-            style={inp}
-            type="number"
-            value={form.principal}
-            onChange={(e) => setField("principal", e.target.value)}
-            placeholder="500000"
-          />
-        </Field>
-        <Field label="Interest Rate (% p.a.)">
-          <input
-            style={inp}
-            type="number"
-            value={form.rate}
-            onChange={(e) => setField("rate", e.target.value)}
-            placeholder="7.5"
-            step="0.1"
-          />
-        </Field>
-        <Field label="Tenure (Years)">
-          <input
-            style={inp}
-            type="number"
-            value={form.years}
-            onChange={(e) => setField("years", e.target.value)}
-            placeholder="2"
-            step="0.5"
-          />
-        </Field>
-        <Field label="Start Date">
-          <input
-            style={inp}
-            type="date"
-            value={form.startDate}
-            onChange={(e) => setField("startDate", e.target.value)}
-          />
-        </Field>
-      </div>
-      <Field label="Maturity Date">
-        <input
-          style={inp}
-          type="date"
-          value={form.maturityDate}
-          onChange={(e) => setField("maturityDate", e.target.value)}
-        />
-      </Field>
-      {form.principal && form.rate && form.years && (
-        <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: 10,
-            background: `color-mix(in srgb, ${THEME.gold} 7%, transparent)`,
-            border: `1px solid ${`color-mix(in srgb, ${THEME.gold} 25%, transparent)`}`,
-            display: "flex",
-            justifyContent: "space-between",
-          }}
-        >
-          <span style={{ fontSize: 11, color: THEME.muted }}>Maturity Value</span>
-          <span style={{ fontFamily: "var(--font-display)", fontWeight: 900, color: THEME.gold, fontSize: 15 }}>
-            <Money value={maturity} variant="full" />
-          </span>
-        </div>
-      )}
-      <ModalActions
-        onSave={() => form.bank && form.principal && form.rate && onSave(form)}
-        onClose={onClose}
-        saveLabel="Save Changes"
-        disabled={saving}
-        loading={saving}
-      />
-    </Modal>
-  );
-}
 
 /* ── Edit RD Modal ───────────────────────────────────────────────────── */
 function EditRDModal({ rd: initial, onClose, onSave, saving }: any) {
@@ -2731,421 +2691,7 @@ function InvestmentEmptyState({
   );
 }
 
-/* ── FD Section ─────────────────────────────────────────────────────── */
-function FDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
-  const [editFD, setEditFD] = useState<any>(null);
-  const [confirmDeleteFD, setConfirmDeleteFD] = useState<any>(null);
-  const [filterTab, setFilterTab] = useState<"all" | "active" | "matured">("all");
-  const { run: saveFDEdit, loading: savingFDEdit } = useAsyncAction(
-    async (id: string, v: any) => {
-      await updateItem("fixedDeposits", id, v);
-    },
-    {
-      onSuccess: () => setEditFD(null),
-      onError: (e: any) =>
-        showToast?.(`Failed to save fixed deposit: ${e?.message || "Unknown error"}`, "error"),
-    }
-  );
 
-  const fdDaysLeft = (f: any) => {
-    if (!f.maturityDate) return null;
-    const [y, m, d] = String(f.maturityDate).split("-").map(Number);
-    const matDate = new Date(y, m - 1, d);
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    return Math.ceil((matDate.getTime() - now.getTime()) / 86400000);
-  };
-
-  const maturedCount = items.filter((f: any) => (fdDaysLeft(f) ?? 1) < 0).length;
-  const activeCount = items.length - maturedCount;
-  const activeFds = items.filter((f: any) => (fdDaysLeft(f) ?? 1) >= 0);
-
-  const totalInvested = items.reduce((s: number, f: any) => s + (Number(f.principal) || 0), 0);
-  const totalMaturity = items.reduce(
-    (s: number, f: any) => s + fdMaturity(Number(f.principal), Number(f.rate), Number(f.years)),
-    0
-  );
-
-  // Accounting standard: Weighted average rate across active FDs
-  const activeInvested = activeFds.reduce((s: number, f: any) => s + (Number(f.principal) || 0), 0);
-  const avgRate =
-    activeInvested > 0
-      ? activeFds.reduce((s: number, f: any) => s + (Number(f.rate) || 0) * (Number(f.principal) || 0), 0) /
-        activeInvested
-      : items.length > 0
-      ? items.reduce((s: number, f: any) => s + Number(f.rate || 0), 0) / items.length
-      : 0;
-
-  const FD_AMBER = THEME.gold;
-
-  const filteredItems = items.filter((f: any) => {
-    if (filterTab === "active") return (fdDaysLeft(f) ?? 1) >= 0;
-    if (filterTab === "matured") return (fdDaysLeft(f) ?? 1) < 0;
-    return true;
-  });
-
-  return (
-    <div className="animate-fade-in-up">
-      {items.length === 0 ? (
-        <InvestmentEmptyState
-          icon={Coins}
-          gradient="linear-gradient(135deg,#d97706 0%,#fbbf24 100%)"
-          dotColor="#f59e0b"
-          title="No Fixed Deposits Added Yet"
-          description="Track all your FD accounts — bank, interest rate, maturity date, and projected returns in one place."
-          pills={["Principal Amount", "Interest Rate", "Maturity Date", "Projected Returns"]}
-          buttonLabel="Add Fixed Deposit"
-          onAdd={onAdd}
-        />
-      ) : (
-        <>
-          {/* Summary strip */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: 12,
-              marginBottom: 20,
-            }}
-          >
-            {[
-              {
-                label: "Total Invested",
-                value: fmtINRFull(totalInvested),
-                numericValue: totalInvested,
-                formatValue: fmtINRFull,
-                color: FD_AMBER,
-                Icon: IndianRupee,
-              },
-              {
-                label: "Total Maturity",
-                value: fmtINRFull(totalMaturity),
-                numericValue: totalMaturity,
-                formatValue: fmtINRFull,
-                color: THEME.sage,
-                Icon: TrendingUp,
-              },
-              {
-                label: "Avg. Rate",
-                value: `${avgRate.toFixed(2)}%`,
-                numericValue: avgRate,
-                formatValue: (n: number) => `${n.toFixed(2)}%`,
-                color: THEME.accent,
-                Icon: Activity,
-              },
-              {
-                label: maturedCount > 0 ? `${maturedCount} Matured` : "FDs Active",
-                value: String(activeCount),
-                numericValue: activeCount,
-                formatValue: (n: number) => String(Math.round(n)),
-                color: maturedCount > 0 ? THEME.rust : THEME.sage,
-                Icon: BarChart3,
-              },
-            ].map(({ label, value, numericValue, formatValue, color, Icon }) => (
-              <StatCard
-                key={label}
-                label={label}
-                value={value}
-                numericValue={numericValue}
-                formatValue={formatValue}
-                icon={<Icon />}
-                color={color}
-              />
-            ))}
-          </div>
-
-          {/* Filter Pills */}
-          {items.length > 0 && (
-            <div style={{ display: "flex", gap: 8, marginBottom: 20, alignItems: "center" }}>
-              <button
-                type="button"
-                onClick={() => setFilterTab("all")}
-                className={`demat-portfolio-pill ${filterTab === "all" ? "active" : ""}`}
-                style={{ cursor: "pointer", border: "none" }}
-              >
-                {`All (${items.length})`}
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterTab("active")}
-                className={`demat-portfolio-pill ${filterTab === "active" ? "active" : ""}`}
-                style={{ cursor: "pointer", border: "none" }}
-              >
-                {`Active (${activeCount})`}
-              </button>
-              {maturedCount > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setFilterTab("matured")}
-                  className={`demat-portfolio-pill ${filterTab === "matured" ? "active" : ""}`}
-                  style={{ cursor: "pointer", border: "none" }}
-                >
-                  {`Matured (${maturedCount})`}
-                </button>
-              )}
-            </div>
-          )}
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: 16,
-            }}
-          >
-            {filteredItems.map((f: any) => {
-              const maturity = fdMaturity(Number(f.principal), Number(f.rate), Number(f.years));
-              const daysLeft = fdDaysLeft(f);
-              const isMatured = daysLeft !== null && daysLeft < 0;
-              const isDueSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
-              const accrued = isMatured
-                ? maturity
-                : (() => {
-                    if (!f.startDate || !f.years) return Number(f.principal) || 0;
-                    const elapsed = Math.min(
-                      Number(f.years),
-                      Math.max(0, monthsBetween(f.startDate, today()) / 12)
-                    );
-                    return fdMaturity(Number(f.principal), Number(f.rate), elapsed);
-                  })();
-              const gain = accrued - (Number(f.principal) || 0);
-              const gainPct =
-                (Number(f.principal) || 0) > 0 ? (gain / (Number(f.principal) || 1)) * 100 : 0;
-              const fdProgress = isMatured
-                ? 100
-                : f.years && f.startDate
-                ? Math.min(
-                    100,
-                    Math.max(
-                      0,
-                      (monthsBetween(f.startDate, today()) / (Number(f.years) * 12)) * 100
-                    )
-                  )
-                : 0;
-              const borderColor = isMatured ? THEME.muted : isDueSoon ? THEME.rust : FD_AMBER;
-              const lbl = {
-                fontSize: 9,
-                color: THEME.muted,
-                fontWeight: 700,
-                textTransform: "uppercase" as const,
-                letterSpacing: "0.08em",
-                marginBottom: 3,
-              };
-
-              return (
-                <Card key={f.id} style={{ padding: 20, borderTop: `3px solid ${borderColor}` }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
-                      <Badge variant={isMatured ? "muted" : "gold"}>{f.bank}</Badge>
-                      {isMatured && <Badge variant="muted">Matured</Badge>}
-                      {isDueSoon && !isMatured && (
-                        <Badge variant="rust">
-                          {daysLeft === 0 ? "Today!" : `${daysLeft}d left`}
-                        </Badge>
-                      )}
-                    </div>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon={<Pencil size={12} />}
-                        onClick={() => setEditFD(f)}
-                        aria-label={`Edit ${f.bank} fixed deposit`}
-                        title="Edit"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon={<Trash2 size={12} />}
-                        style={{ color: THEME.rust }}
-                        onClick={() => setConfirmDeleteFD(f)}
-                        aria-label={`Delete ${f.bank} fixed deposit`}
-                        title="Delete"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Logo + Bank name */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                    <BankLogo name={f.bank} size={36} accentColor={FD_AMBER} />
-                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>{f.bank}</div>
-                  </div>
-
-                  <div style={lbl}>Principal</div>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: 24,
-                      fontWeight: 600,
-                      color: FD_AMBER,
-                      letterSpacing: "-0.02em",
-                      marginBottom: 14,
-                    }}
-                  >
-                    <Money value={Number(f.principal)} variant="full" />
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(4, 1fr)",
-                      gap: 6,
-                      marginBottom: 14,
-                    }}
-                  >
-                    {[
-                      ["Rate", `${f.rate}%`],
-                      ["Tenure", `${f.years}y`],
-                      [
-                        "Start",
-                        f.startDate
-                          ? new Date(f.startDate + "T00:00:00").toLocaleDateString("en-IN", {
-                              month: "short",
-                              year: "2-digit",
-                            })
-                          : "—",
-                      ],
-                      [
-                        "Matures",
-                        f.maturityDate
-                          ? new Date(f.maturityDate + "T00:00:00").toLocaleDateString("en-IN", {
-                              month: "short",
-                              year: "2-digit",
-                            })
-                          : "—",
-                      ],
-                    ].map(([l, v]) => (
-                      <div
-                        key={l}
-                        style={{
-                          padding: "7px 6px",
-                          background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
-                          borderRadius: 8,
-                          border: `1px solid ${`color-mix(in srgb, ${THEME.gold} 14%, transparent)`}`,
-                          textAlign: "center" as const,
-                        }}
-                      >
-                        <div style={{ ...lbl, marginBottom: 2 }}>{l}</div>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: THEME.ink }}>{v}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {f.years && f.startDate && (
-                    <div style={{ marginBottom: 14 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: 9,
-                          color: THEME.muted,
-                          marginBottom: 4,
-                          fontWeight: 600,
-                        }}
-                      >
-                        <span>{isMatured ? "TENURE COMPLETED" : "TENURE PROGRESS"}</span>
-                        <span style={{ color: isMatured ? THEME.sage : FD_AMBER, fontWeight: 700 }}>
-                          {isMatured ? "100% COMPLETED" : `${fdProgress.toFixed(0)}%`}
-                        </span>
-                      </div>
-                      <div className="progress-track">
-                        <div
-                          className="progress-fill"
-                          style={{
-                            width: `${fdProgress}%`,
-                            background: isMatured ? THEME.sage : FD_AMBER,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      borderTop: `1px solid ${THEME.line}`,
-                      paddingTop: 12,
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: 10,
-                    }}
-                  >
-                    <div>
-                      <div style={lbl}>Current Accrued</div>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: THEME.accent,
-                        }}
-                      >
-                        <Money value={accrued} variant="full" />
-                      </div>
-                      <div style={{ fontSize: 10, color: gain >= 0 ? THEME.sage : THEME.rust }}>
-                        {gain >= 0 ? "+" : ""}
-                        <Money value={gain} variant="full" /> · {gainPct.toFixed(1)}%
-                      </div>
-                    </div>
-                    <div>
-                      <div style={lbl}>{isMatured ? "Final Value" : "On Maturity"}</div>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: THEME.sage,
-                        }}
-                      >
-                        <Money value={maturity} variant="full" />
-                      </div>
-                      {!isMatured && daysLeft !== null && (
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: daysLeft <= 30 ? THEME.rust : THEME.muted,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 3,
-                          }}
-                        >
-                          <Clock size={9} /> {daysLeft === 0 ? "Today" : `${daysLeft}d away`}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </>
-      )}
-      {editFD && (
-        <EditFDModal
-          fd={editFD}
-          onClose={() => setEditFD(null)}
-          onSave={(updated: any) => saveFDEdit(editFD.id, updated)}
-          saving={savingFDEdit}
-        />
-      )}
-      {confirmDeleteFD && (
-        <ConfirmDialog
-          message={`Delete ${confirmDeleteFD.bank} fixed deposit? This cannot be undone.`}
-          onConfirm={() => {
-            removeItem("fixedDeposits", confirmDeleteFD.id);
-            setConfirmDeleteFD(null);
-          }}
-          onCancel={() => setConfirmDeleteFD(null)}
-        />
-      )}
-    </div>
-  );
-}
 
 /* ── RD Section ─────────────────────────────────────────────────────── */
 function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
