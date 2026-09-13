@@ -48,6 +48,10 @@ import {
   Award,
   Landmark,
   CheckCircle2,
+  Info,
+  X,
+  BadgePercent,
+  Flame,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -62,6 +66,7 @@ import {
   Pie,
   Cell,
   Legend,
+  CartesianGrid,
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -92,7 +97,6 @@ import {
   ServiceLogo,
   BrandLogo,
 } from "../ui/BrandLogos";
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Brand Domains & Visual Themes (35+ Indian & Global Automakers)
@@ -356,7 +360,6 @@ export function VehicleMakeLogo({
   );
 }
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Dynamic Vehicle Color & Visual Illustration Engine
 // ─────────────────────────────────────────────────────────────────────────────
@@ -448,90 +451,51 @@ const VEHICLE_COLOR_MAP: Record<string, string> = {
   copper: "#b45309",
   // Oranges
   "sunset orange": "#ea580c",
-  "lava orange": "#f97316",
-  orange: "#ea580c",
-  tangerine: "#fb923c",
-  // Purples
-  purple: "#7c3aed",
-  violet: "#6d28d9",
-  magenta: "#c026d3",
-  // Browns
-  brown: "#78350f",
-  coffee: "#451a03",
-  mocha: "#5c2b16",
-  tan: "#d97706",
-  beige: "#f5d0fe",
 };
 
 export function resolveVehicleColor(colorStr?: string, fallbackMake?: string): VehicleColorInfo {
-  const raw = (colorStr || "").trim().toLowerCase();
-  let hex = "";
+  const norm = (colorStr || "").trim().toLowerCase();
+  let hex = VEHICLE_COLOR_MAP[norm];
 
-  if (raw.startsWith("#") && (raw.length === 4 || raw.length === 7)) {
-    hex = raw;
-  } else if (raw in VEHICLE_COLOR_MAP) {
-    hex = VEHICLE_COLOR_MAP[raw];
-  } else if (raw) {
-    const match = Object.keys(VEHICLE_COLOR_MAP).find((k) => raw.includes(k));
-    if (match) {
-      hex = VEHICLE_COLOR_MAP[match];
-    } else {
-      if (raw.includes("white") || raw.includes("pearl") || raw.includes("ivory") || raw.includes("silver"))
-        hex = "#f1f5f9";
-      else if (raw.includes("black") || raw.includes("dark") || raw.includes("night") || raw.includes("shadow"))
-        hex = "#18181b";
-      else if (raw.includes("grey") || raw.includes("gray") || raw.includes("ash") || raw.includes("steel"))
-        hex = "#475569";
-      else if (raw.includes("red") || raw.includes("crimson") || raw.includes("ruby") || raw.includes("cherry"))
-        hex = "#dc2626";
-      else if (raw.includes("blue") || raw.includes("navy") || raw.includes("ocean") || raw.includes("azure"))
-        hex = "#2563eb";
-      else if (raw.includes("green") || raw.includes("emerald") || raw.includes("olive"))
-        hex = "#16a34a";
-      else if (raw.includes("yellow") || raw.includes("gold") || raw.includes("amber"))
-        hex = "#eab308";
-      else if (raw.includes("orange") || raw.includes("sunset") || raw.includes("copper"))
-        hex = "#ea580c";
-      else if (raw.includes("purple") || raw.includes("violet"))
-        hex = "#7c3aed";
-      else if (raw.includes("brown") || raw.includes("coffee") || raw.includes("bronze"))
-        hex = "#78350f";
-    }
+  if (!hex && norm.startsWith("#") && (norm.length === 4 || norm.length === 7)) {
+    hex = norm;
   }
 
   if (!hex) {
-    const makeTheme = getMakeTheme(fallbackMake || "General");
-    hex = makeTheme.color || "#2563eb";
+    for (const [key, val] of Object.entries(VEHICLE_COLOR_MAP)) {
+      if (norm.includes(key)) {
+        hex = val;
+        break;
+      }
+    }
   }
 
-  const isWhiteOrLight = hex === "#f8fafc" || hex === "#f1f5f9" || hex === "#fafafa" || hex === "#fef3c7";
-  const isBlackOrDark = hex === "#18181b" || hex === "#111827" || hex === "#09090b" || hex === "#1c1917" || hex === "#0f172a";
+  if (!hex && fallbackMake) {
+    hex = getMakeTheme(fallbackMake).color;
+  }
 
-  const highlight = isWhiteOrLight
-    ? "#ffffff"
-    : isBlackOrDark
-    ? "#3f3f46"
-    : `color-mix(in srgb, ${hex} 70%, #ffffff)`;
+  if (!hex) {
+    hex = "#475569"; // default elegant slate
+  }
 
-  const shadow = isWhiteOrLight
-    ? "#94a3b8"
-    : isBlackOrDark
-    ? "#09090b"
-    : `color-mix(in srgb, ${hex} 60%, #000000)`;
-
-  const rimColor = isBlackOrDark ? "#71717a" : "#cbd5e1";
+  const isLight =
+    hex === "#f8fafc" ||
+    hex === "#f1f5f9" ||
+    hex === "#fafafa" ||
+    hex === "#ffffff" ||
+    hex === "#fef3c7" ||
+    hex === "#eab308" ||
+    hex === "#facc15";
 
   return {
     hex,
-    highlight,
-    shadow,
-    rimColor,
-    isLight: isWhiteOrLight,
+    highlight: isLight ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.35)",
+    shadow: isLight ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.45)",
+    rimColor: isLight ? "#94a3b8" : "#cbd5e1",
+    isLight,
     label: colorStr || "Standard Finish",
   };
 }
-
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants & Lookups
@@ -583,7 +547,6 @@ export const POPULAR_AUTOMAKERS_BY_TYPE: Record<string, string[]> = {
     "Isuzu",
   ],
 };
-
 
 const FUEL_TYPES: Record<string, { label: string; icon: any; color: string }> = {
   petrol: { label: "Petrol", icon: Fuel, color: THEME.accent },
@@ -648,45 +611,84 @@ const complianceStatus = (expiry: string): ComplianceStatus => {
       days: daysLeft,
     };
   if (daysLeft === 0) return { label: "Expires today", color: THEME.rust, icon: "alert", days: 0 };
-  if (daysLeft <= 30)
-    return { label: `Due in ${daysLeft}d`, color: THEME.gold, icon: "warn", days: daysLeft };
+  if (daysLeft <= 15)
+    return {
+      label: `Expires in ${daysLeft}d`,
+      color: THEME.rust,
+      icon: "alert",
+      days: daysLeft,
+    };
+  if (daysLeft <= 45)
+    return {
+      label: `Due in ${daysLeft}d`,
+      color: THEME.gold,
+      icon: "warn",
+      days: daysLeft,
+    };
   return { label: `Valid (${daysLeft}d left)`, color: THEME.sage, icon: "ok", days: daysLeft };
 };
 
-const serviceDueStatus = (
-  dueDate: string,
-  dueOdo: number,
-  currentOdo: number
-): ComplianceStatus => {
-  let daysLeft: number | null = null;
+const serviceDueStatus = (dueDate?: string, dueOdo?: number, currentOdo?: number): ComplianceStatus => {
+  if (!dueDate && !dueOdo) return null;
+  const statuses: ComplianceStatus[] = [];
+
   if (dueDate) {
     const todayStr = today();
     const dueTime = new Date(dueDate + "T00:00:00").getTime();
     const todayTime = new Date(todayStr + "T00:00:00").getTime();
-    daysLeft = Math.ceil((dueTime - todayTime) / 86400000);
+    const daysLeft = Math.ceil((dueTime - todayTime) / 86400000);
+    if (daysLeft < 0) {
+      statuses.push({
+        label: `Overdue by ${Math.abs(daysLeft)}d`,
+        color: THEME.rust,
+        icon: "alert",
+        days: daysLeft,
+      });
+    } else if (daysLeft <= 30) {
+      statuses.push({
+        label: `Due in ${daysLeft}d`,
+        color: THEME.gold,
+        icon: "warn",
+        days: daysLeft,
+      });
+    } else {
+      statuses.push({
+        label: `Due ${fmtDate(dueDate)}`,
+        color: THEME.sage,
+        icon: "ok",
+        days: daysLeft,
+      });
+    }
   }
-  let kmLeft: number | null = null;
-  if (dueOdo > 0 && currentOdo > 0) {
-    kmLeft = dueOdo - currentOdo;
+
+  if (dueOdo && currentOdo && dueOdo > 0) {
+    const kmLeft = dueOdo - currentOdo;
+    if (kmLeft <= 0) {
+      statuses.push({
+        label: `Overdue by ${Math.abs(kmLeft).toLocaleString("en-IN")} km`,
+        color: THEME.rust,
+        icon: "alert",
+      });
+    } else if (kmLeft <= 1000) {
+      statuses.push({
+        label: `Due in ${kmLeft.toLocaleString("en-IN")} km`,
+        color: THEME.gold,
+        icon: "warn",
+      });
+    }
   }
-  if (daysLeft === null && kmLeft === null) return null;
 
-  const parts: string[] = [];
-  if (daysLeft !== null) parts.push(`${Math.abs(daysLeft)}d`);
-  if (kmLeft !== null) parts.push(`${Math.abs(kmLeft).toLocaleString("en-IN")} km`);
-  const joined = parts.join(" / ");
-
-  const overdue = (daysLeft !== null && daysLeft < 0) || (kmLeft !== null && kmLeft < 0);
-  if (overdue) return { label: `Overdue by ${joined}`, color: THEME.rust, icon: "alert" };
-
-  const dueSoon = (daysLeft !== null && daysLeft <= 14) || (kmLeft !== null && kmLeft <= 500);
-  if (dueSoon) return { label: `Due in ${joined}`, color: THEME.gold, icon: "warn" };
-
-  return { label: `${joined} left`, color: THEME.sage, icon: "ok" };
+  if (!statuses.length) return null;
+  const alert = statuses.find((s) => s?.icon === "alert");
+  if (alert) return alert;
+  const warn = statuses.find((s) => s?.icon === "warn");
+  if (warn) return warn;
+  return statuses[0];
 };
 
 const getLatestOdo = (vehicle: any): number => {
-  const fromService = (vehicle.serviceHistory || []).reduce(
+  const sh: any[] = vehicle.serviceHistory || [];
+  const fromService = sh.reduce(
     (max: number, r: any) => Math.max(max, Number(r.odometer || 0)),
     0
   );
@@ -857,9 +859,7 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
         />
       }
     >
-
-
-      {/* Live Brand Identity & Logo Preview Banner */}
+      {/* Live Brand Identity & HSRP Preview Banner */}
       <div
         style={{
           display: "flex",
@@ -890,6 +890,13 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
             >
               {f.year || new Date().getFullYear()}
             </span>
+            {f.registrationNumber && (
+              <IndianNumberPlate
+                registrationNumber={f.registrationNumber}
+                isElectric={f.fuelType === "electric"}
+                size="sm"
+              />
+            )}
           </div>
           <div style={{ fontSize: 11, color: "var(--t-muted)", marginTop: 2 }}>
             {VEHICLE_TYPES[f.vehicleType] || f.vehicleType} • {FUEL_TYPES[f.fuelType]?.label || f.fuelType} • {f.color || "Standard Finish"}
@@ -1007,7 +1014,6 @@ export function VehicleModal({ existing, onClose, onSave, saving = false }: any)
           />
         </Field>
       </div>
-
 
       <div style={g2}>
         <Field label="Manufacturing Year">
@@ -1414,55 +1420,57 @@ export function ServiceModal({
   saving = false,
 }: any) {
   const isEdit = !!existing;
-  const [f, setF] = useState<any>(
-    existing
-      ? { ...existing, cost: existing.cost ?? "", odometer: existing.odometer ?? "" }
-      : {
-          date: today(),
-          type: "regular_service",
-          description: "",
-          cost: "",
-          odometer: "",
-          serviceCenter: "",
-          notes: "",
-        }
-  );
-  const [nextDueDate, setNextDueDate] = useState("");
-  const [nextDueOdo, setNextDueOdo] = useState("");
+  const [f, setF] = useState({
+    date: existing?.date || today(),
+    type: existing?.type || "regular_service",
+    description: existing?.description || "",
+    cost: existing?.cost ?? "",
+    odometer: existing?.odometer ?? "",
+    serviceCenter: existing?.serviceCenter || "",
+    invoiceNumber: existing?.invoiceNumber || "",
+    notes: existing?.notes || "",
+  });
 
-  const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
+  const [nextDueDate, setNextDueDate] = useState(currentReminder?.date || "");
+  const [nextDueOdo, setNextDueOdo] = useState(currentReminder?.odometer || "");
+
+  const set = (k: string, v: any) => setF((p) => ({ ...p, [k]: v }));
+  const canSave = f.date && f.cost !== "";
 
   const handleSave = () => {
-    if (!f.date || !f.type) return;
+    if (!canSave) return;
+    const rec = {
+      id: existing?.id || uid(),
+      date: f.date,
+      type: f.type,
+      description:
+        f.description ||
+        SERVICE_TYPES[f.type]?.label ||
+        "Routine Maintenance",
+      cost: Number(f.cost) || 0,
+      odometer: Number(f.odometer) || 0,
+      serviceCenter: f.serviceCenter,
+      invoiceNumber: f.invoiceNumber,
+      notes: f.notes,
+    };
     onSave({
-      rec: {
-        ...f,
-        id: existing?.id || uid(),
-        cost: Number(f.cost) || 0,
-        odometer: Number(f.odometer) || 0,
-      },
-      nextServiceDueDate: nextDueDate || undefined,
-      nextServiceDueOdometer: nextDueOdo ? Number(nextDueOdo) : undefined,
+      rec,
+      nextServiceDueDate: nextDueDate,
+      nextServiceDueOdometer: Number(nextDueOdo) || 0,
     });
-  };
-
-  const g2: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: 12,
   };
 
   return (
     <Modal
-      title={isEdit ? "Edit Service Record" : "Add Service & Maintenance Record"}
+      title={isEdit ? "Edit Service Record" : "Log Service & Maintenance"}
       onClose={onClose}
       maxWidth={520}
       footer={
         <ModalActions
           onClose={onClose}
           onSave={handleSave}
-          saveLabel={isEdit ? "Save Changes" : "Add Service Record"}
-          disabled={!f.date || !f.type || saving}
+          saveLabel={isEdit ? "Save Record" : "Log Service"}
+          disabled={!canSave || saving}
           loading={saving}
         />
       }
@@ -1471,23 +1479,19 @@ export function ServiceModal({
         <div
           style={{
             fontSize: 12,
-            fontWeight: 700,
-            color: "var(--t-accent)",
-            background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--t-accent) 20%, transparent)",
-            borderRadius: 8,
-            padding: "8px 12px",
-            marginBottom: 16,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
+            color: "var(--t-muted)",
+            marginBottom: 14,
+            padding: "6px 12px",
+            borderRadius: 6,
+            background: "var(--surface-1)",
+            fontWeight: 600,
           }}
         >
-          <Car size={14} /> {vehicleName}
+          Vehicle: <strong style={{ color: "var(--text)" }}>{vehicleName}</strong>
         </div>
       )}
 
-      <div style={g2}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Service Date *">
           <input
             style={inp}
@@ -1507,23 +1511,23 @@ export function ServiceModal({
         </Field>
       </div>
 
-      <Field label="Service Description">
+      <Field label="Description / Summary">
         <input
           style={inp}
           value={f.description}
           onChange={(e) => set("description", e.target.value)}
-          placeholder="e.g. 20,000 km Major Periodic Service + Synthetic Engine Oil"
+          placeholder="e.g. 20,000 KM Periodic Service, Oil & Filter Change"
         />
       </Field>
 
-      <div style={g2}>
-        <Field label="Total Invoice Cost (₹)">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Total Cost (₹) *">
           <input
             style={inp}
             type="number"
             value={f.cost}
             onChange={(e) => set("cost", e.target.value)}
-            placeholder="0"
+            placeholder="Invoice amount"
           />
         </Field>
         <Field label="Odometer Reading (KM)">
@@ -1532,67 +1536,82 @@ export function ServiceModal({
             type="number"
             value={f.odometer}
             onChange={(e) => set("odometer", e.target.value)}
-            placeholder="e.g. 19500"
+            placeholder="Current km at service"
           />
         </Field>
       </div>
 
-      <Field label="Service Center / Workshop">
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <ServiceLogo name={f.serviceCenter} size={28} />
-          <input
-            style={{ ...inp, flex: 1 }}
-            value={f.serviceCenter}
-            onChange={(e) => set("serviceCenter", e.target.value)}
-            placeholder="e.g. Tata Motors Authorized Service Center"
-          />
-        </div>
-      </Field>
-
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 800,
-          color: "var(--t-muted)",
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          marginTop: 16,
-          marginBottom: 8,
-          borderTop: "1px solid var(--t-line)",
-          paddingTop: 14,
-        }}
-      >
-        Update Next Service Reminder (optional)
-      </div>
-
-      <div style={g2}>
-        <Field label="Next Service Due Date">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Service Center / Workshop">
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {f.serviceCenter && <ServiceLogo name={f.serviceCenter} size={24} borderRadius={4} />}
+            <input
+              style={{ ...inp, flex: 1 }}
+              value={f.serviceCenter}
+              onChange={(e) => set("serviceCenter", e.target.value)}
+              placeholder="e.g. Tata Authorized Service"
+            />
+          </div>
+        </Field>
+        <Field label="Invoice / Job Card #">
           <input
             style={inp}
-            type="date"
-            value={nextDueDate}
-            onChange={(e) => setNextDueDate(e.target.value)}
-          />
-        </Field>
-        <Field label="Next Service Due (KM)">
-          <input
-            style={inp}
-            type="number"
-            value={nextDueOdo}
-            onChange={(e) => setNextDueOdo(e.target.value)}
-            placeholder="e.g. 30000"
+            value={f.invoiceNumber}
+            onChange={(e) => set("invoiceNumber", e.target.value)}
+            placeholder="Bill reference"
           />
         </Field>
       </div>
 
-      <Field label="Additional Notes / Invoice Details">
+      <Field label="Notes / Parts Replaced">
         <textarea
           style={{ ...inp, height: 60, resize: "vertical" }}
           value={f.notes}
           onChange={(e) => set("notes", e.target.value)}
-          placeholder="Oil grade used, tyre brand replaced, part numbers..."
+          placeholder="Synthetic engine oil, brake pads, wheel alignment..."
         />
       </Field>
+
+      {/* Next Service Reminder Update */}
+      <div
+        style={{
+          borderTop: "1px solid var(--t-line)",
+          paddingTop: 12,
+          marginTop: 14,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 800,
+            color: "var(--t-muted)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            marginBottom: 8,
+          }}
+        >
+          Update Next Service Reminder
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Next Service Due Date">
+            <input
+              style={inp}
+              type="date"
+              value={nextDueDate}
+              onChange={(e) => setNextDueDate(e.target.value)}
+            />
+          </Field>
+          <Field label="Next Service Due (KM)">
+            <input
+              style={inp}
+              type="number"
+              value={nextDueOdo}
+              onChange={(e) => setNextDueOdo(e.target.value)}
+              placeholder="e.g. 30000"
+            />
+          </Field>
+        </div>
+      </div>
     </Modal>
   );
 }
@@ -1603,59 +1622,46 @@ export function ServiceModal({
 
 export function InsuranceModal({ existing, vehicleName, onClose, onSave, saving = false }: any) {
   const isEdit = !!existing;
-  const [f, setF] = useState<any>(
-    existing
-      ? {
-          ...existing,
-          basicCost: existing.basicCost ?? "",
-          cgstAmount: existing.cgstAmount ?? "",
-          sgstAmount: existing.sgstAmount ?? "",
-        }
-      : {
-          policyType: "comprehensive",
-          insurer: "",
-          policyNumber: "",
-          tenure: "1_year",
-          fromDate: today(),
-          toDate: "",
-          basicCost: "",
-          cgstAmount: "",
-          sgstAmount: "",
-          notes: "",
-        }
-  );
+  const [f, setF] = useState({
+    policyType: existing?.policyType || "comprehensive",
+    insurer: existing?.insurer || "",
+    policyNumber: existing?.policyNumber || "",
+    tenure: existing?.tenure || "1_year",
+    fromDate: existing?.fromDate || today(),
+    toDate: existing?.toDate || "",
+    basicCost: existing?.basicCost ?? "",
+    cgstAmount: existing?.cgstAmount ?? "",
+    sgstAmount: existing?.sgstAmount ?? "",
+    totalPremium: existing?.totalPremium ?? "",
+    idv: existing?.idv ?? "",
+    notes: existing?.notes || "",
+  });
 
-  const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
-  const totalPremium =
-    Number(f.basicCost || 0) + Number(f.cgstAmount || 0) + Number(f.sgstAmount || 0);
-  const canSave = !!(f.fromDate && f.toDate);
+  const set = (k: string, v: any) => setF((p) => ({ ...p, [k]: v }));
+  const canSave = f.insurer.trim() && f.toDate && f.totalPremium !== "";
 
   const handleSave = () => {
     if (!canSave) return;
     onSave({
-      ...f,
       id: existing?.id || uid(),
+      policyType: f.policyType,
+      insurer: f.insurer,
+      policyNumber: f.policyNumber,
+      tenure: f.tenure,
+      fromDate: f.fromDate,
+      toDate: f.toDate,
       basicCost: Number(f.basicCost) || 0,
       cgstAmount: Number(f.cgstAmount) || 0,
       sgstAmount: Number(f.sgstAmount) || 0,
-      totalPremium,
+      totalPremium: Number(f.totalPremium) || 0,
+      idv: Number(f.idv) || 0,
+      notes: f.notes,
     });
-  };
-
-  const g2: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: 12,
-  };
-  const g3: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-    gap: 12,
   };
 
   return (
     <Modal
-      title={isEdit ? "Edit Insurance Record" : "Add Insurance Policy / Renewal"}
+      title={isEdit ? "Edit Insurance Policy" : "Add Insurance Policy"}
       onClose={onClose}
       maxWidth={520}
       footer={
@@ -1672,24 +1678,20 @@ export function InsuranceModal({ existing, vehicleName, onClose, onSave, saving 
         <div
           style={{
             fontSize: 12,
-            fontWeight: 700,
-            color: "var(--t-accent)",
-            background: "color-mix(in srgb, var(--t-accent) 8%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--t-accent) 20%, transparent)",
-            borderRadius: 8,
-            padding: "8px 12px",
-            marginBottom: 16,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
+            color: "var(--t-muted)",
+            marginBottom: 14,
+            padding: "6px 12px",
+            borderRadius: 6,
+            background: "var(--surface-1)",
+            fontWeight: 600,
           }}
         >
-          <Shield size={14} /> {vehicleName}
+          Vehicle: <strong style={{ color: "var(--text)" }}>{vehicleName}</strong>
         </div>
       )}
 
-      <div style={g2}>
-        <Field label="Policy Cover Type">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Policy Cover Type *">
           <select
             style={inp}
             value={f.policyType}
@@ -1702,17 +1704,30 @@ export function InsuranceModal({ existing, vehicleName, onClose, onSave, saving 
             ))}
           </select>
         </Field>
-        <Field label="Tenure Term">
-          <select style={inp} value={f.tenure} onChange={(e) => set("tenure", e.target.value)}>
-            <option value="1_year">1 Year Policy</option>
-            <option value="3_year">3 Years Long Term</option>
-            <option value="5_year">5 Years Long Term</option>
-          </select>
+        <Field label="Policy Number">
+          <input
+            style={inp}
+            value={f.policyNumber}
+            onChange={(e) => set("policyNumber", e.target.value)}
+            placeholder="e.g. POL-99281-2024"
+          />
         </Field>
       </div>
 
-      <div style={g2}>
-        <Field label="Cover Start Date *">
+      <Field label="Insurance Provider / Company *">
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <InsurerLogo name={f.insurer} size={28} borderRadius={4} />
+          <input
+            style={{ ...inp, flex: 1 }}
+            value={f.insurer}
+            onChange={(e) => set("insurer", e.target.value)}
+            placeholder="e.g. ACKO, ICICI Lombard, HDFC ERGO, Bajaj Allianz"
+          />
+        </div>
+      </Field>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Policy Start Date">
           <input
             style={inp}
             type="date"
@@ -1720,7 +1735,7 @@ export function InsuranceModal({ existing, vehicleName, onClose, onSave, saving 
             onChange={(e) => set("fromDate", e.target.value)}
           />
         </Field>
-        <Field label="Cover Expiry Date *">
+        <Field label="Policy Expiry Date *">
           <input
             style={inp}
             type="date"
@@ -1730,74 +1745,33 @@ export function InsuranceModal({ existing, vehicleName, onClose, onSave, saving 
         </Field>
       </div>
 
-      <div style={g2}>
-        <Field label="Insurance Provider / Company">
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <InsurerLogo name={f.insurer} size={28} />
-            <input
-              style={{ ...inp, flex: 1 }}
-              value={f.insurer}
-              onChange={(e) => set("insurer", e.target.value)}
-              placeholder="e.g. HDFC ERGO, ICICI Lombard, ACKO"
-            />
-          </div>
-        </Field>
-
-        <Field label="Policy Number">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Total Premium Paid (₹) *">
           <input
             style={inp}
-            value={f.policyNumber}
-            onChange={(e) => set("policyNumber", e.target.value)}
-            placeholder="e.g. 2314/50493829/00/000"
+            type="number"
+            value={f.totalPremium}
+            onChange={(e) => set("totalPremium", e.target.value)}
+            placeholder="Total Premium"
+          />
+        </Field>
+        <Field label="Insured Declared Value - IDV (₹)">
+          <input
+            style={inp}
+            type="number"
+            value={f.idv}
+            onChange={(e) => set("idv", e.target.value)}
+            placeholder="Vehicle IDV sum insured"
           />
         </Field>
       </div>
 
-      <div style={g3}>
-        <Field label="Net Premium (₹)">
-          <input
-            style={inp}
-            type="number"
-            value={f.basicCost}
-            onChange={(e) => set("basicCost", e.target.value)}
-            placeholder="Basic OD + TP"
-          />
-        </Field>
-        <Field label="GST / Taxes (₹)">
-          <input
-            style={inp}
-            type="number"
-            value={Number(f.cgstAmount || 0) + Number(f.sgstAmount || 0) || ""}
-            onChange={(e) => {
-              const half = (Number(e.target.value) || 0) / 2;
-              set("cgstAmount", String(half));
-              set("sgstAmount", String(half));
-            }}
-            placeholder="18% GST"
-          />
-        </Field>
-        <Field label="Total Premium (₹)">
-          <div
-            style={{
-              ...inp,
-              fontWeight: 800,
-              color: "var(--t-accent)",
-              display: "flex",
-              alignItems: "center",
-              background: "var(--surface-1, var(--surface))",
-            }}
-          >
-            <Money value={totalPremium} variant="full" />
-          </div>
-        </Field>
-      </div>
-
-      <Field label="Policy Notes / Add-ons / NCB %">
+      <Field label="Add-on Covers & Notes">
         <textarea
-          style={{ ...inp, height: 50, resize: "vertical" }}
+          style={{ ...inp, height: 60, resize: "vertical" }}
           value={f.notes}
           onChange={(e) => set("notes", e.target.value)}
-          placeholder="50% NCB applied, Zero Dep + Engine Protect + RSA add-on..."
+          placeholder="Includes Zero Depreciation, Engine Protect, Roadside Assistance, RTI..."
         />
       </Field>
     </Modal>
@@ -1805,7 +1779,7 @@ export function InsuranceModal({ existing, vehicleName, onClose, onSave, saving 
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// VehicleCard: Luxury Showroom Card with 5 Sub-Tabs
+// VehicleCard: Individual Vehicle Showcase & Deep Dive Hub
 // ─────────────────────────────────────────────────────────────────────────────
 
 function VehicleCard({
@@ -3242,7 +3216,7 @@ function VehicleCard({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Interactive Fuel, Mileage & Resale Cost Simulator
+// Interactive Fuel, Mileage, EV Savings & Resale Cost Simulator
 // ─────────────────────────────────────────────────────────────────────────────
 
 function VehicleCalculatorSimulator({ vehicles }: { vehicles: any[] }) {
@@ -3280,6 +3254,14 @@ function VehicleCalculatorSimulator({ vehicles }: { vehicles: any[] }) {
   const annualFuelCost = monthlyFuelCost * 12;
   const totalAnnualRunningCost = annualFuelCost + Number(annualMaintenanceEst || 0);
   const runningCostPerKm = monthlyKm > 0 ? totalAnnualRunningCost / (monthlyKm * 12) : 0;
+
+  // EV Comparison Metrics
+  const iceEquivalentCostPerKm = 102 / (selectedVehicle?.vehicleType === "two-wheeler" ? 45 : 14); // ~₹7.28/km for car
+  const evCostPerKm = 8 / 7; // ~₹1.14/km
+  const monthlySavingsWithEV = isEV
+    ? Math.max(0, (iceEquivalentCostPerKm - evCostPerKm) * monthlyKm)
+    : Math.max(0, (monthlyFuelCost - (monthlyKm / 7) * 8));
+  const fiveYearSavingsWithEV = monthlySavingsWithEV * 60;
 
   return (
     <Card
@@ -3382,6 +3364,7 @@ function VehicleCalculatorSimulator({ vehicles }: { vehicles: any[] }) {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: 14,
+          marginBottom: 20,
         }}
       >
         <div
@@ -3400,7 +3383,7 @@ function VehicleCalculatorSimulator({ vehicles }: { vehicles: any[] }) {
               textTransform: "uppercase",
             }}
           >
-            Monthly Fuel Cost
+            Monthly Fuel / Energy Cost
           </div>
           <div style={{ fontSize: 20, fontWeight: 900, color: "var(--t-accent)", marginTop: 4 }}>
             <Money value={monthlyFuelCost} variant="full" />
@@ -3462,6 +3445,63 @@ function VehicleCalculatorSimulator({ vehicles }: { vehicles: any[] }) {
           </div>
         </div>
       </div>
+
+      {/* EV Transition & Operational Savings Banner */}
+      <div
+        style={{
+          padding: "16px 20px",
+          borderRadius: 14,
+          background: isEV
+            ? "linear-gradient(135deg, color-mix(in srgb, var(--t-sage) 12%, var(--surface-1)) 0%, var(--surface-1) 100%)"
+            : "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 10%, var(--surface-1)) 0%, var(--surface-1) 100%)",
+          border: `1px solid ${isEV ? "color-mix(in srgb, var(--t-sage) 30%, transparent)" : "var(--t-line)"}`,
+          borderLeft: `4px solid ${isEV ? THEME.sage : THEME.accent}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 16,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              background: isEV
+                ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)`
+                : `color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+              color: isEV ? THEME.sage : THEME.accent,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Zap size={20} />
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>
+              {isEV ? "Electric Powertrain Efficiency" : "EV Transition Potential & Savings"}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--t-muted)", marginTop: 2 }}>
+              {isEV
+                ? `You save ~₹${Math.round(monthlySavingsWithEV).toLocaleString("en-IN")} / month compared to petrol/diesel vehicles!`
+                : `Switching this vehicle to EV would save ~₹${Math.round(monthlySavingsWithEV).toLocaleString("en-IN")} / month at ₹8/kWh charging.`}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ textAlign: "right", minWidth: 160 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--t-muted)", textTransform: "uppercase" }}>
+            5-Year Projected Savings
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage, marginTop: 2 }}>
+            <Money value={fiveYearSavingsWithEV} variant="full" />
+          </div>
+        </div>
+      </div>
     </Card>
   );
 }
@@ -3493,6 +3533,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
   const [typeFilter, setTypeFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [complianceFilter, setComplianceFilter] = useState<"all" | "attention" | "valid">("all");
+  const [serviceCategoryFilter, setServiceCategoryFilter] = useState("all");
   const [sortBy, setSortBy] = useState<"value" | "urgency" | "mileage" | "name">("value");
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -3623,6 +3664,11 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
     });
     return list.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   }, [vehicles]);
+
+  const filteredServiceRecords = useMemo(() => {
+    if (serviceCategoryFilter === "all") return allServiceRecords;
+    return allServiceRecords.filter((r) => r.type === serviceCategoryFilter);
+  }, [allServiceRecords, serviceCategoryFilter]);
 
   // CSV Export Handler
   const handleExportCSV = () => {
@@ -3763,6 +3809,19 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
     }
   );
 
+  const activeFiltersCount =
+    (typeFilter !== "all" ? 1 : 0) +
+    (ownerFilter !== "all" ? 1 : 0) +
+    (complianceFilter !== "all" ? 1 : 0) +
+    (searchQuery.trim() ? 1 : 0);
+
+  const clearFilters = () => {
+    setTypeFilter("all");
+    setOwnerFilter("all");
+    setComplianceFilter("all");
+    setSearchQuery("");
+  };
+
   return (
     <div className="tab-content-enter" style={{ paddingBottom: 60 }}>
       {/* ── Page Header ── */}
@@ -3885,6 +3944,125 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
               <strong style={{ color: "var(--text)" }}>
                 <Money value={totalServiceSpend} variant="full" />
               </strong>
+            </div>
+
+            {/* Quick Interactive Fleet Filter Pills */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+                marginTop: 14,
+                paddingTop: 12,
+                borderTop: "1px solid var(--t-line)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setTypeFilter("all");
+                  setComplianceFilter("all");
+                }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "4px 10px",
+                  borderRadius: 20,
+                  fontSize: 11,
+                  fontWeight: typeFilter === "all" && complianceFilter === "all" ? 800 : 600,
+                  border:
+                    typeFilter === "all" && complianceFilter === "all"
+                      ? `1.5px solid ${THEME.accent}`
+                      : "1px solid var(--t-line)",
+                  background:
+                    typeFilter === "all" && complianceFilter === "all"
+                      ? `color-mix(in srgb, ${THEME.accent} 15%, var(--surface-0))`
+                      : "var(--surface-0)",
+                  color: typeFilter === "all" && complianceFilter === "all" ? "var(--t-accent)" : "var(--t-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                All Fleet ({vehicles.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTypeFilter("four-wheeler")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "4px 10px",
+                  borderRadius: 20,
+                  fontSize: 11,
+                  fontWeight: typeFilter === "four-wheeler" ? 800 : 600,
+                  border:
+                    typeFilter === "four-wheeler"
+                      ? `1.5px solid ${THEME.accent}`
+                      : "1px solid var(--t-line)",
+                  background:
+                    typeFilter === "four-wheeler"
+                      ? `color-mix(in srgb, ${THEME.accent} 15%, var(--surface-0))`
+                      : "var(--surface-0)",
+                  color: typeFilter === "four-wheeler" ? "var(--t-accent)" : "var(--t-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                <Car size={12} /> Cars ({vehicles.filter((v) => v.vehicleType === "four-wheeler").length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTypeFilter("two-wheeler")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "4px 10px",
+                  borderRadius: 20,
+                  fontSize: 11,
+                  fontWeight: typeFilter === "two-wheeler" ? 800 : 600,
+                  border:
+                    typeFilter === "two-wheeler"
+                      ? `1.5px solid ${THEME.accent}`
+                      : "1px solid var(--t-line)",
+                  background:
+                    typeFilter === "two-wheeler"
+                      ? `color-mix(in srgb, ${THEME.accent} 15%, var(--surface-0))`
+                      : "var(--surface-0)",
+                  color: typeFilter === "two-wheeler" ? "var(--t-accent)" : "var(--t-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                Two-Wheelers ({vehicles.filter((v) => v.vehicleType === "two-wheeler").length})
+              </button>
+
+              {complianceAlerts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setComplianceFilter("attention")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "4px 10px",
+                    borderRadius: 20,
+                    fontSize: 11,
+                    fontWeight: complianceFilter === "attention" ? 800 : 600,
+                    border: `1.5px solid ${THEME.gold}`,
+                    background:
+                      complianceFilter === "attention"
+                        ? `color-mix(in srgb, ${THEME.gold} 20%, var(--surface-0))`
+                        : "var(--surface-0)",
+                    color: THEME.gold,
+                    cursor: "pointer",
+                  }}
+                >
+                  <AlertTriangle size={12} /> Renewal Radar ({complianceAlerts.length})
+                </button>
+              )}
             </div>
           </Card>
 
@@ -4118,6 +4296,28 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
               <option value="attention">Needs Attention (Due Soon)</option>
               <option value="valid">Fully Compliant</option>
             </select>
+
+            {activeFiltersCount > 0 && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  border: "1px dashed var(--t-line)",
+                  background: "transparent",
+                  color: "var(--t-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={12} /> Clear ({activeFiltersCount})
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -4316,7 +4516,9 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 20,
+              marginBottom: 16,
+              flexWrap: "wrap",
+              gap: 12,
             }}
           >
             <div>
@@ -4324,7 +4526,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
                 Fleet Maintenance Log
               </div>
               <div style={{ fontSize: 12, color: "var(--t-muted)", marginTop: 2 }}>
-                Chronological service log across all vehicles ({allServiceRecords.length} records)
+                Chronological service log across all vehicles ({allServiceRecords.length} records) · Total spend: <Money value={totalServiceSpend} variant="full" />
               </div>
             </div>
             <Button
@@ -4337,13 +4539,45 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
             </Button>
           </div>
 
-          {allServiceRecords.length === 0 ? (
+          {/* Service Category Filter Chips */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+            {[
+              { id: "all", label: "All Records" },
+              ...Object.entries(SERVICE_TYPES).map(([k, v]) => ({ id: k, label: v.label })),
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setServiceCategoryFilter(cat.id)}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 16,
+                  fontSize: 11,
+                  fontWeight: serviceCategoryFilter === cat.id ? 800 : 600,
+                  border:
+                    serviceCategoryFilter === cat.id
+                      ? `1.5px solid ${THEME.accent}`
+                      : "1px solid var(--t-line)",
+                  background:
+                    serviceCategoryFilter === cat.id
+                      ? `color-mix(in srgb, ${THEME.accent} 12%, var(--surface-0))`
+                      : "var(--surface-0)",
+                  color: serviceCategoryFilter === cat.id ? "var(--t-accent)" : "var(--t-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          {filteredServiceRecords.length === 0 ? (
             <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--t-muted)" }}>
-              No service records recorded across any vehicles.
+              No service records recorded for this filter.
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {allServiceRecords.map((rec) => {
+              {filteredServiceRecords.map((rec) => {
                 const st = SERVICE_TYPES[rec.type] || SERVICE_TYPES.other;
                 return (
                   <div
@@ -4449,7 +4683,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
               gap: 20,
             }}
           >
-            {/* Vehicle Type Distribution */}
+            {/* Vehicle Asset Value Distribution */}
             <Card
               variant="base"
               style={{ padding: 20, borderRadius: 14, border: "1px solid var(--t-line)" }}
@@ -4485,7 +4719,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
               </div>
             </Card>
 
-            {/* Total Maintenance vs Acquisition */}
+            {/* Total Financial Comparison Breakdown */}
             <Card
               variant="base"
               style={{ padding: 20, borderRadius: 14, border: "1px solid var(--t-line)" }}
@@ -4495,7 +4729,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
               >
                 Financial Overview: Purchase vs Resale vs Maintenance
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div>
                   <div
                     style={{
@@ -4506,7 +4740,7 @@ export function VehiclesTab({ state, addItem, removeItem, updateItem, showToast 
                       marginBottom: 4,
                     }}
                   >
-                    <span>Total Purchase Price</span>
+                    <span>Total Acquisition On-Road</span>
                     <strong style={{ color: "var(--text)" }}>
                       <Money value={totalAcquisitionPrice} variant="full" />
                     </strong>

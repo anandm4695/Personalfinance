@@ -148,6 +148,9 @@ describe("VehiclesTab Component", () => {
     expect(html).toContain("Garage Showcase");
     expect(html).toContain("Fleet Matrix");
     expect(html).toContain("Service Center");
+    expect(html).toContain("All Fleet");
+    expect(html).toContain("Cars");
+    expect(html).toContain("Two-Wheelers");
   });
 
   it("renders empty state when no vehicles are configured", () => {
@@ -264,4 +267,3 @@ describe("VehiclesTab Component", () => {
     expect(logoHtml).toContain("TATAMOTORS");
   });
 });
-
