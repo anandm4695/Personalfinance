@@ -2445,6 +2445,146 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
   animation: brokerLivePulse 2s ease-in-out infinite;
 }
 
+/* ── Demat Executive Redesign System ────────────────────────────────── */
+.demat-cockpit-hero {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 8%, var(--surface-1)) 0%, var(--surface-1) 100%);
+  border: 1.5px solid var(--t-line);
+  border-left: 4px solid var(--t-accent);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
+}
+
+.demat-cockpit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.demat-stat-box {
+  background: var(--surface-0);
+  border: 1.5px solid var(--t-line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justifyContent: space-between;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.demat-stat-box:hover {
+  border-color: color-mix(in srgb, var(--t-accent) 40%, var(--t-line));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.06);
+}
+
+.demat-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1.5px solid var(--t-line);
+  background: var(--surface-0);
+  color: var(--t-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.demat-filter-chip:hover {
+  background: color-mix(in srgb, var(--t-accent) 8%, var(--surface-0));
+  color: var(--t-ink);
+  border-color: color-mix(in srgb, var(--t-accent) 30%, var(--t-line));
+}
+
+.demat-filter-chip.active {
+  background: color-mix(in srgb, var(--t-accent) 14%, var(--surface-0));
+  color: var(--t-accent);
+  border-color: var(--t-accent);
+  font-weight: 800;
+}
+
+/* 52-Week Range Bar */
+.demat-52w-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  min-width: 110px;
+}
+
+.demat-52w-track {
+  position: relative;
+  width: 100%;
+  height: 5px;
+  background: var(--t-line);
+  border-radius: 99px;
+  overflow: visible;
+}
+
+.demat-52w-needle {
+  position: absolute;
+  top: -3px;
+  width: 4px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--t-ink);
+  transform: translateX(-50%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: left 0.4s ease;
+}
+
+.demat-tax-badge-ltcg {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  background: color-mix(in srgb, var(--t-sage) 12%, transparent);
+  color: var(--t-sage);
+  border: 1px solid color-mix(in srgb, var(--t-sage) 25%, transparent);
+}
+
+.demat-tax-badge-stcg {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  background: color-mix(in srgb, var(--t-gold, #f59e0b) 12%, transparent);
+  color: var(--t-gold, #f59e0b);
+  border: 1px solid color-mix(in srgb, var(--t-gold, #f59e0b) 25%, transparent);
+}
+
+.demat-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--t-line);
+  background: var(--surface-0);
+  color: var(--t-muted);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.demat-copy-btn:hover {
+  background: var(--surface-2);
+  color: var(--t-ink);
+}
+
 /* ── Range Slider Custom Styling for Projection Engine ── */
 input[type="range"].cxo-slider {
   -webkit-appearance: none;

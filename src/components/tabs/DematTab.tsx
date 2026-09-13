@@ -9,7 +9,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
   BarChart,
   Bar,
 } from "recharts";
@@ -41,6 +40,16 @@ import {
   Download,
   ArrowUpRight,
   ArrowDownRight,
+  Copy,
+  Check,
+  Building,
+  ShieldCheck,
+  Layers,
+  Sparkles,
+  Award,
+  SlidersHorizontal,
+  History,
+  Info,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
@@ -50,20 +59,19 @@ import { fmtINRFull, calcCAGR, today, calcXIRR, exportArrayToCSV } from "../../u
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { INDEX_BENCHMARKS, BENCHMARK_DATA_ASOF } from "../../utils/benchmarkData";
-// Shared with CapitalGainsTab so the sell-preview LTCG/STCG split always agrees with the
-// actual tax report — see the isLongTerm/getHoldingMonths doc comments there for the
-// Section 2(42A) anniversary-date rules (day-of-month aware, strict >, not raw day-count).
 import { isLongTerm } from "./CapitalGainsTab";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
-import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
 import { ConfirmDialog } from "../ui/Feedback";
 import { BrokerImportModal } from "../modals/BrokerImportModal";
+import { BrokerLogo } from "../ui/BrandLogos";
 
-// Broker logo domains for Clearbit
+export { BrokerLogo };
+
+// Broker logo domains for Clearbit / fallback
 const BROKER_LOGO_DOMAINS: Record<string, string> = {
   zerodha: "zerodha.com",
   kite: "zerodha.com",
@@ -109,12 +117,11 @@ const BROKER_THEMES: Record<string, { gradient: string; color: string }> = {
   "9star": { gradient: "linear-gradient(135deg,#b45309 0%,#fbbf24 100%)", color: "#b45309" },
 };
 
-function getBrokerTheme(broker: string) {
+export function getBrokerTheme(broker: string) {
   const key = (broker || "").toLowerCase().replace(/[\s\-_.]+/g, "");
   for (const [k, v] of Object.entries(BROKER_THEMES)) {
     if (key.includes(k)) return v;
   }
-  // Deterministic color from broker name so it's stable across renders
   const hue =
     Array.from(broker || "?").reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) % 360;
   const color = `hsl(${hue},55%,42%)`;
@@ -124,14 +131,12 @@ function getBrokerTheme(broker: string) {
   };
 }
 
-function brokerInitials(broker: string): string {
+export function brokerInitials(broker: string): string {
   const words = (broker || "?").trim().split(/\s+/);
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
-// Value/% change across the currently selected chart period (first vs last point),
-// as opposed to the quote API's change/changePercent which is always today-vs-prev-close.
 function calcPeriodChange(points: Array<{ p: number }> | null | undefined) {
   if (!points || points.length < 2) return null;
   const first = points[0]?.p;
@@ -144,23 +149,19 @@ function calcPeriodChange(points: Array<{ p: number }> | null | undefined) {
   return { amount, pct };
 }
 
-// NSE symbols that have been renamed — Groww CDN uses the current exchange symbol
 const GROWW_SYMBOL_OVERRIDES: Record<string, string> = {
-  ZOMATO: "ETERNAL", // Zomato Ltd rebranded to Eternal Ltd on NSE (2025)
+  ZOMATO: "ETERNAL",
 };
 
-// Module-level cache so logos persist across re-renders without extra fetches
 const _logoCache: Record<string, { logoUrl: string | null; faviconUrl: string | null } | null> = {};
 
 export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }) => {
   const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
   const [faviconUrl, setFaviconUrl] = React.useState<string | null>(null);
-  // Track failed URLs by URL string — avoids eohdErr timing bug where initial EODHD attempt
-  // poisons the fallback state before the API responds with better sources.
   const [failedUrls, setFailedUrls] = React.useState<Set<string>>(new Set());
 
   React.useEffect(() => {
-    setFailedUrls(new Set()); // reset failures when symbol changes
+    setFailedUrls(new Set());
     if (yfSym in _logoCache) {
       const c = _logoCache[yfSym];
       setLogoUrl(c?.logoUrl ?? null);
@@ -218,16 +219,11 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
 
   const markFailed = (url: string) => setFailedUrls((prev) => new Set([...prev, url]));
 
-  // Groww CDN: 256×256 WebP, covers virtually all NSE stocks, clean 404 on unknown symbols.
-  // Only for NSE stocks (BSE symbols don't match Groww's naming). Handles renamings via
-  // GROWW_SYMBOL_OVERRIDES (e.g. ZOMATO→ETERNAL) and special chars via encodeURIComponent.
   const growwSym = GROWW_SYMBOL_OVERRIDES[base.toUpperCase()] ?? base;
   const growwUrl = !isBSE
     ? `https://assets-netstorage.groww.in/stock-assets/logos2/${encodeURIComponent(growwSym)}.webp`
     : null;
 
-  // Fallback chain: Groww CDN (256×256 WebP) → Clearbit/EODHD (from API) → EODHD CDN (client-direct)
-  // → faviconUrl (Google Favicon, last resort). Any source returning a 404 fires onError → next candidate.
   const candidates: string[] = [
     growwUrl,
     logoUrl,
@@ -271,224 +267,7 @@ export const StockLogo = ({ yfSym, size = 36 }: { yfSym: string; size?: number }
   );
 };
 
-import { BrokerLogo } from "../ui/BrandLogos";
-export { BrokerLogo };
-
-const EmptyHint = ({ text }: { text: string }) => (
-  <div
-    style={{
-      padding: "40px 24px",
-      textAlign: "center",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 10,
-    }}
-  >
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <Briefcase size={22} color={THEME.muted} />
-    </div>
-    <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>{text}</div>
-  </div>
-);
-
-const DematEmptyState = ({ onAdd }: any) => (
-  <div
-    style={{
-      padding: "48px 40px",
-      textAlign: "center",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 16,
-    }}
-  >
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--t-muted)" }}>
-      <Briefcase size={36} strokeWidth={1.5} />
-    </div>
-    <div>
-      <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 6 }}>No Demat Accounts Added</div>
-      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 340 }}>
-        Add your Zerodha, Groww, or Upstox account to start tracking your equity portfolio.
-      </div>
-    </div>
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-      {[
-        "Zerodha / Groww / Upstox",
-        "DP ID & Client ID",
-        "Multi-broker Support",
-        "Portfolio View",
-      ].map((f) => (
-        <span
-          key={f}
-          style={{
-            fontSize: 11,
-            padding: "4px 10px",
-            borderRadius: "var(--radius-xs)",
-            background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
-            color: THEME.sage,
-            fontWeight: 600,
-            border: `1px solid ${`color-mix(in srgb, ${THEME.sage} 15%, transparent)`}`,
-          }}
-        >
-          ● {f}
-        </span>
-      ))}
-    </div>
-    <Button variant="accent" icon={<Plus size={15} />} onClick={onAdd}>
-      Add Demat Account
-    </Button>
-  </div>
-);
-
-const StockEmptyState = ({ onAdd }: any) => (
-  <div
-    style={{
-      padding: "60px 40px",
-      textAlign: "center",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 20,
-    }}
-  >
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--t-muted)" }}>
-      <TrendingUp size={40} strokeWidth={1.5} />
-    </div>
-    <div>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Stock Holdings Yet</div>
-      <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 380 }}>
-        Add your equity scrips to track live NSE/BSE prices, unrealised P&L, CAGR, and intraday
-        charts — all in one place.
-      </div>
-    </div>
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-      {["Live NSE / BSE Prices", "Unrealised P&L", "CAGR Calculator", "Buy / Sell Ledger"].map(
-        (f) => (
-          <span
-            key={f}
-            style={{
-              fontSize: 11,
-              padding: "5px 12px",
-              borderRadius: "var(--radius-xs)",
-              background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-              color: THEME.accent,
-              fontWeight: 600,
-              border: `1px solid ${`color-mix(in srgb, ${THEME.accent} 15%, transparent)`}`,
-            }}
-          >
-            ● {f}
-          </span>
-        )
-      )}
-    </div>
-    <Button variant="accent" icon={<Plus size={16} />} style={{ marginTop: 8 }} onClick={onAdd}>
-      Add Stock Scrip
-    </Button>
-  </div>
-);
-
-const btnGhost = {
-  background: "transparent",
-  border: `1.5px solid ${THEME.line}`,
-  color: THEME.ink,
-  padding: "8px 14px",
-  fontSize: 14,
-  fontWeight: 600,
-  borderRadius: "var(--radius-md)",
-  cursor: "pointer",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-};
-
-const input = {
-  width: "100%",
-  padding: "10px 12px",
-  border: `1.5px solid ${THEME.line}`,
-  borderRadius: "var(--radius-md)",
-  color: THEME.ink,
-  fontSize: 14,
-};
-
-const card = {
-  background: "var(--surface-0)",
-  borderRadius: 12,
-  border: `1px solid ${THEME.line}`,
-  padding: 20,
-};
-
-const iconBtn = {
-  background: "transparent",
-  border: "none",
-  cursor: "pointer",
-  color: THEME.muted,
-  padding: "5px",
-  borderRadius: 6,
-  display: "inline-flex",
-  alignItems: "center",
-};
-
-const Grid = ({ children }: { children: React.ReactNode }) => (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-      gap: 16,
-      marginBottom: 32,
-    }}
-  >
-    {children}
-  </div>
-);
-
-const InvestCard = ({ children, style: extraStyle }: any) => (
-  <Card style={{ position: "relative", overflow: "hidden", ...extraStyle }}>{children}</Card>
-);
-
-const CardActions = ({ onEdit, onRemove }: { onEdit: () => void; onRemove: () => void }) => (
-  <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
-    <button
-      onClick={onEdit}
-      className="icon-btn"
-      style={iconBtn}
-      title="Edit account"
-      aria-label="Edit account"
-    >
-      <Pencil size={14} />
-    </button>
-    <button
-      onClick={onRemove}
-      className="icon-btn danger"
-      style={iconBtn}
-      title="Delete account"
-      aria-label="Delete account"
-    >
-      <Trash2 size={14} />
-    </button>
-  </div>
-);
-
-const th = {
-  textAlign: "left" as const,
-  padding: "12px 14px",
-  fontSize: 10,
-  letterSpacing: "0.08em",
-  textTransform: "uppercase" as const,
-  color: THEME.muted,
-  fontWeight: 800,
-  borderBottom: `1.5px solid var(--t-line)`,
-  whiteSpace: "nowrap" as const,
-  background: "var(--surface-0)",
-};
-const td = {
-  padding: "14px 14px",
-  borderBottom: "1px solid var(--t-line)",
-  color: "var(--t-ink)",
-  verticalAlign: "middle" as const,
-};
-
-type FifoAlloc = {
+export type FifoAlloc = {
   lot: any;
   consume: number;
   buyPrice: number;
@@ -497,218 +276,89 @@ type FifoAlloc = {
   fullyConsumed: boolean;
 };
 
-function computeFifoAlloc(
+export function computeFifoAlloc(
   lots: any[],
   sellQty: number,
   sellPrice: number,
-  sellDate?: string
+  sellDate: string
 ): FifoAlloc[] {
-  const sorted = [...lots].sort((a: any, b: any) => {
+  const sortedLots = [...lots].sort((a, b) => {
     if (!a.buyDate && !b.buyDate) return 0;
     if (!a.buyDate) return 1;
     if (!b.buyDate) return -1;
     return new Date(a.buyDate).getTime() - new Date(b.buyDate).getTime();
   });
-  const result: FifoAlloc[] = [];
-  let remaining = sellQty;
-  const refDateStr = sellDate || today();
-  for (const lot of sorted) {
-    if (remaining <= 0.00001) break;
-    const available = Number(lot.qty) || 0;
-    if (available <= 0.00001) continue;
-    const isFull = remaining >= available - 0.0001;
-    const consume = isFull ? available : Math.min(available, remaining);
-    const buyPrice = Number(lot.avgPrice);
-    // Equity holding period: anniversary-date-aware, matching CapitalGainsTab's
-    // isLongTerm() rather than a naive "> 365 days" check, so the sell preview here
-    // doesn't disagree with the actual tax report for the same backdated sale.
-    const isLTCG = lot.buyDate ? isLongTerm(lot.buyDate, refDateStr, 12) : false;
-    result.push({
+
+  let remainingToSell = sellQty;
+  const allocs: FifoAlloc[] = [];
+
+  for (const lot of sortedLots) {
+    if (remainingToSell <= 0.0001) break;
+    const lotQty = Number(lot.qty) || 0;
+    if (lotQty <= 0) continue;
+
+    const consume = Math.min(lotQty, remainingToSell);
+    const buyPrice = Number(lot.avgPrice) || 0;
+    const pnl = (sellPrice - buyPrice) * consume;
+    const isLTCG = lot.buyDate ? isLongTerm(lot.buyDate, sellDate, 12) : false;
+    const fullyConsumed = Math.abs(lotQty - consume) <= 0.0001;
+
+    allocs.push({
       lot,
       consume,
       buyPrice,
-      pnl: (sellPrice - buyPrice) * consume,
+      pnl,
       isLTCG,
-      fullyConsumed: isFull || consume >= available - 0.0001,
+      fullyConsumed,
     });
-    remaining -= consume;
-  }
-  return result;
-}
 
-// ─── WATCHLIST ──────────────────────────────────────────────────────────────
+    remainingToSell -= consume;
+  }
+
+  return allocs;
+}
 
 const WISHLIST_COLORS = [
-  "#6366f1",
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
   "#8b5cf6",
   "#ec4899",
-  "#ef4444",
-  "#f97316",
-  "#eab308",
-  "#22c55e",
-  "#14b8a6",
-  "#3b82f6",
-  "#64748b",
+  "#06b6d4",
 ];
 
-function WishlistModal({
-  initial,
-  onClose,
-  onSave,
-  saving = false,
-}: {
-  initial?: any;
-  onClose: () => void;
-  onSave: (v: any) => void;
-  saving?: boolean;
-}) {
-  const [name, setName] = React.useState(initial?.name || "");
-  const [description, setDescription] = React.useState(initial?.description || "");
-  const [color, setColor] = React.useState(initial?.color || WISHLIST_COLORS[0]);
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "10px 14px",
+  border: `1.5px solid ${THEME.line}`,
+  borderRadius: "var(--radius-md)",
+  color: THEME.ink,
+  fontSize: 14,
+  background: "var(--surface-0)",
+  outline: "none",
+  boxSizing: "border-box",
+};
 
-  return (
-    <Modal title={initial ? "Rename Watchlist" : "New Watchlist"} onClose={onClose}>
-      <Field label="Watchlist Name ★">
-        <input
-          style={input}
-          placeholder="e.g. Tech Picks, Blue Chip, Dividend Stars"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          autoFocus
-        />
-      </Field>
-      <Field label="Description (optional)">
-        <input
-          style={input}
-          placeholder="Short note about this watchlist"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </Field>
-      <Field label="Color">
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {WISHLIST_COLORS.map((c) => (
-            <button
-              key={c}
-              onClick={() => setColor(c)}
-              aria-label={`Select color ${c}`}
-              aria-pressed={color === c}
-              title={c}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                background: c,
-                border: color === c ? `3px solid ${THEME.ink}` : "3px solid transparent",
-                cursor: "pointer",
-                flexShrink: 0,
-              }}
-            />
-          ))}
-        </div>
-      </Field>
-      <ModalActions
-        onSave={() => {
-          if (!name.trim()) return;
-          onSave({ name: name.trim(), description: description.trim(), color });
-        }}
-        onClose={onClose}
-        saveLabel={initial ? "Save Changes" : "Add Watchlist"}
-        disabled={!name.trim() || saving}
-        loading={saving}
-      />
-    </Modal>
-  );
-}
+const thStyle: React.CSSProperties = {
+  textAlign: "left",
+  padding: "12px 14px",
+  fontSize: 10,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: THEME.muted,
+  fontWeight: 800,
+  borderBottom: `1.5px solid var(--t-line)`,
+  whiteSpace: "nowrap",
+  background: "var(--surface-0)",
+};
 
-function WishlistItemModal({
-  wishlistName,
-  initial,
-  onClose,
-  onSave,
-  saving = false,
-}: {
-  wishlistName: string;
-  initial?: any;
-  onClose: () => void;
-  onSave: (v: any) => void;
-  saving?: boolean;
-}) {
-  const isEdit = !!initial;
-  const [symbol, setSymbol] = React.useState(initial?.symbol || "");
-  const [exchange, setExchange] = React.useState(initial?.exchange || "NSE");
-  const [targetPrice, setTargetPrice] = React.useState(
-    initial?.targetPrice != null ? String(initial.targetPrice) : ""
-  );
-  const [notes, setNotes] = React.useState(initial?.notes || "");
-
-  return (
-    <Modal
-      title={isEdit ? `Edit "${initial.symbol}"` : `Add Stock to Watchlist "${wishlistName}"`}
-      onClose={onClose}
-    >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12 }}>
-        <Field label="Symbol ★">
-          <input
-            style={{ ...input, textTransform: "uppercase" }}
-            placeholder="e.g. RELIANCE, INFY"
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-            disabled={isEdit}
-            autoFocus={!isEdit}
-          />
-        </Field>
-        <Field label="Exchange">
-          <select
-            style={{ ...input, width: 80 }}
-            value={exchange}
-            onChange={(e) => setExchange(e.target.value)}
-            disabled={isEdit}
-          >
-            <option value="NSE">NSE</option>
-            <option value="BSE">BSE</option>
-          </select>
-        </Field>
-      </div>
-      <Field label="Target Price (₹)">
-        <input
-          style={input}
-          type="number"
-          min="0"
-          placeholder="Buy target — optional"
-          value={targetPrice}
-          onChange={(e) => setTargetPrice(e.target.value)}
-          autoFocus={isEdit}
-        />
-      </Field>
-      <Field label="Notes (optional)">
-        <input
-          style={input}
-          placeholder="Why this stock? Catalyst, thesis…"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-      </Field>
-      <ModalActions
-        onSave={() => {
-          if (!symbol.trim()) return;
-          onSave({
-            symbol: symbol.trim(),
-            exchange,
-            targetPrice: targetPrice ? Number(targetPrice) : null,
-            notes: notes.trim() || null,
-          });
-        }}
-        onClose={onClose}
-        saveLabel={isEdit ? "Save Changes" : "Add to Watchlist"}
-        disabled={!symbol.trim() || saving}
-        loading={saving}
-      />
-    </Modal>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
+const tdStyle: React.CSSProperties = {
+  padding: "14px 14px",
+  borderBottom: "1px solid var(--t-line)",
+  color: "var(--t-ink)",
+  verticalAlign: "middle",
+};
 
 export function DematTab({
   state,
@@ -716,9 +366,9 @@ export function DematTab({
   removeItem,
   updateItem,
   missingTables = [],
-  marketData,
+  marketData = {},
   fetchLivePrices,
-  fetchingPrices,
+  fetchingPrices = false,
   marketDataTs,
   wishlists = [],
   wishlistItems = [],
@@ -736,8 +386,10 @@ export function DematTab({
   const [editStockId, setEditStockId] = useState<string | null>(null);
   const [showBrokerImport, setShowBrokerImport] = useState(false);
 
-  // Watchlist UI state
-  const [dematView, setDematView] = useState<"holdings" | "analytics" | "watchlist">("holdings");
+  // Tab View Switcher
+  const [dematView, setDematView] = useState<"holdings" | "analytics" | "watchlist" | "corporateActions">(
+    "holdings"
+  );
   const [expandedWishlistId, setExpandedWishlistId] = useState<string | null>(null);
   const [expandedWatchlistItems, setExpandedWatchlistItems] = useState(new Set<string>());
   const [showWishlistModal, setShowWishlistModal] = useState(false);
@@ -746,7 +398,7 @@ export function DematTab({
   const [wishlistItemTarget, setWishlistItemTarget] = useState<string | null>(null);
   const [editWishlistItemId, setEditWishlistItemId] = useState<string | null>(null);
 
-  const [chartData, setChartData] = useState<any>({});
+  const [chartData, setChartData] = useState<Record<string, any>>({});
   const [expandedSymbols, setExpandedSymbols] = useState(new Set<string>());
   const [lotSortDir, setLotSortDir] = useState<Record<string, "asc" | "desc">>({});
   const [fetchingChart, setFetchingChart] = useState<string | null>(null);
@@ -755,10 +407,16 @@ export function DematTab({
   const [fifoSellGroup, setFifoSellGroup] = useState<any>(null);
   const [splitBonusGroup, setSplitBonusGroup] = useState<any>(null);
   const [selectedDematId, setSelectedDematId] = useState<string | null>(null);
-  const [sortBy, setSortBy] = React.useState<"value" | "pnl" | "name" | "change">(() => {
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Filters & Search
+  const [search, setSearch] = useState("");
+  const [selectedSector, setSelectedSector] = useState<string>("all");
+  const [selectedCap, setSelectedCap] = useState<"all" | "large" | "mid" | "small">("all");
+  const [selectedPnlStatus, setSelectedPnlStatus] = useState<"all" | "profit" | "loss">("all");
+  const [sortBy, setSortBy] = useState<"value" | "pnl" | "name" | "change">(() => {
     return (localStorage.getItem("finance_demat_sort") as any) || "value";
   });
-  const [search, setSearch] = useState("");
 
   const { run: saveNewDemat, loading: savingNewDemat } = useAsyncAction(
     async (v: any) => {
@@ -770,6 +428,7 @@ export function DematTab({
         showToast?.(`Failed to add demat account: ${e?.message || "Unknown error"}`, "error"),
     }
   );
+
   const { run: saveDematEdit, loading: savingDematEdit } = useAsyncAction(
     async (id: string, v: any) => {
       await updateItem("demat", id, v);
@@ -780,6 +439,7 @@ export function DematTab({
         showToast?.(`Failed to save demat account: ${e?.message || "Unknown error"}`, "error"),
     }
   );
+
   const { run: saveNewStock, loading: savingNewStock } = useAsyncAction(
     async (v: any) => {
       await addItem("stocks", v);
@@ -793,6 +453,7 @@ export function DematTab({
         showToast?.(`Failed to add stock: ${e?.message || "Unknown error"}`, "error"),
     }
   );
+
   const { run: saveStockEdit, loading: savingStockEdit } = useAsyncAction(
     async (id: string, v: any) => {
       await updateItem("stocks", id, v);
@@ -803,6 +464,7 @@ export function DematTab({
         showToast?.(`Failed to save stock: ${e?.message || "Unknown error"}`, "error"),
     }
   );
+
   const { run: saveSellStock, loading: savingSellStock } = useAsyncAction(
     async (lotId: string, sellRecord: any, remainingQty: number) => {
       await addItem("stockSells", sellRecord);
@@ -815,6 +477,7 @@ export function DematTab({
         showToast?.(`Failed to record sale: ${e?.message || "Unknown error"}`, "error"),
     }
   );
+
   const { run: saveFifoSell, loading: savingFifoSell } = useAsyncAction(
     async (
       group: any,
@@ -853,6 +516,7 @@ export function DematTab({
         showToast?.(`Failed to record sale: ${e?.message || "Unknown error"}`, "error"),
     }
   );
+
   const { run: saveSplitBonus, loading: savingSplitBonus } = useAsyncAction(
     async (updates: any[], actionLog: any, removals: string[] = []) => {
       for (const u of updates) {
@@ -869,6 +533,7 @@ export function DematTab({
         showToast?.(`Failed to apply corporate action: ${e?.message || "Unknown error"}`, "error"),
     }
   );
+
   const { run: saveNewWishlist, loading: savingNewWishlist } = useAsyncAction(
     async (v: any) => {
       await addItem("wishlists", v);
@@ -879,6 +544,7 @@ export function DematTab({
         showToast?.(`Failed to add watchlist: ${e?.message || "Unknown error"}`, "error"),
     }
   );
+
   const { run: saveWishlistEdit, loading: savingWishlistEdit } = useAsyncAction(
     async (id: string, v: any) => {
       await updateItem("wishlists", id, v);
@@ -889,6 +555,7 @@ export function DematTab({
         showToast?.(`Failed to save watchlist: ${e?.message || "Unknown error"}`, "error"),
     }
   );
+
   const { run: saveNewWishlistItem, loading: savingNewWishlistItem } = useAsyncAction(
     async (v: any, watchlistId: string) => {
       await addItem("wishlistItems", { ...v, watchlistId });
@@ -902,6 +569,7 @@ export function DematTab({
         showToast?.(`Failed to add stock to watchlist: ${e?.message || "Unknown error"}`, "error"),
     }
   );
+
   const { run: saveWishlistItemEdit, loading: savingWishlistItemEdit } = useAsyncAction(
     async (id: string, v: any) => {
       await updateItem("wishlistItems", id, { targetPrice: v.targetPrice, notes: v.notes });
@@ -912,33 +580,12 @@ export function DematTab({
         showToast?.(`Failed to save watchlist item: ${e?.message || "Unknown error"}`, "error"),
     }
   );
-  const { run: saveBrokerImport, loading: savingBrokerImport } = useAsyncAction(
-    async (
-      newStocks: any[],
-      sells: any[],
-      stockUpdates: { id: string; qty: string }[],
-      stockRemovals: string[]
-    ) => {
-      for (const t of newStocks) await addItem("stocks", t);
-      for (const s of sells) await addItem("stockSells", s);
-      for (const u of stockUpdates) await updateItem("stocks", u.id, { qty: u.qty });
-      for (const id of stockRemovals) await removeItem("stocks", id);
-    },
-    {
-      onSuccess: () => setShowBrokerImport(false),
-      onError: (e: any) =>
-        showToast?.(`Failed to import broker data: ${e?.message || "Unknown error"}`, "error"),
-    }
-  );
 
   React.useEffect(() => {
     localStorage.setItem("finance_demat_sort", sortBy);
   }, [sortBy]);
 
-  // One-time cleanup of zero/invalid-qty stock rows (e.g. left behind by a fully
-  // consumed reverse split, or a lot deleted on the client before the cloud sync
-  // finished) so ghost holdings with 0 shares don't keep reappearing after every
-  // reload/resync.
+  // Cleanup zero/negative qty stocks
   const cleanedZeroQtyIds = React.useRef(new Set<string>());
   React.useEffect(() => {
     (state.stocks || []).forEach((s: any) => {
@@ -952,10 +599,10 @@ export function DematTab({
   const groups: any[] = useMemo(
     () =>
       Object.values(
-        state.stocks
+        (state.stocks || [])
           .filter((s: any) => Number(s.qty) > 0)
           .reduce((acc: any, s: any) => {
-            const base = s.symbol.replace(/\.(NS|BO)$/i, "");
+            const base = (s.symbol || "").replace(/\.(NS|BO)$/i, "").toUpperCase();
             const exch = s.exchange || "NSE";
             const key = `${base}|${exch}`;
             if (!acc[key])
@@ -972,6 +619,16 @@ export function DematTab({
     [state.stocks]
   );
 
+  // Available sectors list for filter
+  const allSectors = useMemo(() => {
+    const set = new Set<string>();
+    groups.forEach((g) => {
+      const sec = marketData[g.yfSym]?.sector;
+      if (sec) set.add(sec);
+    });
+    return Array.from(set).sort();
+  }, [groups, marketData]);
+
   const visibleGroups = useMemo(() => {
     let baseGroups = selectedDematId
       ? groups
@@ -983,8 +640,38 @@ export function DematTab({
       const q = search.toLowerCase();
       baseGroups = baseGroups.filter(
         (g) =>
-          g.base.toLowerCase().includes(q) || marketData[g.yfSym]?.sector?.toLowerCase().includes(q)
+          g.base.toLowerCase().includes(q) ||
+          marketData[g.yfSym]?.sector?.toLowerCase().includes(q) ||
+          marketData[g.yfSym]?.name?.toLowerCase().includes(q)
       );
+    }
+
+    if (selectedSector !== "all") {
+      baseGroups = baseGroups.filter(
+        (g) => (marketData[g.yfSym]?.sector || "Unclassified") === selectedSector
+      );
+    }
+
+    if (selectedCap !== "all") {
+      baseGroups = baseGroups.filter((g) => {
+        const md = marketData[g.yfSym];
+        const cap = md?.marketCap || 0;
+        if (selectedCap === "large") return cap >= 500000000000 || !cap; // >= 50,000 Cr default
+        if (selectedCap === "mid") return cap >= 150000000000 && cap < 500000000000;
+        if (selectedCap === "small") return cap > 0 && cap < 150000000000;
+        return true;
+      });
+    }
+
+    if (selectedPnlStatus !== "all") {
+      baseGroups = baseGroups.filter((g) => {
+        const md = marketData[g.yfSym];
+        const totalQty = g.lots.reduce((s: number, l: any) => s + Number(l.qty || 0), 0);
+        const totalInv = g.lots.reduce((s: number, l: any) => s + Number(l.qty || 0) * Number(l.avgPrice || 0), 0);
+        const totalCurr = g.lots.reduce((s: number, l: any) => s + Number(l.qty || 0) * (md?.price ?? Number(l.currentPrice || 0)), 0);
+        const lotPnl = totalCurr - totalInv;
+        return selectedPnlStatus === "profit" ? lotPnl >= 0 : lotPnl < 0;
+      });
     }
 
     return [...baseGroups].sort((a, b) => {
@@ -1026,14 +713,12 @@ export function DematTab({
 
       return 0;
     });
-  }, [groups, selectedDematId, marketData, sortBy, search]);
+  }, [groups, selectedDematId, marketData, sortBy, search, selectedSector, selectedCap, selectedPnlStatus]);
 
   const filteredStocks = selectedDematId
-    ? state.stocks.filter((s: any) => s.dematId === selectedDematId)
-    : state.stocks;
+    ? (state.stocks || []).filter((s: any) => s.dematId === selectedDematId)
+    : state.stocks || [];
 
-  // Today's best/worst mover — independent of the search box so it always
-  // reflects the currently selected account, not the current search filter.
   const dayMovers = useMemo(() => {
     const withChange = groups
       .filter((g) => !selectedDematId || g.lots.some((l: any) => l.dematId === selectedDematId))
@@ -1050,9 +735,9 @@ export function DematTab({
 
   const handleRefresh = async () => {
     try {
-      await fetchLivePrices();
+      await fetchLivePrices?.();
     } catch (e: any) {
-      console.error(`Failed to fetch: ${e.message}`);
+      console.error(`Failed to fetch: ${e?.message}`);
       showToast?.(`Failed to refresh live prices: ${e?.message || "Unknown error"}`, "error");
     }
   };
@@ -1068,7 +753,7 @@ export function DematTab({
       const currentPrice = md?.price ?? Number(st.currentPrice || 0);
       const invested = qty * avgPrice;
       const currentValue = qty * currentPrice;
-      const demat = state.demat.find((d: any) => d.id === st.dematId);
+      const demat = (state.demat || []).find((d: any) => d.id === st.dematId);
       return {
         symbol: base,
         exchange: exch,
@@ -1102,6 +787,12 @@ export function DematTab({
     );
   };
 
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
   const CHART_PERIOD_LABELS: Record<string, string> = {
     "1d": "1D",
     "5d": "5D",
@@ -1126,17 +817,15 @@ export function DematTab({
       if (res.ok) {
         const data = await res.json();
         const entry = Array.isArray(data) ? { date: null, points: data } : data;
-        setChartData((prev: any) => ({ ...prev, [cacheKey]: entry }));
+        setChartData((prev) => ({ ...prev, [cacheKey]: entry }));
       } else {
-        setChartData((prev: any) => ({ ...prev, [cacheKey]: { date: null, points: [] } }));
+        setChartData((prev) => ({ ...prev, [cacheKey]: { date: null, points: [] } }));
       }
     } catch (_) {
-      setChartData((prev: any) => ({ ...prev, [cacheKey]: { date: null, points: [] } }));
+      setChartData((prev) => ({ ...prev, [cacheKey]: { date: null, points: [] } }));
     }
     setFetchingChart(null);
   };
-
-  const fetchIntradayChart = (yfSym: string) => fetchChart(yfSym, chartPeriod[yfSym] || "1d");
 
   const toggleExpand = (yfSym: string) => {
     setExpandedSymbols((prev) => {
@@ -1145,29 +834,26 @@ export function DematTab({
         next.delete(yfSym);
       } else {
         next.add(yfSym);
-        fetchIntradayChart(yfSym);
+        fetchChart(yfSym, chartPeriod[yfSym] || "1d");
       }
       return next;
     });
   };
 
   const totalValue = filteredStocks.reduce((s: number, st: any) => {
-    const base = st.symbol.replace(/\.(NS|BO)$/i, "");
+    const base = (st.symbol || "").replace(/\.(NS|BO)$/i, "");
     const exch = st.exchange || "NSE";
     const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
     const livePrice = marketData[yfSym]?.price;
     const price = livePrice !== undefined ? Number(livePrice) : Number(st.currentPrice || 0);
-    return s + Number(st.qty) * price;
+    return s + Number(st.qty || 0) * price;
   }, 0);
 
   const totalInvested = filteredStocks.reduce(
-    (s: number, st: any) => s + Number(st.qty) * Number(st.avgPrice),
+    (s: number, st: any) => s + Number(st.qty || 0) * Number(st.avgPrice || 0),
     0
   );
 
-  // Dividends are tracked app-wide (Investments > Dividends) but weren't
-  // surfaced anywhere on this tab — join by symbol so real total-return
-  // (price gain + income) is visible here too.
   const totalDividendsReceived = useMemo(() => {
     const heldSymbols = new Set(
       filteredStocks.map((st: any) =>
@@ -1188,7 +874,6 @@ export function DematTab({
       const safeFilteredStocks = Array.isArray(filteredStocks) ? filteredStocks : [];
       const safeStockSells = Array.isArray(state.stockSells) ? state.stockSells : [];
 
-      // Active stocks
       safeFilteredStocks.forEach((st: any) => {
         if (!st) return;
         const qty = Number(st.qty) || 0;
@@ -1211,7 +896,6 @@ export function DematTab({
         }
       });
 
-      // Sold stock transactions
       const sells = safeStockSells.filter((s: any) => {
         if (!s) return false;
         if (selectedDematId && s.dematId !== selectedDematId) return false;
@@ -1248,20 +932,18 @@ export function DematTab({
   const pnl = totalValue - totalInvested;
 
   const totalDaysPnL = filteredStocks.reduce((s: number, st: any) => {
-    const base = st.symbol.replace(/\.(NS|BO)$/i, "");
+    const base = (st.symbol || "").replace(/\.(NS|BO)$/i, "");
     const exch = st.exchange || "NSE";
     const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
     const md = marketData[yfSym];
     if (!md) return s;
     const change = md.change ?? 0;
-    return s + Number(st.qty) * change;
+    return s + Number(st.qty || 0) * change;
   }, 0);
 
   const prevCloseValue = totalValue - totalDaysPnL;
   const totalDaysPnLPct = prevCloseValue > 0 ? (totalDaysPnL / prevCloseValue) * 100 : 0;
 
-  // Count-up animation for the top hero stat cards (also reused by the Analytics
-  // view's summary cards below, which mirror the same totals).
   const animatedTotalValue = useAnimatedNumber(totalValue);
   const animatedTotalDaysPnL = useAnimatedNumber(totalDaysPnL);
   const animatedPnl = useAnimatedNumber(pnl);
@@ -1269,7 +951,7 @@ export function DematTab({
   const netReturnPct = totalInvested ? (pnl / totalInvested) * 100 : 0;
   const animatedNetReturnPct = useAnimatedNumber(netReturnPct);
 
-  // ─── PORTFOLIO HEALTH SCORE CALCULATIONS ──────────────────────────────────
+  // Health Score Calculations
   const portfolioScoreData = useMemo(() => {
     if (!filteredStocks || filteredStocks.length === 0) {
       return {
@@ -1289,30 +971,24 @@ export function DematTab({
       };
     }
 
-    // Helper: Ticker price resolver
     const getStockPrice = (st: any) => {
-      const base = st.symbol.replace(/\.(NS|BO)$/i, "");
+      const base = (st.symbol || "").replace(/\.(NS|BO)$/i, "");
       const exch = st.exchange || "NSE";
       const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
       const livePrice = marketData[yfSym]?.price;
       return livePrice !== undefined ? Number(livePrice) : Number(st.currentPrice || 0);
     };
 
-    // Calculate stock values, then aggregate lot-by-lot values up to one
-    // entry per symbol — a stock held via multiple lots (or across multiple
-    // demat accounts) was otherwise appearing as separate same-symbol
-    // entries here, which split it into duplicate pie-chart wedges and
-    // caused a duplicate React key in the legend below.
     const stockValues = filteredStocks.map((st: any) => {
-      const val = Number(st.qty) * getStockPrice(st);
-      const base = st.symbol.replace(/\.(NS|BO)$/i, "").toUpperCase();
+      const val = Number(st.qty || 0) * getStockPrice(st);
+      const base = (st.symbol || "").replace(/\.(NS|BO)$/i, "").toUpperCase();
       const exch = st.exchange || "NSE";
       return {
         symbol: base,
         exchange: exch,
         yfSym: `${base}.${exch === "BSE" ? "BO" : "NS"}`,
-        qty: Number(st.qty),
-        avgPrice: Number(st.avgPrice),
+        qty: Number(st.qty || 0),
+        avgPrice: Number(st.avgPrice || 0),
         currentPrice: getStockPrice(st),
         value: val,
       };
@@ -1336,6 +1012,7 @@ export function DematTab({
       aggregatedBySymbol[key].invested += s.qty * s.avgPrice;
       aggregatedBySymbol[key].value += s.value;
     });
+
     const stockValuesAgg = Object.values(aggregatedBySymbol).map((s: any) => ({
       symbol: s.symbol,
       exchange: s.exchange,
@@ -1348,7 +1025,6 @@ export function DematTab({
 
     const totalVal = stockValuesAgg.reduce((sum: number, s: any) => sum + s.value, 0) || 1;
 
-    // Weights
     const stockWeights = stockValuesAgg
       .map((s: any) => ({
         ...s,
@@ -1356,8 +1032,6 @@ export function DematTab({
       }))
       .sort((a: any, b: any) => b.value - a.value);
 
-    // 1. QUALITY SCORE (0-100)
-    // Heuristic maps for popular Indian tickers
     const highQualityList = [
       "RELIANCE",
       "TCS",
@@ -1380,6 +1054,8 @@ export function DematTab({
       "SUNPHARMA",
       "NTPC",
       "POWERGRID",
+      "TITAN",
+      "ULTRACEMCO",
     ];
     const midQualityList = [
       "TATAELXSI",
@@ -1395,6 +1071,7 @@ export function DematTab({
       "TATAPOWER",
       "JIOFIN",
       "ZOMATO",
+      "ETERNAL",
       "PFC",
       "RECL",
       "HUDCO",
@@ -1420,12 +1097,11 @@ export function DematTab({
       if (highQualityList.includes(sym)) return 95;
       if (midQualityList.includes(sym)) return 80;
       if (speculativeList.includes(sym)) return 35;
-      // Deterministic fallback based on symbol name
       let scoreSum = 0;
       for (let i = 0; i < sym.length; i++) {
         scoreSum += sym.charCodeAt(i);
       }
-      return 55 + (scoreSum % 26); // returns between 55 and 80
+      return 55 + (scoreSum % 26);
     };
 
     const qualityScore = Math.round(
@@ -1435,17 +1111,13 @@ export function DematTab({
       )
     );
 
-    // 2. MOMENTUM SCORE (0-100)
-    // Based on return percentage + day change
     const getMomentumVal = (s: any) => {
       const absoluteReturnPct =
         s.avgPrice > 0 ? ((s.currentPrice - s.avgPrice) / s.avgPrice) * 100 : 0;
       let score = 50 + absoluteReturnPct * 0.9;
-
       const md = marketData[s.yfSym];
       const dailyChangePct = md?.changePercent ?? 0;
       score += dailyChangePct * 1.5;
-
       return Math.max(10, Math.min(99, score));
     };
 
@@ -1453,22 +1125,15 @@ export function DematTab({
       stockWeights.reduce((sum: number, s: any) => sum + getMomentumVal(s) * (s.weight / 100), 0)
     );
 
-    // 3. DIVERSIFICATION SCORE (0-100)
-    // HHI concentration index: w_i is weight percentage (e.g. 20)
-    // HHI = Sum of w_i^2.
-    // Concentrated: HHI > 2500. Well diversified: HHI < 1500.
     const hhi = stockWeights.reduce((sum: number, s: any) => sum + s.weight * s.weight, 0);
-    // Map HHI from [1000, 10000] to [100, 10]
     let divScore = 100;
     if (hhi > 1000) {
       divScore = 100 - ((hhi - 1000) * 90) / 9000;
     }
     const diversificationScore = Math.max(10, Math.min(100, Math.round(divScore)));
 
-    // 4. RISK MANAGEMENT SCORE (0-100)
-    // Combines individual asset risk with concentration penalty
     const getRiskVal = (sym: string) => {
-      if (highQualityList.includes(sym)) return 90; // high score = low risk
+      if (highQualityList.includes(sym)) return 90;
       if (midQualityList.includes(sym)) return 70;
       if (speculativeList.includes(sym)) return 30;
       return 60;
@@ -1477,7 +1142,6 @@ export function DematTab({
       (sum: number, s: any) => sum + getRiskVal(s.symbol) * (s.weight / 100),
       0
     );
-    // Penalty for excessive concentration (largest stock > 25%)
     const maxWeight = stockWeights[0]?.weight ?? 0;
     let concentrationPenalty = 0;
     if (maxWeight > 40) concentrationPenalty = 20;
@@ -1485,14 +1149,11 @@ export function DematTab({
 
     const riskManagementScore = Math.max(10, Math.round(baseRiskScore - concentrationPenalty));
 
-    // 5. CONSISTENCY / DEFENSIVE SCORE (0-100)
-    // Evaluates what portion of holdings are positive vs negative
     const positiveReturnCount = stockWeights.filter(
       (s: any) => s.currentPrice >= s.avgPrice
     ).length;
     const consistencyScore = Math.round((positiveReturnCount / stockWeights.length) * 50 + 50);
 
-    // Overall blended score
     const overall = Math.round(
       qualityScore * 0.3 +
         momentumScore * 0.25 +
@@ -1500,7 +1161,6 @@ export function DematTab({
         riskManagementScore * 0.2
     );
 
-    // Status mapping
     let status = "Moderate";
     let statusColor = THEME.gold;
     if (overall >= 80) {
@@ -1511,23 +1171,21 @@ export function DematTab({
       statusColor = THEME.rust;
     }
 
-    // Dynamic Rationale
     let rationale = "";
     if (overall >= 80) {
       rationale =
         "Your portfolio exhibits exceptional health, characterized by high-quality assets, solid diversification, and robust risk management. Maintain your current holding pattern.";
     } else if (overall >= 65) {
       rationale =
-        "Your portfolio is in a healthy, moderate state. Consider trimming speculative holdings or consolidating some of your smaller, low-conviction positions to improve quality.";
+        "Your portfolio is in a healthy, moderate state. Consider trimming speculative holdings or consolidating some of your smaller positions to improve quality.";
     } else if (overall >= 50) {
       rationale =
-        "Your portfolio health is average. Performance is likely held back by either highly concentrated holdings, weak stock momentum, or high speculative asset exposure.";
+        "Your portfolio health is average. Performance is likely held back by either concentrated holdings, weak momentum, or speculative asset exposure.";
     } else {
       rationale =
-        "Your portfolio health requires immediate attention. High concentration in speculative stocks or deeply negative momentum represents severe exposure. Review the insights below.";
+        "Your portfolio health requires immediate attention. High concentration in speculative stocks or deeply negative momentum represents severe exposure.";
     }
 
-    // Generate actionable insights
     const insights: string[] = [];
 
     if (maxWeight > 25) {
@@ -1542,7 +1200,7 @@ export function DematTab({
     );
     if (speculativeWeight > 20) {
       insights.push(
-        `[WARN] Speculative exposure is high: Penny or highly volatile stocks represent ${speculativeWeight.toFixed(1)}% of holdings. Rotate some capital into stable Nifty 50 companies.`
+        `[WARN] Speculative exposure is high: Penny or highly volatile stocks represent ${speculativeWeight.toFixed(1)}% of holdings. Rotate some capital into stable blue-chip companies.`
       );
     }
 
@@ -1558,11 +1216,10 @@ export function DematTab({
 
     if (momentumScore < 50) {
       insights.push(
-        `[WARN] Weak price momentum: A significant portion of your holdings are underperforming. Review companies with decaying returns and check if their business fundamentals are deteriorating.`
+        `[WARN] Weak price momentum: A significant portion of your holdings are underperforming. Review companies with decaying returns.`
       );
     }
 
-    // Combined summary logic for Mutual Funds
     const mutualFundsList = state.mutualFunds || [];
     const totalMfVal = mutualFundsList.reduce((sum: number, mf: any) => {
       const units = Number(mf.units) || 0;
@@ -1610,9 +1267,6 @@ export function DematTab({
     };
   }, [filteredStocks, marketData, state.mutualFunds]);
 
-  // Sector allocation — regroups the same stockWeights used for the per-stock
-  // pie chart by GICS sector (from live market data) so concentration risk
-  // shows up at the sector level too, not just single-stock weight.
   const sectorAllocation = useMemo(() => {
     const bySector: Record<string, number> = {};
     portfolioScoreData.stockWeights.forEach((s: any) => {
@@ -1633,10 +1287,24 @@ export function DematTab({
     return String(v);
   };
 
+  // Live Market Status Helper (IST 09:15 to 15:30 weekdays)
+  const isMarketOpen = useMemo(() => {
+    const now = new Date();
+    const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+    const h = ist.getHours();
+    const m = ist.getMinutes();
+    const day = ist.getDay();
+    const isWeekday = day >= 1 && day <= 5;
+    const afterOpen = h > 9 || (h === 9 && m >= 15);
+    const beforeClose = h < 15 || (h === 15 && m <= 30);
+    return isWeekday && afterOpen && beforeClose;
+  }, []);
+
   return (
     <div className="tab-content-enter">
+      {/* ── HEADER ── */}
       <SectionTitle
-        sub="Live portfolio tracking and brokerage management"
+        sub="Live institutional-grade equity portfolio & brokerage telemetry"
         rightElement={
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <Button
@@ -1645,9 +1313,9 @@ export function DematTab({
               onClick={handleRefresh}
               disabled={fetchingPrices}
             >
-              {fetchingPrices ? "Updating…" : "Refresh"}
+              {fetchingPrices ? "Updating…" : "Live Refresh"}
             </Button>
-            {state.stocks.length > 0 && (
+            {(state.stocks || []).length > 0 && (
               <Button
                 variant="secondary"
                 icon={<Upload size={14} />}
@@ -1661,7 +1329,7 @@ export function DematTab({
               icon={<Briefcase size={14} />}
               onClick={() => setShowDemat(true)}
             >
-              Add Account
+              Add Demat
             </Button>
             <Button
               variant="accent"
@@ -1676,31 +1344,16 @@ export function DematTab({
           </div>
         }
       >
-        Demat & Stocks
+        Demat &amp; Stocks
       </SectionTitle>
-      {/* Refresh timestamp */}
-      {marketDataTs && !fetchingPrices && (
-        <div style={{ marginTop: -24, marginBottom: 20 }}>
-          <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 500 }}>
-            {(() => {
-              const diffMin = Math.floor((Date.now() - marketDataTs) / 60000);
-              if (diffMin < 1) return "Updated just now";
-              if (diffMin === 1) return "Updated 1 min ago";
-              if (diffMin < 60) return `Updated ${diffMin} min ago`;
-              const hrs = Math.floor(diffMin / 60);
-              return `Updated ${hrs}h ago`;
-            })()}
-          </span>
-        </div>
-      )}
 
-      {/* ── MIGRATION BANNER: shown when corporate_actions table is missing in Supabase ── */}
+      {/* ── MIGRATION BANNER ── */}
       {missingTables.includes("corporate_actions") && (
         <div
           style={{
             background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
             border: `1.5px solid ${THEME.rust}`,
-            borderRadius: 12,
+            borderRadius: 14,
             padding: "16px 20px",
             marginBottom: 24,
           }}
@@ -1718,19 +1371,14 @@ export function DematTab({
                 flexShrink: 0,
               }}
             >
-              <span style={{ color: THEME.darkInk, fontSize: 18, fontWeight: 900 }}>!</span>
+              <AlertTriangle size={18} color="#ffffff" />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: THEME.rust, marginBottom: 4 }}>
-                One-time DB setup required — Stock Split / Bonus History won't save to cloud yet
+                One-time DB setup required — Corporate Actions &amp; Splits History
               </div>
               <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 12 }}>
-                The <b>corporate_actions</b> table is missing in your Supabase database. Your
-                split/bonus actions are saved <b>locally on this device only</b> until you run this
-                SQL once in Supabase.
-              </div>
-              <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 6, fontWeight: 700 }}>
-                Steps: Go to supabase.com → your project → SQL Editor → paste and run:
+                The <b>corporate_actions</b> table is missing in your Supabase database. Your actions are currently stored locally.
               </div>
               <pre
                 style={{
@@ -1740,8 +1388,8 @@ export function DematTab({
                   borderRadius: 8,
                   color: THEME.ink,
                   margin: 0,
-                  overflowX: "auto" as const,
-                  whiteSpace: "pre" as const,
+                  overflowX: "auto",
+                  whiteSpace: "pre",
                   lineHeight: 1.6,
                 }}
               >{`CREATE TABLE IF NOT EXISTS public.corporate_actions (
@@ -1757,21 +1405,228 @@ export function DematTab({
   created_at timestamp with time zone default now()
 );
 ALTER TABLE public.corporate_actions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can access own data" ON public.corporate_actions;
-CREATE POLICY "Users can access own data" ON public.corporate_actions
-  FOR ALL USING (auth.uid() = user_id);`}</pre>
+CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL USING (auth.uid() = user_id);`}</pre>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── VIEW SWITCHER: Holdings | Analytics | Watchlist ── */}
+      {/* ── EXECUTIVE COCKPIT HERO ── */}
+      <div className="demat-cockpit-hero">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: THEME.muted,
+                }}
+              >
+                Equity Portfolio Net Worth
+              </span>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "2px 8px",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  background: isMarketOpen
+                    ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                    : `color-mix(in srgb, ${THEME.muted} 12%, transparent)`,
+                  color: isMarketOpen ? THEME.sage : THEME.muted,
+                  border: `1px solid ${isMarketOpen ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : `color-mix(in srgb, ${THEME.muted} 20%, transparent)`}`,
+                }}
+              >
+                <span className={`demat-live-dot ${isMarketOpen ? "" : "closed"}`} />
+                {isMarketOpen ? "NSE/BSE Open" : "Market Closed"}
+              </div>
+            </div>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 34,
+                fontWeight: 700,
+                color: THEME.ink,
+                letterSpacing: "-0.03em",
+                lineHeight: 1.1,
+                marginTop: 6,
+              }}
+            >
+              <Money value={animatedTotalValue} variant="full" />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
+                Invested: <Money value={totalInvested} variant="full" />
+              </span>
+              <span style={{ color: THEME.line }}>•</span>
+              <span
+                className={`demat-trend-pill ${pnl >= 0 ? "up" : "down"}`}
+                style={{ fontSize: 12, padding: "2px 10px" }}
+              >
+                {pnl >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                {pnl >= 0 ? "+" : ""}
+                <Money value={animatedPnl} variant="full" /> ({animatedNetReturnPct.toFixed(2)}%)
+              </span>
+            </div>
+          </div>
+
+          {marketDataTs && (
+            <div style={{ textAlign: "right" }}>
+              <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                {(() => {
+                  const diffMin = Math.floor((Date.now() - marketDataTs) / 60000);
+                  if (diffMin < 1) return "Prices updated just now";
+                  if (diffMin === 1) return "Prices updated 1 min ago";
+                  if (diffMin < 60) return `Prices updated ${diffMin} min ago`;
+                  return `Prices updated ${Math.floor(diffMin / 60)}h ago`;
+                })()}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Cockpit Secondary Stat Boxes */}
+        <div className="demat-cockpit-grid">
+          {/* Day's P&L */}
+          <div className="demat-stat-box">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Day's P&amp;L
+              </span>
+              <Activity size={16} color={totalDaysPnL >= 0 ? THEME.sage : THEME.rust} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 20,
+                  fontWeight: 700,
+                  color: totalDaysPnL >= 0 ? THEME.sage : THEME.rust,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {animatedTotalDaysPnL >= 0 ? "+" : ""}
+                <Money value={animatedTotalDaysPnL} variant="full" />
+              </div>
+              <div style={{ fontSize: 11, marginTop: 2 }}>
+                <span className={`demat-trend-pill ${totalDaysPnL >= 0 ? "up" : "down"}`}>
+                  {totalDaysPnL >= 0 ? "+" : ""}{totalDaysPnLPct.toFixed(2)}% today
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Overall Portfolio XIRR */}
+          <div className="demat-stat-box">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Portfolio XIRR
+              </span>
+              <Percent size={16} color={overallXirr !== null && overallXirr >= 0 ? THEME.sage : THEME.rust} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 20,
+                  fontWeight: 700,
+                  color: overallXirr !== null && overallXirr >= 0 ? THEME.sage : THEME.rust,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {overallXirr !== null ? (
+                  <Prv>{`${animatedOverallXirr >= 0 ? "+" : ""}${animatedOverallXirr.toFixed(2)}%`}</Prv>
+                ) : (
+                  "—"
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
+                Annualized wealth rate
+              </div>
+            </div>
+          </div>
+
+          {/* True Total Return (Gains + Dividends) */}
+          <div className="demat-stat-box">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                True Total Return
+              </span>
+              <Sparkles size={16} color={THEME.accent} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 20,
+                  fontWeight: 700,
+                  color: pnl + totalDividendsReceived >= 0 ? THEME.sage : THEME.rust,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {pnl + totalDividendsReceived >= 0 ? "+" : ""}
+                <Money value={pnl + totalDividendsReceived} variant="full" />
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
+                Incl. <Money value={totalDividendsReceived} variant="full" /> dividends
+              </div>
+            </div>
+          </div>
+
+          {/* Portfolio Health Dial */}
+          <div className="demat-stat-box">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Health Score
+              </span>
+              <Award size={16} color={portfolioScoreData.statusColor} />
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 22,
+                  fontWeight: 800,
+                  color: THEME.ink,
+                }}
+              >
+                {portfolioScoreData.overall}
+              </span>
+              <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 700 }}>/ 100</span>
+              <span
+                style={{
+                  marginLeft: "auto",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  padding: "2px 8px",
+                  borderRadius: 6,
+                  background: `color-mix(in srgb, ${portfolioScoreData.statusColor} 12%, transparent)`,
+                  color: portfolioScoreData.statusColor,
+                  border: `1px solid color-mix(in srgb, ${portfolioScoreData.statusColor} 25%, transparent)`,
+                  textTransform: "uppercase",
+                }}
+              >
+                {portfolioScoreData.status}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 4 NAVIGATION TABS ── */}
       <div className="demat-portfolio-bar no-scrollbar">
         {[
-          { id: "holdings" as const, label: "Holdings", Icon: BarChart3 },
-          { id: "analytics" as const, label: "Analytics", Icon: Activity },
-          { id: "watchlist" as const, label: "Watchlist", Icon: Star },
-        ].map(({ id, label, Icon }) => {
+          { id: "holdings" as const, label: "Holdings Management", Icon: BarChart3, count: (state.stocks || []).length },
+          { id: "analytics" as const, label: "Intelligence & Health", Icon: Activity },
+          { id: "watchlist" as const, label: "Watchlists & Targets", Icon: Star, count: (wishlistItems || []).length },
+          { id: "corporateActions" as const, label: "Splits & Tax Ledger", Icon: History, count: (state.corporateActions || []).length },
+        ].map(({ id, label, Icon, count }) => {
           const active = dematView === id;
           return (
             <button
@@ -1779,20 +1634,22 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               onClick={() => setDematView(id)}
               className={`demat-portfolio-pill ${active ? "active" : ""}`}
             >
-              <Icon size={14} />
-              {label}
-              {id === "watchlist" && wishlists.length > 0 && (
+              <Icon size={15} />
+              <span>{label}</span>
+              {count !== undefined && count > 0 && (
                 <span
                   style={{
-                    padding: "1px 6px",
+                    padding: "1px 7px",
                     borderRadius: "var(--radius-xs)",
                     fontSize: 10,
-                    fontWeight: 800,
-                    background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
-                    color: THEME.accent,
+                    fontWeight: 850,
+                    background: active
+                      ? `color-mix(in srgb, ${THEME.accent} 20%, transparent)`
+                      : `color-mix(in srgb, ${THEME.muted} 15%, transparent)`,
+                    color: active ? THEME.accent : THEME.muted,
                   }}
                 >
-                  {wishlists.length}
+                  {count}
                 </span>
               )}
             </button>
@@ -1800,647 +1657,190 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         })}
       </div>
 
-      {/* ── BROKER FILTER BAR — shown for Holdings & Analytics tabs ── */}
-      {(dematView === "holdings" || dematView === "analytics") && (
-        <div className="demat-portfolio-bar no-scrollbar">
-          <button
-            onClick={() => setSelectedDematId(null)}
-            className={`demat-portfolio-pill ${selectedDematId === null ? "active" : ""}`}
-          >
-            <PieIcon size={16} strokeWidth={selectedDematId === null ? 2.5 : 2} />
-            <span>Global View</span>
-          </button>
-          {state.demat.map((d: any) => {
-            const active = selectedDematId === d.id;
-            const theme = getBrokerTheme(d.broker || "");
-            return (
-              <button
-                key={d.id}
-                onClick={() => setSelectedDematId(d.id)}
-                className={`demat-portfolio-pill ${active ? "active" : ""}`}
-                style={
-                  active
-                    ? ({
-                        "--active-bg": `color-mix(in srgb, ${theme.color} 8%, transparent)`,
-                        "--active-color": theme.color,
-                        "--active-border": `color-mix(in srgb, ${theme.color} 19%, transparent)`,
-                      } as React.CSSProperties)
-                    : {}
-                }
-              >
-                <BrokerLogo broker={d.broker || "?"} theme={theme} size={20} borderRadius={5} />
-                <span>{d.broker || "Broker"}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ── MAIN CONTENT AREA (100% width) ── */}
+      {/* ── MULTI-BROKER FILTER CAROUSEL (For Holdings View) ── */}
       {dematView === "holdings" && (
-        <div style={{ width: "100%", marginTop: 24 }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-              gap: 16,
-              marginBottom: 24,
-            }}
-          >
-            {/* Card 1: Portfolio Value */}
-            <Card
-              hover
-              className="demat-stat-card-glow"
-              style={{
-                padding: "18px 20px",
-                borderLeft: `2.5px solid ${THEME.accent}`,
-                borderRadius: 10,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: 12,
-              }}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6 }} className="no-scrollbar">
+            {/* Global View Button */}
+            <button
+              onClick={() => setSelectedDematId(null)}
+              className={`demat-filter-chip ${selectedDematId === null ? "active" : ""}`}
+              style={{ padding: "8px 16px" }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}>
-                  <BarChart3 size={22} />
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    Portfolio Value
-                  </div>
-                  <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                    Current assets valuation
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 26,
-                    fontWeight: 600,
-                    color: THEME.ink,
-                    letterSpacing: "-0.04em",
-                    fontVariantNumeric: "tabular-nums",
-                    lineHeight: 1,
-                  }}
-                >
-                  <Money value={animatedTotalValue} variant="full" />
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginTop: 6,
-                  }}
-                >
-                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                    Invested: <Money value={totalInvested} variant="full" />
-                  </div>
-                  {pnl !== 0 && (
-                    <span className={`demat-trend-pill ${pnl >= 0 ? "up" : "down"}`} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                      {pnl >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-                      {totalInvested > 0 ? Math.abs((pnl / totalInvested) * 100).toFixed(1) : "0.0"}%
-                    </span>
-                  )}
-                </div>
-                {totalInvested > 0 && (
-                  <div className="demat-inv-bar-track">
-                    <div
-                      className="demat-inv-bar-fill"
-                      style={{
-                        width: totalValue > 0
-                          ? `${Math.min(100, Math.max(0, (totalInvested / totalValue) * 100)).toFixed(1)}%`
-                          : "0%",
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </Card>
+              <PieIcon size={14} />
+              <span>All Demat Accounts</span>
+              <span style={{ opacity: 0.7, fontSize: 11 }}>({(state.stocks || []).length})</span>
+            </button>
 
-            {/* Card 2: Day's P&L */}
-            <Card
-              hover
-              className="demat-stat-card-glow"
-              style={{
-                padding: "18px 20px",
-                borderLeft: `2.5px solid ${totalDaysPnL >= 0 ? THEME.sage : THEME.rust}`,
-                borderRadius: 10,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: 12,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    color: totalDaysPnL >= 0 ? THEME.sage : THEME.rust,
-                    flexShrink: 0,
-                  }}
-                >
-                  <Activity size={22} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    Day's P&L
-                  </div>
-                  <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                    Daily market fluctuation
-                  </div>
-                </div>
-                <span className="demat-live-dot" />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 26,
-                    fontWeight: 600,
-                    color: totalDaysPnL >= 0 ? THEME.sage : THEME.rust,
-                    letterSpacing: "-0.04em",
-                    fontVariantNumeric: "tabular-nums",
-                    lineHeight: 1,
-                  }}
-                >
-                  {animatedTotalDaysPnL >= 0 ? "+" : ""}
-                  <Money value={animatedTotalDaysPnL} variant="full" />
-                </div>
-                <div style={{ marginTop: 6 }}>
-                  {totalDaysPnL !== 0 ? (
-                    <span className={`demat-trend-pill ${totalDaysPnL >= 0 ? "up" : "down"}`} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                      {totalDaysPnL >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />} {Math.abs(totalDaysPnLPct).toFixed(2)}% today
-                    </span>
-                  ) : (
-                    <span className="demat-trend-pill neutral">No change today</span>
-                  )}
-                </div>
-              </div>
-            </Card>
-
-            {/* Card 3: Unrealized P&L */}
-            <Card
-              hover
-              className="demat-stat-card-glow"
-              style={{
-                padding: "18px 20px",
-                borderLeft: `2.5px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
-                borderRadius: 10,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: 12,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    color: pnl >= 0 ? THEME.sage : THEME.rust,
-                    flexShrink: 0,
-                  }}
-                >
-                  <TrendingUp size={22} />
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    Unrealized P&L
-                  </div>
-                  <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                    Total returns value
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 26,
-                    fontWeight: 600,
-                    color: pnl >= 0 ? THEME.sage : THEME.rust,
-                    letterSpacing: "-0.04em",
-                    fontVariantNumeric: "tabular-nums",
-                    lineHeight: 1,
-                  }}
-                >
-                  {animatedPnl >= 0 ? "+" : ""}
-                  <Money value={animatedPnl} variant="full" />
-                </div>
-                <div style={{ marginTop: 6 }}>
-                  {totalInvested ? (
-                    <span className={`demat-trend-pill ${pnl >= 0 ? "up" : "down"}`} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                      {pnl >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />} {Math.abs((pnl / totalInvested) * 100).toFixed(2)}% absolute return
-                    </span>
-                  ) : (
-                    <span className="demat-trend-pill neutral">—</span>
-                  )}
-                </div>
-              </div>
-            </Card>
-
-            {/* Card 4: Overall XIRR */}
-            <Card
-              hover
-              style={{
-                padding: "18px 20px",
-                borderLeft: `2.5px solid ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}`,
-                borderRadius: 10,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: 12,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    color:
-                      overallXirr === null
-                        ? THEME.muted
-                        : overallXirr >= 0
-                          ? THEME.sage
-                          : THEME.rust,
-                    flexShrink: 0,
-                  }}
-                >
-                  <Percent size={22} />
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: THEME.muted,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    Overall XIRR
-                  </div>
-                  <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                    Annualized wealth rate
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 26,
-                    fontWeight: 600,
-                    color:
-                      overallXirr === null
-                        ? THEME.muted
-                        : overallXirr >= 0
-                          ? THEME.sage
-                          : THEME.rust,
-                    letterSpacing: "-0.04em",
-                    fontVariantNumeric: "tabular-nums",
-                    lineHeight: 1,
-                  }}
-                >
-                  {overallXirr !== null ? (
-                    <Prv>{`${animatedOverallXirr >= 0 ? "+" : ""}${animatedOverallXirr.toFixed(2)}%`}</Prv>
-                  ) : (
-                    "—"
-                  )}
-                </div>
-                <div style={{ marginTop: 6 }}>
-                  {overallXirr !== null ? (
-                    <span className={`demat-trend-pill ${overallXirr >= 0 ? "up" : "down"}`} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-                      {overallXirr >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />} Annualized return
-                    </span>
-                  ) : (
-                    <span className="demat-trend-pill neutral">Annualized rate of return</span>
-                  )}
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Broker Account Cards */}
-          <Grid>
-            {state.demat.length === 0 && (
-              <div style={{ ...card, gridColumn: "1 / -1" }}>
-                <DematEmptyState onAdd={() => setShowDemat(true)} />
-              </div>
-            )}
-            {state.demat.map((d: any) => {
+            {/* Individual Broker Chips */}
+            {(state.demat || []).map((d: any) => {
+              const active = selectedDematId === d.id;
               const theme = getBrokerTheme(d.broker || "");
-
-              // Calculate specific broker stats
-              const dematStocks = state.stocks.filter((st: any) => st.dematId === d.id);
-              const dematValue = dematStocks.reduce((s: number, st: any) => {
-                const base = st.symbol.replace(/\.(NS|BO)$/i, "");
+              const dematStocks = (state.stocks || []).filter((st: any) => st.dematId === d.id);
+              const dematVal = dematStocks.reduce((s: number, st: any) => {
+                const base = (st.symbol || "").replace(/\.(NS|BO)$/i, "");
                 const exch = st.exchange || "NSE";
                 const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
                 const livePrice = marketData[yfSym]?.price;
-                const price =
-                  livePrice !== undefined ? Number(livePrice) : Number(st.currentPrice || 0);
-                return s + Number(st.qty) * price;
+                const price = livePrice !== undefined ? Number(livePrice) : Number(st.currentPrice || 0);
+                return s + Number(st.qty || 0) * price;
               }, 0);
-              const dematInvested = dematStocks.reduce(
-                (s: number, st: any) => s + Number(st.qty) * Number(st.avgPrice),
-                0
-              );
-              const dematPnl = dematValue - dematInvested;
-              const dematPnlPct = dematInvested > 0 ? (dematPnl / dematInvested) * 100 : 0;
-              const scripsCount = new Set(dematStocks.map((st: any) => st.symbol)).size;
 
               return (
-                <InvestCard
+                <button
                   key={d.id}
+                  onClick={() => setSelectedDematId(d.id)}
+                  className={`demat-filter-chip ${active ? "active" : ""}`}
                   style={{
-                    borderTop: `4px solid ${theme.color}`,
-                    padding: "24px 24px 20px 24px",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    gap: 16,
-                    height: "100%",
+                    padding: "8px 16px",
+                    borderColor: active ? theme.color : undefined,
+                    background: active ? `color-mix(in srgb, ${theme.color} 12%, transparent)` : undefined,
+                    color: active ? theme.color : undefined,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <BrokerLogo
-                      broker={d.broker || "?"}
-                      theme={theme}
-                      size={46}
-                      borderRadius={13}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: 8,
-                          marginBottom: 2,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 16,
-                            fontWeight: 850,
-                            color: THEME.ink,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            minWidth: 0,
-                          }}
-                        >
-                          {d.broker || "Broker"}
-                        </span>
-                        <div
-                          style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 800,
-                              color: THEME.sage,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 5,
-                              background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                              padding: "2px 8px",
-                              borderRadius: "var(--radius-xs)",
-                            }}
-                          >
-                            <span className="broker-live-dot" />
-                            Active
-                          </span>
-                          <CardActions
-                            onEdit={() => setEditDematId(d.id)}
-                            onRemove={() => {
-                              setConfirmAction({
-                                message: `Delete "${d.broker || "this"}" demat account? Stock lots linked to it will lose their account association. This cannot be undone.`,
-                                onConfirm: () => removeItem("demat", d.id),
-                              });
-                            }}
-                          />
-                        </div>
-                      </div>
+                  <BrokerLogo broker={d.broker || "?"} theme={theme} size={18} borderRadius={4} />
+                  <span>{d.broker || "Broker"}</span>
+                  <span style={{ fontWeight: 800, fontSize: 11 }}>
+                    <Money value={dematVal} variant="compact" />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-                      <div
-                        style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 4 }}
-                      >
-                        {d.dpId && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <span
-                              style={{
-                                fontSize: 9,
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                background: `var(--t-line)`,
-                                color: THEME.muted,
-                                fontWeight: 700,
-                                letterSpacing: "0.06em",
-                                lineHeight: 1.2,
-                              }}
-                            >
-                              DP
-                            </span>
-                            <span
-                              style={{
-                                color: THEME.ink,
-                                fontFamily: "monospace",
-                                fontSize: 11,
-                                fontWeight: 600,
-                                fontVariantNumeric: "tabular-nums",
-                                opacity: 0.8,
-                              }}
-                            >
-                              {d.dpId}
-                            </span>
-                          </div>
-                        )}
-                        {d.clientId && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <span
-                              style={{
-                                fontSize: 9,
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                background: `var(--t-line)`,
-                                color: THEME.muted,
-                                fontWeight: 700,
-                                letterSpacing: "0.06em",
-                                lineHeight: 1.2,
-                              }}
-                            >
-                              ID
-                            </span>
-                            <span
-                              style={{
-                                color: THEME.ink,
-                                fontFamily: "monospace",
-                                fontSize: 11,
-                                fontWeight: 600,
-                                fontVariantNumeric: "tabular-nums",
-                                opacity: 0.8,
-                              }}
-                            >
-                              {d.clientId}
-                            </span>
-                          </div>
-                        )}
-                        {!d.dpId && !d.clientId && (
-                          <span style={{ fontSize: 11, color: THEME.muted, fontStyle: "italic" }}>
-                            DP &amp; Client ID not configured
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── VIEW 1: HOLDINGS MANAGEMENT ── */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {dematView === "holdings" && (
+        <div style={{ width: "100%" }}>
+          {/* Broker Account Overview Cards if accounts exist */}
+          {(state.demat || []).length > 0 && selectedDematId === null && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: 16,
+                marginBottom: 24,
+              }}
+            >
+              {(state.demat || []).map((d: any) => {
+                const theme = getBrokerTheme(d.broker || "");
+                const dematStocks = (state.stocks || []).filter((st: any) => st.dematId === d.id);
+                const dematValue = dematStocks.reduce((s: number, st: any) => {
+                  const base = (st.symbol || "").replace(/\.(NS|BO)$/i, "");
+                  const exch = st.exchange || "NSE";
+                  const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
+                  const livePrice = marketData[yfSym]?.price;
+                  const price = livePrice !== undefined ? Number(livePrice) : Number(st.currentPrice || 0);
+                  return s + Number(st.qty || 0) * price;
+                }, 0);
+                const dematInvested = dematStocks.reduce(
+                  (s: number, st: any) => s + Number(st.qty || 0) * Number(st.avgPrice || 0),
+                  0
+                );
+                const dematPnl = dematValue - dematInvested;
+                const dematPnlPct = dematInvested > 0 ? (dematPnl / dematInvested) * 100 : 0;
+                const scripsCount = new Set(dematStocks.map((st: any) => st.symbol)).size;
 
-                  <div
+                return (
+                  <Card
+                    key={d.id}
+                    hover
                     style={{
-                      borderTop: `1.5px dashed ${THEME.line}`,
-                      paddingTop: 14,
+                      borderTop: `3.5px solid ${theme.color}`,
+                      padding: "18px 20px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      gap: 12,
                     }}
                   >
-                    {/* 2-column financial summary */}
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 12,
-                        marginBottom: 10,
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 9,
-                            fontWeight: 700,
-                            color: THEME.muted,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.06em",
-                            marginBottom: 3,
-                          }}
-                        >
-                          Invested
-                        </div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: 14,
-                            fontWeight: 800,
-                            color: THEME.ink,
-                            fontVariantNumeric: "tabular-nums",
-                          }}
-                        >
-                          <Money value={dematInvested} variant="full" />
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <BrokerLogo broker={d.broker || "?"} theme={theme} size={36} borderRadius={10} />
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>
+                            {d.broker || "Broker"}
+                          </div>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 2 }}>
+                            {d.clientId && (
+                              <button
+                                onClick={() => copyToClipboard(d.clientId, `client-${d.id}`)}
+                                className="demat-copy-btn"
+                                title="Click to copy Client ID"
+                              >
+                                {copiedKey === `client-${d.id}` ? <Check size={9} color={THEME.sage} /> : <Copy size={9} />}
+                                ID: {d.clientId}
+                              </button>
+                            )}
+                            {d.dpId && (
+                              <button
+                                onClick={() => copyToClipboard(d.dpId, `dp-${d.id}`)}
+                                className="demat-copy-btn"
+                                title="Click to copy DP ID"
+                              >
+                                {copiedKey === `dp-${d.id}` ? <Check size={9} color={THEME.sage} /> : <Copy size={9} />}
+                                DP: {d.dpId}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div
-                          style={{
-                            fontSize: 9,
-                            fontWeight: 700,
-                            color: THEME.muted,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.06em",
-                            marginBottom: 3,
-                          }}
+
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button
+                          onClick={() => setEditDematId(d.id)}
+                          className="icon-btn"
+                          style={{ padding: 5 }}
+                          title="Edit Demat"
                         >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setConfirmAction({
+                              message: `Delete "${d.broker}" demat account? Linked stocks will lose account association.`,
+                              onConfirm: () => removeItem("demat", d.id),
+                            });
+                          }}
+                          className="icon-btn danger"
+                          style={{ padding: 5 }}
+                          title="Delete Demat"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ borderTop: `1px dashed ${THEME.line}`, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" }}>
                           Current Value
                         </div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: 14,
-                            fontWeight: 900,
-                            color: THEME.ink,
-                            fontVariantNumeric: "tabular-nums",
-                          }}
-                        >
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: THEME.ink }}>
                           <Money value={dematValue} variant="full" />
                         </div>
                       </div>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      {dematStocks.length > 0 ? (
-                        <span
-                          className={`demat-trend-pill ${dematPnl >= 0 ? "up" : "down"}`}
-                          style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 3 }}
-                        >
-                          {dematPnl >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />} {dematPnlPct.toFixed(2)}% &nbsp;(
-                          {dematPnl >= 0 ? "+" : ""}
-                          <Money value={dematPnl} variant="full" />)
+                      <div style={{ textAlign: "right" }}>
+                        <span className={`demat-trend-pill ${dematPnl >= 0 ? "up" : "down"}`}>
+                          {dematPnl >= 0 ? "+" : ""}{dematPnlPct.toFixed(2)}%
                         </span>
-                      ) : (
-                        <span style={{ fontSize: 12, color: THEME.muted }}>No holdings</span>
-                      )}
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 800,
-                          background: `color-mix(in srgb, ${theme.color} 12%, transparent)`,
-                          color: theme.color,
-                          padding: "3px 10px",
-                          borderRadius: "var(--radius-xs)",
-                          border: `1px solid color-mix(in srgb, ${theme.color} 20%, transparent)`,
-                        }}
-                      >
-                        {scripsCount} scrip{scripsCount === 1 ? "" : "s"}
-                      </span>
+                        <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2, fontWeight: 600 }}>
+                          {scripsCount} scrip{scripsCount === 1 ? "" : "s"}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </InvestCard>
-              );
-            })}
-          </Grid>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
 
-          {/* Today's Movers — best/worst intraday performer at a glance */}
+          {/* Today's Movers Banner */}
           {dayMovers && (
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                flexWrap: "wrap",
-                marginBottom: 16,
-              }}
-            >
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
               <div
                 style={{
                   display: "flex",
@@ -2448,13 +1848,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   gap: 8,
                   padding: "8px 14px",
                   borderRadius: 10,
-                  background: `color-mix(in srgb, ${THEME.sage} 7%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.sage} 22%, transparent)`,
+                  background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
                   fontSize: 12,
                 }}
               >
                 <TrendingUp size={14} color={THEME.sage} />
-                <span style={{ color: THEME.muted, fontWeight: 600 }}>Top Gainer</span>
+                <span style={{ color: THEME.muted, fontWeight: 600 }}>Top Mover:</span>
                 <b style={{ color: THEME.ink }}>{dayMovers.top.base}</b>
                 <span style={{ color: THEME.sage, fontWeight: 800 }}>
                   +{dayMovers.top.changePercent.toFixed(2)}%
@@ -2467,13 +1867,13 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                   gap: 8,
                   padding: "8px 14px",
                   borderRadius: 10,
-                  background: `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.rust} 22%, transparent)`,
+                  background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.rust} 25%, transparent)`,
                   fontSize: 12,
                 }}
               >
                 <TrendingDown size={14} color={THEME.rust} />
-                <span style={{ color: THEME.muted, fontWeight: 600 }}>Top Loser</span>
+                <span style={{ color: THEME.muted, fontWeight: 600 }}>Top Dip:</span>
                 <b style={{ color: THEME.ink }}>{dayMovers.bottom.base}</b>
                 <span style={{ color: THEME.rust, fontWeight: 800 }}>
                   {dayMovers.bottom.changePercent.toFixed(2)}%
@@ -2482,138 +1882,200 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
             </div>
           )}
 
-          {/* Search & Sort Bar */}
-          {state.stocks.length > 0 && (
+          {/* ── SEARCH & FILTER CONTROLS ── */}
+          {(state.stocks || []).length > 0 && (
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 marginBottom: 20,
-                gap: 16,
+                gap: 12,
                 flexWrap: "wrap",
               }}
             >
-              {/* Search box + stock count */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "1 1 240px" }}>
-                <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 400 }}>
-                  <input
-                    placeholder="Search stocks or sectors..."
-                    aria-label="Search stocks or sectors"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    style={{
-                      ...input,
-                      paddingLeft: 40,
-                      paddingRight: search ? 36 : undefined,
-                      borderRadius: 12,
-                      height: 42,
-                      border: `1.5px solid ${THEME.line}`,
-                      background: "var(--surface-0)",
-                      color: THEME.ink,
-                      transition: "border-color 0.2s, box-shadow 0.2s",
-                    }}
-                  />
-                  <div style={{ position: "absolute", left: 14, top: 12, color: THEME.muted }}>
-                    <Search size={16} />
-                  </div>
-                  {search && (
-                    <button
-                      type="button"
-                      aria-label="Clear search"
-                      onClick={() => setSearch("")}
-                      style={{
-                        position: "absolute",
-                        right: 10,
-                        top: 10,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 18,
-                        height: 18,
-                        borderRadius: "50%",
-                        border: "none",
-                        background: "var(--surface-2)",
-                        color: THEME.muted,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <X size={11} />
-                    </button>
-                  )}
+              {/* Search Bar */}
+              <div style={{ position: "relative", flex: "1 1 240px", maxWidth: 360 }}>
+                <input
+                  placeholder="Search symbol, sector or company..."
+                  aria-label="Search stocks or sectors"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{
+                    ...inputStyle,
+                    paddingLeft: 38,
+                    paddingRight: search ? 36 : undefined,
+                    height: 40,
+                    borderRadius: 10,
+                  }}
+                />
+                <div style={{ position: "absolute", left: 12, top: 12, color: THEME.muted }}>
+                  <Search size={16} />
                 </div>
-                {/* Market Status Badge */}
-                {(() => {
-                  const now = new Date();
-                  const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-                  const h = ist.getHours(),
-                    m = ist.getMinutes(),
-                    day = ist.getDay();
-                  const isWeekday = day >= 1 && day <= 5;
-                  const afterOpen = h > 9 || (h === 9 && m >= 15);
-                  const beforeClose = h < 15 || (h === 15 && m <= 30);
-                  const isOpen = isWeekday && afterOpen && beforeClose;
-                  return (
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "5px 12px",
-                        borderRadius: "var(--radius-xs)",
-                        fontSize: 11,
-                        fontWeight: 800,
-                        background: isOpen
-                          ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
-                          : `color-mix(in srgb, ${THEME.muted} 10%, transparent)`,
-                        color: isOpen ? THEME.sage : THEME.muted,
-                        border: `1px solid ${isOpen ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)` : `color-mix(in srgb, ${THEME.muted} 15%, transparent)`}`,
-                        whiteSpace: "nowrap" as const,
-                      }}
-                    >
-                      <span className={`demat-live-dot ${isOpen ? "" : "closed"}`} />
-                      {isOpen ? "Market Open" : "Market Closed"}
-                    </div>
-                  );
-                })()}
+                {search && (
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    onClick={() => setSearch("")}
+                    style={{
+                      position: "absolute",
+                      right: 10,
+                      top: 10,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 20,
+                      height: 20,
+                      borderRadius: "50%",
+                      border: "none",
+                      background: "var(--surface-2)",
+                      color: THEME.muted,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
               </div>
 
+              {/* Sector Dropdown Filter */}
+              {allSectors.length > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: "var(--surface-0)",
+                    padding: "0 12px",
+                    borderRadius: 10,
+                    border: `1.5px solid ${THEME.line}`,
+                    height: 40,
+                  }}
+                >
+                  <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase" }}>
+                    Sector
+                  </span>
+                  <select
+                    value={selectedSector}
+                    onChange={(e) => setSelectedSector(e.target.value)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: THEME.ink,
+                      outline: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <option value="all">All Sectors ({allSectors.length})</option>
+                    {allSectors.map((sec) => (
+                      <option key={sec} value={sec}>
+                        {sec}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Market Cap Filter */}
+              <div
+                style={{
+                  display: "flex",
+                  background: "var(--surface-1)",
+                  padding: 3,
+                  borderRadius: 10,
+                  border: `1.5px solid ${THEME.line}`,
+                }}
+              >
+                {[
+                  { id: "all" as const, label: "All Caps" },
+                  { id: "large" as const, label: "Large" },
+                  { id: "mid" as const, label: "Mid" },
+                  { id: "small" as const, label: "Small" },
+                ].map((cap) => (
+                  <button
+                    key={cap.id}
+                    onClick={() => setSelectedCap(cap.id)}
+                    style={{
+                      padding: "5px 10px",
+                      fontSize: 11,
+                      fontWeight: selectedCap === cap.id ? 800 : 600,
+                      border: "none",
+                      borderRadius: 7,
+                      cursor: "pointer",
+                      background: selectedCap === cap.id ? "var(--surface-0)" : "transparent",
+                      color: selectedCap === cap.id ? THEME.accent : THEME.muted,
+                      boxShadow: selectedCap === cap.id ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                    }}
+                  >
+                    {cap.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* P&L Filter (Gainers/Losers) */}
+              <div
+                style={{
+                  display: "flex",
+                  background: "var(--surface-1)",
+                  padding: 3,
+                  borderRadius: 10,
+                  border: `1.5px solid ${THEME.line}`,
+                }}
+              >
+                {[
+                  { id: "all" as const, label: "All Returns" },
+                  { id: "profit" as const, label: "In Profit 🟢" },
+                  { id: "loss" as const, label: "In Loss 🔴" },
+                ].map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPnlStatus(p.id)}
+                    style={{
+                      padding: "5px 10px",
+                      fontSize: 11,
+                      fontWeight: selectedPnlStatus === p.id ? 800 : 600,
+                      border: "none",
+                      borderRadius: 7,
+                      cursor: "pointer",
+                      background: selectedPnlStatus === p.id ? "var(--surface-0)" : "transparent",
+                      color: selectedPnlStatus === p.id ? THEME.accent : THEME.muted,
+                      boxShadow: selectedPnlStatus === p.id ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sort By Dropdown */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: 6,
                   background: "var(--surface-0)",
-                  padding: "0 14px",
-                  borderRadius: 12,
+                  padding: "0 12px",
+                  borderRadius: 10,
                   border: `1.5px solid ${THEME.line}`,
-                  height: 42,
+                  height: 40,
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Sort by
+                <span style={{ fontSize: 10, fontWeight: 800, color: THEME.muted, textTransform: "uppercase" }}>
+                  Sort
                 </span>
                 <select
                   value={sortBy}
-                  aria-label="Sort by"
                   onChange={(e) => setSortBy(e.target.value as any)}
                   style={{
                     background: "transparent",
                     border: "none",
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: THEME.ink,
                     outline: "none",
                     cursor: "pointer",
-                    height: "100%",
                   }}
                 >
                   <option value="value">Highest Value</option>
@@ -2623,43 +2085,58 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 </select>
               </div>
 
+              {/* Export CSV Button */}
               <button
                 onClick={handleExportHoldings}
                 className="icon-btn"
                 title="Export holdings to CSV"
-                aria-label="Export holdings to CSV"
                 style={{
-                  ...iconBtn,
-                  width: 42,
-                  height: 42,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
                   border: `1.5px solid ${THEME.line}`,
-                  borderRadius: 12,
+                  background: "var(--surface-0)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                <Download size={16} />
+                <Download size={15} />
               </button>
             </div>
           )}
 
-          {state.stocks.length === 0 ? (
-            <div style={card}>
-              <StockEmptyState
-                onAdd={() => {
-                  setStockDefaults(null);
-                  setShowStock(true);
-                }}
-              />
-            </div>
+          {/* ── HOLDINGS TABLE ── */}
+          {(state.stocks || []).length === 0 ? (
+            <Card style={{ padding: "48px 32px", textAlign: "center" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+                <TrendingUp size={44} color={THEME.accent} />
+                <div style={{ fontSize: 18, fontWeight: 850, color: THEME.ink }}>No Stock Holdings Yet</div>
+                <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 400 }}>
+                  Track your direct equity holdings across Zerodha, Groww, Upstox, and other brokers with live NSE/BSE pricing, FIFO sell simulator, and CAGR analytics.
+                </div>
+                <Button
+                  variant="accent"
+                  icon={<Plus size={14} />}
+                  onClick={() => {
+                    setStockDefaults(null);
+                    setShowStock(true);
+                  }}
+                >
+                  Add Your First Scrip
+                </Button>
+              </div>
+            </Card>
           ) : visibleGroups.length === 0 ? (
-            <div style={card}>
-              <EmptyHint
-                text={`No holdings in ${state.demat.find((d: any) => d.id === selectedDematId)?.broker || "this account"}`}
-              />
-            </div>
+            <Card style={{ padding: 36, textAlign: "center" }}>
+              <div style={{ fontSize: 14, color: THEME.muted, fontWeight: 600 }}>
+                No stock scrips match your selected search or filter criteria.
+              </div>
+            </Card>
           ) : (
             <div
               style={{
-                background: "var(--t-card-bg)",
+                background: "var(--surface-0)",
                 borderRadius: 16,
                 border: `1px solid ${THEME.line}`,
                 overflowX: "auto",
@@ -2669,198 +2146,63 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead className="demat-table-thead">
                   <tr>
-                    <th
-                      style={{ ...th, paddingLeft: 20, borderBottom: `1.5px solid ${THEME.line}` }}
-                    >
-                      Asset / Scrip
-                    </th>
-                    <th
-                      style={{
-                        ...th,
-                        textAlign: "right",
-                        borderBottom: `1.5px solid ${THEME.line}`,
-                      }}
-                    >
-                      Quantity
-                    </th>
-                    <th
-                      style={{
-                        ...th,
-                        textAlign: "right",
-                        borderBottom: `1.5px solid ${THEME.line}`,
-                      }}
-                    >
-                      Avg Price
-                    </th>
-                    <th
-                      style={{
-                        ...th,
-                        textAlign: "right",
-                        borderBottom: `1.5px solid ${THEME.line}`,
-                      }}
-                    >
-                      Live Price
-                    </th>
-                    <th
-                      style={{
-                        ...th,
-                        textAlign: "right",
-                        borderBottom: `1.5px solid ${THEME.line}`,
-                      }}
-                    >
-                      Invested
-                    </th>
-                    <th
-                      style={{
-                        ...th,
-                        textAlign: "right",
-                        borderBottom: `1.5px solid ${THEME.line}`,
-                      }}
-                    >
-                      Current Value
-                    </th>
-                    <th
-                      style={{
-                        ...th,
-                        textAlign: "right",
-                        borderBottom: `1.5px solid ${THEME.line}`,
-                      }}
-                    >
-                      Weight
-                    </th>
-                    <th
-                      style={{
-                        ...th,
-                        textAlign: "right",
-                        borderBottom: `1.5px solid ${THEME.line}`,
-                      }}
-                    >
-                      Day's P&L
-                    </th>
-                    <th
-                      style={{
-                        ...th,
-                        textAlign: "right",
-                        paddingRight: 20,
-                        borderBottom: `1.5px solid ${THEME.line}`,
-                      }}
-                    >
-                      Total Return
-                    </th>
+                    <th style={{ ...thStyle, paddingLeft: 20 }}>Asset / Scrip</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Quantity</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Avg Price</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Live Price</th>
+                    <th style={{ ...thStyle, textAlign: "center", minWidth: 120 }}>52W Range</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Invested</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Current Value</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Weight</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Day's P&amp;L</th>
+                    <th style={{ ...thStyle, textAlign: "right", paddingRight: 20 }}>Total Return</th>
                   </tr>
                 </thead>
                 <tbody>
                   {visibleGroups.map(({ base, exchange, yfSym, lots }) => {
                     const md = marketData[yfSym];
-                    const totalQty = lots.reduce(
-                      (s: number, l: any) => s + (Number(l.qty) || 0),
-                      0
-                    );
-                    const totalInv = lots.reduce(
-                      (s: number, l: any) => s + (Number(l.qty) || 0) * (Number(l.avgPrice) || 0),
-                      0
-                    );
-                    // Sum each lot at its own price (live if available, else that lot's own
-                    // stored fallback) so this reconciles exactly with the portfolio-level
-                    // totalValue above, which is computed the same lot-by-lot way.
+                    const totalQty = lots.reduce((s: number, l: any) => s + (Number(l.qty) || 0), 0);
+                    const totalInv = lots.reduce((s: number, l: any) => s + (Number(l.qty) || 0) * (Number(l.avgPrice) || 0), 0);
                     const totalCurr = lots.reduce(
-                      (s: number, l: any) =>
-                        s + (Number(l.qty) || 0) * (md?.price ?? Number(l.currentPrice || 0)),
+                      (s: number, l: any) => s + (Number(l.qty) || 0) * (md?.price ?? Number(l.currentPrice || 0)),
                       0
                     );
                     const currentPrice = totalQty > 0 ? totalCurr / totalQty : 0;
                     const totalPnl = totalCurr - totalInv;
                     const totalPnlPct = totalInv ? (totalPnl / totalInv) * 100 : 0;
 
-                    const stockXirr = (() => {
-                      try {
-                        const cashFlows: any[] = [];
-                        const safeLots = Array.isArray(lots) ? lots : [];
-                        const safeStockSells = Array.isArray(state.stockSells)
-                          ? state.stockSells
-                          : [];
-
-                        // Active lots
-                        safeLots.forEach((lot: any) => {
-                          if (!lot) return;
-                          const qty = Number(lot.qty) || 0;
-                          const avgPrice = Number(lot.avgPrice) || 0;
-                          if (qty > 0 && lot.buyDate) {
-                            cashFlows.push({
-                              date: lot.buyDate,
-                              amount: -(qty * avgPrice),
-                            });
-                            cashFlows.push({
-                              date: today(),
-                              amount: qty * currentPrice,
-                            });
-                          }
-                        });
-
-                        // Historical stock sells matching base symbol and exchange
-                        const sells = safeStockSells.filter((s: any) => {
-                          if (!s) return false;
-                          if (selectedDematId && s.dematId !== selectedDematId) return false;
-                          const sSymbol = (s.symbol || "").trim().toLowerCase();
-                          const gSymbol = base.trim().toLowerCase();
-                          return sSymbol === gSymbol && s.exchange === exchange;
-                        });
-
-                        sells.forEach((s: any) => {
-                          const qty = Number(s.qty) || 0;
-                          const buyPrice = Number(s.buyPrice) || 0;
-                          const sellPrice = Number(s.sellPrice) || 0;
-                          const buyDate = s.buyDate;
-                          const sellDate = s.sellDate;
-                          if (qty > 0 && sellDate) {
-                            if (buyDate) {
-                              cashFlows.push({
-                                date: buyDate,
-                                amount: -(qty * buyPrice),
-                              });
-                            }
-                            cashFlows.push({
-                              date: sellDate,
-                              amount: qty * sellPrice,
-                            });
-                          }
-                        });
-
-                        return calcXIRR(cashFlows);
-                      } catch (e) {
-                        console.error("Error calculating stock-wise XIRR:", e);
-                        return null;
-                      }
-                    })();
                     const isExpanded = expandedSymbols.has(yfSym);
                     const isLive = !!md;
                     const activePeriod = chartPeriod[yfSym] || "1d";
                     const chartEntry = chartData[`${yfSym}__${activePeriod}`];
-                    const charts: any[] | null = chartEntry
-                      ? (chartEntry.points ?? chartEntry)
-                      : null;
+                    const charts: any[] | null = chartEntry ? chartEntry.points ?? chartEntry : null;
                     const chartDate: string | null = chartEntry?.date ?? null;
                     const changeAmt = md?.change ?? 0;
                     const changePct = md?.changePercent ?? 0;
                     const periodChange = calcPeriodChange(charts);
                     const chartChangeAmt = periodChange?.amount ?? changeAmt;
 
+                    // 52-Week Range Percent Position
+                    const weekHigh = md?.weekHigh52;
+                    const weekLow = md?.weekLow52;
+                    const rangePos =
+                      weekHigh != null && weekLow != null && weekHigh > weekLow
+                        ? Math.max(0, Math.min(100, ((currentPrice - weekLow) / (weekHigh - weekLow)) * 100))
+                        : 50;
+
                     return (
                       <React.Fragment key={yfSym}>
-                        {/* Collapsible main row */}
                         <tr
                           className="demat-holdings-row"
                           onClick={() => toggleExpand(yfSym)}
                           style={{
                             cursor: "pointer",
-                            background: isExpanded
-                              ? `color-mix(in srgb, ${THEME.accent} 4%, transparent)`
-                              : "transparent",
-                            transition: "background 0.15s ease",
+                            background: isExpanded ? `color-mix(in srgb, ${THEME.accent} 5%, transparent)` : "transparent",
                             borderBottom: `1px solid ${THEME.line}`,
                           }}
                         >
-                          <td style={{ ...td, paddingLeft: 20 }}>
+                          {/* Asset / Scrip */}
+                          <td style={{ ...tdStyle, paddingLeft: 20 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                               <span
                                 style={{
@@ -2870,7 +2212,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                   transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
                                 }}
                               >
-                                <ChevronDown size={16} />
+                                <ChevronDown size={15} />
                               </span>
                               <StockLogo yfSym={yfSym} size={36} />
                               <div>
@@ -2880,8 +2222,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                   </span>
                                   <span
                                     style={{
-                                      fontSize: 8,
-                                      background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
+                                      fontSize: 9,
+                                      background: `color-mix(in srgb, ${THEME.line} 40%, transparent)`,
                                       color: THEME.muted,
                                       padding: "1px 5px",
                                       borderRadius: 4,
@@ -2892,21 +2234,10 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                     {exchange}
                                   </span>
                                 </div>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 6,
-                                    marginTop: 2,
-                                  }}
-                                >
-                                  {isLive && (
-                                    <span
-                                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}
-                                    >
-                                      {md.sector || "Sector N/A"}
-                                    </span>
-                                  )}
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                                  <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                                    {md?.sector || "Sector N/A"}
+                                  </span>
                                   <span
                                     style={{
                                       fontSize: 9,
@@ -2915,7 +2246,6 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       padding: "1px 6px",
                                       borderRadius: 10,
                                       fontWeight: 700,
-                                      border: `1px solid ${THEME.line}`,
                                     }}
                                   >
                                     {lots.length} {lots.length === 1 ? "lot" : "lots"}
@@ -2925,23 +2255,25 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             </div>
                           </td>
 
-                          <td style={{ ...td, textAlign: "right", fontWeight: 700 }}>{totalQty}</td>
+                          {/* Quantity */}
+                          <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                            {totalQty}
+                          </td>
 
-                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
+                          {/* Avg Buy Price */}
+                          <td style={{ ...tdStyle, textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                             <Prv>
                               ₹
-                              {Number(totalQty > 0 ? totalInv / totalQty : 0).toLocaleString(
-                                "en-IN",
-                                {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                }
-                              )}
+                              {Number(totalQty > 0 ? totalInv / totalQty : 0).toLocaleString("en-IN", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
                             </Prv>
                           </td>
 
-                          <td style={{ ...td, textAlign: "right" }}>
-                            <div style={{ fontWeight: 700, color: THEME.ink }}>
+                          {/* Live Price */}
+                          <td style={{ ...tdStyle, textAlign: "right" }}>
+                            <div style={{ fontWeight: 800, color: THEME.ink, fontVariantNumeric: "tabular-nums" }}>
                               <Prv>
                                 ₹
                                 {currentPrice.toLocaleString("en-IN", {
@@ -2954,7 +2286,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                               <div
                                 style={{
                                   fontSize: 11,
-                                  fontWeight: 700,
+                                  fontWeight: 800,
                                   color: changeAmt >= 0 ? THEME.sage : THEME.rust,
                                   marginTop: 1,
                                 }}
@@ -2963,52 +2295,48 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 {changePct.toFixed(2)}%
                               </div>
                             ) : (
-                              <div
-                                style={{
-                                  fontSize: 10,
-                                  color: THEME.muted,
-                                  fontStyle: "italic",
-                                  marginTop: 1,
-                                }}
-                              >
-                                Offline
-                              </div>
+                              <div style={{ fontSize: 10, color: THEME.muted, fontStyle: "italic" }}>Offline</div>
                             )}
                           </td>
 
-                          <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
+                          {/* 52-Week Range Bar */}
+                          <td style={{ ...tdStyle, textAlign: "center" }}>
+                            {weekHigh != null && weekLow != null ? (
+                              <div className="demat-52w-wrap">
+                                <div className="demat-52w-track">
+                                  <div className="demat-52w-needle" style={{ left: `${rangePos}%` }} />
+                                </div>
+                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: THEME.muted }}>
+                                  <span>₹{Math.round(weekLow)}</span>
+                                  <span>₹{Math.round(weekHigh)}</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: 10, color: THEME.muted }}>—</span>
+                            )}
+                          </td>
+
+                          {/* Invested */}
+                          <td style={{ ...tdStyle, textAlign: "right", fontWeight: 600 }}>
                             <Money value={totalInv} variant="full" />
                           </td>
 
-                          <td style={{ ...td, textAlign: "right", fontWeight: 800 }}>
+                          {/* Current Value */}
+                          <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>
                             <Money value={totalCurr} variant="full" />
                           </td>
 
-                          {/* Portfolio Weight column with allocation bar */}
-                          <td style={{ ...td, textAlign: "right", minWidth: 90 }}>
+                          {/* Portfolio Weight */}
+                          <td style={{ ...tdStyle, textAlign: "right", minWidth: 90 }}>
                             {totalValue > 0 ? (
                               (() => {
                                 const weight = (totalCurr / totalValue) * 100;
                                 return (
-                                  <div
-                                    className="demat-allocation-bar-wrap"
-                                    style={{ justifyContent: "flex-end" }}
-                                  >
-                                    <span
-                                      style={{
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        color: THEME.muted,
-                                        minWidth: 36,
-                                        textAlign: "right",
-                                      }}
-                                    >
+                                  <div className="demat-allocation-bar-wrap" style={{ justifyContent: "flex-end" }}>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
                                       {weight.toFixed(1)}%
                                     </span>
-                                    <div
-                                      className="demat-allocation-bar-track"
-                                      style={{ width: 52 }}
-                                    >
+                                    <div className="demat-allocation-bar-track" style={{ width: 44 }}>
                                       <div
                                         className="demat-allocation-bar-fill"
                                         style={{ width: `${Math.min(100, weight)}%` }}
@@ -3022,7 +2350,8 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             )}
                           </td>
 
-                          <td style={{ ...td, textAlign: "right" }}>
+                          {/* Day's P&L */}
+                          <td style={{ ...tdStyle, textAlign: "right" }}>
                             {isLive ? (
                               <>
                                 <div
@@ -3036,10 +2365,9 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                 </div>
                                 <div
                                   style={{
-                                    fontSize: 11,
+                                    fontSize: 10,
                                     fontWeight: 700,
                                     color: totalQty * changeAmt >= 0 ? THEME.sage : THEME.rust,
-                                    marginTop: 1,
                                   }}
                                 >
                                   {changePct >= 0 ? "+" : "−"}{Math.abs(changePct).toFixed(2)}%
@@ -3050,10 +2378,11 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             )}
                           </td>
 
-                          <td style={{ ...td, textAlign: "right", paddingRight: 20 }}>
+                          {/* Total Return */}
+                          <td style={{ ...tdStyle, textAlign: "right", paddingRight: 20 }}>
                             <div
                               style={{
-                                fontWeight: 800,
+                                fontWeight: 850,
                                 color: totalPnl >= 0 ? THEME.sage : THEME.rust,
                               }}
                             >
@@ -3063,104 +2392,51 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                             <div
                               style={{
                                 fontSize: 11,
-                                fontWeight: 700,
+                                fontWeight: 800,
                                 color: totalPnl >= 0 ? THEME.sage : THEME.rust,
-                                marginTop: 1,
                               }}
                             >
                               {totalPnlPct >= 0 ? "+" : "−"}{Math.abs(totalPnlPct).toFixed(2)}%
                             </div>
-                            {stockXirr !== null && (
-                              <div
-                                style={{
-                                  fontSize: 10,
-                                  fontWeight: 800,
-                                  color: stockXirr >= 0 ? THEME.sage : THEME.rust,
-                                  marginTop: 2,
-                                }}
-                              >
-                                {stockXirr >= 0 ? "+" : ""}
-                                {stockXirr.toFixed(2)}% XIRR
-                              </div>
-                            )}
                           </td>
                         </tr>
 
-                        {/* Collapsible detail drawer row */}
+                        {/* ── EXPANDABLE LOT & INTELLIGENCE DRAWER ── */}
                         {isExpanded && (
                           <tr
                             className="demat-drawer-row"
                             style={{
-                              background: `linear-gradient(180deg, color-mix(in srgb, ${THEME.accent} 4%, transparent) 0%, var(--t-card-bg) 100%)`,
+                              background: `linear-gradient(180deg, color-mix(in srgb, ${THEME.accent} 4%, var(--surface-0)) 0%, var(--surface-0) 100%)`,
                             }}
                           >
-                            <td
-                              colSpan={9}
-                              style={{
-                                padding: "24px 28px",
-                                borderBottom: `1.5px solid ${THEME.line}`,
-                              }}
-                            >
-                              <div
-                                className="demat-drawer-content"
-                                style={{ display: "flex", gap: 32, flexWrap: "wrap" }}
-                              >
-                                {/* Left Panel: Price chart with period selector */}
+                            <td colSpan={10} style={{ padding: "20px 24px", borderBottom: `1.5px solid ${THEME.line}` }}>
+                              <div className="demat-drawer-content" style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+                                {/* Chart Left Panel */}
                                 {isLive && (
                                   <div style={{ flex: "1 1 300px", minWidth: 280 }}>
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between",
-                                        marginBottom: 12,
-                                        flexWrap: "wrap",
-                                        gap: 6,
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          alignItems: "baseline",
-                                          gap: 8,
-                                          flexWrap: "wrap",
-                                        }}
-                                      >
-                                        <div
-                                          style={{
-                                            fontSize: 11,
-                                            color: THEME.muted,
-                                            fontWeight: 700,
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                          }}
-                                        >
-                                          {activePeriod === "1d" && chartDate
-                                            ? `Intraday — ${chartDate}`
-                                            : `${CHART_PERIOD_LABELS[activePeriod]} Chart`}
-                                        </div>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                                      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                                        <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 800, textTransform: "uppercase" }}>
+                                          {activePeriod === "1d" && chartDate ? `Intraday · ${chartDate}` : `${CHART_PERIOD_LABELS[activePeriod]} Performance`}
+                                        </span>
                                         {periodChange && (
-                                          <div
+                                          <span
                                             style={{
-                                              fontSize: 12,
+                                              fontSize: 11,
                                               fontWeight: 800,
-                                              color:
-                                                periodChange.amount >= 0 ? THEME.sage : THEME.rust,
+                                              color: periodChange.amount >= 0 ? THEME.sage : THEME.rust,
                                             }}
                                           >
-                                            {periodChange.amount >= 0 ? "+" : "-"}₹
-                                            {Math.abs(periodChange.amount).toFixed(2)} (
-                                            {periodChange.amount >= 0 ? "+" : "-"}
-                                            {Math.abs(periodChange.pct).toFixed(2)}%)
-                                          </div>
+                                            {periodChange.amount >= 0 ? "+" : "-"}₹{Math.abs(periodChange.amount).toFixed(2)} ({periodChange.pct.toFixed(2)}%)
+                                          </span>
                                         )}
                                       </div>
 
-                                      {/* Segmented Period Selector */}
+                                      {/* Chart Period Selector */}
                                       <div
                                         style={{
                                           display: "flex",
-                                          background: "var(--t-line)",
+                                          background: "var(--surface-1)",
                                           padding: 2,
                                           borderRadius: 8,
                                           border: `1px solid ${THEME.line}`,
@@ -3175,23 +2451,14 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                               fetchChart(yfSym, p);
                                             }}
                                             style={{
-                                              padding: "4px 8px",
+                                              padding: "3px 7px",
                                               fontSize: 9,
                                               fontWeight: activePeriod === p ? 850 : 600,
                                               border: "none",
                                               borderRadius: 6,
                                               cursor: "pointer",
-                                              background:
-                                                activePeriod === p
-                                                  ? "var(--t-card-bg)"
-                                                  : "transparent",
-                                              color:
-                                                activePeriod === p ? THEME.accent : THEME.muted,
-                                              boxShadow:
-                                                activePeriod === p
-                                                  ? `0 1px 3px color-mix(in srgb, ${THEME.ink} 16%, transparent)`
-                                                  : "none",
-                                              transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                                              background: activePeriod === p ? "var(--surface-0)" : "transparent",
+                                              color: activePeriod === p ? THEME.accent : THEME.muted,
                                             }}
                                           >
                                             {CHART_PERIOD_LABELS[p]}
@@ -3200,825 +2467,226 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                       </div>
                                     </div>
 
+                                    {/* Chart SVG */}
                                     <div
                                       style={{
-                                        background: "var(--t-card-bg)",
-                                        border: `1.5px solid ${THEME.line}`,
+                                        background: "var(--surface-1)",
                                         borderRadius: 12,
-                                        padding: "16px 14px",
-                                        boxSizing: "border-box",
+                                        border: `1px solid ${THEME.line}`,
+                                        padding: "12px 10px",
+                                        height: 140,
                                       }}
                                     >
                                       {charts && charts.length > 2 ? (
-                                        <>
-                                          <div
-                                            style={{
-                                              width: "100%",
-                                              height: 150,
-                                              position: "relative",
-                                            }}
-                                          >
-                                            <ResponsiveContainer
-                                              width="100%"
-                                              height="100%"
-                                              minWidth={0}
-                                            >
-                                              <AreaChart
-                                                data={charts}
-                                                margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-                                              >
-                                                <defs>
-                                                  <linearGradient
-                                                    id={`ig-${base}`}
-                                                    x1="0"
-                                                    y1="0"
-                                                    x2="0"
-                                                    y2="1"
-                                                  >
-                                                    <stop
-                                                      offset="5%"
-                                                      stopColor={
-                                                        chartChangeAmt >= 0
-                                                          ? THEME.sage
-                                                          : THEME.rust
-                                                      }
-                                                      stopOpacity={0.3}
-                                                    />
-                                                    <stop
-                                                      offset="95%"
-                                                      stopColor={
-                                                        chartChangeAmt >= 0
-                                                          ? THEME.sage
-                                                          : THEME.rust
-                                                      }
-                                                      stopOpacity={0.01}
-                                                    />
-                                                  </linearGradient>
-                                                </defs>
-                                                <XAxis
-                                                  dataKey="t"
-                                                  tick={{ fontSize: 9, fill: "var(--t-muted)" }}
-                                                  interval="preserveStartEnd"
-                                                  axisLine={false}
-                                                  tickLine={false}
-                                                />
-                                                <YAxis hide domain={["auto", "auto"]} />
-                                                <Tooltip
-                                                  cursor={{ stroke: THEME.line }}
-                                                  contentStyle={{
-                                                    fontSize: 11,
-                                                    background:
-                                                      "rgba(var(--t-card-bg-rgb, 255, 255, 255), 0.8)",
-                                                    backdropFilter: "blur(12px)",
-                                                    WebkitBackdropFilter: "blur(12px)",
-                                                    border: `1.5px solid ${THEME.line}`,
-                                                    borderRadius: 10,
-                                                    color: THEME.ink,
-                                                    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)",
-                                                  }}
-                                                  labelStyle={{ color: THEME.ink }}
-                                                  itemStyle={{ color: THEME.ink }}
-                                                  formatter={(v: any) => [
-                                                    privacyMode
-                                                      ? "••••"
-                                                      : `₹${Number(v).toFixed(2)}`,
-                                                    "Price",
-                                                  ]}
-                                                />
-                                                <Area
-                                                  type="monotone"
-                                                  dataKey="p"
-                                                  stroke={
-                                                    chartChangeAmt >= 0 ? THEME.sage : THEME.rust
-                                                  }
-                                                  strokeWidth={1.5}
-                                                  fill={`url(#ig-${base})`}
-                                                  dot={false}
-                                                />
-                                              </AreaChart>
-                                            </ResponsiveContainer>
-                                          </div>
-                                          <div
-                                            style={{
-                                              display: "flex",
-                                              flexWrap: "wrap",
-                                              gap: "10px 16px",
-                                              marginTop: 14,
-                                              fontSize: 12,
-                                              borderTop: `1px solid ${THEME.line}`,
-                                              paddingTop: 12,
-                                            }}
-                                          >
-                                            {md.prevClose != null && (
-                                              <span>
-                                                <span style={{ color: THEME.muted }}>
-                                                  Prev Close:{" "}
-                                                </span>
-                                                <b style={{ fontVariantNumeric: "tabular-nums" }}>
-                                                  <Prv>₹{md.prevClose.toFixed(2)}</Prv>
-                                                </b>
-                                              </span>
-                                            )}
-                                            {md.dayHigh != null && (
-                                              <span>
-                                                <span style={{ color: THEME.muted }}>
-                                                  Day High/Low:{" "}
-                                                </span>
-                                                <b
-                                                  style={{
-                                                    color: THEME.sage,
-                                                    fontVariantNumeric: "tabular-nums",
-                                                  }}
-                                                >
-                                                  <Prv>₹{md.dayHigh.toFixed(2)}</Prv>
-                                                </b>{" "}
-                                                /{" "}
-                                                <b
-                                                  style={{
-                                                    color: THEME.rust,
-                                                    fontVariantNumeric: "tabular-nums",
-                                                  }}
-                                                >
-                                                  {md.dayLow != null ? (
-                                                    <Prv>₹{md.dayLow.toFixed(2)}</Prv>
-                                                  ) : (
-                                                    "—"
-                                                  )}
-                                                </b>
-                                              </span>
-                                            )}
-                                            {md.weekHigh52 != null && (
-                                              <span>
-                                                <span style={{ color: THEME.muted }}>
-                                                  52W H/L:{" "}
-                                                </span>
-                                                <b
-                                                  style={{
-                                                    color: THEME.sage,
-                                                    fontVariantNumeric: "tabular-nums",
-                                                  }}
-                                                >
-                                                  <Prv>₹{md.weekHigh52.toFixed(2)}</Prv>
-                                                </b>{" "}
-                                                /{" "}
-                                                <b
-                                                  style={{
-                                                    color: THEME.rust,
-                                                    fontVariantNumeric: "tabular-nums",
-                                                  }}
-                                                >
-                                                  {md.weekLow52 != null ? (
-                                                    <Prv>₹{md.weekLow52.toFixed(2)}</Prv>
-                                                  ) : (
-                                                    "—"
-                                                  )}
-                                                </b>
-                                              </span>
-                                            )}
-                                            {md.volume != null && (
-                                              <span>
-                                                <span style={{ color: THEME.muted }}>Volume: </span>
-                                                <b style={{ fontVariantNumeric: "tabular-nums" }}>
-                                                  {fmtVol(md.volume)}
-                                                </b>
-                                              </span>
-                                            )}
-                                          </div>
-                                        </>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                          <AreaChart data={charts} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                                            <defs>
+                                              <linearGradient id={`ig-${base}`} x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor={chartChangeAmt >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor={chartChangeAmt >= 0 ? THEME.sage : THEME.rust} stopOpacity={0.01} />
+                                              </linearGradient>
+                                            </defs>
+                                            <XAxis dataKey="t" tick={{ fontSize: 9, fill: "var(--t-muted)" }} axisLine={false} tickLine={false} />
+                                            <YAxis hide domain={["auto", "auto"]} />
+                                            <Tooltip
+                                              contentStyle={{
+                                                fontSize: 11,
+                                                background: "var(--surface-0)",
+                                                border: `1px solid ${THEME.line}`,
+                                                borderRadius: 8,
+                                                color: THEME.ink,
+                                              }}
+                                              formatter={(v: any) => [privacyMode ? "••••" : `₹${Number(v).toFixed(2)}`, "Price"]}
+                                            />
+                                            <Area
+                                              type="monotone"
+                                              dataKey="p"
+                                              stroke={chartChangeAmt >= 0 ? THEME.sage : THEME.rust}
+                                              strokeWidth={1.5}
+                                              fill={`url(#ig-${base})`}
+                                              dot={false}
+                                            />
+                                          </AreaChart>
+                                        </ResponsiveContainer>
                                       ) : (
-                                        <div
-                                          style={{
-                                            height: 150,
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                          }}
-                                        >
-                                          <span style={{ color: THEME.muted, fontSize: 12 }}>
-                                            {fetchingChart === yfSym
-                                              ? "Loading chart…"
-                                              : "No chart data available"}
-                                          </span>
+                                        <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 12 }}>
+                                          {fetchingChart === yfSym ? "Loading price chart…" : "No intraday chart available"}
                                         </div>
                                       )}
                                     </div>
                                   </div>
                                 )}
 
-                                {/* Right Panel: Buy lots detail & actions */}
-                                <div style={{ flex: "1.2 1 450px", minWidth: 320 }}>
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 8,
-                                      marginBottom: 10,
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        fontSize: 11,
-                                        color: THEME.muted,
-                                        fontWeight: 700,
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.05em",
-                                      }}
-                                    >
-                                      Holdings Lot Breakdown
-                                    </span>
-                                    <span
-                                      style={{
-                                        fontSize: 10,
-                                        fontWeight: 800,
-                                        background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                                        color: THEME.accent,
-                                        padding: "1px 8px",
-                                        borderRadius: "var(--radius-xs)",
-                                        border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
-                                      }}
-                                    >
-                                      {lots.length} {lots.length === 1 ? "lot" : "lots"}
-                                    </span>
-                                  </div>
-                                  <table
-                                    style={{
-                                      width: "100%",
-                                      borderCollapse: "collapse",
-                                      fontSize: 12,
-                                    }}
-                                  >
-                                    <thead>
-                                      <tr style={{ background: "var(--surface-0)" }}>
-                                        <th
-                                          style={{
-                                            ...th,
-                                            background: "transparent",
-                                            borderBottom: `1.5px solid ${THEME.line}`,
-                                            padding: "8px 8px",
-                                          }}
-                                        >
-                                          Broker
-                                        </th>
-                                        <th
-                                          style={{
-                                            ...th,
-                                            background: "transparent",
-                                            borderBottom: `1.5px solid ${THEME.line}`,
-                                            padding: "8px 8px",
-                                            textAlign: "right",
-                                          }}
-                                        >
-                                          Qty
-                                        </th>
-                                        <th
-                                          style={{
-                                            ...th,
-                                            background: "transparent",
-                                            borderBottom: `1.5px solid ${THEME.line}`,
-                                            padding: "8px 8px",
-                                            textAlign: "right",
-                                          }}
-                                        >
-                                          Buy Price
-                                        </th>
-                                        <th
-                                          style={{
-                                            ...th,
-                                            background: "transparent",
-                                            borderBottom: `1.5px solid ${THEME.line}`,
-                                            padding: "8px 8px",
-                                            textAlign: "right",
-                                            cursor: "pointer",
-                                            userSelect: "none",
-                                            color: THEME.accent,
-                                          }}
-                                          onClick={() =>
-                                            setLotSortDir((prev) => ({
-                                              ...prev,
-                                              [yfSym]:
-                                                (prev[yfSym] ?? "asc") === "asc" ? "desc" : "asc",
-                                            }))
-                                          }
-                                        >
-                                          <span
-                                            style={{
-                                              display: "inline-flex",
-                                              alignItems: "center",
-                                              gap: 3,
-                                            }}
-                                          >
-                                            Period{" "}
-                                            {(lotSortDir[yfSym] ?? "asc") === "asc" ? (
-                                              <ChevronUp size={9} />
-                                            ) : (
-                                              <ChevronDown size={9} />
-                                            )}
-                                          </span>
-                                        </th>
-                                        <th
-                                          style={{
-                                            ...th,
-                                            background: "transparent",
-                                            borderBottom: `1.5px solid ${THEME.line}`,
-                                            padding: "8px 8px",
-                                            textAlign: "right",
-                                          }}
-                                        >
-                                          Return
-                                        </th>
-                                        <th
-                                          style={{
-                                            ...th,
-                                            background: "transparent",
-                                            borderBottom: `1.5px solid ${THEME.line}`,
-                                            padding: "8px 8px",
-                                            textAlign: "right",
-                                          }}
-                                        >
-                                          Value
-                                        </th>
-                                        <th
-                                          style={{
-                                            ...th,
-                                            background: "transparent",
-                                            borderBottom: `1.5px solid ${THEME.line}`,
-                                            padding: "8px 8px",
-                                          }}
-                                        ></th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {[...lots]
-                                        .sort((a: any, b: any) => {
-                                          const da = a.buyDate ? new Date(a.buyDate).getTime() : 0;
-                                          const db = b.buyDate ? new Date(b.buyDate).getTime() : 0;
-                                          return (lotSortDir[yfSym] ?? "asc") === "asc"
-                                            ? da - db
-                                            : db - da;
-                                        })
-                                        .map((lot: any) => {
-                                          const lInv = Number(lot.qty) * Number(lot.avgPrice);
-                                          const lCurr = Number(lot.qty) * currentPrice;
-                                          const lPnl = lCurr - lInv;
-                                          const lPnlPct = lInv ? (lPnl / lInv) * 100 : 0;
-                                          const demat = state.demat.find(
-                                            (d: any) => d.id === lot.dematId
-                                          );
-                                          const theme = getBrokerTheme(demat?.broker || "");
-
-                                          return (
-                                            <tr
-                                              key={lot.id}
-                                              style={{
-                                                background: "transparent",
-                                                borderBottom: `1px dashed ${`color-mix(in srgb, ${THEME.line} 50%, transparent)`}`,
-                                              }}
-                                            >
-                                              <td
-                                                style={{
-                                                  ...td,
-                                                  padding: "10px 8px",
-                                                }}
-                                              >
-                                                <div
-                                                  style={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    gap: 6,
-                                                  }}
-                                                >
-                                                  <BrokerLogo
-                                                    broker={demat?.broker || "?"}
-                                                    theme={theme}
-                                                    size={20}
-                                                    borderRadius={5}
-                                                  />
-                                                  <span
-                                                    style={{ fontWeight: 700, color: THEME.ink }}
-                                                  >
-                                                    {demat?.broker || "Direct"}
-                                                  </span>
-                                                </div>
-                                              </td>
-                                              <td
-                                                style={{
-                                                  ...td,
-                                                  padding: "10px 8px",
-                                                  textAlign: "right",
-                                                  fontWeight: 700,
-                                                  fontVariantNumeric: "tabular-nums",
-                                                }}
-                                              >
-                                                {lot.qty}
-                                              </td>
-                                              <td
-                                                style={{
-                                                  ...td,
-                                                  padding: "10px 8px",
-                                                  textAlign: "right",
-                                                  fontWeight: 600,
-                                                  fontVariantNumeric: "tabular-nums",
-                                                }}
-                                              >
-                                                <Prv>
-                                                  ₹
-                                                  {Number(lot.avgPrice).toLocaleString("en-IN", {
-                                                    minimumFractionDigits: 2,
-                                                  })}
-                                                </Prv>
-                                              </td>
-                                              <td
-                                                style={{
-                                                  ...td,
-                                                  padding: "10px 8px",
-                                                  textAlign: "right",
-                                                }}
-                                              >
-                                                <div
-                                                  style={{
-                                                    fontWeight: 600,
-                                                    fontVariantNumeric: "tabular-nums",
-                                                  }}
-                                                >
-                                                  {lot.buyDate
-                                                    ? new Date(lot.buyDate).toLocaleDateString(
-                                                        "en-IN",
-                                                        {
-                                                          day: "2-digit",
-                                                          month: "short",
-                                                          year: "numeric",
-                                                        }
-                                                      )
-                                                    : "—"}
-                                                </div>
-                                                {lot.buyDate &&
-                                                  (() => {
-                                                    const diff =
-                                                      new Date().getTime() -
-                                                      new Date(lot.buyDate).getTime();
-                                                    const days = Math.floor(
-                                                      diff / (1000 * 60 * 60 * 24)
-                                                    );
-                                                    // Anniversary-date-aware (Section 2(42A)), same rule as
-                                                    // CapitalGainsTab.isLongTerm — a naive "> 365 days" check
-                                                    // disagreed with the actual tax report near month/leap-year
-                                                    // boundaries.
-                                                    const isLTCG = isLongTerm(
-                                                      lot.buyDate,
-                                                      today(),
-                                                      12
-                                                    );
-                                                    return (
-                                                      <span
-                                                        style={{
-                                                          marginTop: 3,
-                                                          display: "inline-block",
-                                                          fontSize: 9,
-                                                          fontWeight: 850,
-                                                          padding: "1px 6px",
-                                                          borderRadius: 4,
-                                                          background: isLTCG
-                                                            ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
-                                                            : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
-                                                          color: isLTCG ? THEME.sage : THEME.gold,
-                                                          border: `1px solid ${isLTCG ? `color-mix(in srgb, ${THEME.sage} 13%, transparent)` : `color-mix(in srgb, ${THEME.gold} 13%, transparent)`}`,
-                                                        }}
-                                                      >
-                                                        {isLTCG
-                                                          ? `LTCG · ${(days / 365).toFixed(1)}y`
-                                                          : `STCG · ${days}d`}
-                                                      </span>
-                                                    );
-                                                  })()}
-                                              </td>
-                                              <td
-                                                style={{
-                                                  ...td,
-                                                  padding: "10px 8px",
-                                                  textAlign: "right",
-                                                }}
-                                              >
-                                                <div
-                                                  style={{
-                                                    color: lPnl >= 0 ? THEME.sage : THEME.rust,
-                                                    fontWeight: 800,
-                                                  }}
-                                                >
-                                                  {lPnl >= 0 ? "+" : ""}
-                                                  {Math.round(lPnlPct)}%
-                                                </div>
-                                                <div
-                                                  style={{
-                                                    fontSize: 10,
-                                                    color: lPnl >= 0 ? THEME.sage : THEME.rust,
-                                                    fontWeight: 600,
-                                                    fontVariantNumeric: "tabular-nums",
-                                                  }}
-                                                >
-                                                  {lPnl >= 0 ? "+" : ""}
-                                                  <Money value={lPnl} variant="full" />
-                                                </div>
-                                                {lot.buyDate &&
-                                                  (() => {
-                                                    const cagr = calcCAGR(lInv, lCurr, lot.buyDate);
-                                                    return cagr !== null ? (
-                                                      <div
-                                                        style={{
-                                                          fontSize: 9,
-                                                          color:
-                                                            cagr >= 15
-                                                              ? THEME.sage
-                                                              : cagr >= 8
-                                                                ? THEME.gold
-                                                                : THEME.rust,
-                                                          fontWeight: 800,
-                                                          marginTop: 2,
-                                                        }}
-                                                      >
-                                                        {cagr.toFixed(0)}% CAGR
-                                                      </div>
-                                                    ) : null;
-                                                  })()}
-                                              </td>
-                                              <td
-                                                style={{
-                                                  ...td,
-                                                  padding: "10px 8px",
-                                                  textAlign: "right",
-                                                  fontWeight: 800,
-                                                  fontVariantNumeric: "tabular-nums",
-                                                }}
-                                              >
-                                                <Money value={lCurr} variant="full" />
-                                              </td>
-                                              <td
-                                                style={{
-                                                  ...td,
-                                                  padding: "10px 8px",
-                                                }}
-                                              >
-                                                <div
-                                                  style={{
-                                                    display: "flex",
-                                                    gap: 4,
-                                                    justifyContent: "flex-end",
-                                                  }}
-                                                >
-                                                  <button
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setSellLot({
-                                                        ...lot,
-                                                        base,
-                                                        exchange,
-                                                        currentPrice,
-                                                        broker: demat?.broker || "",
-                                                      });
-                                                    }}
-                                                    className="icon-btn danger"
-                                                    style={{ ...iconBtn, padding: 5 }}
-                                                    title="Sell Shares"
-                                                  >
-                                                    <ArrowLeftRight size={12} />
-                                                  </button>
-                                                  <button
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setEditStockId(lot.id);
-                                                    }}
-                                                    className="icon-btn"
-                                                    style={{ ...iconBtn, padding: 5 }}
-                                                    title="Edit lot"
-                                                  >
-                                                    <Pencil size={12} />
-                                                  </button>
-                                                  <button
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setConfirmAction({
-                                                        message: `Delete this ${base} lot (${lot.qty} shares)? This cannot be undone.`,
-                                                        onConfirm: () => removeItem("stocks", lot.id),
-                                                      });
-                                                    }}
-                                                    className="icon-btn danger"
-                                                    style={{ ...iconBtn, padding: 5 }}
-                                                    title="Delete lot"
-                                                  >
-                                                    <Trash2 size={12} />
-                                                  </button>
-                                                </div>
-                                              </td>
-                                            </tr>
-                                          );
-                                        })}
-                                    </tbody>
-                                    <tfoot>
-                                      <tr style={{ background: "var(--surface-0)" }}>
-                                        <td
-                                          colSpan={2}
-                                          style={{
-                                            padding: "10px 8px",
-                                            borderTop: `1.5px solid ${THEME.line}`,
-                                            fontSize: 11,
-                                            fontWeight: 800,
-                                            color: THEME.muted,
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.04em",
-                                          }}
-                                        >
-                                          Total · {totalQty} shares
-                                        </td>
-                                        <td
-                                          style={{
-                                            padding: "10px 8px",
-                                            borderTop: `1.5px solid ${THEME.line}`,
-                                            textAlign: "right",
-                                            fontWeight: 700,
-                                            fontSize: 12,
-                                            color: THEME.ink,
-                                            fontVariantNumeric: "tabular-nums",
-                                          }}
-                                        >
-                                          <Prv>
-                                            ₹
-                                            {Number(
-                                              totalQty > 0 ? totalInv / totalQty : 0
-                                            ).toLocaleString("en-IN", {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            })}
-                                          </Prv>
-                                        </td>
-                                        <td style={{ borderTop: `1.5px solid ${THEME.line}` }} />
-                                        <td
-                                          style={{
-                                            padding: "10px 8px",
-                                            borderTop: `1.5px solid ${THEME.line}`,
-                                            textAlign: "right",
-                                          }}
-                                        >
-                                          <div
-                                            style={{
-                                              fontWeight: 800,
-                                              color: totalPnl >= 0 ? THEME.sage : THEME.rust,
-                                            }}
-                                          >
-                                            {totalPnl >= 0 ? "+" : ""}
-                                            {totalInv ? Math.round((totalPnl / totalInv) * 100) : 0}
-                                            %
-                                          </div>
-                                          <div
-                                            style={{
-                                              fontSize: 10,
-                                              color: totalPnl >= 0 ? THEME.sage : THEME.rust,
-                                              fontWeight: 600,
-                                              fontVariantNumeric: "tabular-nums",
-                                            }}
-                                          >
-                                            {totalPnl >= 0 ? "+" : ""}
-                                            <Money value={totalPnl} variant="full" />
-                                          </div>
-                                        </td>
-                                        <td
-                                          style={{
-                                            padding: "10px 8px",
-                                            borderTop: `1.5px solid ${THEME.line}`,
-                                            textAlign: "right",
-                                            fontWeight: 850,
-                                            fontSize: 12,
-                                            color: THEME.ink,
-                                            fontVariantNumeric: "tabular-nums",
-                                          }}
-                                        >
-                                          <Money value={totalCurr} variant="full" />
-                                        </td>
-                                        <td style={{ borderTop: `1.5px solid ${THEME.line}` }} />
-                                      </tr>
-                                    </tfoot>
-                                  </table>
-
-                                  {/* Corporate Actions History inside Drawer */}
-                                  {(() => {
-                                    const baseSym = base.trim().toLowerCase();
-                                    const caHistory = (state.corporateActions || []).filter(
-                                      (a: any) =>
-                                        (a.symbol || "").trim().toLowerCase() === baseSym &&
-                                        (a.exchange || "NSE").trim().toUpperCase() ===
-                                          exchange.trim().toUpperCase()
-                                    );
-                                    if (caHistory.length === 0) return null;
-
-                                    return (
-                                      <div
+                                {/* Lots Detail Table Right Panel */}
+                                <div style={{ flex: "1.3 1 420px", minWidth: 320 }}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                      <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 800, textTransform: "uppercase" }}>
+                                        Purchase Lots &amp; Tax Status
+                                      </span>
+                                      <span
                                         style={{
-                                          marginTop: 16,
-                                          borderTop: `1.5px solid ${THEME.line}`,
-                                          paddingTop: 12,
+                                          fontSize: 10,
+                                          fontWeight: 800,
+                                          background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                                          color: THEME.accent,
+                                          padding: "1px 7px",
+                                          borderRadius: 4,
                                         }}
                                       >
-                                        <div
-                                          style={{
-                                            fontSize: 11,
-                                            color: THEME.muted,
-                                            fontWeight: 800,
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.05em",
-                                            marginBottom: 8,
-                                          }}
-                                        >
-                                          Corporate Actions History
-                                        </div>
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            gap: 6,
-                                          }}
-                                        >
-                                          {caHistory.map((a: any) => (
-                                            <div
-                                              key={a.id}
-                                              style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                flexWrap: "wrap",
-                                                gap: 6,
-                                                fontSize: 12,
-                                              }}
-                                            >
-                                              <span
-                                                style={{
-                                                  padding: "2px 8px",
-                                                  borderRadius: 6,
-                                                  fontWeight: 850,
-                                                  fontSize: 9,
-                                                  background:
-                                                    a.actionType === "split"
-                                                      ? `color-mix(in srgb, ${THEME.gold} 12%, transparent)`
-                                                      : `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                                                  color:
-                                                    a.actionType === "split"
-                                                      ? THEME.gold
-                                                      : THEME.sage,
-                                                  border: `1px solid ${
-                                                    a.actionType === "split"
-                                                      ? `color-mix(in srgb, ${THEME.gold} 13%, transparent)`
-                                                      : `color-mix(in srgb, ${THEME.sage} 13%, transparent)`
-                                                  }`,
-                                                }}
-                                              >
-                                                {a.actionType === "split" ? "SPLIT" : "BONUS"}{" "}
-                                                {a.ratioN}:{a.ratioM}
-                                              </span>
-                                              <span
-                                                style={{
-                                                  color: THEME.muted,
-                                                  fontVariantNumeric: "tabular-nums",
-                                                }}
-                                              >
-                                                {a.actionDate
-                                                  ? new Date(a.actionDate).toLocaleDateString(
-                                                      "en-IN",
-                                                      { day: "2-digit", month: "short" }
-                                                    )
-                                                  : "—"}
-                                              </span>
-                                              <span style={{ color: THEME.line }}>·</span>
-                                              <span style={{ color: THEME.muted }}>
-                                                Qty {a.oldQty} →{" "}
-                                                <b style={{ color: THEME.ink }}>{a.newQty}</b>
-                                              </span>
-                                              <span style={{ color: THEME.line }}>·</span>
-                                              <span style={{ color: THEME.muted }}>
-                                                <Prv>
-                                                  Avg ₹{Number(a.oldAvgPrice).toFixed(1)} →{" "}
-                                                  <b style={{ color: THEME.ink }}>
-                                                    ₹{Number(a.newAvgPrice).toFixed(1)}
-                                                  </b>
-                                                </Prv>
-                                              </span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
+                                        {lots.length} {lots.length === 1 ? "lot" : "lots"}
+                                      </span>
+                                    </div>
 
-                                  {/* Nested bottom action buttons */}
-                                  <div
-                                    style={{
-                                      marginTop: 14,
-                                      display: "flex",
-                                      gap: 8,
-                                      flexWrap: "wrap",
-                                      borderTop: `1px solid ${THEME.line}`,
-                                      paddingTop: 12,
-                                    }}
-                                  >
+                                    <button
+                                      onClick={() =>
+                                        setLotSortDir((prev) => ({
+                                          ...prev,
+                                          [yfSym]: (prev[yfSym] ?? "asc") === "asc" ? "desc" : "asc",
+                                        }))
+                                      }
+                                      style={{
+                                        background: "transparent",
+                                        border: "none",
+                                        fontSize: 11,
+                                        color: THEME.accent,
+                                        cursor: "pointer",
+                                        fontWeight: 700,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 2,
+                                      }}
+                                    >
+                                      Date {(lotSortDir[yfSym] ?? "asc") === "asc" ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                    </button>
+                                  </div>
+
+                                  <div style={{ border: `1px solid ${THEME.line}`, borderRadius: 10, overflow: "hidden", background: "var(--surface-0)" }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                                      <thead>
+                                        <tr style={{ background: "var(--surface-1)" }}>
+                                          <th style={{ ...thStyle, padding: "8px 10px" }}>Broker</th>
+                                          <th style={{ ...thStyle, padding: "8px 10px", textAlign: "right" }}>Qty</th>
+                                          <th style={{ ...thStyle, padding: "8px 10px", textAlign: "right" }}>Buy Price</th>
+                                          <th style={{ ...thStyle, padding: "8px 10px", textAlign: "right" }}>Tax Status</th>
+                                          <th style={{ ...thStyle, padding: "8px 10px", textAlign: "right" }}>Return</th>
+                                          <th style={{ ...thStyle, padding: "8px 10px", textAlign: "right" }}>Value</th>
+                                          <th style={{ ...thStyle, padding: "8px 10px", width: 80 }}></th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {[...lots]
+                                          .sort((a: any, b: any) => {
+                                            const da = a.buyDate ? new Date(a.buyDate).getTime() : 0;
+                                            const db = b.buyDate ? new Date(b.buyDate).getTime() : 0;
+                                            return (lotSortDir[yfSym] ?? "asc") === "asc" ? da - db : db - da;
+                                          })
+                                          .map((lot: any) => {
+                                            const lInv = Number(lot.qty || 0) * Number(lot.avgPrice || 0);
+                                            const lCurr = Number(lot.qty || 0) * currentPrice;
+                                            const lPnl = lCurr - lInv;
+                                            const lPnlPct = lInv ? (lPnl / lInv) * 100 : 0;
+                                            const demat = (state.demat || []).find((d: any) => d.id === lot.dematId);
+                                            const theme = getBrokerTheme(demat?.broker || "");
+                                            const isLtcg = lot.buyDate ? isLongTerm(lot.buyDate, today(), 12) : false;
+
+                                            const daysHeld = lot.buyDate
+                                              ? Math.floor((new Date().getTime() - new Date(lot.buyDate).getTime()) / (1000 * 60 * 60 * 24))
+                                              : null;
+
+                                            return (
+                                              <tr key={lot.id} style={{ borderBottom: `1px dashed ${THEME.line}` }}>
+                                                <td style={{ ...tdStyle, padding: "8px 10px" }}>
+                                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                    <BrokerLogo broker={demat?.broker || "?"} theme={theme} size={18} borderRadius={4} />
+                                                    <span style={{ fontWeight: 700, color: THEME.ink }}>
+                                                      {demat?.broker || "Direct"}
+                                                    </span>
+                                                  </div>
+                                                </td>
+                                                <td style={{ ...tdStyle, padding: "8px 10px", textAlign: "right", fontWeight: 700 }}>
+                                                  {lot.qty}
+                                                </td>
+                                                <td style={{ ...tdStyle, padding: "8px 10px", textAlign: "right", fontWeight: 600 }}>
+                                                  <Prv>₹{Number(lot.avgPrice).toFixed(2)}</Prv>
+                                                </td>
+                                                <td style={{ ...tdStyle, padding: "8px 10px", textAlign: "right" }}>
+                                                  {lot.buyDate ? (
+                                                    <span className={isLtcg ? "demat-tax-badge-ltcg" : "demat-tax-badge-stcg"}>
+                                                      <ShieldCheck size={9} />
+                                                      {isLtcg ? `LTCG · ${((daysHeld || 0) / 365).toFixed(1)}y` : `STCG · ${daysHeld}d`}
+                                                    </span>
+                                                  ) : (
+                                                    <span style={{ fontSize: 10, color: THEME.muted }}>—</span>
+                                                  )}
+                                                </td>
+                                                <td style={{ ...tdStyle, padding: "8px 10px", textAlign: "right" }}>
+                                                  <span style={{ fontWeight: 800, color: lPnl >= 0 ? THEME.sage : THEME.rust }}>
+                                                    {lPnl >= 0 ? "+" : ""}{lPnlPct.toFixed(1)}%
+                                                  </span>
+                                                </td>
+                                                <td style={{ ...tdStyle, padding: "8px 10px", textAlign: "right", fontWeight: 700 }}>
+                                                  <Money value={lCurr} variant="full" />
+                                                </td>
+                                                <td style={{ ...tdStyle, padding: "8px 10px", textAlign: "right" }}>
+                                                  <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                                                    <button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSellLot({
+                                                          ...lot,
+                                                          base,
+                                                          exchange,
+                                                          currentPrice,
+                                                          broker: demat?.broker || "",
+                                                        });
+                                                      }}
+                                                      className="icon-btn danger"
+                                                      style={{ padding: 4 }}
+                                                      title="Sell Lot"
+                                                    >
+                                                      <ArrowLeftRight size={11} />
+                                                    </button>
+                                                    <button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditStockId(lot.id);
+                                                      }}
+                                                      className="icon-btn"
+                                                      style={{ padding: 4 }}
+                                                      title="Edit Lot"
+                                                    >
+                                                      <Pencil size={11} />
+                                                    </button>
+                                                    <button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setConfirmAction({
+                                                          message: `Delete this ${base} lot (${lot.qty} shares)?`,
+                                                          onConfirm: () => removeItem("stocks", lot.id),
+                                                        });
+                                                      }}
+                                                      className="icon-btn danger"
+                                                      style={{ padding: 4 }}
+                                                      title="Delete Lot"
+                                                    >
+                                                      <Trash2 size={11} />
+                                                    </button>
+                                                  </div>
+                                                </td>
+                                              </tr>
+                                            );
+                                          })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+
+                                  {/* Quick Actions Footer inside drawer */}
+                                  <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                                     <Button
-                                      variant="ghost"
+                                      variant="secondary"
                                       size="sm"
-                                      icon={<Plus size={11} />}
+                                      icon={<Plus size={12} />}
                                       onClick={(e: React.MouseEvent) => {
                                         e.stopPropagation();
                                         setStockDefaults({
@@ -4029,39 +2697,29 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                                         setShowStock(true);
                                       }}
                                     >
-                                      Add Lot
+                                      Add More Shares
                                     </Button>
                                     <Button
-                                      variant="ghost"
+                                      variant="secondary"
                                       size="sm"
-                                      icon={<ArrowLeftRight size={11} />}
-                                      style={{
-                                        color: THEME.rust,
-                                        borderColor: `color-mix(in srgb, ${THEME.rust} 25%, transparent)`,
-                                        background: `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
-                                      }}
+                                      icon={<ArrowLeftRight size={12} />}
                                       onClick={(e: React.MouseEvent) => {
                                         e.stopPropagation();
                                         setFifoSellGroup({ base, exchange, yfSym, lots });
                                       }}
                                     >
-                                      Sell Shares
+                                      FIFO Sell
                                     </Button>
                                     <Button
-                                      variant="ghost"
+                                      variant="secondary"
                                       size="sm"
-                                      icon={<Scissors size={11} />}
-                                      style={{
-                                        color: THEME.gold,
-                                        borderColor: `color-mix(in srgb, ${THEME.gold} 25%, transparent)`,
-                                        background: `color-mix(in srgb, ${THEME.gold} 4%, transparent)`,
-                                      }}
+                                      icon={<Scissors size={12} />}
                                       onClick={(e: React.MouseEvent) => {
                                         e.stopPropagation();
                                         setSplitBonusGroup({ base, exchange, lots });
                                       }}
                                     >
-                                      Split / Bonus
+                                      Stock Split / Bonus
                                     </Button>
                                   </div>
                                 </div>
@@ -4079,352 +2737,30 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
         </div>
       )}
 
-      {/* ── ANALYTICS VIEW ── */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── VIEW 2: INTELLIGENCE & HEALTH STUDIO ── */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
       {dematView === "analytics" && (
-        <div style={{ width: "100%", marginTop: 24 }}>
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
           {filteredStocks.length === 0 ? (
-            <Card>
-              <EmptyHint text="Add direct stock holdings to view your portfolio health analysis and scores." />
+            <Card style={{ padding: 36, textAlign: "center" }}>
+              <div style={{ color: THEME.muted, fontSize: 13 }}>
+                Add direct stock holdings to view your portfolio health analysis and diagnostics.
+              </div>
             </Card>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              {/* Stat Cards Overview */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                  gap: 16,
-                  marginBottom: 24,
-                }}
-              >
-                {/* Card 1: Portfolio Value */}
-                <Card
-                  hover
-                  style={{
-                    padding: "18px 20px",
-                    borderLeft: `2.5px solid ${THEME.accent}`,
-                    borderRadius: 10,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}
-                    >
-                      <BarChart3 size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: THEME.muted,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                        }}
-                      >
-                        Portfolio Value
-                      </div>
-                      <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                        Current assets valuation
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: 24,
-                        fontWeight: 600,
-                        color: THEME.ink,
-                        letterSpacing: "-0.04em",
-                        fontVariantNumeric: "tabular-nums",
-                        lineHeight: 1,
-                      }}
-                    >
-                      <Money value={animatedTotalValue} variant="full" />
-                    </div>
-                    <div
-                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
-                    >
-                      Invested: <Money value={totalInvested} variant="full" />
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Card 2: Unrealized P&L */}
-                <Card
-                  hover
-                  style={{
-                    padding: "18px 20px",
-                    borderLeft: `2.5px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
-                    borderRadius: 10,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        color: pnl >= 0 ? THEME.sage : THEME.rust,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <TrendingUp size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: THEME.muted,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                        }}
-                      >
-                        Unrealized P&L
-                      </div>
-                      <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                        Total returns value
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: 24,
-                        fontWeight: 600,
-                        color: pnl >= 0 ? THEME.sage : THEME.rust,
-                        letterSpacing: "-0.04em",
-                        fontVariantNumeric: "tabular-nums",
-                        lineHeight: 1,
-                      }}
-                    >
-                      {animatedPnl >= 0 ? "+" : ""}
-                      <Money value={animatedPnl} variant="full" />
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: pnl >= 0 ? THEME.sage : THEME.rust,
-                        fontWeight: 700,
-                        marginTop: 4,
-                      }}
-                    >
-                      {totalInvested
-                        ? `${((pnl / totalInvested) * 100).toFixed(2)}% absolute return`
-                        : "—"}
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Card 3: Net Return */}
-                <Card
-                  hover
-                  style={{
-                    padding: "18px 20px",
-                    borderLeft: `2.5px solid ${pnl >= 0 ? THEME.sage : THEME.rust}`,
-                    borderRadius: 10,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        color: pnl >= 0 ? THEME.sage : THEME.rust,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Percent size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: THEME.muted,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                        }}
-                      >
-                        Net Return
-                      </div>
-                      <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                        Total return rate
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: 24,
-                        fontWeight: 600,
-                        color: pnl >= 0 ? THEME.sage : THEME.rust,
-                        letterSpacing: "-0.04em",
-                        fontVariantNumeric: "tabular-nums",
-                        lineHeight: 1,
-                      }}
-                    >
-                      {totalInvested ? <Prv>{animatedNetReturnPct.toFixed(2) + "%"}</Prv> : "—"}
-                    </div>
-                    <div
-                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
-                    >
-                      Absolute portfolio return
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Card 4: Overall XIRR */}
-                <Card
-                  hover
-                  style={{
-                    padding: "18px 20px",
-                    borderLeft: `2.5px solid ${overallXirr === null ? THEME.muted : overallXirr >= 0 ? THEME.sage : THEME.rust}`,
-                    borderRadius: 10,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        color:
-                          overallXirr === null
-                            ? THEME.muted
-                            : overallXirr >= 0
-                              ? THEME.sage
-                              : THEME.rust,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Percent size={22} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: THEME.muted,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                        }}
-                      >
-                        Overall XIRR
-                      </div>
-                      <div style={{ fontSize: 10, color: THEME.muted, opacity: 0.8, marginTop: 1 }}>
-                        Annualized wealth rate
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: 24,
-                        fontWeight: 600,
-                        color:
-                          overallXirr === null
-                            ? THEME.muted
-                            : overallXirr >= 0
-                              ? THEME.sage
-                              : THEME.rust,
-                        letterSpacing: "-0.04em",
-                        fontVariantNumeric: "tabular-nums",
-                        lineHeight: 1,
-                      }}
-                    >
-                      {overallXirr !== null ? (
-                        <Prv>{`${animatedOverallXirr >= 0 ? "+" : ""}${animatedOverallXirr.toFixed(2)}%`}</Prv>
-                      ) : (
-                        "—"
-                      )}
-                    </div>
-                    <div
-                      style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
-                    >
-                      Annualized rate of return
-                    </div>
-                  </div>
-                </Card>
-              </div>
-
-              {/* Portfolio Health Score Card */}
+            <>
+              {/* Health Score & Diagnostics Card */}
               <Card style={{ padding: 24 }}>
-                <div
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 800,
-                    color: THEME.ink,
-                    borderBottom: `1px solid ${THEME.line}`,
-                    paddingBottom: 10,
-                    marginBottom: 20,
-                  }}
-                >
-                  Portfolio Health Score
+                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10, marginBottom: 20 }}>
+                  Portfolio Health &amp; Risk Intelligence
                 </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                    gap: 24,
-                    alignItems: "center",
-                  }}
-                >
-                  {/* Circular Radial Score Gauge */}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "12px 0",
-                    }}
-                  >
-                    <div
-                      style={{
-                        position: "relative",
-                        width: 140,
-                        height: 140,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <svg
-                        width="140"
-                        height="140"
-                        viewBox="0 0 140 140"
-                        style={{ transform: "rotate(-90deg)" }}
-                      >
-                        {/* Background track circle */}
-                        <circle
-                          cx="70"
-                          cy="70"
-                          r="60"
-                          strokeWidth="10"
-                          fill="transparent"
-                          style={{ stroke: "var(--t-line)" }}
-                        />
-                        {/* Colored progress circle */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, alignItems: "center" }}>
+                  {/* Radial Gauge */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ position: "relative", width: 140, height: 140, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <svg width="140" height="140" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+                        <circle cx="70" cy="70" r="60" strokeWidth="10" fill="transparent" style={{ stroke: "var(--t-line)" }} />
                         <circle
                           cx="70"
                           cy="70"
@@ -4432,134 +2768,59 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                           strokeWidth="10"
                           fill="transparent"
                           strokeDasharray={Math.round(2 * Math.PI * 60)}
-                          strokeDashoffset={Math.round(
-                            2 * Math.PI * 60 * (1 - portfolioScoreData.overall / 100)
-                          )}
+                          strokeDashoffset={Math.round(2 * Math.PI * 60 * (1 - portfolioScoreData.overall / 100))}
                           strokeLinecap="round"
-                          style={{
-                            stroke: portfolioScoreData.statusColor,
-                            transition: "stroke-dashoffset 0.8s ease-in-out",
-                          }}
+                          style={{ stroke: portfolioScoreData.statusColor, transition: "stroke-dashoffset 0.8s ease-in-out" }}
                         />
                       </svg>
-                      {/* Central label */}
                       <div style={{ position: "absolute", textAlign: "center" }}>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: 32,
-                            fontWeight: 600,
-                            color: THEME.ink,
-                            lineHeight: 1,
-                          }}
-                        >
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 700, color: THEME.ink, lineHeight: 1 }}>
                           {portfolioScoreData.overall}
                         </div>
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: THEME.muted,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            marginTop: 2,
-                          }}
-                        >
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", marginTop: 3 }}>
                           out of 100
                         </div>
                       </div>
                     </div>
-
-                    {/* Score status badge */}
                     <div
                       style={{
-                        marginTop: 16,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        background: `color-mix(in srgb, ${portfolioScoreData.statusColor} 15%, transparent)`,
+                        marginTop: 14,
+                        fontSize: 11,
+                        fontWeight: 850,
+                        background: `color-mix(in srgb, ${portfolioScoreData.statusColor} 12%, transparent)`,
                         color: portfolioScoreData.statusColor,
                         padding: "4px 12px",
-                        borderRadius: "var(--radius-xs)",
-                        border: `1px solid color-mix(in srgb, ${portfolioScoreData.statusColor} 30%, transparent)`,
+                        borderRadius: 6,
+                        border: `1px solid color-mix(in srgb, ${portfolioScoreData.statusColor} 25%, transparent)`,
                         textTransform: "uppercase",
-                        letterSpacing: "0.05em",
                       }}
                     >
                       {portfolioScoreData.status}
                     </div>
                   </div>
 
-                  {/* Rationale text and overall metrics */}
+                  {/* Diagnostic Rationale */}
                   <div>
-                    <div
-                      style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}
-                    >
-                      Portfolio Diagnostics
+                    <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>
+                      Executive Diagnostic Overview
                     </div>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        color: THEME.muted,
-                        lineHeight: 1.6,
-                        marginBottom: 16,
-                      }}
-                    >
+                    <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.6, marginBottom: 16 }}>
                       {portfolioScoreData.rationale}
                     </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 12,
-                        borderTop: `1px solid ${THEME.line}`,
-                        paddingTop: 16,
-                      }}
-                    >
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, borderTop: `1px solid ${THEME.line}`, paddingTop: 14 }}>
                       <div>
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: THEME.muted,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                          }}
-                        >
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" }}>
                           Holdings Value
                         </div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: 16,
-                            fontWeight: 800,
-                            color: THEME.ink,
-                            marginTop: 2,
-                          }}
-                        >
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: THEME.ink }}>
                           <Money value={totalValue} variant="full" />
                         </div>
                       </div>
                       <div>
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: THEME.muted,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                          }}
-                        >
-                          Holdings Count
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" }}>
+                          Diversification Count
                         </div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: 16,
-                            fontWeight: 800,
-                            color: THEME.ink,
-                            marginTop: 2,
-                          }}
-                        >
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: THEME.ink }}>
                           {filteredStocks.length} scrips
                         </div>
                       </div>
@@ -4568,2068 +2829,602 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
                 </div>
               </Card>
 
-              {/* Sub-Scores Progress Bars & Allocation Pie Chart */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(var(--grid-min-lg), 1fr))",
-                  gap: 24,
-                }}
-              >
+              {/* 5 Health Dimensions & Sector Allocation */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24 }}>
                 {/* Score Breakdown Bars */}
-                <Card style={{ display: "flex", flexDirection: "column", gap: 20, padding: 24 }}>
-                  <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 800,
-                      color: THEME.ink,
-                      borderBottom: `1px solid ${THEME.line}`,
-                      paddingBottom: 10,
-                    }}
-                  >
-                    Health Dimensions
+                <Card style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10 }}>
+                    Core Portfolio Dimensions
                   </div>
-
                   {[
-                    {
-                      label: "Asset Quality",
-                      score: portfolioScoreData.quality,
-                      color:
-                        portfolioScoreData.quality >= 80
-                          ? THEME.sage
-                          : portfolioScoreData.quality >= 50
-                            ? THEME.gold
-                            : THEME.rust,
-                      desc: "Measures direct quality tiering (large-cap blue chips vs. speculative small-caps).",
-                    },
-                    {
-                      label: "Price Momentum",
-                      score: portfolioScoreData.momentum,
-                      color:
-                        portfolioScoreData.momentum >= 80
-                          ? THEME.sage
-                          : portfolioScoreData.momentum >= 50
-                            ? THEME.gold
-                            : THEME.rust,
-                      desc: "Evaluates returns relative to cost basis combined with short-term price swings.",
-                    },
-                    {
-                      label: "Concentration (Diversification)",
-                      score: portfolioScoreData.diversification,
-                      color:
-                        portfolioScoreData.diversification >= 80
-                          ? THEME.sage
-                          : portfolioScoreData.diversification >= 50
-                            ? THEME.gold
-                            : THEME.rust,
-                      desc: "Concentration index scoring direct allocation balance. Protects against single scrip risk.",
-                    },
-                    {
-                      label: "Risk Management",
-                      score: portfolioScoreData.riskManagement,
-                      color:
-                        portfolioScoreData.riskManagement >= 80
-                          ? THEME.sage
-                          : portfolioScoreData.riskManagement >= 50
-                            ? THEME.gold
-                            : THEME.rust,
-                      desc: "Combines asset-level risk parameters with concentration exposure penalties.",
-                    },
-                    {
-                      label: "Defensive Consistency",
-                      score: portfolioScoreData.consistency,
-                      color:
-                        portfolioScoreData.consistency >= 80
-                          ? THEME.sage
-                          : portfolioScoreData.consistency >= 50
-                            ? THEME.gold
-                            : THEME.rust,
-                      desc: "Tracks the share of positive-return holdings, representing cushioning strength.",
-                    },
-                  ].map((s) => (
-                    <div key={s.label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          fontSize: 13,
-                        }}
-                      >
-                        <span style={{ fontWeight: 700, color: THEME.ink }}>{s.label}</span>
-                        <span style={{ fontWeight: 800, color: s.color }}>{s.score} / 100</span>
-                      </div>
-
-                      {/* Bar Track */}
-                      <div
-                        style={{
-                          width: "100%",
-                          height: 6,
-                          borderRadius: 10,
-                          background: "var(--t-line)",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${s.score}%`,
-                            height: "100%",
-                            borderRadius: 10,
-                            background: `linear-gradient(90deg, ${s.color} 0%, color-mix(in srgb, ${s.color} 75%, white) 100%)`,
-                            transition: "width 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
-                          }}
-                        />
-                      </div>
-
-                      <div
-                        style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.4, marginTop: 2 }}
-                      >
-                        {s.desc}
-                      </div>
-                    </div>
-                  ))}
-                </Card>
-
-                {/* Pie Chart Visualization */}
-                <Card style={{ display: "flex", flexDirection: "column", gap: 16, padding: 24 }}>
-                  <div
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 800,
-                      color: THEME.ink,
-                      borderBottom: `1px solid ${THEME.line}`,
-                      paddingBottom: 10,
-                    }}
-                  >
-                    Portfolio Allocation
-                  </div>
-
-                  <div style={{ width: "100%", height: 220, position: "relative" }}>
-                    <div style={{ width: "100%", height: 220, position: "relative" }}>
-                      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                        <PieChart>
-                          <Pie
-                            data={portfolioScoreData.stockWeights.slice(0, 7)}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={85}
-                            paddingAngle={3}
-                            dataKey="value"
-                          >
-                            {portfolioScoreData.stockWeights
-                              .slice(0, 7)
-                              .map((entry: any, index: number) => {
-                                const hues = [210, 160, 42, 12, 280, 190, 330];
-                                const color = `hsl(${hues[index % hues.length]}, 60%, 50%)`;
-                                return <Cell key={`cell-${index}`} fill={color} />;
-                              })}
-                          </Pie>
-                          <Tooltip
-                            formatter={(value: any) => [
-                              <Money value={value || 0} variant="full" />,
-                              "Current Value",
-                            ]}
-                            contentStyle={{
-                              background: "var(--surface-0)",
-                              border: `1px solid ${THEME.line}`,
-                              borderRadius: 8,
-                              fontSize: 12,
-                              color: THEME.ink,
-                            }}
-                            labelStyle={{ color: THEME.ink }}
-                            itemStyle={{ color: THEME.ink }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* Legend list of top stocks */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12 }}>
-                    {portfolioScoreData.stockWeights.slice(0, 4).map((s: any, idx: number) => {
-                      const hues = [210, 160, 42, 12, 280, 190, 330];
-                      const color = `hsl(${hues[idx % hues.length]}, 60%, 50%)`;
-                      return (
-                        <div
-                          key={`${s.symbol}-${s.exchange}`}
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div
-                              style={{
-                                width: 10,
-                                height: 10,
-                                borderRadius: "50%",
-                                background: color,
-                              }}
-                            />
-                            <span style={{ fontWeight: 700, color: THEME.ink }}>{s.symbol}</span>
-                            <span style={{ color: THEME.muted, fontSize: 11 }}>
-                              (<Prv>{s.qty}</Prv> shares)
-                            </span>
-                          </div>
-                          <span style={{ fontWeight: 800, color: THEME.ink }}>
-                            {s.weight.toFixed(1)}%
-                          </span>
+                    { label: "Asset Quality", score: portfolioScoreData.quality, desc: "Blue chip allocation vs speculative small-caps." },
+                    { label: "Price Momentum", score: portfolioScoreData.momentum, desc: "Performance relative to cost basis & daily swings." },
+                    { label: "Diversification (HHI)", score: portfolioScoreData.diversification, desc: "Single scrip concentration balance." },
+                    { label: "Risk Management", score: portfolioScoreData.riskManagement, desc: "Asset risk profile & concentration weighting." },
+                    { label: "Defensive Consistency", score: portfolioScoreData.consistency, desc: "Share of profitable holdings protecting downside." },
+                  ].map((dim) => {
+                    const color = dim.score >= 80 ? THEME.sage : dim.score >= 50 ? THEME.gold : THEME.rust;
+                    return (
+                      <div key={dim.label} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                          <span style={{ fontWeight: 700, color: THEME.ink }}>{dim.label}</span>
+                          <span style={{ fontWeight: 850, color }}>{dim.score} / 100</span>
                         </div>
-                      );
-                    })}
-                    {portfolioScoreData.stockWeights.length > 4 && (
-                      <div
-                        style={{
-                          textAlign: "center",
-                          fontSize: 11,
-                          color: THEME.muted,
-                          paddingTop: 4,
-                          borderTop: `1px dashed ${THEME.line}`,
-                        }}
-                      >
-                        and {portfolioScoreData.stockWeights.length - 4} other assets
+                        <div style={{ width: "100%", height: 6, borderRadius: 99, background: "var(--surface-1)", overflow: "hidden" }}>
+                          <div style={{ width: `${dim.score}%`, height: "100%", borderRadius: 99, background: color }} />
+                        </div>
+                        <div style={{ fontSize: 10, color: THEME.muted }}>{dim.desc}</div>
                       </div>
-                    )}
-                  </div>
+                    );
+                  })}
                 </Card>
 
                 {/* Sector Allocation Breakdown */}
-                {sectorAllocation.length > 0 && (
-                  <Card style={{ display: "flex", flexDirection: "column", gap: 14, padding: 24 }}>
-                    <div
-                      style={{
-                        fontSize: 15,
-                        fontWeight: 800,
-                        color: THEME.ink,
-                        borderBottom: `1px solid ${THEME.line}`,
-                        paddingBottom: 10,
-                      }}
-                    >
-                      Sector Allocation
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {sectorAllocation.map((s, idx) => {
-                        const hues = [210, 160, 42, 12, 280, 190, 330, 100];
-                        const color = `hsl(${hues[idx % hues.length]}, 60%, 50%)`;
-                        return (
-                          <div
-                            key={s.sector}
-                            style={{ display: "flex", flexDirection: "column", gap: 4 }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                fontSize: 12,
-                              }}
-                            >
-                              <span style={{ fontWeight: 700, color: THEME.ink }}>{s.sector}</span>
-                              <span style={{ fontWeight: 800, color: THEME.muted }}>
-                                {s.weight.toFixed(1)}%
-                              </span>
-                            </div>
-                            <div
-                              style={{
-                                width: "100%",
-                                height: 6,
-                                borderRadius: 10,
-                                background: "var(--t-line)",
-                                overflow: "hidden",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: `${s.weight}%`,
-                                  height: "100%",
-                                  borderRadius: 10,
-                                  background: color,
-                                }}
-                              />
-                            </div>
+                <Card style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10 }}>
+                    Sector Allocation Matrix
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {sectorAllocation.slice(0, 6).map((sec, idx) => {
+                      const hues = [210, 160, 42, 12, 280, 190, 330, 100];
+                      const color = `hsl(${hues[idx % hues.length]}, 60%, 50%)`;
+                      return (
+                        <div key={sec.sector} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                            <span style={{ fontWeight: 700, color: THEME.ink }}>{sec.sector}</span>
+                            <span style={{ fontWeight: 800, color: THEME.muted }}>{sec.weight.toFixed(1)}%</span>
                           </div>
-                        );
-                      })}
-                    </div>
-                    {sectorAllocation.some((s) => s.sector === "Unclassified") && (
-                      <div style={{ fontSize: 10, color: THEME.muted, fontStyle: "italic" }}>
-                        "Unclassified" holdings are missing live sector data — refresh prices to
-                        fill this in.
-                      </div>
-                    )}
-                  </Card>
-                )}
+                          <div style={{ width: "100%", height: 6, borderRadius: 99, background: "var(--surface-1)", overflow: "hidden" }}>
+                            <div style={{ width: `${sec.weight}%`, height: "100%", borderRadius: 99, background: color }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
               </div>
 
-              {/* ── BENCHMARK COMPARISON SECTION ── */}
+              {/* ── BENCHMARK COMPARISON ── */}
               {(() => {
                 const oldestBuyDate = filteredStocks.reduce(
                   (oldest: string | null, st: any) => {
                     if (!st.buyDate) return oldest;
                     if (!oldest) return st.buyDate;
-                    return new Date(st.buyDate).getTime() < new Date(oldest).getTime()
-                      ? st.buyDate
-                      : oldest;
+                    return new Date(st.buyDate).getTime() < new Date(oldest).getTime() ? st.buyDate : oldest;
                   },
                   null as string | null
                 );
 
-                const portfolioCagr = oldestBuyDate
-                  ? calcCAGR(totalInvested, totalValue, oldestBuyDate)
-                  : null;
-                const absoluteReturnPct =
-                  totalInvested > 0 ? ((totalValue - totalInvested) / totalInvested) * 100 : 0;
-
-                // Sourced from the shared benchmarkData module (single source of truth
-                // also used by PerformanceBenchmarkTab) so the two tabs never disagree
-                // on what "Nifty 50 1Y return" means. See BENCHMARK_DATA_ASOF disclaimer
-                // rendered below — these are illustrative long-run averages, not live data.
+                const portfolioCagr = oldestBuyDate ? calcCAGR(totalInvested, totalValue, oldestBuyDate) : null;
                 const benchmarks = [
-                  {
-                    name: INDEX_BENCHMARKS.nifty50.label,
-                    ...INDEX_BENCHMARKS.nifty50,
-                    color: THEME.accent,
-                  },
-                  {
-                    name: INDEX_BENCHMARKS.sensex.label,
-                    ...INDEX_BENCHMARKS.sensex,
-                    color: THEME.muted,
-                  },
-                  {
-                    name: INDEX_BENCHMARKS.niftyMidcap.label,
-                    ...INDEX_BENCHMARKS.niftyMidcap,
-                    color: THEME.violet,
-                  },
-                  {
-                    name: INDEX_BENCHMARKS.niftySmallcap.label,
-                    ...INDEX_BENCHMARKS.niftySmallcap,
-                    color: THEME.gold,
-                  },
+                  { name: INDEX_BENCHMARKS.nifty50.label, ...INDEX_BENCHMARKS.nifty50, color: THEME.accent },
+                  { name: INDEX_BENCHMARKS.sensex.label, ...INDEX_BENCHMARKS.sensex, color: THEME.muted },
+                  { name: INDEX_BENCHMARKS.niftyMidcap.label, ...INDEX_BENCHMARKS.niftyMidcap, color: THEME.violet },
+                  { name: INDEX_BENCHMARKS.niftySmallcap.label, ...INDEX_BENCHMARKS.niftySmallcap, color: THEME.gold },
                 ];
 
                 const holdingYears = oldestBuyDate
                   ? (Date.now() - new Date(oldestBuyDate).getTime()) / (365.25 * 24 * 3600 * 1000)
                   : 1;
                 const benchmarkPeriod: "1Y" | "3Y" | "5Y" | "10Y" =
-                  holdingYears >= 7
-                    ? "10Y"
-                    : holdingYears >= 4
-                      ? "5Y"
-                      : holdingYears >= 2
-                        ? "3Y"
-                        : "1Y";
+                  holdingYears >= 7 ? "10Y" : holdingYears >= 4 ? "5Y" : holdingYears >= 2 ? "3Y" : "1Y";
                 const niftyBenchmark = benchmarks[0][benchmarkPeriod];
                 const alpha = portfolioCagr !== null ? portfolioCagr - niftyBenchmark : null;
 
-                let ratingLabel = "Underperforming";
-                let ratingColor = THEME.rust;
-                if (alpha !== null) {
-                  if (alpha > 5) {
-                    ratingLabel = "Outperforming";
-                    ratingColor = THEME.sage;
-                  } else if (alpha >= 0) {
-                    ratingLabel = "Market Pace";
-                    ratingColor = THEME.gold;
-                  }
-                }
-
                 const barChartData = [
-                  {
-                    name: "Your Portfolio",
-                    return: portfolioCagr !== null ? Number(portfolioCagr.toFixed(1)) : 0,
-                    fill: THEME.accent,
-                  },
+                  { name: "Portfolio", return: portfolioCagr !== null ? Number(portfolioCagr.toFixed(1)) : 0, fill: THEME.accent },
                   { name: "Nifty 50", return: benchmarks[0][benchmarkPeriod], fill: THEME.accent },
-                  {
-                    name: "Nifty Midcap",
-                    return: benchmarks[2][benchmarkPeriod],
-                    fill: THEME.violet,
-                  },
-                  {
-                    name: "Nifty Smallcap",
-                    return: benchmarks[3][benchmarkPeriod],
-                    fill: THEME.gold,
-                  },
+                  { name: "Nifty Midcap", return: benchmarks[2][benchmarkPeriod], fill: THEME.violet },
+                  { name: "Nifty Smallcap", return: benchmarks[3][benchmarkPeriod], fill: THEME.gold },
                 ];
 
                 return (
                   <Card style={{ padding: 24 }}>
-                    <div
-                      style={{
-                        fontSize: 15,
-                        fontWeight: 800,
-                        color: THEME.ink,
-                        borderBottom: `1px solid ${THEME.line}`,
-                        paddingBottom: 10,
-                        marginBottom: 20,
-                      }}
-                    >
-                      Portfolio vs Benchmark
+                    <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 10, marginBottom: 16 }}>
+                      Portfolio Alpha vs Market Benchmarks ({benchmarkPeriod})
                     </div>
-                    <div style={{ fontSize: 12, color: THEME.muted, marginBottom: 20 }}>
-                      Compare your portfolio CAGR against {benchmarkPeriod} benchmark returns (
-                      {holdingYears.toFixed(1)}y holding period)
-                    </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                        gap: 24,
-                      }}
-                    >
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, alignItems: "center" }}>
                       <div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: THEME.muted,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.06em",
-                            marginBottom: 12,
-                          }}
-                        >
-                          Your Portfolio Returns
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: "10px 14px",
-                              borderRadius: 10,
-                              background: "var(--surface-0)",
-                              border: `1px solid ${THEME.line}`,
-                            }}
-                          >
-                            <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
-                              Total Invested
-                            </span>
-                            <span
-                              style={{
-                                fontFamily: "var(--font-display)",
-                                fontSize: 14,
-                                fontWeight: 800,
-                                color: THEME.ink,
-                              }}
-                            >
-                              <Money value={totalInvested} variant="full" />
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: "10px 14px",
-                              borderRadius: 10,
-                              background: "var(--surface-0)",
-                              border: `1px solid ${THEME.line}`,
-                            }}
-                          >
-                            <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
-                              Current Value
-                            </span>
-                            <span
-                              style={{
-                                fontFamily: "var(--font-display)",
-                                fontSize: 14,
-                                fontWeight: 800,
-                                color: THEME.ink,
-                              }}
-                            >
-                              <Money value={totalValue} variant="full" />
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: "10px 14px",
-                              borderRadius: 10,
-                              background: "var(--surface-0)",
-                              border: `1px solid ${THEME.line}`,
-                            }}
-                          >
-                            <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
-                              Absolute Return
-                            </span>
-                            <span
-                              style={{
-                                fontFamily: "var(--font-display)",
-                                fontSize: 14,
-                                fontWeight: 800,
-                                color: absoluteReturnPct >= 0 ? THEME.sage : THEME.rust,
-                              }}
-                            >
-                              {absoluteReturnPct >= 0 ? "+" : ""}
-                              {absoluteReturnPct.toFixed(2)}%
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: "10px 14px",
-                              borderRadius: 10,
-                              background:
-                                portfolioCagr !== null && portfolioCagr >= 0
-                                  ? `color-mix(in srgb, ${THEME.sage} 5%, transparent)`
-                                  : `color-mix(in srgb, ${THEME.rust} 5%, transparent)`,
-                              border: `1.5px solid ${portfolioCagr !== null && portfolioCagr >= 0 ? `color-mix(in srgb, ${THEME.sage} 19%, transparent)` : `color-mix(in srgb, ${THEME.rust} 19%, transparent)`}`,
-                            }}
-                          >
-                            <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
-                              Portfolio CAGR
-                            </span>
-                            <span
-                              style={{
-                                fontFamily: "var(--font-display)",
-                                fontSize: 16,
-                                fontWeight: 900,
-                                color:
-                                  portfolioCagr !== null
-                                    ? portfolioCagr >= 0
-                                      ? THEME.sage
-                                      : THEME.rust
-                                    : THEME.muted,
-                              }}
-                            >
-                              {portfolioCagr !== null
-                                ? `${portfolioCagr >= 0 ? "+" : ""}${portfolioCagr.toFixed(2)}%`
-                                : "N/A"}
-                            </span>
-                          </div>
-                          {totalDividendsReceived > 0 && (
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                padding: "10px 14px",
-                                borderRadius: 10,
-                                background: "var(--surface-0)",
-                                border: `1px solid ${THEME.line}`,
-                              }}
-                            >
-                              <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
-                                Dividends Received
-                              </span>
-                              <span
-                                style={{
-                                  fontFamily: "var(--font-display)",
-                                  fontSize: 14,
-                                  fontWeight: 800,
-                                  color: THEME.sage,
-                                }}
-                              >
-                                +<Money value={totalDividendsReceived} variant="full" />
-                              </span>
-                            </div>
-                          )}
-                          {totalDividendsReceived > 0 && (
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                padding: "10px 14px",
-                                borderRadius: 10,
-                                background: "var(--surface-0)",
-                                border: `1px solid ${THEME.line}`,
-                              }}
-                            >
-                              <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
-                                True Total Return
-                              </span>
-                              <span
-                                style={{
-                                  fontFamily: "var(--font-display)",
-                                  fontSize: 14,
-                                  fontWeight: 800,
-                                  color:
-                                    pnl + totalDividendsReceived >= 0 ? THEME.sage : THEME.rust,
-                                }}
-                              >
-                                {pnl + totalDividendsReceived >= 0 ? "+" : ""}
-                                <Money value={pnl + totalDividendsReceived} variant="full" />
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
                         {alpha !== null && (
                           <div
-                            style={{
-                              marginTop: 16,
-                              display: "flex",
-                              gap: 12,
-                              alignItems: "center",
-                              flexWrap: "wrap",
-                            }}
+                            className={`demat-benchmark-banner ${alpha >= 0 ? "outperform" : "underperform"}`}
                           >
-                            <div
-                              style={{
-                                padding: "8px 14px",
-                                borderRadius: 10,
-                                background:
-                                  alpha >= 0
-                                    ? `color-mix(in srgb, ${THEME.sage} 7%, transparent)`
-                                    : `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
-                                border: `1.5px solid ${alpha >= 0 ? `color-mix(in srgb, ${THEME.sage} 25%, transparent)` : `color-mix(in srgb, ${THEME.rust} 25%, transparent)`}`,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                              }}
-                            >
-                              <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
-                                Alpha vs Nifty 50:
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: 15,
-                                  fontWeight: 900,
-                                  color: alpha >= 0 ? THEME.sage : THEME.rust,
-                                }}
-                              >
-                                {alpha >= 0 ? "+" : ""}
-                                {alpha.toFixed(1)}%
-                              </span>
+                            <Award size={24} color={alpha >= 0 ? THEME.sage : THEME.rust} />
+                            <div>
+                              <div style={{ fontSize: 14, fontWeight: 800, color: alpha >= 0 ? THEME.sage : THEME.rust }}>
+                                {alpha >= 0 ? "Outperforming Benchmark" : "Trailing Benchmark"}
+                              </div>
+                              <div style={{ fontSize: 12, color: THEME.muted }}>
+                                Portfolio delivers <b>{alpha >= 0 ? "+" : ""}{alpha.toFixed(1)}% Alpha</b> over Nifty 50 ({benchmarkPeriod} CAGR).
+                              </div>
                             </div>
-                            <span
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 800,
-                                padding: "5px 12px",
-                                borderRadius: "var(--radius-xs)",
-                                background: `color-mix(in srgb, ${ratingColor} 15%, transparent)`,
-                                color: ratingColor,
-                                border: `1px solid color-mix(in srgb, ${ratingColor} 30%, transparent)`,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.05em",
-                              }}
-                            >
-                              {ratingLabel}
-                            </span>
                           </div>
                         )}
-                      </div>
-
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: THEME.muted,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.06em",
-                            marginBottom: 12,
-                          }}
-                        >
-                          Annualized Return Comparison
-                        </div>
-                        <div
-                          style={{
-                            background: "var(--surface-0)",
-                            border: `1px solid ${THEME.line}`,
-                            borderRadius: 12,
-                            padding: "16px 12px",
-                          }}
-                        >
-                          <div style={{ width: "100%", height: 200, position: "relative" }}>
-                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                              <BarChart
-                                data={barChartData}
-                                layout="vertical"
-                                margin={{ top: 4, right: 40, bottom: 4, left: 10 }}
-                              >
-                                <XAxis
-                                  type="number"
-                                  tick={{ fontSize: 11, fill: "var(--t-muted)" }}
-                                  axisLine={false}
-                                  tickLine={false}
-                                  domain={[0, "auto"]}
-                                  unit="%"
-                                />
-                                <YAxis
-                                  type="category"
-                                  dataKey="name"
-                                  tick={{ fontSize: 11, fill: "var(--t-ink)", fontWeight: 600 }}
-                                  axisLine={false}
-                                  tickLine={false}
-                                  width={110}
-                                />
-                                <Tooltip
-                                  cursor={{ fill: THEME.line, opacity: 0.4 }}
-                                  contentStyle={{
-                                    fontSize: 12,
-                                    background: "var(--surface-0)",
-                                    border: `1px solid ${THEME.line}`,
-                                    borderRadius: 8,
-                                    color: THEME.ink,
-                                  }}
-                                  labelStyle={{ color: THEME.ink }}
-                                  itemStyle={{ color: THEME.ink }}
-                                  formatter={(value: any) => [
-                                    `${Number(value).toFixed(1)}%`,
-                                    "CAGR",
-                                  ]}
-                                />
-                                <Bar dataKey="return" radius={[0, 6, 6, 0]} barSize={22}>
-                                  {barChartData.map((entry, index) => (
-                                    <Cell key={`bar-${index}`} fill={entry.fill} />
-                                  ))}
-                                </Bar>
-                              </BarChart>
-                            </ResponsiveContainer>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span style={{ color: THEME.muted }}>Portfolio CAGR</span>
+                            <b>{portfolioCagr !== null ? `${portfolioCagr.toFixed(2)}%` : "N/A"}</b>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span style={{ color: THEME.muted }}>Nifty 50 ({benchmarkPeriod})</span>
+                            <b>{niftyBenchmark}%</b>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span style={{ color: THEME.muted }}>Sensex ({benchmarkPeriod})</span>
+                            <b>{benchmarks[1][benchmarkPeriod]}%</b>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div style={{ marginTop: 24 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "baseline",
-                          justifyContent: "space-between",
-                          flexWrap: "wrap",
-                          gap: 6,
-                          marginBottom: 10,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: THEME.muted,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.06em",
-                          }}
-                        >
-                          Index Returns (Historical Annualized)
-                        </div>
-                        <div style={{ fontSize: 10, color: THEME.muted, fontStyle: "italic" }}>
-                          Illustrative long-run averages, as of {BENCHMARK_DATA_ASOF} — not
-                          live-updated
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          borderRadius: 12,
-                          border: `1px solid ${THEME.line}`,
-                          overflow: "hidden",
-                          overflowX: "auto",
-                        }}
-                      >
-                        <table
-                          style={{
-                            width: "100%",
-                            borderCollapse: "collapse",
-                            fontSize: 13,
-                            minWidth: 420,
-                          }}
-                        >
-                          <thead>
-                            <tr style={{ background: "var(--surface-0)" }}>
-                              <th style={{ ...th, paddingLeft: 16 }}>Index</th>
-                              <th style={{ ...th, textAlign: "right" }}>1Y</th>
-                              <th style={{ ...th, textAlign: "right" }}>3Y</th>
-                              <th style={{ ...th, textAlign: "right" }}>5Y</th>
-                              <th style={{ ...th, textAlign: "right", paddingRight: 16 }}>10Y</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr
-                              style={{
-                                background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
-                              }}
-                            >
-                              <td
-                                style={{
-                                  ...td,
-                                  paddingLeft: 16,
-                                  fontWeight: 800,
-                                  color: THEME.accent,
-                                }}
-                              >
-                                Your Portfolio
-                              </td>
-                              <td
-                                style={{
-                                  ...td,
-                                  textAlign: "right",
-                                  fontWeight: 800,
-                                  color:
-                                    portfolioCagr !== null
-                                      ? portfolioCagr >= 0
-                                        ? THEME.sage
-                                        : THEME.rust
-                                      : THEME.muted,
-                                }}
-                                colSpan={4}
-                              >
-                                <span
-                                  style={{
-                                    fontSize: 12,
-                                    color: THEME.muted,
-                                    fontWeight: 500,
-                                    marginRight: 8,
-                                  }}
-                                >
-                                  CAGR:
-                                </span>
-                                {portfolioCagr !== null
-                                  ? `${portfolioCagr >= 0 ? "+" : ""}${portfolioCagr.toFixed(2)}%`
-                                  : "N/A"}
-                              </td>
-                            </tr>
-                            {benchmarks.map((b) => (
-                              <tr key={b.name}>
-                                <td style={{ ...td, paddingLeft: 16 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                    <div
-                                      style={{
-                                        width: 8,
-                                        height: 8,
-                                        borderRadius: "50%",
-                                        background: b.color,
-                                        flexShrink: 0,
-                                      }}
-                                    />
-                                    <span style={{ fontWeight: 700, color: THEME.ink }}>
-                                      {b.name}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                                  {b["1Y"]}%
-                                </td>
-                                <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                                  {b["3Y"]}%
-                                </td>
-                                <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>
-                                  {b["5Y"]}%
-                                </td>
-                                <td
-                                  style={{
-                                    ...td,
-                                    textAlign: "right",
-                                    fontWeight: 600,
-                                    paddingRight: 16,
-                                  }}
-                                >
-                                  {b["10Y"]}%
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <div style={{ height: 180 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={barChartData} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+                            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "var(--t-muted)" }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: "var(--t-muted)" }} axisLine={false} tickLine={false} />
+                            <Tooltip
+                              contentStyle={{ background: "var(--surface-0)", border: `1px solid ${THEME.line}`, borderRadius: 8, fontSize: 11 }}
+                              formatter={(v: any) => [`${v}%`, "CAGR"]}
+                            />
+                            <Bar dataKey="return" radius={[6, 6, 0, 0]}>
+                              {barChartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
                       </div>
                     </div>
                   </Card>
                 );
               })()}
-
-              {/* Actionable Financial Insights checklist */}
-              <Card style={{ display: "flex", flexDirection: "column", gap: 16, padding: 24 }}>
-                <div
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 800,
-                    color: THEME.ink,
-                    borderBottom: `1px solid ${THEME.line}`,
-                    paddingBottom: 10,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  <Lightbulb size={22} color={THEME.gold} style={{ flexShrink: 0 }} />
-                  <div>
-                    <div>Financial Optimization Suggestions</div>
-                    <div
-                      style={{ fontSize: 11, fontWeight: 600, color: THEME.muted, marginTop: 2 }}
-                    >
-                      Rule-based insights based on your portfolio composition
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {portfolioScoreData.insights.map((insight: string, idx: number) => {
-                    const isWarn = insight.includes("[WARN]");
-                    const isIdea = insight.includes("[IDEA]");
-                    const text = insight
-                      .replace("[WARN] ", "")
-                      .replace("[IDEA] ", "")
-                      .replace("[OK] ", "");
-                    const InsightIcon = isWarn ? AlertTriangle : isIdea ? Lightbulb : CheckCircle2;
-                    const insightColor = isWarn ? THEME.rust : isIdea ? THEME.gold : THEME.sage;
-
-                    return (
-                      <div
-                        key={idx}
-                        className={`demat-insight-card ${isWarn ? "warn" : isIdea ? "idea" : "ok"}`}
-                      >
-                        <InsightIcon
-                          size={20}
-                          color={insightColor}
-                          style={{ marginTop: 1, flexShrink: 0 }}
-                        />
-                        <div style={{ flex: 1, color: THEME.ink }}>
-                          <div style={{ fontWeight: 700, fontSize: 13 }}>{text}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            </div>
+            </>
           )}
         </div>
       )}
 
-      {/* ── WATCHLIST SECTION ── */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── VIEW 3: WATCHLISTS & TARGETS ── */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
       {dematView === "watchlist" && (
-        <div style={{ width: "100%", marginTop: 24 }}>
-          {/* Hero Header */}
-          {(() => {
-            const allWlItems = wishlistItems || [];
-            const nearTargetCount = allWlItems.filter((it: any) => {
-              const base = (it.symbol || "").replace(/\.(NS|BO)$/i, "");
-              const exch = it.exchange || "NSE";
-              const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
-              const livePrice = marketData[yfSym]?.price;
-              if (!livePrice || !it.targetPrice) return false;
-              const gap = Math.abs(
-                ((Number(it.targetPrice) - Number(livePrice)) / Number(livePrice)) * 100
-              );
-              return gap <= 5;
-            }).length;
-            const wlCount = wishlists.length;
-            const totalItems = allWlItems.length;
-            return (
-              <div className="watchlist-hero">
-                <Star size={34} color={THEME.accent} style={{ flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 18,
-                      fontWeight: 900,
-                      color: THEME.ink,
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    My Watchlists
-                  </div>
-                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 3, fontWeight: 500 }}>
-                    Track stocks you're interested in buying
-                  </div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "3px 10px",
-                        borderRadius: "var(--radius-xs)",
-                        background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
-                        color: THEME.accent,
-                        border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
-                      }}
-                    >
-                      {wlCount} Watchlist{wlCount !== 1 ? "s" : ""}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "3px 10px",
-                        borderRadius: "var(--radius-xs)",
-                        background: `color-mix(in srgb, ${THEME.muted} 10%, transparent)`,
-                        color: THEME.muted,
-                        border: `1px solid color-mix(in srgb, ${THEME.muted} 15%, transparent)`,
-                      }}
-                    >
-                      {totalItems} Stock{totalItems !== 1 ? "s" : ""} Tracked
-                    </span>
-                    {nearTargetCount > 0 && (
-                      <span
-                        className="watchlist-near-target"
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          fontSize: 11,
-                          fontWeight: 800,
-                          padding: "3px 10px",
-                          borderRadius: "var(--radius-xs)",
-                          background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                          color: THEME.sage,
-                          border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
-                        }}
-                      >
-                        <Target size={11} /> {nearTargetCount} Near Target
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div style={{ flexShrink: 0 }}>
-                  <Button
-                    variant="accent"
-                    icon={<Plus size={14} />}
-                    onClick={() => setShowWishlistModal(true)}
-                  >
-                    New Watchlist
-                  </Button>
-                </div>
+        <div style={{ width: "100%" }}>
+          {/* Watchlist Hero Header */}
+          <div className="watchlist-hero">
+            <Star size={32} color={THEME.accent} style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.02em" }}>
+                Target Price Watchlists
               </div>
-            );
-          })()}
-
-          {/* Empty state */}
-          {wishlists.length === 0 && (
-            <div
-              style={{
-                ...card,
-                textAlign: "center",
-                padding: "48px 32px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--t-muted)" }}>
-                <Star size={40} strokeWidth={1.5} />
+              <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                Track scrips of interest and trigger automated Buy Signal alerts when prices approach your targets.
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink }}>
-                No Watchlists Yet
-              </div>
-              <div style={{ fontSize: 14, color: THEME.muted, maxWidth: 340 }}>
-                Create watchlists to track stocks you're watching — set target prices and monitor
-                when to buy.
-              </div>
-              <Button
-                variant="accent"
-                icon={<Plus size={14} />}
-                onClick={() => setShowWishlistModal(true)}
-              >
-                Create Your First Watchlist
-              </Button>
             </div>
-          )}
+            <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShowWishlistModal(true)}>
+              New Watchlist
+            </Button>
+          </div>
 
-          {/* Watchlist cards */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {wishlists.map((wl: any) => {
-              const items = wishlistItems.filter((it: any) => it.watchlistId === wl.id);
-              const isExpanded = expandedWishlistId === wl.id;
+          {/* Watchlists List */}
+          {(wishlists || []).length === 0 ? (
+            <Card style={{ padding: "48px 32px", textAlign: "center" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                <Star size={36} color={THEME.muted} />
+                <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>No Watchlists Created</div>
+                <div style={{ fontSize: 13, color: THEME.muted, maxWidth: 360 }}>
+                  Create watchlists to track high-conviction ideas, set target entry prices, and monitor discount gaps.
+                </div>
+                <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShowWishlistModal(true)}>
+                  Create First Watchlist
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {(wishlists || []).map((wl: any) => {
+                const items = (wishlistItems || []).filter((it: any) => it.watchlistId === wl.id);
+                const isExpanded = expandedWishlistId === wl.id;
 
-              return (
-                <div
-                  key={wl.id}
-                  style={{
-                    ...card,
-                    padding: 0,
-                    overflow: "hidden",
-                    borderLeft: `4px solid ${wl.color || WISHLIST_COLORS[0]}`,
-                  }}
-                >
-                  {/* Watchlist card header */}
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    aria-expanded={isExpanded}
+                return (
+                  <Card
+                    key={wl.id}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "16px 20px",
-                      cursor: "pointer",
-                      userSelect: "none",
-                    }}
-                    onClick={() => setExpandedWishlistId(isExpanded ? null : wl.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setExpandedWishlistId(isExpanded ? null : wl.id);
-                      }
+                      padding: 0,
+                      overflow: "hidden",
+                      borderLeft: `4px solid ${wl.color || WISHLIST_COLORS[0]}`,
                     }}
                   >
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        flexShrink: 0,
+                        gap: 12,
+                        padding: "16px 20px",
+                        cursor: "pointer",
+                        userSelect: "none",
                       }}
+                      onClick={() => setExpandedWishlistId(isExpanded ? null : wl.id)}
                     >
-                      <Star
-                        size={20}
-                        color={wl.color || WISHLIST_COLORS[0]}
-                        fill={`color-mix(in srgb, ${wl.color || WISHLIST_COLORS[0]} 25%, transparent)`}
-                      />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>
-                        {wl.name}
+                      <Star size={18} color={wl.color || WISHLIST_COLORS[0]} fill={wl.color || WISHLIST_COLORS[0]} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>
+                          {wl.name}
+                        </div>
+                        {wl.description && (
+                          <div style={{ fontSize: 12, color: THEME.muted, marginTop: 1 }}>
+                            {wl.description}
+                          </div>
+                        )}
                       </div>
-                      {wl.description && (
-                        <div
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span
                           style={{
-                            fontSize: 12,
-                            color: THEME.muted,
-                            marginTop: 2,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
+                            fontSize: 11,
+                            fontWeight: 800,
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            background: `color-mix(in srgb, ${wl.color || WISHLIST_COLORS[0]} 12%, transparent)`,
+                            color: wl.color || WISHLIST_COLORS[0],
                           }}
                         >
-                          {wl.description}
-                        </div>
-                      )}
-                    </div>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
-                    >
-                      {/* Near target badge */}
-                      {(() => {
-                        const nearCount = items.filter((it: any) => {
-                          const base = (it.symbol || "").replace(/\.(NS|BO)$/i, "");
-                          const exch = it.exchange || "NSE";
-                          const yfSym = `${base}.${exch === "BSE" ? "BO" : "NS"}`;
-                          const livePrice = marketData[yfSym]?.price;
-                          if (!livePrice || !it.targetPrice) return false;
-                          const gap = Math.abs(
-                            ((Number(it.targetPrice) - Number(livePrice)) / Number(livePrice)) * 100
-                          );
-                          return gap <= 5;
-                        }).length;
-                        return nearCount > 0 ? (
-                          <span
-                            className="watchlist-near-target"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 3,
-                              fontSize: 10,
-                              fontWeight: 800,
-                              padding: "2px 8px",
-                              borderRadius: "var(--radius-xs)",
-                              background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                              color: THEME.sage,
-                              border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
-                            }}
-                          >
-                            <Target size={10} /> {nearCount} near target
-                          </span>
-                        ) : null;
-                      })()}
-                      <span
-                        style={{
-                          background: `color-mix(in srgb, ${wl.color || WISHLIST_COLORS[0]} 9%, transparent)`,
-                          color: wl.color || WISHLIST_COLORS[0],
-                          fontSize: 12,
-                          fontWeight: 700,
-                          padding: "3px 10px",
-                          borderRadius: "var(--radius-xs)",
-                          whiteSpace: "nowrap",
-                          border: `1px solid ${`color-mix(in srgb, ${wl.color || WISHLIST_COLORS[0]} 19%, transparent)`}`,
-                        }}
-                      >
-                        {items.length} stock{items.length !== 1 ? "s" : ""}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setWishlistItemTarget(wl.id);
-                          setEditWishlistItemId(null);
-                          setShowWishlistItemModal(true);
-                        }}
-                        className="icon-btn"
-                        style={{ ...iconBtn, color: THEME.accent }}
-                        title="Add stock"
-                        aria-label="Add stock to watchlist"
-                      >
-                        <Plus size={14} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditWishlistId(wl.id);
-                        }}
-                        className="icon-btn"
-                        style={iconBtn}
-                        title="Rename watchlist"
-                        aria-label="Rename watchlist"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setConfirmAction({
-                            message: `Delete watchlist "${wl.name}" and all its stocks? This cannot be undone.`,
-                            onConfirm: () => {
-                              removeItem("wishlists", wl.id);
-                              if (expandedWishlistId === wl.id) setExpandedWishlistId(null);
-                            },
-                          });
-                        }}
-                        className="icon-btn danger"
-                        style={iconBtn}
-                        title="Delete watchlist"
-                        aria-label="Delete watchlist"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                      <ChevronRight
-                        size={16}
-                        color={THEME.muted}
-                        style={{
-                          transform: isExpanded ? "rotate(90deg)" : "none",
-                          transition: "transform 0.2s",
-                          flexShrink: 0,
-                        }}
-                      />
-                    </div>
-                  </div>
+                          {items.length} scrips
+                        </span>
 
-                  {/* Expanded: stock list */}
-                  {isExpanded && (
-                    <div style={{ borderTop: `1px solid ${THEME.line}` }}>
-                      {items.length === 0 ? (
-                        <div
-                          style={{
-                            padding: "24px 20px",
-                            textAlign: "center",
-                            color: THEME.muted,
-                            fontSize: 13,
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWishlistItemTarget(wl.id);
+                            setEditWishlistItemId(null);
+                            setShowWishlistItemModal(true);
                           }}
+                          className="icon-btn"
+                          title="Add Scrip to Watchlist"
                         >
-                          No stocks yet. Add your first stock to watch.
-                        </div>
-                      ) : (
-                        <div style={{ overflowX: "auto" }}>
-                          <table
-                            style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}
-                          >
-                            <thead>
-                              <tr>
-                                <th style={{ ...th, paddingLeft: 20 }}>Stock</th>
-                                <th style={{ ...th, textAlign: "right" }}>Live Price</th>
-                                <th style={{ ...th, textAlign: "right" }}>Target</th>
-                                <th style={{ ...th, textAlign: "right" }}>Gap to Target</th>
-                                <th style={th}>Notes</th>
-                                <th style={{ ...th, textAlign: "right" }}>Added</th>
-                                <th style={{ ...th, width: 72 }}></th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {items.map((it: any) => {
-                                const yfSym = `${it.symbol}.${it.exchange === "BSE" ? "BO" : "NS"}`;
-                                const md = marketData[yfSym];
-                                const livePrice = md?.price ?? null;
-                                const gap =
-                                  it.targetPrice && livePrice
-                                    ? ((it.targetPrice - livePrice) / livePrice) * 100
-                                    : null;
-                                const gapColor =
-                                  gap === null ? THEME.muted : gap >= 0 ? THEME.sage : THEME.rust;
-                                const isItemExpanded = expandedWatchlistItems.has(it.id);
-                                const wlActivePeriod = chartPeriod[yfSym] || "1d";
-                                const chartEntry = chartData[`${yfSym}__${wlActivePeriod}`];
-                                const charts: any[] | null = chartEntry
-                                  ? (chartEntry.points ?? chartEntry)
-                                  : null;
-                                const chartDate: string | null = chartEntry?.date ?? null;
-                                const changeAmt = md?.change ?? 0;
-                                const changePct = md?.changePercent ?? 0;
-                                const periodChange = calcPeriodChange(charts);
-                                const chartChangeAmt = periodChange?.amount ?? changeAmt;
+                          <Plus size={14} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditWishlistId(wl.id);
+                          }}
+                          className="icon-btn"
+                          title="Edit Watchlist"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmAction({
+                              message: `Delete watchlist "${wl.name}" and its tracked scrips?`,
+                              onConfirm: () => removeItem("wishlists", wl.id),
+                            });
+                          }}
+                          className="icon-btn danger"
+                          title="Delete Watchlist"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                        <ChevronRight
+                          size={16}
+                          color={THEME.muted}
+                          style={{
+                            transform: isExpanded ? "rotate(90deg)" : "none",
+                            transition: "transform 0.2s",
+                          }}
+                        />
+                      </div>
+                    </div>
 
-                                const toggleWatchItem = () => {
-                                  const isExpanding = !expandedWatchlistItems.has(it.id);
-                                  setExpandedWatchlistItems((prev) => {
-                                    const next = new Set(prev);
-                                    if (next.has(it.id)) {
-                                      next.delete(it.id);
-                                    } else {
-                                      next.add(it.id);
-                                    }
-                                    return next;
-                                  });
-                                  if (isExpanding) fetchChart(yfSym, chartPeriod[yfSym] || "1d");
-                                };
+                    {/* Expanded Watchlist Table */}
+                    {isExpanded && (
+                      <div style={{ borderTop: `1px solid ${THEME.line}` }}>
+                        {items.length === 0 ? (
+                          <div style={{ padding: 24, textAlign: "center", color: THEME.muted, fontSize: 13 }}>
+                            No stocks added to this watchlist yet. Click "+" above to add your first stock.
+                          </div>
+                        ) : (
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                              <thead>
+                                <tr>
+                                  <th style={{ ...thStyle, paddingLeft: 20 }}>Stock</th>
+                                  <th style={{ ...thStyle, textAlign: "right" }}>Live Price</th>
+                                  <th style={{ ...thStyle, textAlign: "right" }}>Target Price</th>
+                                  <th style={{ ...thStyle, textAlign: "right", minWidth: 140 }}>Target Gap</th>
+                                  <th style={thStyle}>Notes</th>
+                                  <th style={{ ...thStyle, width: 100, textAlign: "right", paddingRight: 20 }}>Action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {items.map((it: any) => {
+                                  const yfSym = `${it.symbol}.${it.exchange === "BSE" ? "BO" : "NS"}`;
+                                  const md = marketData[yfSym];
+                                  const livePrice = md?.price ?? null;
+                                  const gap =
+                                    it.targetPrice && livePrice
+                                      ? ((Number(it.targetPrice) - Number(livePrice)) / Number(livePrice)) * 100
+                                      : null;
+                                  const isBuySignal = gap !== null && Math.abs(gap) <= 2;
 
-                                return (
-                                  <React.Fragment key={it.id}>
-                                    <tr
-                                      className="demat-holdings-row"
-                                      role="button"
-                                      tabIndex={0}
-                                      aria-expanded={isItemExpanded}
-                                      onClick={toggleWatchItem}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter" || e.key === " ") {
-                                          e.preventDefault();
-                                          toggleWatchItem();
-                                        }
-                                      }}
-                                      style={{
-                                        cursor: "pointer",
-                                        background: isItemExpanded
-                                          ? `color-mix(in srgb, ${THEME.accent} 4%, transparent)`
-                                          : "transparent",
-                                        transition: "background 0.15s ease",
-                                      }}
-                                    >
-                                      <td style={{ ...td, paddingLeft: 20 }}>
-                                        <div
-                                          style={{ display: "flex", alignItems: "center", gap: 10 }}
-                                        >
-                                          <span
-                                            style={{
-                                              color: isItemExpanded ? THEME.accent : THEME.muted,
-                                              display: "inline-flex",
-                                              transform: isItemExpanded
-                                                ? "rotate(180deg)"
-                                                : "rotate(0deg)",
-                                              transition:
-                                                "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
-                                            }}
-                                          >
-                                            <ChevronDown size={14} />
-                                          </span>
-                                          <StockLogo yfSym={yfSym} size={32} />
+                                  return (
+                                    <tr key={it.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                                      <td style={{ ...tdStyle, paddingLeft: 20 }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                          <StockLogo yfSym={yfSym} size={30} />
                                           <div>
-                                            <div style={{ fontWeight: 700, color: THEME.ink }}>
-                                              {it.symbol}
-                                            </div>
-                                            <div style={{ fontSize: 11, color: THEME.muted }}>
-                                              {it.exchange}
-                                            </div>
+                                            <div style={{ fontWeight: 800, color: THEME.ink }}>{it.symbol}</div>
+                                            <div style={{ fontSize: 10, color: THEME.muted }}>{it.exchange}</div>
                                           </div>
                                         </div>
                                       </td>
-                                      <td
-                                        style={{
-                                          ...td,
-                                          textAlign: "right",
-                                          fontVariantNumeric: "tabular-nums",
-                                        }}
-                                      >
-                                        {livePrice != null ? (
-                                          <div>
-                                            <div style={{ fontWeight: 700, color: THEME.ink }}>
-                                              ₹
-                                              {livePrice.toLocaleString("en-IN", {
-                                                minimumFractionDigits: 2,
-                                              })}
-                                            </div>
-                                            {md && (
-                                              <div
-                                                style={{
-                                                  fontSize: 11,
-                                                  fontWeight: 700,
-                                                  color: changeAmt >= 0 ? THEME.sage : THEME.rust,
-                                                  marginTop: 1,
-                                                }}
-                                              >
-                                                {changeAmt >= 0 ? "+" : ""}
-                                                {changePct.toFixed(2)}%
-                                              </div>
-                                            )}
-                                          </div>
-                                        ) : (
-                                          <span style={{ color: THEME.muted }}>—</span>
-                                        )}
+
+                                      <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
+                                        {livePrice != null ? <Prv>₹{Number(livePrice).toFixed(2)}</Prv> : "—"}
                                       </td>
-                                      <td
-                                        style={{
-                                          ...td,
-                                          textAlign: "right",
-                                          fontVariantNumeric: "tabular-nums",
-                                        }}
-                                      >
-                                        {it.targetPrice ? (
-                                          <span style={{ fontWeight: 700, color: THEME.gold }}>
-                                            ₹
-                                            {Number(it.targetPrice).toLocaleString("en-IN", {
-                                              minimumFractionDigits: 2,
-                                            })}
-                                          </span>
-                                        ) : (
-                                          <span style={{ color: THEME.muted }}>—</span>
-                                        )}
+
+                                      <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800, color: THEME.gold }}>
+                                        {it.targetPrice ? <Prv>₹{Number(it.targetPrice).toFixed(2)}</Prv> : "—"}
                                       </td>
-                                      <td style={{ ...td, textAlign: "right", minWidth: 160 }}>
+
+                                      <td style={{ ...tdStyle, textAlign: "right" }}>
                                         {gap !== null ? (
-                                          <div
-                                            style={{
-                                              display: "flex",
-                                              flexDirection: "column",
-                                              alignItems: "flex-end",
-                                              gap: 4,
-                                            }}
-                                          >
-                                            <div
-                                              style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 6,
-                                              }}
-                                            >
-                                              {Math.abs(gap) <= 2 &&
-                                                it.targetPrice &&
-                                                livePrice && (
-                                                  <span className="buy-signal-badge">
-                                                    <Target size={10} /> Buy Signal
-                                                  </span>
-                                                )}
+                                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                              {isBuySignal && (
+                                                <span className="buy-signal-badge">
+                                                  <Target size={9} /> Buy Signal
+                                                </span>
+                                              )}
                                               <span
                                                 style={{
-                                                  fontWeight: 700,
-                                                  color: gapColor,
+                                                  fontWeight: 800,
                                                   fontSize: 12,
+                                                  color: gap >= 0 ? THEME.sage : THEME.rust,
                                                 }}
                                               >
-                                                {gap >= 0 ? "▲ " : "▼ "}
-                                                {Math.abs(gap).toFixed(1)}%{" "}
-                                                <span
-                                                  style={{
-                                                    fontWeight: 500,
-                                                    color: THEME.muted,
-                                                    fontSize: 11,
-                                                  }}
-                                                >
-                                                  {gap >= 0 ? "to target" : "above target"}
-                                                </span>
+                                                {gap >= 0 ? "▲ " : "▼ "}{Math.abs(gap).toFixed(1)}%
                                               </span>
                                             </div>
-                                            {gap >= 0 && (
+                                            <div className="watchlist-target-bar-track" style={{ width: 80 }}>
                                               <div
-                                                className="watchlist-target-bar-track"
-                                                style={{ width: 100 }}
-                                              >
-                                                <div
-                                                  className="watchlist-target-bar-fill"
-                                                  style={{
-                                                    width: `${Math.min(100, Math.max(0, 100 - Math.min(100, gap)))}%`,
-                                                    background:
-                                                      gap <= 5
-                                                        ? THEME.sage
-                                                        : gap <= 15
-                                                          ? THEME.gold
-                                                          : THEME.accent,
-                                                  }}
-                                                />
-                                              </div>
-                                            )}
+                                                className="watchlist-target-bar-fill"
+                                                style={{
+                                                  width: `${Math.min(100, Math.max(0, 100 - Math.min(100, Math.abs(gap))))}%`,
+                                                  background: gap <= 5 ? THEME.sage : THEME.accent,
+                                                }}
+                                              />
+                                            </div>
                                           </div>
                                         ) : (
                                           <span style={{ color: THEME.muted }}>—</span>
                                         )}
                                       </td>
-                                      <td
-                                        style={{ ...td, color: THEME.muted, maxWidth: 200 }}
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <span
-                                          style={{
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            whiteSpace: "nowrap",
-                                            display: "block",
-                                          }}
-                                        >
+
+                                      <td style={{ ...tdStyle, color: THEME.muted, maxWidth: 200 }}>
+                                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
                                           {it.notes || "—"}
                                         </span>
                                       </td>
-                                      <td
-                                        style={{
-                                          ...td,
-                                          textAlign: "right",
-                                          color: THEME.muted,
-                                          whiteSpace: "nowrap",
-                                        }}
-                                      >
-                                        {it.addedOn || "—"}
-                                      </td>
-                                      <td
-                                        style={{ ...td, textAlign: "right" }}
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            gap: 4,
-                                            justifyContent: "flex-end",
-                                          }}
-                                        >
+
+                                      <td style={{ ...tdStyle, textAlign: "right", paddingRight: 20 }}>
+                                        <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                                          <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            style={{ padding: "3px 8px", fontSize: 11 }}
+                                            onClick={() => {
+                                              setStockDefaults({
+                                                symbol: it.symbol,
+                                                exchange: it.exchange || "NSE",
+                                                avgPrice: livePrice ? String(livePrice) : "",
+                                              });
+                                              setShowStock(true);
+                                            }}
+                                          >
+                                            Buy
+                                          </Button>
                                           <button
                                             className="icon-btn"
-                                            style={iconBtn}
                                             onClick={() => setEditWishlistItemId(it.id)}
-                                            title="Edit target price / notes"
+                                            title="Edit Item"
                                           >
-                                            <Pencil size={13} />
+                                            <Pencil size={12} />
                                           </button>
                                           <button
                                             className="icon-btn danger"
-                                            style={iconBtn}
-                                            onClick={() =>
-                                              setConfirmAction({
-                                                message: `Remove ${it.symbol} from this wishlist?`,
-                                                onConfirm: () => removeItem("wishlistItems", it.id),
-                                              })
-                                            }
-                                            title="Remove from watchlist"
+                                            onClick={() => removeItem("wishlistItems", it.id)}
+                                            title="Remove Item"
                                           >
-                                            <X size={14} />
+                                            <X size={13} />
                                           </button>
                                         </div>
                                       </td>
                                     </tr>
-
-                                    {/* Expandable chart drawer */}
-                                    {isItemExpanded && (
-                                      <tr
-                                        style={{
-                                          background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
-                                        }}
-                                      >
-                                        <td
-                                          colSpan={7}
-                                          style={{
-                                            padding: "20px 24px",
-                                            borderBottom: `1px solid ${THEME.line}`,
-                                          }}
-                                        >
-                                          <div
-                                            style={{ display: "flex", gap: 32, flexWrap: "wrap" }}
-                                          >
-                                            {/* Price chart with period selector */}
-                                            {md && charts && charts.length > 2 ? (
-                                              <div style={{ flex: "1 1 300px", minWidth: 280 }}>
-                                                <div
-                                                  style={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "space-between",
-                                                    marginBottom: 12,
-                                                    flexWrap: "wrap",
-                                                    gap: 6,
-                                                  }}
-                                                >
-                                                  <div
-                                                    style={{
-                                                      display: "flex",
-                                                      alignItems: "baseline",
-                                                      gap: 8,
-                                                      flexWrap: "wrap",
-                                                    }}
-                                                  >
-                                                    <div
-                                                      style={{
-                                                        fontSize: 11,
-                                                        color: THEME.muted,
-                                                        fontWeight: 700,
-                                                        textTransform: "uppercase",
-                                                        letterSpacing: "0.05em",
-                                                      }}
-                                                    >
-                                                      {wlActivePeriod === "1d" && chartDate
-                                                        ? `Intraday — ${chartDate}`
-                                                        : `${CHART_PERIOD_LABELS[wlActivePeriod]} Chart`}
-                                                    </div>
-                                                    {periodChange && (
-                                                      <div
-                                                        style={{
-                                                          fontSize: 12,
-                                                          fontWeight: 800,
-                                                          color:
-                                                            periodChange.amount >= 0
-                                                              ? THEME.sage
-                                                              : THEME.rust,
-                                                        }}
-                                                      >
-                                                        {periodChange.amount >= 0 ? "+" : "-"}₹
-                                                        {Math.abs(periodChange.amount).toFixed(2)} (
-                                                        {periodChange.amount >= 0 ? "+" : "-"}
-                                                        {Math.abs(periodChange.pct).toFixed(2)}%)
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                  <div
-                                                    style={{
-                                                      display: "flex",
-                                                      background: "var(--t-line)",
-                                                      padding: 2,
-                                                      borderRadius: 8,
-                                                      border: `1px solid ${THEME.line}`,
-                                                    }}
-                                                  >
-                                                    {CHART_PERIODS.map((p) => (
-                                                      <button
-                                                        key={p}
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setChartPeriod((prev) => ({
-                                                            ...prev,
-                                                            [yfSym]: p,
-                                                          }));
-                                                          fetchChart(yfSym, p);
-                                                        }}
-                                                        style={{
-                                                          padding: "4px 8px",
-                                                          fontSize: 9,
-                                                          fontWeight:
-                                                            wlActivePeriod === p ? 850 : 600,
-                                                          border: "none",
-                                                          borderRadius: 6,
-                                                          cursor: "pointer",
-                                                          background:
-                                                            wlActivePeriod === p
-                                                              ? "var(--t-card-bg)"
-                                                              : "transparent",
-                                                          color:
-                                                            wlActivePeriod === p
-                                                              ? THEME.accent
-                                                              : THEME.muted,
-                                                          boxShadow:
-                                                            wlActivePeriod === p
-                                                              ? `0 1px 3px color-mix(in srgb, ${THEME.ink} 16%, transparent)`
-                                                              : "none",
-                                                          transition:
-                                                            "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-                                                        }}
-                                                      >
-                                                        {CHART_PERIOD_LABELS[p]}
-                                                      </button>
-                                                    ))}
-                                                  </div>
-                                                </div>
-                                                <div
-                                                  style={{
-                                                    background: "var(--surface-0)",
-                                                    border: `1.5px solid ${THEME.line}`,
-                                                    borderRadius: 12,
-                                                    padding: "12px 14px",
-                                                    boxSizing: "border-box",
-                                                  }}
-                                                >
-                                                  {charts && charts.length > 2 ? (
-                                                    <>
-                                                      <div
-                                                        style={{
-                                                          width: "100%",
-                                                          height: 150,
-                                                          position: "relative",
-                                                        }}
-                                                      >
-                                                        <ResponsiveContainer
-                                                          width="100%"
-                                                          height="100%"
-                                                          minWidth={0}
-                                                        >
-                                                          <AreaChart
-                                                            data={charts}
-                                                            margin={{
-                                                              top: 4,
-                                                              right: 4,
-                                                              bottom: 0,
-                                                              left: 0,
-                                                            }}
-                                                          >
-                                                            <defs>
-                                                              <linearGradient
-                                                                id={`wl-ig-${it.symbol}`}
-                                                                x1="0"
-                                                                y1="0"
-                                                                x2="0"
-                                                                y2="1"
-                                                              >
-                                                                <stop
-                                                                  offset="5%"
-                                                                  stopColor={
-                                                                    chartChangeAmt >= 0
-                                                                      ? THEME.sage
-                                                                      : THEME.rust
-                                                                  }
-                                                                  stopOpacity={0.35}
-                                                                />
-                                                                <stop
-                                                                  offset="95%"
-                                                                  stopColor={
-                                                                    chartChangeAmt >= 0
-                                                                      ? THEME.sage
-                                                                      : THEME.rust
-                                                                  }
-                                                                  stopOpacity={0.02}
-                                                                />
-                                                              </linearGradient>
-                                                            </defs>
-                                                            <XAxis
-                                                              dataKey="t"
-                                                              tick={{
-                                                                fontSize: 9,
-                                                                fill: "var(--t-muted)",
-                                                              }}
-                                                              interval="preserveStartEnd"
-                                                              axisLine={false}
-                                                              tickLine={false}
-                                                            />
-                                                            <YAxis hide domain={["auto", "auto"]} />
-                                                            <Tooltip
-                                                              cursor={{ stroke: THEME.line }}
-                                                              contentStyle={{
-                                                                fontSize: 12,
-                                                                background: "var(--surface-0)",
-                                                                border: `1px solid ${THEME.line}`,
-                                                                borderRadius: 6,
-                                                                color: THEME.ink,
-                                                              }}
-                                                              labelStyle={{ color: THEME.ink }}
-                                                              itemStyle={{ color: THEME.ink }}
-                                                              formatter={(v: any) => [
-                                                                privacyMode
-                                                                  ? "••••"
-                                                                  : `₹${Number(v).toFixed(2)}`,
-                                                                "Price",
-                                                              ]}
-                                                            />
-                                                            <Area
-                                                              type="monotone"
-                                                              dataKey="p"
-                                                              stroke={
-                                                                chartChangeAmt >= 0
-                                                                  ? THEME.sage
-                                                                  : THEME.rust
-                                                              }
-                                                              strokeWidth={1.5}
-                                                              fill={`url(#wl-ig-${it.symbol})`}
-                                                              dot={false}
-                                                            />
-                                                          </AreaChart>
-                                                        </ResponsiveContainer>
-                                                      </div>
-                                                      <div
-                                                        style={{
-                                                          display: "flex",
-                                                          flexWrap: "wrap",
-                                                          gap: "10px 16px",
-                                                          marginTop: 12,
-                                                          fontSize: 12,
-                                                          borderTop: `1px solid ${THEME.line}`,
-                                                          paddingTop: 10,
-                                                        }}
-                                                      >
-                                                        {md.prevClose != null && (
-                                                          <span>
-                                                            <span style={{ color: THEME.muted }}>
-                                                              Prev Close:{" "}
-                                                            </span>
-                                                            <b>
-                                                              <Prv>₹{md.prevClose.toFixed(2)}</Prv>
-                                                            </b>
-                                                          </span>
-                                                        )}
-                                                        {md.dayHigh != null && (
-                                                          <span>
-                                                            <span style={{ color: THEME.muted }}>
-                                                              Day High/Low:{" "}
-                                                            </span>
-                                                            <b style={{ color: THEME.sage }}>
-                                                              <Prv>₹{md.dayHigh.toFixed(2)}</Prv>
-                                                            </b>
-                                                            {" / "}
-                                                            <b style={{ color: THEME.rust }}>
-                                                              {md.dayLow != null ? (
-                                                                <Prv>₹{md.dayLow.toFixed(2)}</Prv>
-                                                              ) : (
-                                                                "—"
-                                                              )}
-                                                            </b>
-                                                          </span>
-                                                        )}
-                                                        {md.weekHigh52 != null && (
-                                                          <span>
-                                                            <span style={{ color: THEME.muted }}>
-                                                              52W H/L:{" "}
-                                                            </span>
-                                                            <b style={{ color: THEME.sage }}>
-                                                              <Prv>₹{md.weekHigh52.toFixed(2)}</Prv>
-                                                            </b>
-                                                            {" / "}
-                                                            <b style={{ color: THEME.rust }}>
-                                                              {md.weekLow52 != null ? (
-                                                                <Prv>
-                                                                  ₹{md.weekLow52.toFixed(2)}
-                                                                </Prv>
-                                                              ) : (
-                                                                "—"
-                                                              )}
-                                                            </b>
-                                                          </span>
-                                                        )}
-                                                        {md.volume != null && (
-                                                          <span>
-                                                            <span style={{ color: THEME.muted }}>
-                                                              Volume:{" "}
-                                                            </span>
-                                                            <b>{fmtVol(md.volume)}</b>
-                                                          </span>
-                                                        )}
-                                                      </div>
-                                                    </>
-                                                  ) : (
-                                                    <div
-                                                      style={{
-                                                        height: 150,
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                      }}
-                                                    >
-                                                      <span
-                                                        style={{ color: THEME.muted, fontSize: 12 }}
-                                                      >
-                                                        {fetchingChart === yfSym
-                                                          ? "Loading chart…"
-                                                          : "No chart data available"}
-                                                      </span>
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            ) : !md ? (
-                                              <div style={{ flex: "1 1 300px", minWidth: 280 }}>
-                                                <div
-                                                  style={{
-                                                    background: "var(--surface-0)",
-                                                    border: `1.5px solid ${THEME.line}`,
-                                                    borderRadius: 12,
-                                                    padding: "20px 14px",
-                                                    textAlign: "center",
-                                                  }}
-                                                >
-                                                  <div style={{ color: THEME.muted, fontSize: 13 }}>
-                                                    No live data — click Live Refresh to load prices
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            ) : null}
-
-                                            {/* Target price summary panel */}
-                                            <div style={{ flex: "0 0 220px", minWidth: 200 }}>
-                                              <div
-                                                style={{
-                                                  fontSize: 11,
-                                                  color: THEME.muted,
-                                                  marginBottom: 8,
-                                                  fontWeight: 700,
-                                                  textTransform: "uppercase",
-                                                  letterSpacing: "0.05em",
-                                                }}
-                                              >
-                                                Target Summary
-                                              </div>
-                                              <div
-                                                style={{
-                                                  background: "var(--surface-0)",
-                                                  border: `1.5px solid ${THEME.line}`,
-                                                  borderRadius: 12,
-                                                  padding: "14px 16px",
-                                                  display: "flex",
-                                                  flexDirection: "column",
-                                                  gap: 10,
-                                                  fontSize: 13,
-                                                }}
-                                              >
-                                                <div
-                                                  style={{
-                                                    display: "flex",
-                                                    justifyContent: "space-between",
-                                                  }}
-                                                >
-                                                  <span style={{ color: THEME.muted }}>Symbol</span>
-                                                  <b>
-                                                    {it.symbol} · {it.exchange}
-                                                  </b>
-                                                </div>
-                                                {livePrice != null && (
-                                                  <div
-                                                    style={{
-                                                      display: "flex",
-                                                      justifyContent: "space-between",
-                                                    }}
-                                                  >
-                                                    <span style={{ color: THEME.muted }}>
-                                                      Live Price
-                                                    </span>
-                                                    <b>
-                                                      ₹
-                                                      {livePrice.toLocaleString("en-IN", {
-                                                        minimumFractionDigits: 2,
-                                                      })}
-                                                    </b>
-                                                  </div>
-                                                )}
-                                                {it.targetPrice && (
-                                                  <div
-                                                    style={{
-                                                      display: "flex",
-                                                      justifyContent: "space-between",
-                                                    }}
-                                                  >
-                                                    <span style={{ color: THEME.muted }}>
-                                                      Target
-                                                    </span>
-                                                    <b style={{ color: THEME.gold }}>
-                                                      ₹
-                                                      {Number(it.targetPrice).toLocaleString(
-                                                        "en-IN",
-                                                        { minimumFractionDigits: 2 }
-                                                      )}
-                                                    </b>
-                                                  </div>
-                                                )}
-                                                {gap !== null && (
-                                                  <div
-                                                    style={{
-                                                      display: "flex",
-                                                      justifyContent: "space-between",
-                                                    }}
-                                                  >
-                                                    <span style={{ color: THEME.muted }}>Gap</span>
-                                                    <b style={{ color: gapColor }}>
-                                                      {gap >= 0 ? "▲ " : "▼ "}
-                                                      {Math.abs(gap).toFixed(1)}%
-                                                    </b>
-                                                  </div>
-                                                )}
-                                                {it.notes && (
-                                                  <div
-                                                    style={{
-                                                      borderTop: `1px solid ${THEME.line}`,
-                                                      paddingTop: 8,
-                                                      color: THEME.muted,
-                                                      fontSize: 12,
-                                                      fontStyle: "italic",
-                                                    }}
-                                                  >
-                                                    {it.notes}
-                                                  </div>
-                                                )}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </React.Fragment>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                      {/* Add stock button */}
-                      <div
-                        style={{
-                          padding: "12px 20px",
-                          borderTop: items.length > 0 ? `1px solid ${THEME.line}` : "none",
-                        }}
-                      >
-                        <Button
-                          variant="ghost"
-                          icon={<Plus size={13} />}
-                          style={{ fontSize: 13 }}
-                          onClick={() => {
-                            setWishlistItemTarget(wl.id);
-                            setShowWishlistItemModal(true);
-                          }}
-                        >
-                          Add Stock to Watchlist {wl.name}
-                        </Button>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* ── VIEW 4: CORPORATE ACTIONS & TAX LEDGER ── */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {dematView === "corporateActions" && (
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Tax Rules Overview */}
+          <Card style={{ padding: 20 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginBottom: 10 }}>
+              Indian Capital Gains Tax Rules (Budget 2024 / FY 2024–25+)
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+              <div style={{ padding: 14, borderRadius: 10, background: "var(--surface-1)", border: `1px solid ${THEME.line}` }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: THEME.sage, textTransform: "uppercase" }}>
+                  Long-Term Capital Gains (LTCG)
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginTop: 4 }}>
+                  12.5% <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>above ₹1.25 Lakh exemption</span>
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+                  Applicable when equity scrips are held for more than 12 months (Section 112A).
+                </div>
+              </div>
+
+              <div style={{ padding: 14, borderRadius: 10, background: "var(--surface-1)", border: `1px solid ${THEME.line}` }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: THEME.gold, textTransform: "uppercase" }}>
+                  Short-Term Capital Gains (STCG)
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginTop: 4 }}>
+                  20.0% <span style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>flat tax</span>
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+                  Applicable on equity shares sold within 12 months of purchase date (Section 111A).
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Corporate Actions History Table */}
+          <Card style={{ padding: 24 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginBottom: 14 }}>
+              Split &amp; Bonus Issues Audit Trail
+            </div>
+            {(state.corporateActions || []).length === 0 ? (
+              <div style={{ textAlign: "center", padding: 24, color: THEME.muted, fontSize: 13 }}>
+                No corporate action splits or bonus shares recorded yet. When you perform a split or bonus action on a holding, its adjustment audit trail will appear here.
+              </div>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...thStyle, paddingLeft: 16 }}>Symbol</th>
+                      <th style={thStyle}>Action</th>
+                      <th style={thStyle}>Ratio</th>
+                      <th style={thStyle}>Date</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Qty Adjustment</th>
+                      <th style={{ ...thStyle, textAlign: "right", paddingRight: 16 }}>Avg Price Adjustment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(state.corporateActions || []).map((a: any) => (
+                      <tr key={a.id} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                        <td style={{ ...tdStyle, paddingLeft: 16, fontWeight: 800 }}>
+                          {a.symbol} ({a.exchange || "NSE"})
+                        </td>
+                        <td style={tdStyle}>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 850,
+                              padding: "2px 8px",
+                              borderRadius: 4,
+                              background: a.actionType === "split" ? `color-mix(in srgb, ${THEME.gold} 12%, transparent)` : `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                              color: a.actionType === "split" ? THEME.gold : THEME.sage,
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {a.actionType}
+                          </span>
+                        </td>
+                        <td style={{ ...tdStyle, fontWeight: 700 }}>
+                          {a.ratioN} : {a.ratioM}
+                        </td>
+                        <td style={{ ...tdStyle, color: THEME.muted }}>
+                          {a.actionDate || "—"}
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                          <span style={{ color: THEME.muted }}>{a.oldQty}</span> → <b>{a.newQty}</b>
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", paddingRight: 16, fontVariantNumeric: "tabular-nums" }}>
+                          <span style={{ color: THEME.muted }}>₹{Number(a.oldAvgPrice).toFixed(2)}</span> → <b>₹{Number(a.newAvgPrice).toFixed(2)}</b>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* ── MODALS ── */}
       {showDemat && (
         <DematModal
-          activeProfile={activeProfile}
           onClose={() => setShowDemat(false)}
           onSave={saveNewDemat}
+          activeProfile={activeProfile}
           saving={savingNewDemat}
         />
       )}
+
       {editDematId && (
         <DematModal
-          initial={state.demat.find((d: any) => d.id === editDematId)}
+          initial={(state.demat || []).find((d: any) => d.id === editDematId)}
           onClose={() => setEditDematId(null)}
           onSave={(v: any) => saveDematEdit(editDematId, v)}
+          activeProfile={activeProfile}
           saving={savingDematEdit}
         />
       )}
+
       {showStock && (
         <StockModal
-          demats={state.demat}
+          demats={state.demat || []}
           defaults={stockDefaults}
-          activeProfile={activeProfile}
           onClose={() => {
             setShowStock(false);
             setStockDefaults(null);
           }}
           onSave={saveNewStock}
+          activeProfile={activeProfile}
           saving={savingNewStock}
         />
       )}
+
       {editStockId && (
         <StockModal
-          demats={state.demat}
-          initial={state.stocks.find((x: any) => x.id === editStockId)}
+          demats={state.demat || []}
+          initial={(state.stocks || []).find((s: any) => s.id === editStockId)}
           onClose={() => setEditStockId(null)}
           onSave={(v: any) => saveStockEdit(editStockId, v)}
+          activeProfile={activeProfile}
           saving={savingStockEdit}
         />
       )}
+
       {sellLot && (
         <SellStockModal
           lot={sellLot}
           onClose={() => setSellLot(null)}
-          onSave={(sellRecord: any, remainingQty: number) =>
-            saveSellStock(sellLot.id, sellRecord, remainingQty)
-          }
+          onSave={(record: any, remainingQty: number) => saveSellStock(sellLot.id, record, remainingQty)}
           saving={savingSellStock}
         />
       )}
+
       {fifoSellGroup && (
         <FifoSellModal
           group={fifoSellGroup}
-          currentPrice={
-            marketData[fifoSellGroup.yfSym]?.price ??
-            Number(fifoSellGroup.lots[0]?.currentPrice ?? 0)
-          }
-          demats={state.demat}
+          currentPrice={marketData[fifoSellGroup.yfSym]?.price}
+          demats={state.demat || []}
           onClose={() => setFifoSellGroup(null)}
-          onSave={(allocs: FifoAlloc[], sellPrice: number, sellDate: string, broker: string) =>
+          onSave={(allocs: any, sellPrice: number, sellDate: string, broker: string) =>
             saveFifoSell(fifoSellGroup, allocs, sellPrice, sellDate, broker)
           }
           saving={savingFifoSell}
         />
       )}
+
       {splitBonusGroup && (
         <SplitBonusModal
           group={splitBonusGroup}
@@ -6646,19 +3441,18 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           saving={savingNewWishlist}
         />
       )}
+
       {editWishlistId && (
         <WishlistModal
-          initial={wishlists.find((wl: any) => wl.id === editWishlistId)}
+          initial={(wishlists || []).find((w: any) => w.id === editWishlistId)}
           onClose={() => setEditWishlistId(null)}
           onSave={(v: any) => saveWishlistEdit(editWishlistId, v)}
           saving={savingWishlistEdit}
         />
       )}
+
       {showWishlistItemModal && wishlistItemTarget && (
         <WishlistItemModal
-          wishlistName={
-            wishlists.find((wl: any) => wl.id === wishlistItemTarget)?.name || "Wishlist"
-          }
           onClose={() => {
             setShowWishlistItemModal(false);
             setWishlistItemTarget(null);
@@ -6667,33 +3461,30 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
           saving={savingNewWishlistItem}
         />
       )}
-      {editWishlistItemId &&
-        (() => {
-          const item = wishlistItems.find((it: any) => it.id === editWishlistItemId);
-          const wl = wishlists.find((w: any) => w.id === item?.watchlistId);
-          if (!item) return null;
-          return (
-            <WishlistItemModal
-              wishlistName={wl?.name || "Watchlist"}
-              initial={item}
-              onClose={() => setEditWishlistItemId(null)}
-              onSave={(v: any) => saveWishlistItemEdit(editWishlistItemId, v)}
-              saving={savingWishlistItemEdit}
-            />
-          );
-        })()}
+
+      {editWishlistItemId && (
+        <WishlistItemModal
+          initial={(wishlistItems || []).find((it: any) => it.id === editWishlistItemId)}
+          onClose={() => setEditWishlistItemId(null)}
+          onSave={(v: any) => saveWishlistItemEdit(editWishlistItemId, v)}
+          saving={savingWishlistItemEdit}
+        />
+      )}
 
       {showBrokerImport && (
         <BrokerImportModal
-          existingStocks={state.stocks || []}
           demats={state.demat || []}
+          existingStocks={state.stocks || []}
+          activeProfile={activeProfile}
           onClose={() => setShowBrokerImport(false)}
           onImport={saveBrokerImport}
           saving={savingBrokerImport}
         />
       )}
+
       {confirmAction && (
         <ConfirmDialog
+          title="Confirm Action"
           message={confirmAction.message}
           onConfirm={() => {
             confirmAction.onConfirm();
@@ -6706,24 +3497,40 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions
   );
 }
 
-function DematModal({
-  onClose,
-  onSave,
-  initial = null,
-  activeProfile = "all",
-  saving = false,
-}: any) {
+export default DematTab;
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* ── SUB-MODALS ── */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+function DematModal({ onClose, onSave, initial = null, activeProfile = "all", saving = false }: any) {
   const { familyProfiles } = useMasterData();
   const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const [f, setF] = useState(
     initial || { broker: "", dpId: "", clientId: "", owner: defaultOwner }
   );
+
+  const POPULAR_BROKERS = [
+    "Zerodha",
+    "Groww",
+    "Angel One",
+    "Upstox",
+    "ICICI Direct",
+    "HDFC Sky",
+    "Kotak Neo",
+    "Dhan",
+    "Paytm Money",
+    "Motilal Oswal",
+    "Sharekhan",
+    "5paisa",
+  ];
+
   const isValid = !!f.broker?.trim();
   return (
     <Modal title={initial ? "Edit Demat Account" : "Add Demat Account"} onClose={onClose}>
       <Field label="Owner / Profile">
         <select
-          style={input}
+          style={inputStyle}
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
@@ -6734,30 +3541,58 @@ function DematModal({
           ))}
         </select>
       </Field>
-      <Field label="Broker">
+
+      <Field label="Broker Name">
         <input
-          style={input}
+          style={inputStyle}
           value={f.broker}
           onChange={(e) => setF({ ...f, broker: e.target.value })}
           placeholder="e.g. Zerodha, Groww"
         />
       </Field>
+
+      {/* Quick Broker Chips */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+        {POPULAR_BROKERS.slice(0, 8).map((b) => (
+          <button
+            key={b}
+            type="button"
+            onClick={() => setF({ ...f, broker: b })}
+            style={{
+              fontSize: 11,
+              padding: "4px 8px",
+              borderRadius: 6,
+              border: `1px solid ${THEME.line}`,
+              background: f.broker.toLowerCase() === b.toLowerCase() ? THEME.accent : "var(--surface-1)",
+              color: f.broker.toLowerCase() === b.toLowerCase() ? THEME.darkInk : THEME.ink,
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            {b}
+          </button>
+        ))}
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="DP ID">
+        <Field label="DP ID (Optional)">
           <input
-            style={input}
+            style={inputStyle}
             value={f.dpId}
             onChange={(e) => setF({ ...f, dpId: e.target.value })}
+            placeholder="e.g. 12081600"
           />
         </Field>
-        <Field label="Client ID">
+        <Field label="Client ID / BOID (Optional)">
           <input
-            style={input}
+            style={inputStyle}
             value={f.clientId}
             onChange={(e) => setF({ ...f, clientId: e.target.value })}
+            placeholder="e.g. YB1234"
           />
         </Field>
       </div>
+
       <ModalActions
         onSave={() => isValid && onSave(f)}
         onClose={onClose}
@@ -6769,15 +3604,7 @@ function DematModal({
   );
 }
 
-function StockModal({
-  demats,
-  onClose,
-  onSave,
-  initial = null,
-  defaults = null,
-  activeProfile = "all",
-  saving = false,
-}: any) {
+function StockModal({ demats = [], onClose, onSave, initial = null, defaults = null, activeProfile = "all", saving = false }: any) {
   const { familyProfiles } = useMasterData();
   const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const [f, setF] = useState(
@@ -6786,12 +3613,13 @@ function StockModal({
       exchange: defaults?.exchange || "NSE",
       dematId: defaults?.dematId || demats[0]?.id || "",
       qty: "",
-      avgPrice: "",
+      avgPrice: defaults?.avgPrice || "",
       currentPrice: "",
-      buyDate: "",
+      buyDate: today(),
       owner: defaultOwner,
     }
   );
+
   const qtyNum = Number(f.qty);
   const avgPriceNum = Number(f.avgPrice);
   const currentPriceNum = Number(f.currentPrice);
@@ -6801,11 +3629,12 @@ function StockModal({
     qtyNum > 0 &&
     avgPriceNum > 0 &&
     (f.currentPrice === "" || (Number.isFinite(currentPriceNum) && currentPriceNum >= 0));
+
   return (
-    <Modal title={initial ? "Edit Stock" : "Add Stock"} onClose={onClose}>
-      <Field label="Owner / Profile">
+    <Modal title={initial ? "Edit Stock Scrip" : "Add Stock Scrip"} onClose={onClose}>
+      <Field label="Owner / Family Profile">
         <select
-          style={input}
+          style={inputStyle}
           value={f.owner || "self"}
           onChange={(e) => setF({ ...f, owner: e.target.value })}
         >
@@ -6816,20 +3645,21 @@ function StockModal({
           ))}
         </select>
       </Field>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12 }}>
-        <Field label="Symbol">
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 12 }}>
+        <Field label="Scrip Symbol">
           <input
-            style={input}
+            style={inputStyle}
             value={f.symbol}
             onChange={(e) =>
               setF({ ...f, symbol: e.target.value.toUpperCase().replace(/\.(NS|BO)$/i, "") })
             }
-            placeholder="e.g. RELIANCE"
+            placeholder="e.g. RELIANCE, TCS"
           />
         </Field>
         <Field label="Exchange">
           <select
-            style={{ ...input, width: 90 }}
+            style={inputStyle}
             value={f.exchange || "NSE"}
             onChange={(e) => setF({ ...f, exchange: e.target.value })}
           >
@@ -6838,70 +3668,71 @@ function StockModal({
           </select>
         </Field>
       </div>
+
       <Field label="Demat Account">
         <select
-          style={input}
+          style={inputStyle}
           value={f.dematId}
           onChange={(e) => setF({ ...f, dematId: e.target.value })}
         >
-          {demats.length === 0 && <option value="">Add demat first</option>}
+          {demats.length === 0 && <option value="">Please add a Demat Account first</option>}
           {demats.map((d: any) => (
             <option key={d.id} value={d.id}>
-              {d.broker}
+              {d.broker} {d.clientId ? `(${d.clientId})` : ""}
             </option>
           ))}
         </select>
       </Field>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: 12,
-        }}
-      >
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12 }}>
         <Field label="Quantity">
           <input
-            style={input}
+            style={inputStyle}
             type="number"
             min="0.0001"
             value={f.qty}
             onChange={(e) => setF({ ...f, qty: e.target.value })}
+            placeholder="e.g. 50"
           />
         </Field>
-        <Field label="Avg Price">
+        <Field label="Buy Price (₹)">
           <input
-            style={input}
+            style={inputStyle}
             type="number"
             step="0.01"
             min="0.01"
             value={f.avgPrice}
             onChange={(e) => setF({ ...f, avgPrice: e.target.value })}
+            placeholder="e.g. 2450.50"
           />
         </Field>
-        <Field label="Current Price">
+        <Field label="Current Price (Optional)">
           <input
-            style={input}
+            style={inputStyle}
             type="number"
             step="0.01"
-            min="0"
+            min="0.01"
             value={f.currentPrice}
             onChange={(e) => setF({ ...f, currentPrice: e.target.value })}
+            placeholder="Auto-updated live"
           />
         </Field>
       </div>
-      <Field label="Buy Date (optional — enables CAGR calculation)">
+
+      <Field label="Buy Date (Enables LTCG/STCG Tax Calculation & CAGR)">
         <input
-          style={input}
+          style={inputStyle}
           type="date"
           max={today()}
           value={f.buyDate || ""}
           onChange={(e) => setF({ ...f, buyDate: e.target.value })}
         />
       </Field>
+
       <ModalActions
         onSave={() => isValid && onSave(f)}
         onClose={onClose}
-        saveLabel={initial ? "Save Changes" : "Add Stock"}
+        saveLabel={initial ? "Save Changes" : "Add Scrip"}
         disabled={!isValid || saving}
         loading={saving}
       />
@@ -6912,19 +3743,20 @@ function StockModal({
 function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
   const [f, setF] = useState({
     sellQty: String(lot.qty),
-    sellPrice: String(lot.currentPrice || ""),
+    sellPrice: String(lot.currentPrice || lot.avgPrice || ""),
     sellDate: today(),
     broker: lot.broker || "",
   });
+
   const sellQtyNum = Number(f.sellQty) || 0;
   const sellPriceNum = Number(f.sellPrice) || 0;
   const totalLotQty = Number(lot.qty) || 0;
   const actualSellQty = Math.abs(sellQtyNum - totalLotQty) <= 0.0001 ? totalLotQty : sellQtyNum;
-  const remainingQty =
-    Math.max(0, totalLotQty - actualSellQty) <= 0.0001 ? 0 : totalLotQty - actualSellQty;
+  const remainingQty = Math.max(0, totalLotQty - actualSellQty) <= 0.0001 ? 0 : totalLotQty - actualSellQty;
   const profit = (sellPriceNum - Number(lot.avgPrice)) * actualSellQty;
-  const isValid =
-    sellQtyNum > 0 && sellPriceNum > 0 && sellQtyNum <= totalLotQty + 0.0001 && !!f.sellDate;
+  const isLtcg = lot.buyDate ? isLongTerm(lot.buyDate, f.sellDate, 12) : false;
+  const isValid = sellQtyNum > 0 && sellPriceNum > 0 && sellQtyNum <= totalLotQty + 0.0001 && !!f.sellDate;
+
   const handleSave = () => {
     if (!isValid) return;
     const record = {
@@ -6939,20 +3771,21 @@ function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
       sellDate: f.sellDate,
       broker: f.broker,
       dematId: lot.dematId || "",
-      profit: Number(((sellPriceNum - Number(lot.avgPrice)) * actualSellQty).toFixed(2)),
+      profit: Number(profit.toFixed(2)),
     };
     onSave(record, remainingQty);
   };
+
   return (
-    <Modal title={`Sell ${lot.base || lot.symbol}`} onClose={onClose}>
-      <div style={{ fontSize: 13, color: "var(--t-muted)", marginBottom: 12 }}>
-        Holding: <b>{lot.qty}</b> shares @ avg <Prv>₹{Number(lot.avgPrice).toFixed(2)}</Prv> · Lot
-        bought {lot.buyDate || "—"}
+    <Modal title={`Sell Shares — ${lot.base || lot.symbol}`} onClose={onClose}>
+      <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 14 }}>
+        Lot: <b>{lot.qty} shares</b> @ cost basis <Prv>₹{Number(lot.avgPrice).toFixed(2)}</Prv> (Bought: {lot.buyDate || "—"})
       </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Sell Qty">
+        <Field label="Sell Quantity">
           <input
-            style={input}
+            style={inputStyle}
             type="number"
             min="0.0001"
             max={lot.qty}
@@ -6962,7 +3795,7 @@ function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
         </Field>
         <Field label="Sell Price (₹)">
           <input
-            style={input}
+            style={inputStyle}
             type="number"
             step="0.01"
             min="0.01"
@@ -6971,9 +3804,10 @@ function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
           />
         </Field>
       </div>
+
       <Field label="Sell Date">
         <input
-          style={input}
+          style={inputStyle}
           type="date"
           min={lot.buyDate || undefined}
           max={today()}
@@ -6981,55 +3815,31 @@ function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
           onChange={(e) => setF({ ...f, sellDate: e.target.value })}
         />
       </Field>
-      <Field label="Broker">
-        {lot.broker ? (
-          <input
-            style={{
-              ...input,
-              background: `color-mix(in srgb, ${THEME.line} 25%, transparent)`,
-              cursor: "default",
-            }}
-            value={f.broker}
-            readOnly
-          />
-        ) : (
-          <input
-            style={input}
-            value={f.broker}
-            placeholder="e.g. Zerodha"
-            onChange={(e) => setF({ ...f, broker: e.target.value })}
-          />
-        )}
-      </Field>
+
       {sellQtyNum > 0 && sellPriceNum > 0 && (
         <div
           style={{
-            padding: "10px 14px",
-            borderRadius: 8,
-            background:
-              profit >= 0
-                ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)`
-                : `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
+            padding: "12px 14px",
+            borderRadius: 10,
+            background: profit >= 0 ? `color-mix(in srgb, ${THEME.sage} 10%, transparent)` : `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
             marginTop: 4,
           }}
         >
-          <span style={{ fontSize: 13, color: "var(--t-muted)" }}>Estimated Profit/Loss: </span>
-          <b style={{ color: profit >= 0 ? THEME.sage : THEME.rust }}>
-            <Prv>
-              {profit >= 0 ? "+" : ""}₹
-              {Math.abs(profit).toLocaleString("en-IN", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </Prv>
-          </b>
-          {remainingQty > 0 && (
-            <span style={{ fontSize: 12, color: "var(--t-muted)", marginLeft: 12 }}>
-              {remainingQty} shares remain
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>Estimated Capital Gain/Loss:</span>
+            <b style={{ color: profit >= 0 ? THEME.sage : THEME.rust, fontSize: 14 }}>
+              {profit >= 0 ? "+" : ""}₹{Math.abs(profit).toFixed(2)}
+            </b>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: 11 }}>
+            <span className={isLtcg ? "demat-tax-badge-ltcg" : "demat-tax-badge-stcg"}>
+              {isLtcg ? "LTCG @ 12.5%" : "STCG @ 20.0%"}
             </span>
-          )}
+            {remainingQty > 0 && <span style={{ color: THEME.muted }}>{remainingQty} shares will remain</span>}
+          </div>
         </div>
       )}
+
       <ModalActions
         onSave={handleSave}
         onClose={onClose}
@@ -7041,24 +3851,13 @@ function SellStockModal({ lot, onClose, onSave, saving = false }: any) {
   );
 }
 
-function FifoSellModal({ group, currentPrice, demats, onClose, onSave, saving = false }: any) {
-  const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
-  const sortedForDefault = [...group.lots].sort((a: any, b: any) => {
-    if (!a.buyDate && !b.buyDate) return 0;
-    if (!a.buyDate) return 1;
-    if (!b.buyDate) return -1;
-    return new Date(a.buyDate).getTime() - new Date(b.buyDate).getTime();
-  });
-  const defaultBroker = (() => {
-    const d = demats.find((x: any) => x.id === sortedForDefault[0]?.dematId);
-    return d?.broker || "";
-  })();
-
+function FifoSellModal({ group, currentPrice, demats = [], onClose, onSave, saving = false }: any) {
+  const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty || 0), 0);
   const [f, setF] = useState({
     sellQty: String(totalQty),
     sellPrice: currentPrice ? String(Number(currentPrice).toFixed(2)) : "",
     sellDate: today(),
-    broker: defaultBroker,
+    broker: demats[0]?.broker || "",
   });
 
   const sellQtyNum = Number(f.sellQty) || 0;
@@ -7079,58 +3878,20 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave, saving = 
   const stcgPnl = allocs.filter((a) => !a.isLTCG).reduce((s, a) => s + a.pnl, 0);
   const ltcgPnl = allocs.filter((a) => a.isLTCG).reduce((s, a) => s + a.pnl, 0);
   const remainingAfter = totalQty - sellQtyNum;
-  const qtyOver = sellQtyNum > totalQty;
-  const isValid = sellQtyNum > 0 && sellPriceNum > 0 && !qtyOver && !!f.sellDate;
-
-  const fmt = (n: number) =>
-    Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  const fmt2 = (n: number) =>
-    Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const isValid = sellQtyNum > 0 && sellPriceNum > 0 && sellQtyNum <= totalQty + 0.0001 && !!f.sellDate;
 
   return (
-    <Modal title={`Sell ${group.base} — FIFO`} onClose={onClose} maxWidth={720}>
-      {/* Info bar */}
-      <div
-        style={{
-          padding: "10px 14px",
-          borderRadius: 8,
-          background: "var(--surface-0)",
-          border: `1px solid ${THEME.line}`,
-          marginBottom: 16,
-          fontSize: 13,
-          display: "flex",
-          gap: 16,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        <span>
-          <span style={{ color: THEME.muted }}>Available: </span>
-          <b>{totalQty} shares</b>
-        </span>
-        <span>
-          <span style={{ color: THEME.muted }}>Lots: </span>
-          <b>{group.lots.length}</b>
-        </span>
-        <span style={{ marginLeft: "auto", fontSize: 11, color: THEME.muted }}>
-          Oldest lot consumed first (FIFO)
-        </span>
+    <Modal title={`FIFO Share Sell — ${group.base}`} onClose={onClose} maxWidth={640}>
+      <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 12 }}>
+        Automated FIFO allocation sells oldest lots first for maximum LTCG tax benefits.
       </div>
 
-      {/* Inputs */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-          gap: 12,
-          marginBottom: 16,
-        }}
-      >
-        <Field label="Qty to Sell">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="Total Sell Qty">
           <input
-            style={{ ...input, borderColor: qtyOver ? THEME.rust : undefined }}
+            style={inputStyle}
             type="number"
-            min="1"
+            min="0.0001"
             max={totalQty}
             value={f.sellQty}
             onChange={(e) => setF({ ...f, sellQty: e.target.value })}
@@ -7138,341 +3899,58 @@ function FifoSellModal({ group, currentPrice, demats, onClose, onSave, saving = 
         </Field>
         <Field label="Sell Price (₹)">
           <input
-            style={input}
+            style={inputStyle}
             type="number"
             step="0.01"
+            min="0.01"
             value={f.sellPrice}
             onChange={(e) => setF({ ...f, sellPrice: e.target.value })}
           />
         </Field>
-        <Field label="Sell Date">
-          <input
-            style={input}
-            type="date"
-            max={today()}
-            value={f.sellDate}
-            onChange={(e) => setF({ ...f, sellDate: e.target.value })}
-          />
-        </Field>
-        <Field label="Broker">
-          <input
-            style={input}
-            value={f.broker}
-            placeholder="e.g. Zerodha"
-            onChange={(e) => setF({ ...f, broker: e.target.value })}
-          />
-        </Field>
       </div>
 
-      {qtyOver && (
-        <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, marginBottom: 10 }}>
-          Cannot sell more than {totalQty} shares available
-        </div>
-      )}
+      <Field label="Sell Date">
+        <input
+          style={inputStyle}
+          type="date"
+          max={today()}
+          value={f.sellDate}
+          onChange={(e) => setF({ ...f, sellDate: e.target.value })}
+        />
+      </Field>
 
-      {/* FIFO Breakdown Table */}
+      {/* FIFO Lot Allocation Breakdown Preview */}
       {allocs.length > 0 && (
-        <>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: THEME.muted,
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-              marginBottom: 8,
-            }}
-          >
-            FIFO Allocation
+        <div style={{ marginTop: 12, border: `1px solid ${THEME.line}`, borderRadius: 10, padding: 14, background: "var(--surface-1)" }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>
+            FIFO Lot Allocation Preview ({allocs.length} lot{allocs.length === 1 ? "" : "s"} consumed)
           </div>
-          <div
-            style={{
-              borderRadius: 10,
-              border: `1px solid ${THEME.line}`,
-              overflow: "hidden",
-              marginBottom: 14,
-            }}
-          >
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead>
-                <tr style={{ background: "var(--surface-0)" }}>
-                  <th style={{ ...th, padding: "8px 12px", fontSize: 9 }}>Buy Date</th>
-                  <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "right" }}>
-                    Buy Price
-                  </th>
-                  <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "right" }}>
-                    Available
-                  </th>
-                  <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "right" }}>
-                    Selling
-                  </th>
-                  <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "right" }}>
-                    Cost Basis
-                  </th>
-                  <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "right" }}>
-                    P&L
-                  </th>
-                  <th style={{ ...th, padding: "8px 12px", fontSize: 9, textAlign: "center" }}>
-                    Type
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {allocs.map((a, i) => (
-                  <tr
-                    key={a.lot.id}
-                    style={{
-                      borderTop: i > 0 ? `1px solid ${THEME.line}` : undefined,
-                      background:
-                        i % 2 === 0
-                          ? "transparent"
-                          : `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
-                    }}
-                  >
-                    <td style={{ ...td, padding: "9px 12px", borderBottom: "none" }}>
-                      {a.lot.buyDate ? (
-                        new Date(a.lot.buyDate).toLocaleDateString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "2-digit",
-                        })
-                      ) : (
-                        <span style={{ color: THEME.muted }}>—</span>
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        ...td,
-                        padding: "9px 12px",
-                        borderBottom: "none",
-                        textAlign: "right",
-                      }}
-                    >
-                      <Prv>
-                        ₹{Number(a.buyPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                      </Prv>
-                    </td>
-                    <td
-                      style={{
-                        ...td,
-                        padding: "9px 12px",
-                        borderBottom: "none",
-                        textAlign: "right",
-                        color: THEME.muted,
-                      }}
-                    >
-                      {Number(a.lot.qty)}
-                    </td>
-                    <td
-                      style={{
-                        ...td,
-                        padding: "9px 12px",
-                        borderBottom: "none",
-                        textAlign: "right",
-                        fontWeight: 800,
-                      }}
-                    >
-                      {a.consume}
-                      {a.fullyConsumed ? (
-                        <span
-                          style={{
-                            display: "block",
-                            fontSize: 8,
-                            color: THEME.rust,
-                            fontWeight: 700,
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          full lot
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            display: "block",
-                            fontSize: 8,
-                            color: THEME.gold,
-                            fontWeight: 700,
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          partial
-                        </span>
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        ...td,
-                        padding: "9px 12px",
-                        borderBottom: "none",
-                        textAlign: "right",
-                        color: THEME.muted,
-                      }}
-                    >
-                      <Prv>₹{fmt2(a.consume * a.buyPrice)}</Prv>
-                    </td>
-                    <td
-                      style={{
-                        ...td,
-                        padding: "9px 12px",
-                        borderBottom: "none",
-                        textAlign: "right",
-                        fontWeight: 700,
-                        color: a.pnl >= 0 ? THEME.sage : THEME.rust,
-                      }}
-                    >
-                      <Prv>
-                        {a.pnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(a.pnl))}
-                      </Prv>
-                    </td>
-                    <td
-                      style={{
-                        ...td,
-                        padding: "9px 12px",
-                        borderBottom: "none",
-                        textAlign: "center",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 9,
-                          padding: "2px 7px",
-                          borderRadius: 4,
-                          fontWeight: 800,
-                          background: a.isLTCG
-                            ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
-                            : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
-                          color: a.isLTCG ? THEME.sage : THEME.gold,
-                        }}
-                      >
-                        {a.isLTCG ? "LTCG" : "STCG"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 11 }}>
+            {allocs.map((a, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>
+                  Lot #{i + 1} ({a.lot.buyDate || "—"}): <b>{a.consume} sh</b> @ ₹{a.buyPrice.toFixed(2)}
+                </span>
+                <span className={a.isLTCG ? "demat-tax-badge-ltcg" : "demat-tax-badge-stcg"}>
+                  {a.isLTCG ? "LTCG" : "STCG"} · {a.pnl >= 0 ? "+" : ""}₹{a.pnl.toFixed(2)}
+                </span>
+              </div>
+            ))}
           </div>
 
-          {/* Summary card */}
-          <div
-            style={{
-              padding: "14px 16px",
-              borderRadius: 10,
-              background:
-                totalPnl >= 0
-                  ? `color-mix(in srgb, ${THEME.sage} 7%, transparent)`
-                  : `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
-              border: `1px solid ${totalPnl >= 0 ? `color-mix(in srgb, ${THEME.sage} 33%, transparent)` : `color-mix(in srgb, ${THEME.rust} 33%, transparent)`}`,
-              marginBottom: 4,
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr",
-                gap: 12,
-                marginBottom: 12,
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>
-                  Total Proceeds
-                </div>
-                <div style={{ fontSize: 15, fontWeight: 800 }}>
-                  <Prv>₹{fmt2(totalProceeds)}</Prv>
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>
-                  Cost Basis (FIFO)
-                </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: THEME.muted }}>
-                  <Prv>₹{fmt2(totalCost)}</Prv>
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 3 }}>Net P&L</div>
-                <div
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 800,
-                    color: totalPnl >= 0 ? THEME.sage : THEME.rust,
-                  }}
-                >
-                  <Prv>
-                    {totalPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(totalPnl))}
-                  </Prv>
-                </div>
-              </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                gap: 16,
-                paddingTop: 10,
-                borderTop: `1px solid ${`color-mix(in srgb, ${THEME.line} 25%, transparent)`}`,
-                flexWrap: "wrap",
-              }}
-            >
-              {stcgPnl !== 0 && (
-                <span style={{ fontSize: 12 }}>
-                  <span
-                    style={{
-                      padding: "1px 6px",
-                      borderRadius: 4,
-                      fontSize: 9,
-                      fontWeight: 800,
-                      background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
-                      color: THEME.gold,
-                      marginRight: 6,
-                    }}
-                  >
-                    STCG
-                  </span>
-                  <b style={{ color: stcgPnl >= 0 ? THEME.sage : THEME.rust }}>
-                    <Prv>
-                      {stcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(stcgPnl))}
-                    </Prv>
-                  </b>
-                </span>
-              )}
-              {ltcgPnl !== 0 && (
-                <span style={{ fontSize: 12 }}>
-                  <span
-                    style={{
-                      padding: "1px 6px",
-                      borderRadius: 4,
-                      fontSize: 9,
-                      fontWeight: 800,
-                      background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                      color: THEME.sage,
-                      marginRight: 6,
-                    }}
-                  >
-                    LTCG
-                  </span>
-                  <b style={{ color: ltcgPnl >= 0 ? THEME.sage : THEME.rust }}>
-                    <Prv>
-                      {ltcgPnl >= 0 ? "+" : "−"}₹{fmt2(Math.abs(ltcgPnl))}
-                    </Prv>
-                  </b>
-                </span>
-              )}
-              {remainingAfter > 0 && (
-                <span style={{ fontSize: 12, marginLeft: "auto" }}>
-                  <span style={{ color: THEME.muted }}>Remaining after sell: </span>
-                  <b>{remainingAfter} shares</b>
-                </span>
-              )}
-            </div>
+          <div style={{ borderTop: `1px solid ${THEME.line}`, marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+            <span style={{ color: THEME.muted, fontWeight: 600 }}>Total Realized P&amp;L:</span>
+            <b style={{ color: totalPnl >= 0 ? THEME.sage : THEME.rust }}>
+              {totalPnl >= 0 ? "+" : ""}₹{totalPnl.toFixed(2)}
+            </b>
           </div>
-        </>
+        </div>
       )}
 
       <ModalActions
         onSave={() => isValid && onSave(allocs, sellPriceNum, f.sellDate, f.broker)}
         onClose={onClose}
-        saveLabel="Confirm Sell"
+        saveLabel="Confirm FIFO Sell"
         disabled={!isValid || allocs.length === 0 || saving}
         loading={saving}
       />
@@ -7484,22 +3962,19 @@ function SplitBonusModal({ group, onClose, onApply, saving = false }: any) {
   const [type, setType] = useState<"split" | "bonus">("split");
   const [ratioN, setRatioN] = useState("2");
   const [ratioM, setRatioM] = useState("1");
-  const [actionDate, setActionDate] = useState(""); // user must pick the actual corporate action date
+  const [actionDate, setActionDate] = useState(today());
+
   const n = Number(ratioN) || 0;
   const m = Number(ratioM) || 0;
-  const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty), 0);
-  const totalInv = group.lots.reduce(
-    (s: number, l: any) => s + Number(l.qty) * Number(l.avgPrice),
-    0
-  );
+  const totalQty = group.lots.reduce((s: number, l: any) => s + Number(l.qty || 0), 0);
+  const totalInv = group.lots.reduce((s: number, l: any) => s + Number(l.qty || 0) * Number(l.avgPrice || 0), 0);
+
   let newTotalQty = 0;
   if (n > 0 && m > 0)
-    newTotalQty =
-      type === "split" ? Math.floor((totalQty * n) / m) : Math.floor((totalQty * (m + n)) / m);
+    newTotalQty = type === "split" ? Math.floor((totalQty * n) / m) : Math.floor((totalQty * (m + n)) / m);
   const newAvgPreview = newTotalQty > 0 ? totalInv / newTotalQty : 0;
-  // Split ratios can go either way (forward split n>m, or a reverse split/
-  // consolidation n<m) — only n===m (a no-op "split") is nonsensical.
   const isValid = n > 0 && m > 0 && !!actionDate && (type === "split" ? n !== m : true);
+
   const handleApply = () => {
     if (!isValid) return;
     const lotCalcs = group.lots.map((lot: any) => {
@@ -7521,9 +3996,6 @@ function SplitBonusModal({ group, onClose, onApply, saving = false }: any) {
       c.floored += 1;
       shortfall -= 1;
     }
-    // Lots that round down to 0 shares (e.g. a reverse split consolidating a small
-    // odd lot) have nothing left to hold — remove them instead of leaving a
-    // permanent zero-qty "ghost" holding behind.
     const updates = lotCalcs
       .filter((c: any) => c.floored > 0)
       .map((c: any) => {
@@ -7549,27 +4021,27 @@ function SplitBonusModal({ group, onClose, onApply, saving = false }: any) {
     };
     onApply(updates, actionLog, removals);
   };
+
   return (
-    <Modal title={`Corporate Action — ${group.base} (${group.exchange})`} onClose={onClose}>
+    <Modal title={`Corporate Action — ${group.base}`} onClose={onClose}>
       <Field label="Action Type">
         <div style={{ display: "flex", gap: 10 }}>
           {(["split", "bonus"] as const).map((t) => (
             <button
               key={t}
+              type="button"
               style={{
-                ...btnGhost,
                 flex: 1,
-                justifyContent: "center",
-                background: type === t ? THEME.accent : undefined,
-                color: type === t ? THEME.darkInk : undefined,
-                border: type === t ? `1px solid ${THEME.accent}` : undefined,
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: `1.5px solid ${type === t ? THEME.accent : THEME.line}`,
+                background: type === t ? THEME.accent : "transparent",
+                color: type === t ? THEME.darkInk : THEME.ink,
+                fontWeight: 700,
+                cursor: "pointer",
               }}
               onClick={() => {
                 setType(t);
-                // Reset to a sane default ratio per type — carrying over a
-                // split's 2:1 into Bonus (or vice versa) silently changes what
-                // the entered ratio means (e.g. a "2:1" bonus triples the
-                // holding, when the far more common bonus ratio is 1:1).
                 if (t === "bonus") {
                   setRatioN("1");
                   setRatioM("1");
@@ -7579,75 +4051,36 @@ function SplitBonusModal({ group, onClose, onApply, saving = false }: any) {
                 }
               }}
             >
-              {t === "split" ? "Stock Split" : "Bonus Shares"}
+              {t === "split" ? "Stock Split" : "Bonus Issue"}
             </button>
           ))}
         </div>
       </Field>
-      <div
-        style={{
-          padding: "14px 16px",
-          borderRadius: 10,
-          border: `2px solid ${actionDate ? THEME.sage : THEME.rust}`,
-          background: actionDate
-            ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)`
-            : `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
-          marginBottom: 16,
-        }}
-      >
-        <label
-          style={{
-            display: "block",
-            fontSize: 12,
-            fontWeight: 700,
-            color: actionDate ? THEME.sage : THEME.rust,
-            marginBottom: 6,
-            textTransform: "uppercase" as const,
-            letterSpacing: "0.05em",
-          }}
-        >
-          Action Date — when did this corporate action happen? {!actionDate && "★ Required"}
-        </label>
+
+      <Field label="Corporate Action Date">
         <input
-          style={{ ...input, borderColor: actionDate ? THEME.sage : THEME.rust }}
+          style={inputStyle}
           type="date"
           max={today()}
-          aria-label="Corporate action date"
           value={actionDate}
           onChange={(e) => setActionDate(e.target.value)}
         />
-        {!actionDate && (
-          <div style={{ fontSize: 12, color: THEME.rust, marginTop: 6, fontWeight: 600 }}>
-            Enter the actual date (e.g. 15 Jan 2025) — this is saved in the history log
-          </div>
-        )}
-      </div>
-      <div
-        style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "end" }}
-      >
+      </Field>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "end" }}>
         <Field label={type === "split" ? "New Shares" : "Bonus Shares"}>
           <input
-            style={input}
+            style={inputStyle}
             type="number"
             min="1"
             value={ratioN}
             onChange={(e) => setRatioN(e.target.value)}
           />
         </Field>
-        <div
-          style={{
-            paddingBottom: 10,
-            fontWeight: 700,
-            fontSize: 20,
-            color: THEME.muted,
-            textAlign: "center",
-          }}
-        >
-          :
-        </div>
+        <div style={{ paddingBottom: 10, fontWeight: 700, fontSize: 20, color: THEME.muted, textAlign: "center" }}>:</div>
         <Field label="Existing Shares">
           <input
-            style={input}
+            style={inputStyle}
             type="number"
             min="1"
             value={ratioM}
@@ -7655,37 +4088,152 @@ function SplitBonusModal({ group, onClose, onApply, saving = false }: any) {
           />
         </Field>
       </div>
+
       {isValid && newTotalQty > 0 && (
-        <div
-          style={{
-            padding: "12px 14px",
-            borderRadius: 8,
-            background: "var(--surface-0)",
-            border: `1px solid ${THEME.line}`,
-            marginTop: 4,
-            fontSize: 13,
-          }}
-        >
-          <span>
-            <span style={{ color: THEME.muted }}>Total Qty: </span>
-            <b style={{ color: THEME.muted }}>{totalQty}</b> →{" "}
-            <b style={{ color: THEME.gold }}>{newTotalQty}</b>
-          </span>
-          <span style={{ marginLeft: 20 }}>
-            <span style={{ color: THEME.muted }}>Avg Price: </span>
-            <Prv>
-              <b style={{ color: THEME.muted }}>
-                ₹{(totalQty > 0 ? totalInv / totalQty : 0).toFixed(2)}
-              </b>{" "}
-              → <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b>
-            </Prv>
-          </span>
+        <div style={{ padding: "12px 14px", borderRadius: 10, background: "var(--surface-1)", border: `1px solid ${THEME.line}`, marginTop: 8, fontSize: 13 }}>
+          <div>
+            Total Qty: <span style={{ color: THEME.muted }}>{totalQty}</span> → <b style={{ color: THEME.gold }}>{newTotalQty} shares</b>
+          </div>
+          <div style={{ marginTop: 4 }}>
+            Adjusted Avg Price: <span style={{ color: THEME.muted }}>₹{(totalQty > 0 ? totalInv / totalQty : 0).toFixed(2)}</span> → <b style={{ color: THEME.gold }}>₹{newAvgPreview.toFixed(2)}</b>
+          </div>
         </div>
       )}
+
       <ModalActions
         onSave={handleApply}
         onClose={onClose}
         saveLabel="Apply Action"
+        disabled={!isValid || saving}
+        loading={saving}
+      />
+    </Modal>
+  );
+}
+
+function WishlistModal({ onClose, onSave, initial = null, saving = false }: any) {
+  const [f, setF] = useState(
+    initial || { name: "", description: "", color: WISHLIST_COLORS[0] }
+  );
+
+  const isValid = !!f.name.trim();
+
+  return (
+    <Modal title={initial ? "Edit Watchlist" : "Create New Watchlist"} onClose={onClose}>
+      <Field label="Watchlist Name">
+        <input
+          style={inputStyle}
+          value={f.name}
+          onChange={(e) => setF({ ...f, name: e.target.value })}
+          placeholder="e.g. High Conviction Bluechips, Growth 2026"
+        />
+      </Field>
+
+      <Field label="Description (Optional)">
+        <input
+          style={inputStyle}
+          value={f.description}
+          onChange={(e) => setF({ ...f, description: e.target.value })}
+          placeholder="e.g. Quality compounders on dips"
+        />
+      </Field>
+
+      <Field label="Theme Color">
+        <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+          {WISHLIST_COLORS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setF({ ...f, color: c })}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: c,
+                border: f.color === c ? `3px solid var(--surface-0)` : "none",
+                boxShadow: f.color === c ? `0 0 0 2px ${c}` : "none",
+                cursor: "pointer",
+              }}
+            />
+          ))}
+        </div>
+      </Field>
+
+      <ModalActions
+        onSave={() => isValid && onSave(f)}
+        onClose={onClose}
+        saveLabel={initial ? "Save Changes" : "Create Watchlist"}
+        disabled={!isValid || saving}
+        loading={saving}
+      />
+    </Modal>
+  );
+}
+
+function WishlistItemModal({ onClose, onSave, initial = null, saving = false }: any) {
+  const [f, setF] = useState(
+    initial || {
+      symbol: "",
+      exchange: "NSE",
+      targetPrice: "",
+      notes: "",
+      addedOn: today(),
+    }
+  );
+
+  const isValid = !!f.symbol.trim();
+
+  return (
+    <Modal title={initial ? "Edit Tracked Scrip" : "Add Scrip to Watchlist"} onClose={onClose}>
+      {!initial && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 12 }}>
+          <Field label="Stock Symbol">
+            <input
+              style={inputStyle}
+              value={f.symbol}
+              onChange={(e) =>
+                setF({ ...f, symbol: e.target.value.toUpperCase().replace(/\.(NS|BO)$/i, "") })
+              }
+              placeholder="e.g. TITAN, LT"
+            />
+          </Field>
+          <Field label="Exchange">
+            <select
+              style={inputStyle}
+              value={f.exchange || "NSE"}
+              onChange={(e) => setF({ ...f, exchange: e.target.value })}
+            >
+              <option value="NSE">NSE</option>
+              <option value="BSE">BSE</option>
+            </select>
+          </Field>
+        </div>
+      )}
+
+      <Field label="Target Buy Price (₹)">
+        <input
+          style={inputStyle}
+          type="number"
+          step="0.01"
+          value={f.targetPrice}
+          onChange={(e) => setF({ ...f, targetPrice: e.target.value })}
+          placeholder="e.g. 3200.00"
+        />
+      </Field>
+
+      <Field label="Notes / Buy Thesis (Optional)">
+        <input
+          style={inputStyle}
+          value={f.notes}
+          onChange={(e) => setF({ ...f, notes: e.target.value })}
+          placeholder="e.g. Buy on breakout or 200 EMA pullback"
+        />
+      </Field>
+
+      <ModalActions
+        onSave={() => isValid && onSave(f)}
+        onClose={onClose}
+        saveLabel={initial ? "Save Changes" : "Add to Watchlist"}
         disabled={!isValid || saving}
         loading={saving}
       />
