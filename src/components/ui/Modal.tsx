@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { Button } from "./Button";
 
 interface ModalProps {
-  title: string;
+  title: React.ReactNode;
   onClose: () => void;
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -92,7 +92,7 @@ export const Modal: React.FC<ModalProps> = ({
         className="modal-panel"
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={typeof title === "string" ? title : "Modal Dialog"}
         tabIndex={-1}
         style={{ maxWidth: `min(${maxWidth}px, 95vw)` }}
       >
@@ -126,7 +126,7 @@ export const Modal: React.FC<ModalProps> = ({
 };
 
 export const ModalActions: React.FC<{
-  onSave: () => void;
+  onSave?: () => void;
   onClose: () => void;
   saveLabel?: string;
   cancelLabel?: string;
@@ -137,8 +137,10 @@ export const ModalActions: React.FC<{
     <Button variant="secondary" onClick={onClose} disabled={loading}>
       {cancelLabel}
     </Button>
-    <Button variant="accent" onClick={onSave} disabled={disabled} loading={loading}>
-      {saveLabel}
-    </Button>
+    {onSave && (
+      <Button variant="accent" onClick={onSave} disabled={disabled} loading={loading}>
+        {saveLabel}
+      </Button>
+    )}
   </div>
 );

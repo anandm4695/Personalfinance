@@ -66,10 +66,10 @@ export const RentalTab: React.FC<RentalTabProps> = ({
 
   // Dedicated Ledger Modal State
   const [ledgerModal, setLedgerModal] = useState<{
-    open: boolean;
+    open?: boolean;
     property: any;
-    type: "out" | "in";
-    initialTab: "rent" | "deposit" | "csv" | "hra";
+    type?: "out" | "in";
+    initialTab?: "rent" | "deposit" | "csv" | "hra";
   } | null>(null);
 
   // Quick Log Transaction Modals State
@@ -1157,7 +1157,7 @@ export const RentalTab: React.FC<RentalTabProps> = ({
       {ledgerModal && (
         <RentalLedgerModal
           property={ledgerModal.property}
-          type={ledgerModal.type}
+          type={ledgerModal.type || "out"}
           initialTab={ledgerModal.initialTab}
           bankAccounts={bankAccounts}
           fyStart={fyStart}
