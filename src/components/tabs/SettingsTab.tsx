@@ -54,6 +54,15 @@ import {
   Clock,
   IdCard,
   FolderOpen,
+  Sliders,
+  Sparkles,
+  SlidersHorizontal,
+  Server,
+  FileSpreadsheet,
+  ExternalLink,
+  Layers,
+  Activity,
+  CheckCheck,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES, THEME_PRESETS } from "../../utils/constants";
 import {
@@ -75,27 +84,35 @@ import { ConfirmDialog } from "../ui/Feedback";
 import { Modal } from "../ui/Modal";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
-// ─── Master data metadata ─────────────────────────────────────────────────────
+// ─── Master Data Metadata ─────────────────────────────────────────────────────
 const MD_GROUPS = [
   {
     id: "transactions",
-    label: "Transactions",
+    label: "Transactions & Cash Flow",
     keys: ["transactionCategories", "ccTransactionCategories", "prepaidCategories"],
+    icon: Banknote,
+    description: "Categories for bank deposits, expenses, credit cards & prepaid spends",
   },
   {
     id: "cards",
-    label: "Cards",
+    label: "Cards & Payment Networks",
     keys: ["ccNetworks", "prepaidCardTypes"],
+    icon: CreditCard,
+    description: "Card payment networks and prepaid wallet classification types",
   },
   {
     id: "banking",
-    label: "Banking & Funds",
+    label: "Banking & Mutual Funds",
     keys: ["bankAccountTypes", "mfCategories"],
+    icon: Landmark,
+    description: "Account varieties, AMFI asset classes and SIP sub-categories",
   },
   {
     id: "other",
-    label: "Loans & Goals",
+    label: "Loans & Financial Goals",
     keys: ["loanTypes", "goalCategories"],
+    icon: Target,
+    description: "Liability loan classifications and long-term milestone goals",
   },
 ];
 
@@ -123,9 +140,32 @@ const MD_ICONS: Record<string, any> = {
   goalCategories: Target,
 };
 
-// ─── Primitive components ─────────────────────────────────────────────────────
+// ─── Navigation Sub-Tabs ──────────────────────────────────────────────────────
+const TOP_TABS = [
+  { id: "appearance", label: "Appearance", icon: Palette, badge: "Custom" },
+  { id: "profile", label: "Profile & Tax", icon: User },
+  { id: "security", label: "Security & Privacy", icon: Shield, badge: "Vault" },
+  { id: "family", label: "Family Profiles", icon: Users },
+  { id: "masterdata", label: "Master Data", icon: Tags },
+  { id: "ai", label: "AI Advisor", icon: Bot, badge: "Gemini" },
+  { id: "email", label: "Email Reports", icon: Mail },
+  { id: "documents", label: "Documents", icon: FolderOpen },
+  { id: "data", label: "Data & Account", icon: HardDrive },
+];
+
+// ─── Primitive Components ─────────────────────────────────────────────────────
 const PillNav = ({ tabs, active, onChange }: any) => (
-  <div className="demat-portfolio-bar no-scrollbar">
+  <div
+    className="demat-portfolio-bar no-scrollbar"
+    style={{
+      display: "flex",
+      gap: 6,
+      overflowX: "auto",
+      padding: "4px 2px",
+      marginBottom: 20,
+      borderBottom: `1px solid ${THEME.line}`,
+    }}
+  >
     {tabs.map((t: any) => {
       const Icon = t.icon;
       const isActive = active === t.id;
@@ -134,20 +174,62 @@ const PillNav = ({ tabs, active, onChange }: any) => (
           key={t.id}
           onClick={() => onChange(t.id)}
           className={`demat-portfolio-pill ${isActive ? "active" : ""}`}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            padding: "9px 16px",
+            borderRadius: "var(--t-radius, 10px)",
+            border: isActive
+              ? `1.5px solid var(--t-accent, ${THEME.accent})`
+              : `1px solid ${THEME.line}`,
+            background: isActive
+              ? `color-mix(in srgb, var(--t-accent, ${THEME.accent}) 12%, transparent)`
+              : "var(--surface-0)",
+            color: isActive ? `var(--t-accent, ${THEME.accent})` : THEME.muted,
+            fontWeight: isActive ? 700 : 500,
+            fontSize: 13,
+            cursor: "pointer",
+            transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+            whiteSpace: "nowrap",
+            fontFamily: "inherit",
+          }}
         >
-          {Icon && <Icon size={14} />} {t.label}
+          {Icon && <Icon size={14} />}
+          <span>{t.label}</span>
           {t.count != null && (
             <span
               style={{
-                fontSize: 10,
+                fontSize: 10.5,
                 fontWeight: 800,
-                padding: "1px 6px",
-                borderRadius: "var(--radius-xs)",
-                background: `color-mix(in srgb, var(--t-accent) 16%, transparent)`,
-                color: "var(--t-accent)",
+                padding: "1px 7px",
+                borderRadius: 99,
+                background: isActive
+                  ? `var(--t-accent, ${THEME.accent})`
+                  : `color-mix(in srgb, var(--t-accent, ${THEME.accent}) 16%, transparent)`,
+                color: isActive ? "#fff" : `var(--t-accent, ${THEME.accent})`,
+                marginLeft: 2,
               }}
             >
               {t.count}
+            </span>
+          )}
+          {t.badge && !t.count && (
+            <span
+              style={{
+                fontSize: 9.5,
+                fontWeight: 800,
+                padding: "1px 6px",
+                borderRadius: 4,
+                background: isActive
+                  ? `var(--t-accent, ${THEME.accent})`
+                  : `color-mix(in srgb, var(--t-muted, ${THEME.muted}) 14%, transparent)`,
+                color: isActive ? "#fff" : THEME.muted,
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              {t.badge}
             </span>
           )}
         </button>
@@ -156,7 +238,7 @@ const PillNav = ({ tabs, active, onChange }: any) => (
   </div>
 );
 
-// ─── OptionRow — a horizontal row of pill buttons ────────────────────────────
+// ─── OptionRow — Horizontal option selector with preview indicators ──────────
 function OptionRow({
   label,
   options,
@@ -165,7 +247,7 @@ function OptionRow({
   hint,
 }: {
   label: string;
-  options: { value: string; label: string; icon?: any }[];
+  options: { value: string; label: string; icon?: any; badge?: string }[];
   value: string;
   onChange: (v: string) => void;
   hint?: string;
@@ -184,7 +266,7 @@ function OptionRow({
       >
         {label}
       </div>
-      {hint && <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 10 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 11.5, color: THEME.muted, marginBottom: 10 }}>{hint}</div>}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {options.map((opt) => {
           const active = value === opt.value;
@@ -197,23 +279,42 @@ function OptionRow({
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
+                gap: 7,
                 padding: "8px 16px",
-                borderRadius: 10,
+                borderRadius: "var(--t-radius, 10px)",
                 border: active ? `2px solid ${THEME.accent}` : `1.5px solid ${THEME.line}`,
                 background: active
-                  ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                  ? `color-mix(in srgb, ${THEME.accent} 10%, transparent)`
                   : "var(--surface-0)",
-                color: active ? THEME.accent : THEME.muted,
+                color: active ? THEME.accent : THEME.ink,
                 fontWeight: active ? 700 : 500,
                 fontSize: 13,
                 cursor: "pointer",
-                transition: "all 0.15s",
+                transition: "all 0.16s ease",
                 fontFamily: "inherit",
+                boxShadow: active
+                  ? `0 2px 8px color-mix(in srgb, ${THEME.accent} 15%, transparent)`
+                  : "none",
               }}
             >
               {Icon && <Icon size={13} />}
-              {opt.label}
+              <span>{opt.label}</span>
+              {opt.badge && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: "1px 5px",
+                    borderRadius: 4,
+                    background: active
+                      ? THEME.accent
+                      : `color-mix(in srgb, ${THEME.muted} 15%, transparent)`,
+                    color: active ? "#fff" : THEME.muted,
+                  }}
+                >
+                  {opt.badge}
+                </span>
+              )}
             </button>
           );
         })}
@@ -222,7 +323,7 @@ function OptionRow({
   );
 }
 
-// ─── EditableList ─────────────────────────────────────────────────────────────
+// ─── EditableList for Master Data ─────────────────────────────────────────────
 function EditableList({ listKey, items, onUpdate }: any) {
   const [val, setVal] = useState("");
   const [focused, setFocused] = useState(false);
@@ -260,8 +361,6 @@ function EditableList({ listKey, items, onUpdate }: any) {
     }
     onUpdate(listKey, [...items, v]);
     setVal("");
-    // New item is appended, not inserted in sorted position — the A→Z/Z→A
-    // active indicator would otherwise stay lit while the list is no longer sorted.
     setSortDir("");
   };
 
@@ -284,13 +383,16 @@ function EditableList({ listKey, items, onUpdate }: any) {
     ? items.filter((x: string) => x.toLowerCase().includes(query.trim().toLowerCase()))
     : items;
 
+  const MdIcon = MD_ICONS[listKey] || Tags;
+
   return (
     <div
       style={{
         background: "var(--t-paper)",
-        borderRadius: 12,
+        borderRadius: "var(--t-radius, 12px)",
         border: `1px solid ${THEME.line}`,
         overflow: "hidden",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
       }}
     >
       {/* Header */}
@@ -300,35 +402,45 @@ function EditableList({ listKey, items, onUpdate }: any) {
           alignItems: "center",
           justifyContent: "space-between",
           gap: 8,
-          padding: "12px 16px",
+          padding: "12px 18px",
           borderBottom: `1px solid ${THEME.line}`,
-          background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+          background: `color-mix(in srgb, ${THEME.accent} 4%, var(--surface-0))`,
           flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {(() => {
-            const MdIcon = MD_ICONS[listKey];
-            return <MdIcon size={16} />;
-          })()}
-          <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
-            {MD_LABELS[listKey]}
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+              color: THEME.accent,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <MdIcon size={15} />
+          </div>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>
+            {MD_LABELS[listKey] || listKey}
           </span>
           <span
             style={{
               fontSize: 11,
               fontWeight: 800,
               padding: "2px 8px",
-              borderRadius: "var(--radius-xs)",
-              background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
+              borderRadius: 99,
+              background: `color-mix(in srgb, ${THEME.accent} 14%, transparent)`,
               color: THEME.accent,
             }}
           >
-            {items.length}
+            {items.length} options
           </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <button
             onClick={sortAZ}
             title="Sort A to Z"
@@ -339,20 +451,20 @@ function EditableList({ listKey, items, onUpdate }: any) {
               display: "flex",
               alignItems: "center",
               gap: 4,
-              background: sortDir === "asc" ? THEME.accent : "none",
+              background: sortDir === "asc" ? THEME.accent : "var(--surface-0)",
               border: `1px solid ${sortDir === "asc" ? THEME.accent : THEME.line}`,
               cursor: items.length < 2 ? "default" : "pointer",
               color: sortDir === "asc" ? "#fff" : THEME.muted,
               fontSize: 11,
               fontWeight: sortDir === "asc" ? 700 : 500,
-              padding: "3px 9px",
+              padding: "4px 10px",
               borderRadius: 6,
               fontFamily: "inherit",
               transition: "all 0.15s",
               opacity: items.length < 2 ? 0.4 : 1,
             }}
           >
-            <ArrowUpAZ size={11} /> A→Z
+            <ArrowUpAZ size={12} /> A→Z
           </button>
 
           <button
@@ -365,63 +477,63 @@ function EditableList({ listKey, items, onUpdate }: any) {
               display: "flex",
               alignItems: "center",
               gap: 4,
-              background: sortDir === "desc" ? THEME.accent : "none",
+              background: sortDir === "desc" ? THEME.accent : "var(--surface-0)",
               border: `1px solid ${sortDir === "desc" ? THEME.accent : THEME.line}`,
               cursor: items.length < 2 ? "default" : "pointer",
               color: sortDir === "desc" ? "#fff" : THEME.muted,
               fontSize: 11,
               fontWeight: sortDir === "desc" ? 700 : 500,
-              padding: "3px 9px",
+              padding: "4px 10px",
               borderRadius: 6,
               fontFamily: "inherit",
               transition: "all 0.15s",
               opacity: items.length < 2 ? 0.4 : 1,
             }}
           >
-            <ArrowDownAZ size={11} /> Z→A
+            <ArrowDownAZ size={12} /> Z→A
           </button>
 
           {isDirty && (
             <button
               onClick={() => setPendingReset(true)}
-              title="Reset to default values"
-              aria-label="Reset to default values"
+              title="Reset to system default values"
+              aria-label="Reset to system default values"
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 4,
-                background: "none",
+                background: "var(--surface-0)",
                 border: `1px solid ${THEME.line}`,
                 cursor: "pointer",
                 fontSize: 11,
                 color: THEME.muted,
-                padding: "3px 8px",
+                padding: "4px 9px",
                 borderRadius: 6,
                 fontFamily: "inherit",
                 transition: "all 0.15s",
               }}
             >
-              <RotateCcw size={10} /> Reset
+              <RotateCcw size={11} /> Reset
             </button>
           )}
         </div>
       </div>
 
-      {/* Search — only shown once the list is long enough to benefit */}
-      {items.length > 6 && (
+      {/* Search */}
+      {items.length > 5 && (
         <div
           style={{
-            padding: "10px 16px 0",
+            padding: "8px 18px 0",
             display: "flex",
             alignItems: "center",
-            gap: 6,
+            gap: 8,
           }}
         >
           <Search size={13} color={THEME.muted} style={{ flexShrink: 0 }} />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Search ${items.length} items…`}
+            placeholder={`Filter ${items.length} items…`}
             aria-label={`Search ${MD_LABELS[listKey] || "items"}`}
             style={{
               flex: 1,
@@ -429,28 +541,58 @@ function EditableList({ listKey, items, onUpdate }: any) {
               border: "none",
               outline: "none",
               color: THEME.ink,
-              fontSize: 12,
-              padding: "4px 0",
+              fontSize: 12.5,
+              padding: "6px 0",
               fontFamily: "inherit",
             }}
           />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: THEME.muted,
+                padding: 2,
+              }}
+            >
+              <XIcon size={12} />
+            </button>
+          )}
         </div>
       )}
 
-      {/* Chips */}
+      {/* Chips Area */}
       <div
-        style={{ padding: "12px 16px", display: "flex", flexWrap: "wrap", gap: 6, minHeight: 52 }}
+        style={{
+          padding: "14px 18px",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 7,
+          minHeight: 56,
+        }}
       >
         {items.length === 0 && (
           <span
-            style={{ fontSize: 13, color: THEME.muted, fontStyle: "italic", alignSelf: "center" }}
+            style={{
+              fontSize: 13,
+              color: THEME.muted,
+              fontStyle: "italic",
+              alignSelf: "center",
+            }}
           >
             No items yet — add one below
           </span>
         )}
         {items.length > 0 && visibleItems.length === 0 && (
           <span
-            style={{ fontSize: 13, color: THEME.muted, fontStyle: "italic", alignSelf: "center" }}
+            style={{
+              fontSize: 13,
+              color: THEME.muted,
+              fontStyle: "italic",
+              alignSelf: "center",
+            }}
           >
             No items match "{query}"
           </span>
@@ -461,22 +603,22 @@ function EditableList({ listKey, items, onUpdate }: any) {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 5,
-              padding: "5px 8px 5px 12px",
-              borderRadius: "var(--radius-xs)",
+              gap: 6,
+              padding: "5px 9px 5px 12px",
+              borderRadius: "var(--t-radius, 8px)",
               fontSize: 13,
               fontWeight: 500,
-              background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
+              background: `color-mix(in srgb, ${THEME.accent} 8%, var(--surface-0))`,
               border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
               color: THEME.ink,
+              transition: "transform 0.15s ease",
             }}
           >
-            {item}
+            <span>{item}</span>
             <button
               onClick={() => setPendingRemove(item)}
-              className="icon-btn danger"
               style={{
-                background: `color-mix(in srgb, ${THEME.muted} 8%, transparent)`,
+                background: `color-mix(in srgb, ${THEME.muted} 12%, transparent)`,
                 border: "none",
                 cursor: "pointer",
                 color: THEME.muted,
@@ -485,6 +627,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
                 display: "flex",
                 alignItems: "center",
                 borderRadius: "50%",
+                transition: "all 0.15s",
               }}
               title={`Remove ${item}`}
               aria-label={`Remove ${item}`}
@@ -498,7 +641,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
       {dupWarning && (
         <div
           style={{
-            margin: "0 16px 12px",
+            margin: "0 18px 12px",
             padding: "8px 12px",
             borderRadius: 8,
             background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
@@ -506,15 +649,18 @@ function EditableList({ listKey, items, onUpdate }: any) {
             fontSize: 12,
             color: THEME.gold,
             fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
           }}
         >
-          That value already exists (case-insensitive match).
+          <AlertCircle size={14} /> That value already exists in this list (case-insensitive).
         </div>
       )}
 
       {pendingRemove && (
         <ConfirmDialog
-          message={`Remove "${pendingRemove}" from ${MD_LABELS[listKey] || "this list"}?\n\nIt will disappear from every dropdown immediately. Any existing records already saved with this value will keep it as-is, so they may no longer match an option in the list.`}
+          message={`Remove "${pendingRemove}" from ${MD_LABELS[listKey] || "this list"}?\n\nIt will disappear from future dropdown options immediately. Existing records that already use this value will preserve it.`}
           confirmLabel="Yes, remove"
           onConfirm={confirmRemove}
           onCancel={() => setPendingRemove(null)}
@@ -523,18 +669,18 @@ function EditableList({ listKey, items, onUpdate }: any) {
 
       {pendingReset && (
         <ConfirmDialog
-          message={`Reset ${MD_LABELS[listKey] || "this list"} to its default values?\n\n${
+          message={`Reset ${MD_LABELS[listKey] || "this list"} to system default options?\n\n${
             items.filter((x: string) => !defaultItems.includes(x)).length > 0
-              ? `This removes ${items.filter((x: string) => !defaultItems.includes(x)).length} custom item(s) you added. `
+              ? `This will remove ${items.filter((x: string) => !defaultItems.includes(x)).length} custom item(s) you added. `
               : ""
-          }Any existing records already saved with a removed value will keep it as-is, so they may no longer match an option in the list.`}
-          confirmLabel="Yes, reset"
+          }Existing records that already use a removed value will retain their saved data.`}
+          confirmLabel="Yes, reset to defaults"
           onConfirm={confirmReset}
           onCancel={() => setPendingReset(false)}
         />
       )}
 
-      {/* Add row */}
+      {/* Add Row */}
       <div
         style={{
           display: "flex",
@@ -542,12 +688,12 @@ function EditableList({ listKey, items, onUpdate }: any) {
           gap: 0,
           borderTop: `1px solid ${THEME.line}`,
           background: focused
-            ? `color-mix(in srgb, ${THEME.accent} 2%, transparent)`
+            ? `color-mix(in srgb, ${THEME.accent} 3%, var(--t-paper))`
             : "var(--t-paper)",
           transition: "background 0.15s",
         }}
       >
-        <Plus size={14} style={{ marginLeft: 14, flexShrink: 0, color: THEME.muted }} />
+        <Plus size={15} style={{ marginLeft: 16, flexShrink: 0, color: THEME.muted }} />
         <input
           ref={inputRef}
           aria-label={`Add new ${MD_LABELS[listKey] || "item"}`}
@@ -558,7 +704,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
             outline: "none",
             color: THEME.ink,
             fontSize: 13,
-            padding: "12px 10px",
+            padding: "12px 12px",
             fontFamily: "inherit",
           }}
           value={val}
@@ -566,21 +712,23 @@ function EditableList({ listKey, items, onUpdate }: any) {
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           onKeyDown={(e) => e.key === "Enter" && add()}
-          placeholder="Type and press Enter to add…"
+          placeholder={`Add new option to ${MD_LABELS[listKey] || "list"} (Press Enter)…`}
         />
         <button
           onClick={add}
+          disabled={!val.trim()}
           style={{
             background: val.trim() ? THEME.accent : "transparent",
             border: "none",
             cursor: val.trim() ? "pointer" : "default",
             color: val.trim() ? "#fff" : THEME.muted,
             fontWeight: 700,
-            fontSize: 12,
-            padding: "10px 16px",
+            fontSize: 12.5,
+            padding: "12px 18px",
             fontFamily: "inherit",
             transition: "all 0.15s",
             borderLeft: `1px solid ${THEME.line}`,
+            opacity: val.trim() ? 1 : 0.5,
           }}
         >
           Add
@@ -590,7 +738,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
   );
 }
 
-// ─── Section: Appearance ──────────────────────────────────────────────────────
+// ─── Section: Appearance & Experience ─────────────────────────────────────────
 function AppearanceSection({
   accentKey,
   setAccentKey,
@@ -609,8 +757,6 @@ function AppearanceSection({
 }: any) {
   const divider = <div style={{ borderTop: `1px solid ${THEME.line}` }} />;
 
-  // Match on darkMode + accentKey only. fontKey is excluded intentionally:
-  // manually changing the font should not break the active-preset indicator.
   const activePreset = THEME_PRESETS.find(
     (p) => p.darkMode === darkMode && p.accentKey === (accentKey || "blue")
   );
@@ -621,528 +767,716 @@ function AppearanceSection({
     setFontKey(preset.fontKey);
   };
 
+  const activePalette = (ACCENT_PALETTES as any)[accentKey || "blue"];
+
   return (
-    <Card style={{ padding: 28 }}>
-      <div style={{ display: "grid", gap: 28 }}>
-        {/* ── Dark Mode ── */}
+    <div style={{ display: "grid", gap: 20 }}>
+      {/* ── Live Interactive Theme Playground ── */}
+      <Card
+        style={{
+          padding: 24,
+          background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.accent} 6%, var(--surface-0)) 0%, var(--surface-0) 100%)`,
+          borderTop: `4px solid ${THEME.accent}`,
+        }}
+      >
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            flexWrap: "wrap",
             gap: 16,
+            marginBottom: 16,
           }}
         >
           <div>
             <div
               style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: THEME.muted,
-                textTransform: "uppercase",
-                letterSpacing: "0.07em",
-                marginBottom: 2,
+                fontSize: 16,
+                fontWeight: 800,
+                color: THEME.ink,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
               }}
             >
-              Dark Mode
+              <Sparkles size={18} color={THEME.accent} /> Live Theme &amp; UI Preview
             </div>
-            <div style={{ fontSize: 11, color: THEME.muted }}>
-              Switch to dark interface — or pick a preset below
+            <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>
+              Real-time preview of buttons, cards, tags, and typography matching your active styling
+              tokens.
             </div>
           </div>
-          <button
-            onClick={toggleDarkMode}
-            role="switch"
-            aria-checked={darkMode}
-            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          <div
             style={{
-              position: "relative",
-              width: 52,
-              height: 28,
-              borderRadius: 99,
-              background: darkMode ? THEME.accent : THEME.line,
-              border: "none",
-              cursor: "pointer",
-              flexShrink: 0,
-              transition: "background 0.2s ease",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 14px",
+              borderRadius: "var(--t-radius, 10px)",
+              background: "var(--t-paper)",
+              border: `1px solid ${THEME.line}`,
             }}
           >
-            <div
+            <span
               style={{
-                position: "absolute",
-                top: 4,
-                left: darkMode ? 26 : 4,
-                width: 20,
-                height: 20,
+                width: 10,
+                height: 10,
                 borderRadius: "50%",
-                background: "#fff",
-                transition: "left 0.2s ease",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                background: activePalette?.light || THEME.accent,
               }}
             />
-          </button>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: THEME.ink }}>
+              {activePreset?.label || "Custom Theme"} • {darkMode ? "Dark" : "Light"}
+            </span>
+          </div>
         </div>
 
-        {divider}
+        {/* Miniature Mockup Sandbox */}
+        <div
+          style={{
+            padding: 18,
+            borderRadius: "var(--t-radius, 12px)",
+            background: "var(--t-paper)",
+            border: `1px solid ${THEME.line}`,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 16,
+            alignItems: "center",
+          }}
+        >
+          {/* Sample Card */}
+          <div
+            style={{
+              padding: 14,
+              borderRadius: "var(--t-radius, 10px)",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" }}>
+              Sample Portfolio KPI
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginTop: 4 }}>
+              ₹24,50,000
+            </div>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: THEME.sage,
+                marginTop: 6,
+              }}
+            >
+              <TrendingUp size={12} /> +14.2% Annualized Return
+            </div>
+          </div>
 
-        {/* ── Preset Themes ── */}
-        <div>
+          {/* Sample Buttons & Tags */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                style={{
+                  flex: 1,
+                  padding: "8px 14px",
+                  borderRadius: "var(--t-radius, 8px)",
+                  background: THEME.accent,
+                  color: "#fff",
+                  border: "none",
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                <Check size={13} /> Primary Action
+              </button>
+              <button
+                style={{
+                  flex: 1,
+                  padding: "8px 14px",
+                  borderRadius: "var(--t-radius, 8px)",
+                  background: "var(--surface-0)",
+                  border: `1px solid ${THEME.line}`,
+                  color: THEME.ink,
+                  fontWeight: 600,
+                  fontSize: 12.5,
+                  cursor: "pointer",
+                }}
+              >
+                Secondary
+              </button>
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: "var(--t-radius, 6px)",
+                  background: `color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+                  color: THEME.accent,
+                }}
+              >
+                Active Pill
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: "var(--t-radius, 6px)",
+                  background: `color-mix(in srgb, ${THEME.sage} 15%, transparent)`,
+                  color: THEME.sage,
+                }}
+              >
+                Verified
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: "var(--t-radius, 6px)",
+                  background: `color-mix(in srgb, ${THEME.gold} 15%, transparent)`,
+                  color: THEME.gold,
+                }}
+              >
+                Pending
+              </span>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* ── Main Appearance Settings ── */}
+      <Card style={{ padding: 28 }}>
+        <div style={{ display: "grid", gap: 26 }}>
+          {/* ── Dark Mode Switch ── */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 4,
+              gap: 16,
             }}
           >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: THEME.muted,
-                textTransform: "uppercase",
-                letterSpacing: "0.07em",
-              }}
-            >
-              Theme Presets
-            </div>
-            {!activePreset && (
-              <span
+            <div>
+              <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: THEME.muted,
-                  background: "var(--surface-0)",
-                  border: `1px solid ${THEME.line}`,
-                  padding: "2px 10px",
-                  borderRadius: "var(--radius-xs)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.07em",
+                  marginBottom: 2,
                 }}
               >
-                Custom
-              </span>
-            )}
-          </div>
-          <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 16 }}>
-            11 accent colors × light & dark — one click sets color, mode & font
-          </div>
-
-          {/* Light presets */}
-          <div style={{ marginBottom: 20 }}>
-            <div
+                Interface Mode
+              </div>
+              <div style={{ fontSize: 12, color: THEME.muted }}>
+                Toggle between light and dark visual aesthetics across all dashboard charts and
+                tables.
+              </div>
+            </div>
+            <button
+              onClick={toggleDarkMode}
+              role="switch"
+              aria-checked={darkMode}
+              aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
               style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: THEME.muted,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                marginBottom: 10,
+                position: "relative",
+                width: 56,
+                height: 30,
+                borderRadius: 99,
+                background: darkMode ? THEME.accent : THEME.line,
+                border: "none",
+                cursor: "pointer",
+                flexShrink: 0,
+                transition: "background 0.2s ease",
               }}
             >
-              Light Mode
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-                gap: 10,
-              }}
-            >
-              {THEME_PRESETS.filter((p) => !p.darkMode).map((preset) => {
-                const isActive = activePreset?.id === preset.id;
-                const pal = (ACCENT_PALETTES as any)[preset.accentKey];
-                return (
-                  <button
-                    key={preset.id}
-                    onClick={() => applyPreset(preset)}
-                    aria-pressed={isActive}
-                    aria-label={`${preset.label} theme preset${isActive ? " (active)" : ""}`}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 0,
-                      border: isActive
-                        ? `2px solid ${pal?.light || THEME.accent}`
-                        : `1.5px solid ${THEME.line}`,
-                      borderRadius: 14,
-                      overflow: "hidden",
-                      cursor: "pointer",
-                      background: "var(--t-paper)",
-                      transition: "all 0.18s",
-                      padding: 0,
-                      textAlign: "left",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: 50,
-                        display: "flex",
-                        alignItems: "flex-end",
-                        padding: "0 12px 8px",
-                        background: preset.bgPreview,
-                        position: "relative",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: 0,
-                          top: 0,
-                          bottom: 0,
-                          width: 5,
-                          background: pal?.light || THEME.accent,
-                        }}
-                      />
-                      <div
-                        style={{
-                          width: "52%",
-                          height: 20,
-                          borderRadius: 5,
-                          marginLeft: 10,
-                          background: "rgba(255,255,255,0.88)",
-                          border: "1px solid rgba(0,0,0,0.06)",
-                        }}
-                      />
-                      <div
-                        style={{
-                          width: "28%",
-                          height: 14,
-                          borderRadius: 5,
-                          marginLeft: 6,
-                          background: "rgba(255,255,255,0.65)",
-                          border: "1px solid rgba(0,0,0,0.04)",
-                        }}
-                      />
-                      <div
-                        style={{
-                          position: "absolute",
-                          right: 12,
-                          top: 10,
-                          width: 16,
-                          height: 16,
-                          borderRadius: "50%",
-                          background: pal?.light || THEME.accent,
-                          boxShadow: `0 2px 5px color-mix(in srgb, ${pal?.light || THEME.accent} 40%, transparent)`,
-                        }}
-                      />
-                      {isActive && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: 5,
-                            left: 10,
-                            fontSize: 8,
-                            fontWeight: 800,
-                            color: "#fff",
-                            background: pal?.light || THEME.accent,
-                            padding: "2px 6px",
-                            borderRadius: "var(--radius-xs)",
-                            letterSpacing: "0.05em",
-                          }}
-                        >
-                          ACTIVE
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ padding: "9px 12px 11px" }}>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: isActive ? pal?.light || THEME.accent : THEME.ink,
-                          marginBottom: 1,
-                        }}
-                      >
-                        {preset.label}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: THEME.muted,
-                          lineHeight: 1.35,
-                          marginBottom: 7,
-                        }}
-                      >
-                        {preset.description}
-                      </div>
-                      <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-                        <div
-                          style={{
-                            width: 9,
-                            height: 9,
-                            borderRadius: "50%",
-                            background: pal?.light,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <span style={{ fontSize: 9, color: THEME.muted }}>{pal?.label}</span>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+              <div
+                style={{
+                  position: "absolute",
+                  top: 3,
+                  left: darkMode ? 29 : 4,
+                  width: 24,
+                  height: 24,
+                  borderRadius: "50%",
+                  background: "#fff",
+                  transition: "left 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: darkMode ? THEME.accent : "#888",
+                  fontSize: 11,
+                }}
+              >
+                {darkMode ? "🌙" : "☀️"}
+              </div>
+            </button>
           </div>
 
-          {/* Dark presets */}
+          {divider}
+
+          {/* ── Theme Presets Gallery ── */}
           <div>
             <div
               style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: THEME.muted,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                marginBottom: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 4,
               }}
             >
-              Dark Mode
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.07em",
+                }}
+              >
+                Curated Theme Presets
+              </div>
+              {!activePreset && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    background: "var(--surface-0)",
+                    border: `1px solid ${THEME.line}`,
+                    padding: "2px 10px",
+                    borderRadius: "var(--radius-xs)",
+                  }}
+                >
+                  Custom Configuration
+                </span>
+              )}
             </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-                gap: 10,
-              }}
-            >
-              {THEME_PRESETS.filter((p) => p.darkMode).map((preset) => {
-                const isActive = activePreset?.id === preset.id;
-                const pal = (ACCENT_PALETTES as any)[preset.accentKey];
-                return (
-                  <button
-                    key={preset.id}
-                    onClick={() => applyPreset(preset)}
-                    aria-pressed={isActive}
-                    aria-label={`${preset.label} theme preset${isActive ? " (active)" : ""}`}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 0,
-                      border: isActive
-                        ? `2px solid ${pal?.light || THEME.accent}`
-                        : `1.5px solid ${THEME.line}`,
-                      borderRadius: 14,
-                      overflow: "hidden",
-                      cursor: "pointer",
-                      background: "var(--t-paper)",
-                      transition: "all 0.18s",
-                      padding: 0,
-                      textAlign: "left",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    <div
+            <div style={{ fontSize: 11.5, color: THEME.muted, marginBottom: 16 }}>
+              Select a professionally calibrated color palette and mode with harmonious contrast
+              ratios.
+            </div>
+
+            {/* Light Presets */}
+            <div style={{ marginBottom: 20 }}>
+              <div
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  marginBottom: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span>☀️ Light Mode Palettes</span>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                {THEME_PRESETS.filter((p) => !p.darkMode).map((preset) => {
+                  const isActive = activePreset?.id === preset.id;
+                  const pal = (ACCENT_PALETTES as any)[preset.accentKey];
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() => applyPreset(preset)}
+                      aria-pressed={isActive}
+                      aria-label={`${preset.label} theme preset${isActive ? " (active)" : ""}`}
                       style={{
-                        height: 50,
                         display: "flex",
-                        alignItems: "flex-end",
-                        padding: "0 12px 8px",
-                        background: preset.bgPreview,
-                        position: "relative",
+                        flexDirection: "column",
+                        gap: 0,
+                        border: isActive
+                          ? `2px solid ${pal?.light || THEME.accent}`
+                          : `1.5px solid ${THEME.line}`,
+                        borderRadius: "var(--t-radius, 12px)",
                         overflow: "hidden",
+                        cursor: "pointer",
+                        background: "var(--t-paper)",
+                        transition: "all 0.18s ease",
+                        padding: 0,
+                        textAlign: "left",
+                        fontFamily: "inherit",
+                        boxShadow: isActive
+                          ? `0 4px 14px color-mix(in srgb, ${pal?.light || THEME.accent} 25%, transparent)`
+                          : "none",
+                        transform: isActive ? "translateY(-1px)" : "none",
                       }}
                     >
                       <div
                         style={{
-                          position: "absolute",
-                          left: 0,
-                          top: 0,
-                          bottom: 0,
-                          width: 5,
-                          background: pal?.light || THEME.accent,
+                          height: 48,
+                          display: "flex",
+                          alignItems: "flex-end",
+                          padding: "0 10px 6px",
+                          background: preset.bgPreview,
+                          position: "relative",
+                          overflow: "hidden",
                         }}
-                      />
-                      <div
-                        style={{
-                          width: "52%",
-                          height: 20,
-                          borderRadius: 5,
-                          marginLeft: 10,
-                          background: "rgba(255,255,255,0.09)",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                        }}
-                      />
-                      <div
-                        style={{
-                          width: "28%",
-                          height: 14,
-                          borderRadius: 5,
-                          marginLeft: 6,
-                          background: "rgba(255,255,255,0.05)",
-                          border: "1px solid rgba(255,255,255,0.07)",
-                        }}
-                      />
-                      <div
-                        style={{
-                          position: "absolute",
-                          right: 12,
-                          top: 10,
-                          width: 16,
-                          height: 16,
-                          borderRadius: "50%",
-                          background: pal?.light || THEME.accent,
-                          boxShadow: `0 2px 5px color-mix(in srgb, ${pal?.light || THEME.accent} 40%, transparent)`,
-                        }}
-                      />
-                      {isActive && (
+                      >
                         <div
                           style={{
                             position: "absolute",
-                            top: 5,
-                            left: 10,
-                            fontSize: 8,
-                            fontWeight: 800,
-                            color: "#fff",
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: 5,
                             background: pal?.light || THEME.accent,
-                            padding: "2px 6px",
-                            borderRadius: "var(--radius-xs)",
-                            letterSpacing: "0.05em",
-                          }}
-                        >
-                          ACTIVE
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ padding: "9px 12px 11px" }}>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: isActive ? pal?.light || THEME.accent : THEME.ink,
-                          marginBottom: 1,
-                        }}
-                      >
-                        {preset.label}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: THEME.muted,
-                          lineHeight: 1.35,
-                          marginBottom: 7,
-                        }}
-                      >
-                        {preset.description}
-                      </div>
-                      <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-                        <div
-                          style={{
-                            width: 9,
-                            height: 9,
-                            borderRadius: "50%",
-                            background: pal?.light,
-                            flexShrink: 0,
                           }}
                         />
-                        <span style={{ fontSize: 9, color: THEME.muted }}>{pal?.label}</span>
+                        <div
+                          style={{
+                            width: "50%",
+                            height: 18,
+                            borderRadius: 4,
+                            marginLeft: 8,
+                            background: "rgba(255,255,255,0.92)",
+                            border: "1px solid rgba(0,0,0,0.06)",
+                          }}
+                        />
+                        <div
+                          style={{
+                            position: "absolute",
+                            right: 10,
+                            top: 8,
+                            width: 14,
+                            height: 14,
+                            borderRadius: "50%",
+                            background: pal?.light || THEME.accent,
+                          }}
+                        />
+                        {isActive && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 4,
+                              left: 10,
+                              fontSize: 8,
+                              fontWeight: 900,
+                              color: "#fff",
+                              background: pal?.light || THEME.accent,
+                              padding: "1px 5px",
+                              borderRadius: 4,
+                              letterSpacing: "0.05em",
+                            }}
+                          >
+                            ACTIVE
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </button>
-                );
-              })}
+                      <div style={{ padding: "8px 10px 10px" }}>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: isActive ? pal?.light || THEME.accent : THEME.ink,
+                            marginBottom: 2,
+                          }}
+                        >
+                          {preset.label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: THEME.muted,
+                            lineHeight: 1.3,
+                            marginBottom: 6,
+                          }}
+                        >
+                          {preset.description}
+                        </div>
+                        <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                          <div
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: "50%",
+                              background: pal?.light,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span style={{ fontSize: 9.5, color: THEME.muted }}>{pal?.label}</span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Dark Presets */}
+            <div>
+              <div
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  marginBottom: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span>🌙 Dark Mode Palettes</span>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                {THEME_PRESETS.filter((p) => p.darkMode).map((preset) => {
+                  const isActive = activePreset?.id === preset.id;
+                  const pal = (ACCENT_PALETTES as any)[preset.accentKey];
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() => applyPreset(preset)}
+                      aria-pressed={isActive}
+                      aria-label={`${preset.label} theme preset${isActive ? " (active)" : ""}`}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0,
+                        border: isActive
+                          ? `2px solid ${pal?.light || THEME.accent}`
+                          : `1.5px solid ${THEME.line}`,
+                        borderRadius: "var(--t-radius, 12px)",
+                        overflow: "hidden",
+                        cursor: "pointer",
+                        background: "var(--t-paper)",
+                        transition: "all 0.18s ease",
+                        padding: 0,
+                        textAlign: "left",
+                        fontFamily: "inherit",
+                        boxShadow: isActive
+                          ? `0 4px 14px color-mix(in srgb, ${pal?.light || THEME.accent} 25%, transparent)`
+                          : "none",
+                        transform: isActive ? "translateY(-1px)" : "none",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: 48,
+                          display: "flex",
+                          alignItems: "flex-end",
+                          padding: "0 10px 6px",
+                          background: preset.bgPreview,
+                          position: "relative",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: 5,
+                            background: pal?.light || THEME.accent,
+                          }}
+                        />
+                        <div
+                          style={{
+                            width: "50%",
+                            height: 18,
+                            borderRadius: 4,
+                            marginLeft: 8,
+                            background: "rgba(255,255,255,0.12)",
+                            border: "1px solid rgba(255,255,255,0.14)",
+                          }}
+                        />
+                        <div
+                          style={{
+                            position: "absolute",
+                            right: 10,
+                            top: 8,
+                            width: 14,
+                            height: 14,
+                            borderRadius: "50%",
+                            background: pal?.light || THEME.accent,
+                          }}
+                        />
+                        {isActive && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 4,
+                              left: 10,
+                              fontSize: 8,
+                              fontWeight: 900,
+                              color: "#fff",
+                              background: pal?.light || THEME.accent,
+                              padding: "1px 5px",
+                              borderRadius: 4,
+                              letterSpacing: "0.05em",
+                            }}
+                          >
+                            ACTIVE
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ padding: "8px 10px 10px" }}>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: isActive ? pal?.light || THEME.accent : THEME.ink,
+                            marginBottom: 2,
+                          }}
+                        >
+                          {preset.label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            color: THEME.muted,
+                            lineHeight: 1.3,
+                            marginBottom: 6,
+                          }}
+                        >
+                          {preset.description}
+                        </div>
+                        <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                          <div
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: "50%",
+                              background: pal?.light,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span style={{ fontSize: 9.5, color: THEME.muted }}>{pal?.label}</span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
+
+          {divider}
+
+          {/* Density */}
+          <OptionRow
+            label="Layout Density"
+            hint="Controls card margins, table cell padding, and grid spacing throughout the interface"
+            value={density || "normal"}
+            onChange={setDensity}
+            options={[
+              { value: "compact", label: "Compact", badge: "Dense" },
+              { value: "normal", label: "Normal", badge: "Balanced" },
+              { value: "comfortable", label: "Comfortable", badge: "Spacious" },
+            ]}
+          />
+
+          {divider}
+
+          {/* Font Family */}
+          <OptionRow
+            label="Interface Typography"
+            hint="Curated fonts optimized for financial data readability, high-DPI displays, and clean numbers"
+            value={fontKey || "inter"}
+            onChange={setFontKey}
+            options={[
+              { value: "inter", label: "Inter", badge: "Clean" },
+              { value: "outfit", label: "Outfit", badge: "Modern" },
+              { value: "roboto", label: "Roboto", badge: "Precise" },
+              { value: "poppins", label: "Poppins", badge: "Friendly" },
+              { value: "dm-sans", label: "DM Sans", badge: "Geometric" },
+              { value: "nunito", label: "Nunito", badge: "Soft" },
+              { value: "space-grotesk", label: "Space Grotesk", badge: "Tech" },
+              { value: "lato", label: "Lato", badge: "Classic" },
+              { value: "sf-pro", label: "SF Pro (System)", badge: "Native" },
+            ]}
+          />
+
+          {divider}
+
+          {/* Corner Radius */}
+          <OptionRow
+            label="Corner Geometry"
+            hint="Adjust the curvature of cards, action buttons, modals, and input fields"
+            value={radiusKey || "modern"}
+            onChange={setRadiusKey}
+            options={[
+              { value: "sharp", label: "Sharp (4px)", badge: "Crisp" },
+              { value: "modern", label: "Modern (10px)", badge: "Standard" },
+              { value: "round", label: "Round (16px)", badge: "Fluid" },
+            ]}
+          />
+
+          {divider}
+
+          {/* Background Style */}
+          <OptionRow
+            label="Background Texture"
+            hint="Subtle ambient backdrop styling behind the dashboard canvas"
+            value={bgStyle || "plain"}
+            onChange={setBgStyle}
+            options={[
+              { value: "plain", label: "Plain Canvas" },
+              { value: "dots", label: "Dot Matrix" },
+              { value: "mesh", label: "Subtle Mesh" },
+            ]}
+          />
+
+          {divider}
+
+          {/* Animation Speed */}
+          <OptionRow
+            label="Micro-Animation Velocity"
+            hint="Fine-tune the pacing of page transitions, modal reveals, and hover micro-animations"
+            value={animSpeed || "smooth"}
+            onChange={setAnimSpeed}
+            options={[
+              { value: "snappy", label: "Snappy (100ms)" },
+              { value: "smooth", label: "Smooth (220ms)" },
+              { value: "relaxed", label: "Relaxed (350ms)" },
+            ]}
+          />
         </div>
-
-        {divider}
-
-        {/* Density */}
-        <OptionRow
-          label="Density"
-          hint="Controls card padding and spacing throughout the app"
-          value={density || "normal"}
-          onChange={setDensity}
-          options={[
-            { value: "compact", label: "Compact" },
-            { value: "normal", label: "Normal" },
-            { value: "comfortable", label: "Comfortable" },
-          ]}
-        />
-
-        {divider}
-
-        {/* Font */}
-        <OptionRow
-          label="Font"
-          value={fontKey || "inter"}
-          onChange={setFontKey}
-          options={[
-            { value: "inter", label: "Inter" },
-            { value: "outfit", label: "Outfit" },
-            { value: "roboto", label: "Roboto" },
-            { value: "poppins", label: "Poppins" },
-            { value: "dm-sans", label: "DM Sans" },
-            { value: "nunito", label: "Nunito" },
-            { value: "space-grotesk", label: "Space Grotesk" },
-            { value: "lato", label: "Lato" },
-            { value: "sf-pro", label: "SF Pro (System)" },
-          ]}
-        />
-
-        {divider}
-
-        {/* Corner Radius */}
-        <OptionRow
-          label="Corner Radius"
-          hint="Controls how sharp or rounded cards and buttons look"
-          value={radiusKey || "modern"}
-          onChange={setRadiusKey}
-          options={[
-            { value: "sharp", label: "Sharp" },
-            { value: "modern", label: "Modern" },
-            { value: "round", label: "Round" },
-          ]}
-        />
-
-        {divider}
-
-        {/* Background Style */}
-        <OptionRow
-          label="Background Style"
-          hint="Subtle ambient texture behind the app content"
-          value={bgStyle || "plain"}
-          onChange={setBgStyle}
-          options={[
-            { value: "plain", label: "Plain" },
-            { value: "dots", label: "Dots" },
-            { value: "mesh", label: "Mesh" },
-          ]}
-        />
-
-        {divider}
-
-        {/* Animation Speed */}
-        <OptionRow
-          label="Animation Speed"
-          hint="Controls how fast transitions and hover effects animate"
-          value={animSpeed || "smooth"}
-          onChange={setAnimSpeed}
-          options={[
-            { value: "snappy", label: "Snappy" },
-            { value: "smooth", label: "Smooth" },
-            { value: "relaxed", label: "Relaxed" },
-          ]}
-        />
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
 
-// ─── Section: Profile ─────────────────────────────────────────────────────────
+// ─── Section: Profile & Tax Preferences ───────────────────────────────────────
 function ProfileSection({ state, updateProfile, showToast }: any) {
   const [prof, setProf] = useState({ ...state.profile });
   const [saved, setSaved] = useState(false);
   const timerRef = useRef<any>(null);
 
-  // Sync if parent profile changes (e.g., DB load after mount). Keyed on name only so
-  // in-progress edits aren't wiped on every keystroke that triggers a parent re-render.
   useEffect(() => {
     setProf((p: any) => ({ ...p, ...state.profile }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.profile?.name]);
 
-  const initials = (prof.name || "U")
+  const initials = (prof.name || "User")
     .split(" ")
     .map((w: string) => w[0] || "")
     .join("")
@@ -1176,7 +1510,6 @@ function ProfileSection({ state, updateProfile, showToast }: any) {
     []
   );
 
-  // Dynamic FY list: built from actual data + always current FY
   const fyOptions = useMemo(() => {
     const fySet = new Set<number>();
     const addDate = (d: string) => {
@@ -1215,156 +1548,263 @@ function ProfileSection({ state, updateProfile, showToast }: any) {
 
   const inp = {
     width: "100%",
-    padding: "10px 12px",
+    padding: "10px 14px",
     background: "var(--t-paper)",
     border: `1.5px solid ${THEME.line}`,
     borderRadius: "var(--t-radius, 10px)",
     color: THEME.ink,
     fontSize: 14,
     boxSizing: "border-box" as const,
+    fontFamily: "inherit",
   };
 
+  const savingsTargetVal = prof.savingsTarget ?? 20;
+
   return (
-    <Card style={{ padding: 24 }}>
-      {/* Avatar */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 18,
-          marginBottom: 28,
-          paddingBottom: 24,
-          borderBottom: `1px solid ${THEME.line}`,
-        }}
-      >
+    <div style={{ display: "grid", gap: 20 }}>
+      <Card style={{ padding: 26, borderTop: `4px solid ${THEME.accent}` }}>
+        {/* User Persona Header */}
         <div
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: "50%",
-            background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
-            border: `2px solid color-mix(in srgb, ${THEME.accent} 27%, transparent)`,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            fontSize: 22,
-            fontWeight: 900,
-            color: THEME.accent,
-            flexShrink: 0,
+            gap: 20,
+            marginBottom: 24,
+            paddingBottom: 22,
+            borderBottom: `1px solid ${THEME.line}`,
+            flexWrap: "wrap",
           }}
         >
-          {initials}
-        </div>
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: THEME.ink }}>
-            {prof.name || "Your Name"}
-          </div>
-          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 3 }}>
-            ArthaDrishti Dashboard
-          </div>
-        </div>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-          gap: 20,
-          marginBottom: 24,
-        }}
-      >
-        <Field label="Display Name">
-          <input
-            style={inp}
-            value={prof.name || ""}
-            onChange={(e) => setProf({ ...prof, name: e.target.value })}
-            placeholder="Your Name"
-          />
-        </Field>
-        <Field label="Financial Year">
-          <select
-            style={inp}
-            value={prof.fy || ""}
-            onChange={(e) => setProf({ ...prof, fy: e.target.value })}
-          >
-            {fyOptions.map((fy) => (
-              <option key={fy} value={fy}>
-                FY {fy}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Tax Regime">
-          <select
-            style={inp}
-            value={prof.regime || "new"}
-            onChange={(e) => setProf({ ...prof, regime: e.target.value })}
-          >
-            <option value="new">New Regime</option>
-            <option value="old">Old Regime</option>
-          </select>
-        </Field>
-        <Field label="Monthly Savings Target (%)">
-          <input
-            style={inp}
-            type="number"
-            min="0"
-            max="100"
-            value={prof.savingsTarget ?? 20}
-            onChange={(e) => {
-              const n = Math.round(Number(e.target.value));
-              const clamped = Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 0;
-              setProf({ ...prof, savingsTarget: clamped });
-            }}
-            placeholder="e.g. 20"
-          />
-        </Field>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        {isDirty ? (
-          <span
+          <div
             style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: THEME.gold,
+              width: 68,
+              height: 68,
+              borderRadius: "50%",
+              background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.accent} 20%, transparent), color-mix(in srgb, ${THEME.accent} 8%, transparent))`,
+              border: `2.5px solid ${THEME.accent}`,
               display: "flex",
               alignItems: "center",
-              gap: 5,
+              justifyContent: "center",
+              fontSize: 24,
+              fontWeight: 900,
+              color: THEME.accent,
+              flexShrink: 0,
+              boxShadow: `0 4px 12px color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
             }}
           >
+            {initials}
+          </div>
+          <div>
+            <div style={{ fontSize: 21, fontWeight: 800, color: THEME.ink }}>
+              {prof.name || "Primary Account Holder"}
+            </div>
+            <div style={{ fontSize: 13, color: THEME.muted, marginTop: 3 }}>
+              Fiscal Profile • FY {prof.fy || "Current"} •{" "}
+              {prof.regime === "new" ? "New Tax Regime" : "Old Tax Regime"}
+            </div>
+          </div>
+        </div>
+
+        {/* Form Fields */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 20,
+            marginBottom: 26,
+          }}
+        >
+          <Field label="Full Legal / Display Name">
+            <input
+              style={inp}
+              value={prof.name || ""}
+              onChange={(e) => setProf({ ...prof, name: e.target.value })}
+              placeholder="Your Full Name"
+            />
+          </Field>
+
+          <Field label="Active Fiscal Financial Year">
+            <select
+              style={inp}
+              value={prof.fy || ""}
+              onChange={(e) => setProf({ ...prof, fy: e.target.value })}
+            >
+              {fyOptions.map((fy) => (
+                <option key={fy} value={fy}>
+                  FY {fy} (Assessment Year {Number(fy.split("-")[0]) + 1}-
+                  {String(Number(fy.split("-")[0]) + 2).slice(-2)})
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Income Tax Regime Preference">
+            <select
+              style={inp}
+              value={prof.regime || "new"}
+              onChange={(e) => setProf({ ...prof, regime: e.target.value })}
+            >
+              <option value="new">New Tax Regime (Default, Lower Slabs)</option>
+              <option value="old">Old Tax Regime (Section 80C/80D/HRA)</option>
+            </select>
+          </Field>
+        </div>
+
+        {/* Savings Target Slider & Interactive Gauge */}
+        <div
+          style={{
+            padding: "16px 20px",
+            borderRadius: "var(--t-radius, 12px)",
+            background: "var(--surface-0)",
+            border: `1px solid ${THEME.line}`,
+            marginBottom: 24,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                Monthly Savings Target
+              </div>
+              <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 2 }}>
+                Target percentage of post-tax income dedicated to investments &amp; savings
+              </div>
+            </div>
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 900,
+                color: THEME.accent,
+                padding: "4px 12px",
+                borderRadius: 8,
+                background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+              }}
+            >
+              {savingsTargetVal}%
+            </div>
+          </div>
+
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value={savingsTargetVal}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              setProf({ ...prof, savingsTarget: n });
+            }}
+            style={{
+              width: "100%",
+              accentColor: THEME.accent,
+              cursor: "pointer",
+              margin: "8px 0",
+            }}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: 11,
+              color: THEME.muted,
+              fontWeight: 600,
+            }}
+          >
+            <span>0% (No Savings)</span>
+            <span>20% (Recommended Minimum)</span>
+            <span>50%+ (Aggressive FIRE)</span>
+            <span>100%</span>
+          </div>
+        </div>
+
+        {/* Tax Regime Comparison Note */}
+        <div
+          style={{
+            padding: "14px 18px",
+            borderRadius: 10,
+            background: `color-mix(in srgb, ${THEME.accent} 5%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.accent} 18%, transparent)`,
+            fontSize: 12.5,
+            color: THEME.ink,
+            lineHeight: 1.6,
+            marginBottom: 24,
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 800,
+              color: THEME.accent,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginBottom: 4,
+            }}
+          >
+            <Lightbulb size={15} /> Tax Regime Guidelines (India)
+          </div>
+          <div>
+            • <strong>New Regime:</strong> Features standard ₹75,000 deduction, ₹25,000 rebate up to
+            ₹7,00,000, and lower tax brackets without tracking complex investment receipts.
+            <br />• <strong>Old Regime:</strong> Best if you claim substantial home loan interest
+            (Sec 24b up to ₹2L), 80C (₹1.5L), 80D medical health insurance, and HRA exemptions.
+          </div>
+        </div>
+
+        {/* Save Bar */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          {isDirty ? (
             <span
               style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: THEME.gold,
-                display: "inline-block",
+                fontSize: 12,
+                fontWeight: 700,
+                color: THEME.gold,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
-            />
-            Unsaved changes
-          </span>
-        ) : (
-          <span style={{ fontSize: 11, color: THEME.muted }}>Profile settings</span>
-        )}
-        <Button
-          onClick={saveProfile}
-          disabled={saving}
-          icon={saved ? <Check size={15} /> : undefined}
-          style={saved ? { background: THEME.sage } : isDirty ? {} : { opacity: 0.6 }}
-        >
-          {saving ? "Saving..." : saved ? "Saved!" : "Save Profile"}
-        </Button>
-      </div>
-    </Card>
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: THEME.gold,
+                  display: "inline-block",
+                }}
+              />
+              Unsaved profile changes
+            </span>
+          ) : (
+            <span style={{ fontSize: 12, color: THEME.muted }}>
+              All profile preferences are saved to your account.
+            </span>
+          )}
+          <Button
+            onClick={saveProfile}
+            disabled={saving}
+            icon={saved ? <Check size={15} /> : undefined}
+            style={saved ? { background: THEME.sage } : isDirty ? {} : { opacity: 0.6 }}
+          >
+            {saving ? "Saving Changes..." : saved ? "Profile Saved!" : "Save Profile"}
+          </Button>
+        </div>
+      </Card>
+    </div>
   );
 }
 
@@ -1393,12 +1833,8 @@ function SecuritySection({
     hasSpecial: /[^A-Za-z0-9]/.test(newPassword),
   };
 
-  const isPasswordValid =
-    criteria.minLength &&
-    criteria.hasUpper &&
-    criteria.hasNumber &&
-    criteria.hasSpecial &&
-    newPassword === confirmPassword;
+  const criteriaMetCount = Object.values(criteria).filter(Boolean).length;
+  const isPasswordValid = criteriaMetCount === 4 && newPassword === confirmPassword;
 
   const onCapsLockKey = (e: React.KeyboardEvent<HTMLInputElement>) =>
     setCapsLockOn(e.getModifierState && e.getModifierState("CapsLock"));
@@ -1441,9 +1877,24 @@ function SecuritySection({
   };
 
   const isDemoUser = session?.user?.id === "offline-user" || !session?.user?.id;
-  const userEmail = session?.user?.email || (isDemoUser ? "demo@arthadrishti.local" : "Account user");
-  const createdAt = session?.user?.created_at ? new Date(session.user.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Active";
-  const lastSignIn = session?.user?.last_sign_in_at ? new Date(session.user.last_sign_in_at).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Current session";
+  const userEmail =
+    session?.user?.email || (isDemoUser ? "demo@arthadrishti.local" : "Account user");
+  const createdAt = session?.user?.created_at
+    ? new Date(session.user.created_at).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "Active";
+  const lastSignIn = session?.user?.last_sign_in_at
+    ? new Date(session.user.last_sign_in_at).toLocaleString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "Current session";
 
   const DAY_MS = 24 * 60 * 60 * 1000;
   const daysSinceBackup =
@@ -1452,7 +1903,6 @@ function SecuritySection({
       : null;
   const isBackupRecent = daysSinceBackup !== null && daysSinceBackup <= 7;
 
-  // Security posture score
   let securityScore = 75;
   if (privacyMode) securityScore += 10;
   if (isBackupRecent) securityScore += 10;
@@ -1462,63 +1912,185 @@ function SecuritySection({
     <div style={{ display: "grid", gap: 20 }}>
       {/* ── Security Posture & Trust Overview ── */}
       <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
-              <ShieldCheck size={20} color={THEME.accent} /> Security &amp; Privacy Command Center
-            </div>
-            <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>
-              Enterprise-grade data encryption, zero-telemetry private storage, and access controls.
-            </div>
-          </div>
-          <div style={{
+        <div
+          style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            padding: "8px 14px",
-            borderRadius: 10,
-            background: "color-mix(in srgb, var(--t-accent) 10%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--t-accent) 25%, transparent)",
-          }}>
-            <Shield size={16} color={THEME.accent} />
-            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.accent }}>
-              Security Posture: {securityScore}%
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 16,
+            marginBottom: 20,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: 17,
+                fontWeight: 800,
+                color: THEME.ink,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <ShieldCheck size={22} color={THEME.accent} /> Security &amp; Privacy Command Center
+            </div>
+            <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>
+              Enterprise-grade data encryption, zero-telemetry private storage, and client-side
+              masking.
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "8px 16px",
+              borderRadius: "var(--t-radius, 12px)",
+              background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
+            }}
+          >
+            <Shield size={18} color={THEME.accent} />
+            <div>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                }}
+              >
+                Security Posture
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 900, color: THEME.accent }}>
+                {securityScore}% Strong
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Security badges */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-          <div style={{ padding: 14, borderRadius: 10, background: "var(--t-paper)", border: `1px solid ${THEME.line}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted, marginBottom: 4 }}>
-              Storage Architecture
+        {/* Security Badges */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+            gap: 12,
+          }}
+        >
+          <div
+            style={{
+              padding: 14,
+              borderRadius: "var(--t-radius, 10px)",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: THEME.muted,
+                marginBottom: 4,
+              }}
+            >
+              Encryption Architecture
             </div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
-              <CheckCircle2 size={15} color={THEME.sage} /> 256-bit Encrypted
+            <div
+              style={{
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: THEME.ink,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <CheckCircle2 size={15} color={THEME.sage} /> 256-bit In-Transit &amp; Rest
             </div>
             <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 3 }}>
-              Zero third-party trackers or telemetry
+              Zero third-party trackers or ad telemetry
             </div>
           </div>
 
-          <div style={{ padding: 14, borderRadius: 10, background: "var(--t-paper)", border: `1px solid ${THEME.line}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted, marginBottom: 4 }}>
+          <div
+            style={{
+              padding: 14,
+              borderRadius: "var(--t-radius, 10px)",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: THEME.muted,
+                marginBottom: 4,
+              }}
+            >
               Authentication State
             </div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
-              <CheckCircle2 size={15} color={THEME.sage} /> {isDemoUser ? "Sandbox Demo Session" : "Supabase Cloud Vault"}
+            <div
+              style={{
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: THEME.ink,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <CheckCircle2 size={15} color={THEME.sage} />{" "}
+              {isDemoUser ? "Sandbox Demo Session" : "Supabase Cloud Vault"}
             </div>
             <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 3 }}>
-              {isDemoUser ? "Local-only session" : "Secure token authorization"}
+              {isDemoUser ? "Local browser session" : "Encrypted token authorization"}
             </div>
           </div>
 
-          <div style={{ padding: 14, borderRadius: 10, background: "var(--t-paper)", border: `1px solid ${THEME.line}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: THEME.muted, marginBottom: 4 }}>
+          <div
+            style={{
+              padding: 14,
+              borderRadius: "var(--t-radius, 10px)",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: THEME.muted,
+                marginBottom: 4,
+              }}
+            >
               Screen Privacy Shield
             </div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: privacyMode ? THEME.sage : THEME.gold }} />
+            <div
+              style={{
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: THEME.ink,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: privacyMode ? THEME.sage : THEME.gold,
+                }}
+              />
               {privacyMode ? "Privacy Mask Active" : "Unmasked Display"}
             </div>
             <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 3 }}>
@@ -1528,78 +2100,142 @@ function SecuritySection({
         </div>
       </Card>
 
-      {/* ── Privacy Mode & Screen Shield ── */}
+      {/* ── Privacy Mode & Screen Shield Simulation ── */}
       <Card style={{ padding: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-          <div style={{ maxWidth: 520 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <EyeOff size={16} color={THEME.accent} /> Privacy Mode (Public Screen Masking)
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 16,
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ maxWidth: 560 }}>
+            <div
+              style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: THEME.ink,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 4,
+              }}
+            >
+              <EyeOff size={16} color={THEME.accent} /> Privacy Mode (Public Workspace Masking)
             </div>
             <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.5 }}>
-              Automatically obscures net worth, bank balances, mutual fund units, and salary slip numbers with •••• bullets. Ideal when viewing your portfolio in public or open workspaces.
+              Automatically obscures Net Worth, bank balances, mutual fund units, and salary slip
+              figures with •••• bullets. Ideal when viewing your portfolio in cafes or office
+              environments.
             </div>
           </div>
           <Button
             variant={privacyMode ? "accent" : "secondary"}
             onClick={() => {
               setPrivacyMode(!privacyMode);
-              showToast?.(privacyMode ? "Privacy mode deactivated" : "Privacy mode activated", "info");
+              showToast?.(
+                privacyMode ? "Privacy mode deactivated" : "Privacy mode activated",
+                "info"
+              );
             }}
             icon={privacyMode ? <EyeOff size={15} /> : <Eye size={15} />}
           >
-            {privacyMode ? "Privacy Mode: ON" : "Privacy Mode: OFF"}
+            {privacyMode ? "Privacy Mode: Active (Masked)" : "Privacy Mode: Inactive (Unmasked)"}
           </Button>
+        </div>
+
+        {/* Live Simulation Box */}
+        <div
+          style={{
+            padding: "12px 18px",
+            borderRadius: "var(--t-radius, 10px)",
+            background: "var(--surface-0)",
+            border: `1px solid ${THEME.line}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 12, color: THEME.muted }}>
+            Preview of numbers across dashboard:
+          </div>
+          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+              Net Worth: {privacyMode ? "••••••••" : "₹42,80,000"}
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+              Bank: {privacyMode ? "••••••" : "₹3,40,500"}
+            </span>
+          </div>
         </div>
       </Card>
 
       {/* ── Change Password Form ── */}
       <Card style={{ padding: 24 }}>
         <div style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
-            <KeyRound size={16} color={THEME.accent} /> Change Password
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: THEME.ink,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <KeyRound size={16} color={THEME.accent} /> Change Account Password
           </div>
           <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>
-            Update your account password with real-time criteria verification.
+            Update your account password with real-time complexity criteria verification.
           </div>
         </div>
 
         {passError && (
-          <div style={{
-            padding: "10px 14px",
-            borderRadius: 8,
-            background: "#FEF2F2",
-            border: "1px solid #FECACA",
-            color: "#B91C1C",
-            fontSize: 13,
-            fontWeight: 500,
-            marginBottom: 16,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}>
+          <div
+            style={{
+              padding: "10px 14px",
+              borderRadius: 8,
+              background: "#FEF2F2",
+              border: "1px solid #FECACA",
+              color: "#B91C1C",
+              fontSize: 13,
+              fontWeight: 500,
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
             <AlertCircle size={15} /> {passError}
           </div>
         )}
 
         {passSuccess && (
-          <div style={{
-            padding: "10px 14px",
-            borderRadius: 8,
-            background: "#F0FDF4",
-            border: "1px solid #BBF7D0",
-            color: "#15803D",
-            fontSize: 13,
-            fontWeight: 500,
-            marginBottom: 16,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}>
+          <div
+            style={{
+              padding: "10px 14px",
+              borderRadius: 8,
+              background: "#F0FDF4",
+              border: "1px solid #BBF7D0",
+              color: "#15803D",
+              fontSize: 13,
+              fontWeight: 500,
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
             <CheckCircle2 size={15} /> {passSuccess}
           </div>
         )}
 
-        <form onSubmit={handlePasswordUpdate} style={{ display: "grid", gap: 16, maxWidth: 520 }}>
+        <form onSubmit={handlePasswordUpdate} style={{ display: "grid", gap: 16, maxWidth: 540 }}>
           <Field label="New Password">
             <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
               <input
@@ -1608,15 +2244,16 @@ function SecuritySection({
                 onChange={(e) => setNewPassword(e.target.value)}
                 onKeyDown={onCapsLockKey}
                 onKeyUp={onCapsLockKey}
-                placeholder="Enter new password (8+ characters)"
+                placeholder="Enter new password (min 8 characters)"
                 style={{
                   width: "100%",
                   padding: "10px 42px 10px 14px",
-                  borderRadius: 10,
+                  borderRadius: "var(--t-radius, 10px)",
                   border: `1.5px solid ${THEME.line}`,
                   fontSize: 14,
                   background: "var(--t-paper)",
                   color: THEME.ink,
+                  fontFamily: "inherit",
                 }}
               />
               <button
@@ -1639,32 +2276,79 @@ function SecuritySection({
           </Field>
 
           {capsLockOn && (
-            <div style={{ fontSize: 12, color: THEME.gold, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-              <AlertCircle size={12} /> Caps Lock is on
+            <div
+              style={{
+                fontSize: 12,
+                color: THEME.gold,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              <AlertCircle size={12} /> Caps Lock is turned on
             </div>
           )}
 
-          {/* Dynamic Criteria checklist */}
+          {/* Password Strength Checklist */}
           {newPassword && (
-            <div style={{
-              padding: 12,
-              borderRadius: 8,
-              background: "var(--surface-0)",
-              border: `1px solid ${THEME.line}`,
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "6px 12px",
-            }}>
-              <span style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, color: criteria.minLength ? THEME.sage : THEME.muted, fontWeight: criteria.minLength ? 600 : 400 }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: "var(--t-radius, 8px)",
+                background: "var(--surface-0)",
+                border: `1px solid ${THEME.line}`,
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "6px 12px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  color: criteria.minLength ? THEME.sage : THEME.muted,
+                  fontWeight: criteria.minLength ? 600 : 400,
+                }}
+              >
                 {criteria.minLength ? <Check size={12} /> : <XIcon size={12} />} 8+ characters
               </span>
-              <span style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, color: criteria.hasUpper ? THEME.sage : THEME.muted, fontWeight: criteria.hasUpper ? 600 : 400 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  color: criteria.hasUpper ? THEME.sage : THEME.muted,
+                  fontWeight: criteria.hasUpper ? 600 : 400,
+                }}
+              >
                 {criteria.hasUpper ? <Check size={12} /> : <XIcon size={12} />} Uppercase letter
               </span>
-              <span style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, color: criteria.hasNumber ? THEME.sage : THEME.muted, fontWeight: criteria.hasNumber ? 600 : 400 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  color: criteria.hasNumber ? THEME.sage : THEME.muted,
+                  fontWeight: criteria.hasNumber ? 600 : 400,
+                }}
+              >
                 {criteria.hasNumber ? <Check size={12} /> : <XIcon size={12} />} Number (0-9)
               </span>
-              <span style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 5, color: criteria.hasSpecial ? THEME.sage : THEME.muted, fontWeight: criteria.hasSpecial ? 600 : 400 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  color: criteria.hasSpecial ? THEME.sage : THEME.muted,
+                  fontWeight: criteria.hasSpecial ? 600 : 400,
+                }}
+              >
                 {criteria.hasSpecial ? <Check size={12} /> : <XIcon size={12} />} Special symbol
               </span>
             </div>
@@ -1680,11 +2364,12 @@ function SecuritySection({
                 style={{
                   width: "100%",
                   padding: "10px 42px 10px 14px",
-                  borderRadius: 10,
+                  borderRadius: "var(--t-radius, 10px)",
                   border: `1.5px solid ${THEME.line}`,
                   fontSize: 14,
                   background: "var(--t-paper)",
                   color: THEME.ink,
+                  fontFamily: "inherit",
                 }}
               />
               <button
@@ -1707,8 +2392,17 @@ function SecuritySection({
           </Field>
 
           {confirmPassword && confirmPassword === newPassword && (
-            <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-              <CheckCircle2 size={13} /> Passwords match
+            <div
+              style={{
+                fontSize: 12,
+                color: THEME.sage,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              <CheckCircle2 size={13} /> Passwords match perfectly
             </div>
           )}
 
@@ -1725,23 +2419,88 @@ function SecuritySection({
         </form>
       </Card>
 
-      {/* ── Active Session & Security Audit Shortcut ── */}
+      {/* ── Active Session & Logs ── */}
       <Card style={{ padding: 24 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: THEME.ink,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginBottom: 16,
+          }}
+        >
           <Smartphone size={16} color={THEME.accent} /> Active Session &amp; System Logs
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 20 }}>
-          <div style={{ padding: 14, borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
-            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" }}>Signed In As</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 4, wordBreak: "break-all" }}>{userEmail}</div>
-            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>ID: {session?.user?.id?.slice(0, 12) || "offline"}...</div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 14,
+            marginBottom: 20,
+          }}
+        >
+          <div
+            style={{
+              padding: 14,
+              borderRadius: "var(--t-radius, 10px)",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                color: THEME.muted,
+                fontWeight: 600,
+                textTransform: "uppercase",
+              }}
+            >
+              Signed In As
+            </div>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: THEME.ink,
+                marginTop: 4,
+                wordBreak: "break-all",
+              }}
+            >
+              {userEmail}
+            </div>
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+              Account UID: {session?.user?.id?.slice(0, 12) || "local-demo"}...
+            </div>
           </div>
 
-          <div style={{ padding: 14, borderRadius: 10, background: "var(--surface-0)", border: `1px solid ${THEME.line}` }}>
-            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" }}>Last Sign In</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 4 }}>{lastSignIn}</div>
-            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>Member since {createdAt}</div>
+          <div
+            style={{
+              padding: 14,
+              borderRadius: "var(--t-radius, 10px)",
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                color: THEME.muted,
+                fontWeight: 600,
+                textTransform: "uppercase",
+              }}
+            >
+              Last Authentication
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 4 }}>
+              {lastSignIn}
+            </div>
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+              Account registered: {createdAt}
+            </div>
           </div>
         </div>
 
@@ -1755,11 +2514,7 @@ function SecuritySection({
               View System Audit Log
             </Button>
           )}
-          <Button
-            variant="danger"
-            onClick={onSignOut}
-            icon={<LogOut size={14} />}
-          >
+          <Button variant="danger" onClick={onSignOut} icon={<LogOut size={14} />}>
             Sign Out of Account
           </Button>
         </div>
@@ -1775,7 +2530,6 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
   const [saved, setSaved] = useState(false);
   const timerRef = useRef<any>(null);
 
-  // Sync if parent masterData changes (e.g., DB load after mount).
   useEffect(() => {
     setRows(masterData?.familyProfiles || DEFAULT_MASTER_DATA.familyProfiles);
   }, [masterData?.familyProfiles]);
@@ -1819,17 +2573,20 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
     padding: "9px 12px",
     background: "var(--t-paper)",
     border: `1.5px solid ${THEME.line}`,
-    borderRadius: 10,
+    borderRadius: "var(--t-radius, 10px)",
     color: THEME.ink,
     fontSize: 13.5,
     boxSizing: "border-box" as const,
+    fontFamily: "inherit",
   };
 
   return (
-    <Card style={{ padding: 24 }}>
+    <Card style={{ padding: 26, borderTop: `4px solid ${THEME.accent}` }}>
       <div style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>Family Profiles</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>
+            Family Profiles &amp; Age Demographics
+          </div>
           <span
             style={{
               fontSize: 11,
@@ -1843,14 +2600,14 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
             DOB &amp; Age Integrated
           </span>
         </div>
-        <div style={{ fontSize: 12.5, color: THEME.muted, marginTop: 4 }}>
-          Manage family members, names, and dates of birth. DOB dynamically powers age-based tax deductions
-          (Section 80D senior citizen caps &amp; Section 80TTB), Government Scheme eligibility (SSY, APY, SCSS),
-          milestone ages in Life Event Planner, and retirement projections.
+        <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>
+          Manage family members and dates of birth. DOB dynamically powers age-based tax deductions
+          (Section 80D senior citizen caps &amp; Section 80TTB), Government Scheme eligibility (SSY,
+          APY, SCSS), milestone ages in Life Event Planner, and retirement projections.
         </div>
       </div>
 
-      <div style={{ display: "grid", gap: 16, marginBottom: 24 }}>
+      <div style={{ display: "grid", gap: 14, marginBottom: 24 }}>
         {rows.map((p) => {
           const initials = (p.name || "?")
             .split(" ")
@@ -1873,7 +2630,7 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
                 padding: "16px 18px",
                 background: "var(--surface-0)",
                 border: `1px solid ${THEME.line}`,
-                borderRadius: 12,
+                borderRadius: "var(--t-radius, 12px)",
               }}
             >
               <div
@@ -1888,15 +2645,15 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                   <div
                     style={{
-                      width: 42,
-                      height: 42,
+                      width: 44,
+                      height: 44,
                       borderRadius: "50%",
                       background: `color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
                       border: `2px solid color-mix(in srgb, ${THEME.accent} 27%, transparent)`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: 900,
                       color: THEME.accent,
                       flexShrink: 0,
@@ -1906,7 +2663,7 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
                   </div>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                      <span style={{ fontSize: 14.5, fontWeight: 800, color: THEME.ink }}>
                         {p.relation}
                       </span>
                       {isHuf && (
@@ -1952,7 +2709,7 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
+                    <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 2 }}>
                       {ageFormatted ? (
                         <span style={{ fontWeight: 600, color: THEME.ink }}>
                           Age: {ageFormatted}
@@ -2065,9 +2822,9 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
         >
           <AlertTriangle size={14} style={{ flexShrink: 0 }} />
           {hasEmptyName
-            ? "Every profile needs a name — it can't be left blank."
+            ? "Every profile needs a name — it cannot be left blank."
             : hasDuplicateName
-              ? "Two profiles can't share the same name."
+              ? "Two profiles cannot share the exact same name."
               : "Date of birth cannot be in the future."}
         </div>
       )}
@@ -2077,38 +2834,67 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
         style={{
           background: `color-mix(in srgb, ${THEME.accent} 5%, transparent)`,
           border: `1px solid color-mix(in srgb, ${THEME.accent} 18%, transparent)`,
-          borderRadius: 10,
-          padding: "14px 16px",
+          borderRadius: "var(--t-radius, 10px)",
+          padding: "14px 18px",
           marginBottom: 20,
-          fontSize: 12,
+          fontSize: 12.5,
           color: THEME.ink,
           lineHeight: 1.5,
         }}
       >
-        <div style={{ fontWeight: 800, marginBottom: 8, display: "flex", alignItems: "center", gap: 6, color: THEME.accent }}>
+        <div
+          style={{
+            fontWeight: 800,
+            marginBottom: 8,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            color: THEME.accent,
+          }}
+        >
           <Lightbulb size={15} />
           <span>Automated Cross-Module Date of Birth Integrations</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, color: THEME.muted }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 10,
+            color: THEME.muted,
+          }}
+        >
           <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
             <Shield size={14} color={THEME.accent} style={{ marginTop: 2, flexShrink: 0 }} />
-            <div><strong style={{ color: THEME.ink }}>Tax Deductions:</strong> Auto-elevates 80D limit to ₹50,000 for senior citizens (60+) &amp; 80TTB</div>
+            <div>
+              <strong style={{ color: THEME.ink }}>Tax Deductions:</strong> Auto-elevates 80D limit
+              to ₹50,000 for senior citizens (60+) &amp; 80TTB
+            </div>
           </div>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
             <Landmark size={14} color={THEME.accent} style={{ marginTop: 2, flexShrink: 0 }} />
-            <div><strong style={{ color: THEME.ink }}>Govt Schemes:</strong> Checks SSY (girl child &le;10y), APY (18–40y), SCSS (60+y) eligibility</div>
+            <div>
+              <strong style={{ color: THEME.ink }}>Govt Schemes:</strong> Checks SSY (girl child
+              &le;10y), APY (18–40y), SCSS (60+y) eligibility
+            </div>
           </div>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
             <Target size={14} color={THEME.accent} style={{ marginTop: 2, flexShrink: 0 }} />
-            <div><strong style={{ color: THEME.ink }}>Life Event Milestones:</strong> Computes exact member age at future milestone target dates</div>
+            <div>
+              <strong style={{ color: THEME.ink }}>Life Event Milestones:</strong> Computes exact
+              member age at future milestone target dates
+            </div>
           </div>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
             <TrendingUp size={14} color={THEME.accent} style={{ marginTop: 2, flexShrink: 0 }} />
-            <div><strong style={{ color: THEME.ink }}>Retirement / FIRE:</strong> Synchronizes current age for precise compounding projections</div>
+            <div>
+              <strong style={{ color: THEME.ink }}>Retirement / FIRE:</strong> Synchronizes current
+              age for precise compounding projections
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Save Bar */}
       <div
         style={{
           display: "flex",
@@ -2121,27 +2907,29 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
         {isDirty ? (
           <span
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               color: THEME.gold,
               display: "flex",
               alignItems: "center",
-              gap: 5,
+              gap: 6,
             }}
           >
             <span
               style={{
-                width: 6,
-                height: 6,
+                width: 8,
+                height: 8,
                 borderRadius: "50%",
                 background: THEME.gold,
                 display: "inline-block",
               }}
             />
-            Unsaved changes
+            Unsaved family profile changes
           </span>
         ) : (
-          <span style={{ fontSize: 11, color: THEME.muted }}>Family profile names</span>
+          <span style={{ fontSize: 12, color: THEME.muted }}>
+            Family profiles are synchronized across all modules.
+          </span>
         )}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {isDirty && (
@@ -2161,7 +2949,7 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
                   : { opacity: 0.6 }
             }
           >
-            {saved ? "Saved!" : "Save Family Profiles"}
+            {saved ? "Family Profiles Saved!" : "Save Family Profiles"}
           </Button>
         </div>
       </div>
@@ -2174,7 +2962,7 @@ function MasterDataSection({ masterData, updateMasterData }: any) {
   const md = masterData || DEFAULT_MASTER_DATA;
   const [mdTab, setMdTab] = useState("transactions");
 
-  const activeGroup = MD_GROUPS.find((g) => g.id === mdTab)!;
+  const activeGroup = MD_GROUPS.find((g) => g.id === mdTab) || MD_GROUPS[0];
 
   const tabsWithCounts = MD_GROUPS.map((g) => ({
     ...g,
@@ -2185,37 +2973,43 @@ function MasterDataSection({ masterData, updateMasterData }: any) {
     <div style={{ display: "grid", gap: 16 }}>
       <div
         style={{
-          padding: "12px 16px",
-          borderRadius: 10,
-          background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
-          border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
+          padding: "14px 18px",
+          borderRadius: "var(--t-radius, 10px)",
+          background: `color-mix(in srgb, ${THEME.accent} 4%, var(--surface-0))`,
+          border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
           fontSize: 13,
           color: THEME.ink,
           lineHeight: 1.6,
           display: "flex",
           alignItems: "flex-start",
-          gap: 10,
+          gap: 12,
         }}
       >
-        <Tags size={16} color={THEME.accent} style={{ flexShrink: 0, marginTop: 2 }} />
-        <span>
-          <strong>Master Data</strong> controls every dropdown in the app — categories, types,
-          networks. Add or remove values here and they reflect instantly everywhere.
-        </span>
+        <Tags size={18} color={THEME.accent} style={{ flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <strong style={{ color: THEME.accent }}>Master Data Command Hub:</strong> Customize every
+          single dropdown option across transaction forms, bank ledgers, credit cards, mutual funds,
+          and loan categories. Changes reflect in real-time everywhere.
+        </div>
       </div>
 
       <PillNav tabs={tabsWithCounts} active={mdTab} onChange={setMdTab} />
 
-      <div style={{ display: "grid", gap: 12 }}>
+      <div style={{ display: "grid", gap: 14 }}>
         {activeGroup.keys.map((key) => (
-          <EditableList key={key} listKey={key} items={md[key] || []} onUpdate={updateMasterData} />
+          <EditableList
+            key={key}
+            listKey={key}
+            items={md[key] || []}
+            onUpdate={updateMasterData}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-// ─── Section: Data & Account ──────────────────────────────────────────────────
+// ─── Section: Data & Account Management ───────────────────────────────────────
 function DataSection({
   exportJSON,
   onRestoreBackup,
@@ -2246,6 +3040,7 @@ function DataSection({
     {
       label: "Bank Transactions",
       key: "transactions",
+      icon: Banknote,
       cols: [
         { key: "date", label: "Date" },
         { key: "type", label: "Type" },
@@ -2258,8 +3053,9 @@ function DataSection({
       ],
     },
     {
-      label: "Stocks",
+      label: "Stock Holdings",
       key: "stocks",
+      icon: TrendingUp,
       cols: [
         { key: "symbol", label: "Symbol" },
         { key: "qty", label: "Qty" },
@@ -2271,6 +3067,7 @@ function DataSection({
     {
       label: "Mutual Funds",
       key: "mutualFunds",
+      icon: BarChart3,
       cols: [
         { key: "name", label: "Scheme" },
         { key: "folioNumber", label: "Folio" },
@@ -2284,6 +3081,7 @@ function DataSection({
     {
       label: "Fixed Deposits",
       key: "fixedDeposits",
+      icon: Landmark,
       cols: [
         { key: "bank", label: "Bank" },
         { key: "principal", label: "Principal" },
@@ -2294,8 +3092,9 @@ function DataSection({
       ],
     },
     {
-      label: "Goals",
+      label: "Financial Goals",
       key: "goals",
+      icon: Target,
       cols: [
         { key: "name", label: "Goal" },
         { key: "category", label: "Category" },
@@ -2308,6 +3107,7 @@ function DataSection({
     {
       label: "Tax Payments",
       key: "taxPayments",
+      icon: Receipt,
       cols: [
         { key: "date", label: "Date" },
         { key: "type", label: "Type" },
@@ -2318,6 +3118,7 @@ function DataSection({
     {
       label: "Insurance (LIC)",
       key: "lic",
+      icon: Shield,
       cols: [
         { key: "planName", label: "Plan" },
         { key: "policyNumber", label: "Policy No" },
@@ -2326,8 +3127,9 @@ function DataSection({
       ],
     },
     {
-      label: "Loans",
+      label: "Loans Taken",
       key: "loansTaken",
+      icon: Home,
       cols: [
         { key: "type", label: "Type" },
         { key: "principal", label: "Principal" },
@@ -2339,6 +3141,7 @@ function DataSection({
     {
       label: "Credit Cards",
       key: "creditCards",
+      icon: CreditCard,
       cols: [
         { key: "issuer", label: "Issuer" },
         { key: "network", label: "Network" },
@@ -2351,53 +3154,23 @@ function DataSection({
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
-      {/* Cleanup */}
-      <Card style={{ padding: 24, borderTop: `4px solid ${THEME.gold}` }}>
-        <div
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            marginBottom: 4,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <RotateCcw size={16} color={THEME.gold} /> Cleanup & Maintenance
-        </div>
-        <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 20, marginTop: 4 }}>
-          Scan and remove historical data records (like corporate actions) that no longer have a
-          matching stock or sale history.
-        </p>
-        <Button
-          variant="secondary"
-          onClick={async () => {
-            setCleaning(true);
-            await cleanupOrphaned();
-            setCleaning(false);
-          }}
-          icon={<RefreshCw size={14} className={cleaning ? "animate-spin" : ""} />}
-        >
-          {cleaning ? "Cleaning up..." : "Cleanup Orphaned Portfolio Data"}
-        </Button>
-      </Card>
-
-      {/* Backup */}
+      {/* Backup & Restore Hub */}
       <Card style={{ padding: 24, borderTop: `4px solid ${THEME.sage}` }}>
         <div
           style={{
-            fontSize: 15,
-            fontWeight: 700,
+            fontSize: 16,
+            fontWeight: 800,
             marginBottom: 4,
             display: "flex",
             alignItems: "center",
             gap: 8,
           }}
         >
-          <Database size={16} color={THEME.sage} /> Backup & Restore
+          <Database size={18} color={THEME.sage} /> Complete JSON Backup &amp; Restore
         </div>
-        <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 12, marginTop: 4 }}>
-          Export all your data as a JSON file or restore from a previous backup.
+        <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 14, marginTop: 4 }}>
+          Export your entire encrypted financial database as a portable `.json` snapshot or restore
+          from a previously exported backup file.
         </p>
         <div
           style={{
@@ -2412,8 +3185,8 @@ function DataSection({
         >
           <span
             style={{
-              width: 6,
-              height: 6,
+              width: 7,
+              height: 7,
               borderRadius: "50%",
               background: backupStatus.color,
               display: "inline-block",
@@ -2424,7 +3197,7 @@ function DataSection({
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Button variant="secondary" onClick={() => exportJSON()} icon={<Download size={15} />}>
-            Export Backup (.json)
+            Export Full Backup (.json)
           </Button>
           <div style={{ position: "relative" }}>
             <Button variant="secondary" icon={<RefreshCw size={15} />}>
@@ -2441,8 +3214,83 @@ function DataSection({
         </div>
       </Card>
 
-      {/* CSV Exports */}
+      {/* Domain CSV Exports */}
       <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 800,
+            marginBottom: 4,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <FileSpreadsheet size={18} color={THEME.accent} /> Domain CSV Data Exports
+        </div>
+        <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 16, marginTop: 4 }}>
+          Download individual ledgers and tables as standard CSV spreadsheets compatible with Microsoft
+          Excel, Google Sheets, and Apple Numbers.
+        </p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {csvExports.map((exp) => {
+            const count = (state?.[exp.key] || []).length;
+            const Icon = exp.icon;
+            return (
+              <button
+                key={exp.key}
+                disabled={count === 0}
+                onClick={() => {
+                  const ts = new Date().toISOString().slice(0, 10);
+                  exportArrayToCSV(state[exp.key] || [], exp.cols, `${exp.key}_${ts}.csv`);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 14px",
+                  borderRadius: "var(--t-radius, 10px)",
+                  background: "var(--surface-0)",
+                  border: `1px solid ${THEME.line}`,
+                  color: count === 0 ? THEME.muted : THEME.ink,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: count === 0 ? "default" : "pointer",
+                  fontFamily: "inherit",
+                  opacity: count === 0 ? 0.5 : 1,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <Icon size={14} color={count > 0 ? THEME.accent : THEME.muted} />
+                  <span>{exp.label}</span>
+                </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    padding: "1px 6px",
+                    borderRadius: 4,
+                    background: `color-mix(in srgb, ${THEME.muted} 15%, transparent)`,
+                    color: THEME.muted,
+                  }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Database Maintenance */}
+      <Card style={{ padding: 24, borderTop: `4px solid ${THEME.gold}` }}>
         <div
           style={{
             fontSize: 15,
@@ -2453,33 +3301,26 @@ function DataSection({
             gap: 8,
           }}
         >
-          <Download size={16} color={THEME.accent} /> Export as CSV
+          <RotateCcw size={16} color={THEME.gold} /> Database Maintenance &amp; Cleanup
         </div>
         <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 16, marginTop: 4 }}>
-          Download individual data sections as CSV files for use in Excel or Google Sheets.
+          Scan and remove orphaned historical records (e.g. corporate action logs without a parent
+          stock or sold position).
         </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {csvExports.map((exp) => {
-            const count = (state?.[exp.key] || []).length;
-            return (
-              <Button
-                key={exp.key}
-                variant="secondary"
-                disabled={count === 0}
-                onClick={() => {
-                  const ts = new Date().toISOString().slice(0, 10);
-                  exportArrayToCSV(state[exp.key] || [], exp.cols, `${exp.key}_${ts}.csv`);
-                }}
-                style={{ fontSize: 12, padding: "6px 12px" }}
-              >
-                {exp.label} ({count})
-              </Button>
-            );
-          })}
-        </div>
+        <Button
+          variant="secondary"
+          onClick={async () => {
+            setCleaning(true);
+            await cleanupOrphaned();
+            setCleaning(false);
+          }}
+          icon={<RefreshCw size={14} className={cleaning ? "animate-spin" : ""} />}
+        >
+          {cleaning ? "Cleaning up records..." : "Cleanup Orphaned Portfolio Records"}
+        </Button>
       </Card>
 
-      {/* Danger zone */}
+      {/* Danger Zone */}
       <Card style={{ padding: 24, borderTop: `4px solid ${THEME.rust}` }}>
         <div
           style={{
@@ -2492,10 +3333,11 @@ function DataSection({
             color: THEME.rust,
           }}
         >
-          <AlertTriangle size={16} /> Danger Zone
+          <AlertTriangle size={16} /> Danger Zone (Irreversible Data Actions)
         </div>
-        <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 20, marginTop: 4 }}>
-          These actions are permanent and cannot be undone.
+        <p style={{ fontSize: 13, color: THEME.muted, marginBottom: 18, marginTop: 4 }}>
+          Permanently clear all financial ledger entries, investments, goals, and profiles from
+          this account.
         </p>
 
         {!confirmReset ? (
@@ -2504,7 +3346,7 @@ function DataSection({
             onClick={() => setConfirmReset(true)}
             icon={<AlertTriangle size={14} />}
           >
-            Reset All Data
+            Reset All Financial Data
           </Button>
         ) : (
           <div
@@ -2515,8 +3357,8 @@ function DataSection({
               border: `1px solid color-mix(in srgb, ${THEME.rust} 27%, transparent)`,
             }}
           >
-            <div style={{ fontSize: 14, fontWeight: 600, color: THEME.rust, marginBottom: 12 }}>
-              Are you sure? This will delete ALL your financial data.
+            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.rust, marginBottom: 12 }}>
+              ⚠️ Are you absolutely certain? This will permanently delete ALL data records.
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Button
@@ -2526,7 +3368,7 @@ function DataSection({
                   setConfirmReset(false);
                 }}
               >
-                Yes, delete everything
+                Yes, delete everything permanently
               </Button>
               <Button variant="ghost" onClick={() => setConfirmReset(false)}>
                 Cancel
@@ -2536,7 +3378,7 @@ function DataSection({
         )}
       </Card>
 
-      {/* Sign out */}
+      {/* Sign Out Card */}
       <Card style={{ padding: "18px 24px" }}>
         <div
           style={{
@@ -2544,14 +3386,15 @@ function DataSection({
             alignItems: "center",
             justifyContent: "space-between",
             gap: 16,
+            flexWrap: "wrap",
           }}
         >
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginBottom: 2 }}>
-              Sign Out
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: THEME.ink, marginBottom: 2 }}>
+              End Session &amp; Sign Out
             </div>
             <div style={{ fontSize: 12, color: THEME.muted }}>
-              You'll be redirected to the login page
+              Safely terminates your active token session and redirects to the login screen.
             </div>
           </div>
           <Button variant="secondary" onClick={onSignOut} icon={<LogOut size={14} />}>
@@ -2563,7 +3406,7 @@ function DataSection({
   );
 }
 
-// ─── Section: Email Summary ───────────────────────────────────────────────────
+// ─── Section: Email Summary Reports ───────────────────────────────────────────
 const WEEKDAYS = [
   { value: 1, label: "Monday" },
   { value: 2, label: "Tuesday" },
@@ -2574,13 +3417,9 @@ const WEEKDAYS = [
   { value: 0, label: "Sunday" },
 ];
 
-// Cron fires once daily at 8:00 AM IST (see api/send-summary.js's shouldSendNow +
-// vercel.json's "30 2 * * *" = 2:30 UTC = 8:00 IST). Mirrors the backend's own
-// nowIST() shift-trick so "next scheduled" always agrees with when the cron
-// actually evaluates shouldSendNow, instead of drifting from the viewer's local time zone.
 function nextScheduledSendIST(frequency: string, day: number): Date {
   const IST_OFFSET_MS = 330 * 60000;
-  const ist = new Date(Date.now() + IST_OFFSET_MS); // read via getUTC* as if it were IST wall-clock
+  const ist = new Date(Date.now() + IST_OFFSET_MS);
   const curDate = ist.getUTCDate();
   const curDay = ist.getUTCDay();
   const pastCutoff = ist.getUTCHours() >= 8;
@@ -2601,7 +3440,6 @@ function nextScheduledSendIST(frequency: string, day: number): Date {
     return at8AmIST(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
   }
 
-  // monthly — same last-day-of-month clamp as the backend's shouldSendNow
   let y = ist.getUTCFullYear();
   let m = ist.getUTCMonth();
   let effDay = Math.min(day, daysInMonth(y, m));
@@ -2633,7 +3471,6 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState("");
 
-  // Migrate any existing localStorage sender-email value to Supabase on first load.
   useEffect(() => {
     try {
       const local = localStorage.getItem("finance-email-from");
@@ -2642,19 +3479,13 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
         localStorage.removeItem("finance-email-from");
       }
     } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Recipient/Sender email are buffered locally and only written to Supabase on
-  // explicit Save (matching the Profile/AI-key pattern elsewhere in this file).
-  // Without this, every keystroke immediately upserted to user_settings — a
-  // half-typed address could briefly become the address the cron job sends to.
   const [addrBuf, setAddrBuf] = useState({ emailAddress: savedAddress, fromEmail: savedFromEmail });
   const [addrSaved, setAddrSaved] = useState(false);
   const addrSavedTimerRef = useRef<any>(null);
   useEffect(() => {
     setAddrBuf({ emailAddress: savedAddress, fromEmail: savedFromEmail });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedAddress, savedFromEmail]);
   useEffect(
     () => () => {
@@ -2674,17 +3505,12 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
     addrSavedTimerRef.current = setTimeout(() => setAddrSaved(false), 2200);
   }
 
-  // Day-of-month is buffered too — commits on blur instead of every keystroke.
   const [dayBuf, setDayBuf] = useState(String(Number(es.emailDay ?? 1)));
   useEffect(() => {
     setDayBuf(String(Number(es.emailDay ?? 1)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [es.emailDay]);
   const day = Number(es.emailDay ?? 1);
 
-  // Only meaningful to test-send / preview against the address actually saved
-  // server-side — the manual-send API ignores whatever the client claims and
-  // always looks up the stored user_settings.email_address for security.
   const address = savedAddress;
   const fromEmail = savedFromEmail;
 
@@ -2694,7 +3520,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
     boxSizing: "border-box",
     background: "var(--t-paper)",
     border: `1.5px solid ${THEME.line}`,
-    borderRadius: 10,
+    borderRadius: "var(--t-radius, 10px)",
     color: THEME.ink,
     fontSize: 14,
     outline: "none",
@@ -2782,15 +3608,15 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
   }
 
   const freqOptions = [
-    { value: "daily", label: "Daily", desc: "Every day at your chosen time" },
-    { value: "weekly", label: "Weekly", desc: "Once a week — pick a day" },
-    { value: "monthly", label: "Monthly", desc: "Once a month — pick a date" },
+    { value: "daily", label: "Daily Digest", desc: "Every morning at 8:00 AM IST" },
+    { value: "weekly", label: "Weekly Briefing", desc: "Once a week on chosen weekday" },
+    { value: "monthly", label: "Monthly Executive", desc: "Once a month on chosen date" },
   ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Enable toggle card */}
-      <Card style={{ padding: 24 }}>
+      {/* Enable Toggle Card */}
+      <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
         <div
           style={{
             display: "flex",
@@ -2801,16 +3627,23 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
         >
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  color: THEME.accent,
+                  flexShrink: 0,
+                }}
+              >
                 <Mail size={22} />
               </div>
               <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>
-                Email Summary Reports
+                Automated Financial Email Reports
               </div>
             </div>
-            <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.6, maxWidth: 480 }}>
-              Get your complete financial picture delivered straight to your inbox — net worth, cash
-              flow, investments, upcoming dues, goals, and smart alerts.
+            <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.6, maxWidth: 520 }}>
+              Get your complete wealth picture delivered straight to your inbox — Net Worth, cash
+              flow, investment returns, upcoming bill dues, budget health, and AI alerts.
             </div>
           </div>
           <button
@@ -2820,8 +3653,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             aria-label={enabled ? "Disable email summary reports" : "Enable email summary reports"}
             style={{
               position: "relative",
-              width: 52,
-              height: 28,
+              width: 56,
+              height: 30,
               borderRadius: 99,
               background: enabled ? THEME.accent : THEME.line,
               border: "none",
@@ -2833,14 +3666,14 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             <div
               style={{
                 position: "absolute",
-                top: 4,
-                left: enabled ? 26 : 4,
-                width: 20,
-                height: 20,
+                top: 3,
+                left: enabled ? 29 : 4,
+                width: 24,
+                height: 24,
                 borderRadius: "50%",
                 background: "#fff",
-                transition: "left 0.2s ease",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                transition: "left 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
               }}
             />
           </button>
@@ -2850,51 +3683,28 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
           <div
             style={{
               marginTop: 20,
-              padding: "16px 20px",
+              padding: "14px 18px",
               background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
               borderRadius: 12,
-              border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
-              fontSize: 12,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+              fontSize: 12.5,
               color: THEME.muted,
               lineHeight: 1.7,
             }}
           >
-            <strong style={{ color: THEME.accent }}>Setup required:</strong> Add{" "}
-            <code
-              style={{
-                background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-                padding: "1px 5px",
-                borderRadius: 4,
-                fontSize: 11,
-              }}
-            >
-              Resend_Email_API
-            </code>{" "}
-            and{" "}
-            <code
-              style={{
-                background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
-                padding: "1px 5px",
-                borderRadius: 4,
-                fontSize: 11,
-              }}
-            >
-              SUPABASE_SERVICE_EMAIL_ROLE_KEY
-            </code>{" "}
-            to your Vercel environment variables.
+            <strong style={{ color: THEME.accent }}>Backend Dispatch Engine:</strong> Automated
+            reports are delivered via Resend API and Supabase Edge cron triggers.
           </div>
         )}
       </Card>
 
       {enabled && (
         <>
-          {/* Last send status — closes the "did my automated email actually go out?" gap;
-              the cron runs unattended once a day, so without this the only way to notice
-              a broken sender/domain was to realize an email never arrived. */}
+          {/* Delivery History & Next Schedule */}
           <Card style={{ padding: 24 }}>
             <div
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 700,
                 color: THEME.muted,
                 textTransform: "uppercase",
@@ -2902,35 +3712,41 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 marginBottom: 12,
               }}
             >
-              Delivery History
+              Delivery Status &amp; Timeline
             </div>
             {(() => {
               const lastAt = es.lastEmailSentAt ? new Date(es.lastEmailSentAt) : null;
               const failed = es.lastEmailStatus === "failed";
-              const daysSince = lastAt ? Math.floor((Date.now() - lastAt.getTime()) / 86400000) : null;
+              const daysSince = lastAt
+                ? Math.floor((Date.now() - lastAt.getTime()) / 86400000)
+                : null;
               const color = !lastAt ? THEME.muted : failed ? THEME.rust : THEME.sage;
               return (
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                   {!lastAt ? (
-                    <Clock size={16} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <Clock size={18} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
                   ) : failed ? (
-                    <XCircle size={16} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <XCircle size={18} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
                   ) : (
-                    <CheckCircle2 size={16} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <CheckCircle2
+                      size={18}
+                      color={color}
+                      style={{ flexShrink: 0, marginTop: 1 }}
+                    />
                   )}
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color }}>
                       {!lastAt
-                        ? "No email sent yet"
+                        ? "No automated email sent yet"
                         : failed
-                          ? "Last send failed"
-                          : `Last email sent ${daysSince === 0 ? "today" : daysSince === 1 ? "1 day ago" : `${daysSince} days ago`}`}
+                          ? "Last send attempt failed"
+                          : `Last digest delivered ${daysSince === 0 ? "today" : daysSince === 1 ? "yesterday" : `${daysSince} days ago`}`}
                     </div>
                     <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
                       {!lastAt
-                        ? "Automated reports run at 8:00 AM IST on your chosen schedule — this updates after the first one goes out (or use \"Send Test Email Now\" below)."
+                        ? "Automated reports trigger at 8:00 AM IST according to your chosen schedule."
                         : failed
-                          ? es.lastEmailError || "Unknown error — check Configuration Check below."
+                          ? es.lastEmailError || "Delivery failure. Check server health check below."
                           : lastAt.toLocaleString("en-IN", {
                               day: "numeric",
                               month: "short",
@@ -2943,6 +3759,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 </div>
               );
             })()}
+
             {address && (
               <div
                 style={{
@@ -2951,25 +3768,23 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   borderTop: `1px solid ${THEME.line}`,
                   display: "flex",
                   alignItems: "flex-start",
-                  gap: 10,
+                  gap: 12,
                 }}
               >
-                <Calendar size={16} color={THEME.accent} style={{ flexShrink: 0, marginTop: 1 }} />
+                <Calendar size={18} color={THEME.accent} style={{ flexShrink: 0, marginTop: 1 }} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
-                    Next scheduled send
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>
+                    Next Scheduled Delivery
                   </div>
                   <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
                     {(() => {
                       const next = nextScheduledSendIST(frequency, day);
                       const hoursAway = (next.getTime() - Date.now()) / 3600000;
-                      const label =
-                        hoursAway < 20
-                          ? "Today, 8:00 AM IST"
-                          : hoursAway < 44
-                            ? "Tomorrow, 8:00 AM IST"
-                            : `${next.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}, 8:00 AM IST`;
-                      return label;
+                      return hoursAway < 20
+                        ? "Today at 8:00 AM IST"
+                        : hoursAway < 44
+                          ? "Tomorrow at 8:00 AM IST"
+                          : `${next.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })} at 8:00 AM IST`;
                     })()}
                   </div>
                 </div>
@@ -2977,11 +3792,11 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             )}
           </Card>
 
-          {/* Email address */}
+          {/* Delivery Address Setup */}
           <Card style={{ padding: 24 }}>
             <div
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 700,
                 color: THEME.muted,
                 textTransform: "uppercase",
@@ -2989,23 +3804,23 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 marginBottom: 16,
               }}
             >
-              Delivery Address
+              Recipient &amp; Sender Configuration
             </div>
             <div style={{ display: "grid", gap: 16 }}>
-              <Field label="Recipient Email (Send To)">
+              <Field label="Recipient Email (Where to send reports)">
                 <input
                   style={inp}
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="your.email@example.com"
                   value={addrBuf.emailAddress}
                   onChange={(e) => setAddrBuf((b) => ({ ...b, emailAddress: e.target.value }))}
                 />
               </Field>
-              <Field label="Sender Email (From) — verified custom domain email (optional)">
+              <Field label="Sender Email (Verified Custom Domain - Optional)">
                 <input
                   style={inp}
                   type="email"
-                  placeholder="e.g. reports@yourdomain.com (Leave blank to use default onboarding@resend.dev)"
+                  placeholder="e.g. reports@yourdomain.com (Leave blank for default onboarding@resend.dev)"
                   value={addrBuf.fromEmail}
                   onChange={(e) => setAddrBuf((b) => ({ ...b, fromEmail: e.target.value }))}
                 />
@@ -3017,76 +3832,30 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   onClick={saveAddress}
                   disabled={!addrDirty}
                   icon={addrSaved ? <Check size={14} /> : undefined}
-                  style={addrSaved ? { background: THEME.sage } : !addrDirty ? { opacity: 0.6 } : {}}
+                  style={
+                    addrSaved
+                      ? { background: THEME.sage }
+                      : !addrDirty
+                        ? { opacity: 0.6 }
+                        : {}
+                  }
                 >
-                  {addrSaved ? "Saved!" : "Save"}
+                  {addrSaved ? "Address Saved!" : "Save Email Settings"}
                 </Button>
                 {addrDirty && !addrSaved && (
                   <span style={{ fontSize: 12, color: THEME.gold, fontWeight: 600 }}>
-                    Unsaved changes — save before sending a test or previewing
+                    Unsaved changes — save before sending test or previewing
                   </span>
                 )}
               </div>
-              {!addrBuf.fromEmail && (
-                <div
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: 8,
-                    background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
-                    fontSize: 12,
-                    color: THEME.ink,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  <Lightbulb
-                    size={13}
-                    style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }}
-                  />{" "}
-                  <strong style={{ color: THEME.sage }}>Default Mode:</strong> Sending from{" "}
-                  <strong>onboarding@resend.dev</strong>. Resend restriction: onboarding@resend.dev
-                  can <strong>only</strong> deliver to your Resend registration email.
-                </div>
-              )}
-              {addrBuf.fromEmail && (
-                <div
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: 8,
-                    background: `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${THEME.gold} 27%, transparent)`,
-                    fontSize: 12,
-                    color: THEME.ink,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  <AlertTriangle
-                    size={13}
-                    style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }}
-                  />{" "}
-                  <strong style={{ color: THEME.gold }}>Verification Required:</strong> You must
-                  own and verify the domain of <strong>{addrBuf.fromEmail}</strong> in your{" "}
-                  <a
-                    href="https://resend.com/domains"
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: THEME.accent, textDecoration: "none", fontWeight: 600 }}
-                  >
-                    Resend account →
-                  </a>
-                  <br />
-                  Note: Resend will reject public email domains (like Gmail, Yahoo, etc.) as
-                  senders.
-                </div>
-              )}
             </div>
           </Card>
 
-          {/* Frequency + timing */}
+          {/* Frequency & Schedule */}
           <Card style={{ padding: 24 }}>
             <div
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 700,
                 color: THEME.muted,
                 textTransform: "uppercase",
@@ -3094,12 +3863,12 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 marginBottom: 16,
               }}
             >
-              Schedule
+              Frequency &amp; Timing Schedule
             </div>
 
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginBottom: 10 }}>
-                How often?
+                Cadence Selection
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
                 {freqOptions.map((f) => (
@@ -3108,9 +3877,9 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     onClick={() => updateEmailSettings({ emailFrequency: f.value })}
                     aria-pressed={frequency === f.value}
                     style={{
-                      flex: "1 1 140px",
+                      flex: "1 1 150px",
                       padding: "12px 16px",
-                      borderRadius: 12,
+                      borderRadius: "var(--t-radius, 12px)",
                       border:
                         frequency === f.value
                           ? `2px solid ${THEME.accent}`
@@ -3145,7 +3914,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 <div
                   style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginBottom: 10 }}
                 >
-                  Which day?
+                  Preferred Delivery Day
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
                   {WEEKDAYS.map((d) => (
@@ -3181,7 +3950,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
 
             {frequency === "monthly" && (
               <div style={{ marginBottom: 20 }}>
-                <Field label="Day of Month">
+                <Field label="Day of Month (1 - 28)">
                   <input
                     style={inp}
                     type="number"
@@ -3198,44 +3967,19 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     }}
                   />
                 </Field>
-                <div style={{ fontSize: 11, color: THEME.muted, marginTop: -12 }}>
-                  1–28, so it stays valid every month including February
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: -8 }}>
+                  Capped to 28 so scheduled deliveries run consistently every month without leap year
+                  skips.
                 </div>
               </div>
             )}
-
-            <div
-              style={{
-                marginTop: 8,
-                padding: "10px 14px",
-                background: "var(--surface-0)",
-                borderRadius: 10,
-                border: `1px solid ${THEME.line}`,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  color: THEME.muted,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <Clock size={13} />
-                <span>
-                  Emails are delivered at <strong style={{ color: THEME.ink }}>8:00 AM IST</strong>{" "}
-                  on your chosen day.
-                </span>
-              </div>
-            </div>
           </Card>
 
-          {/* What's included */}
+          {/* 11 Modules Included Grid */}
           <Card style={{ padding: 24 }}>
             <div
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 700,
                 color: THEME.muted,
                 textTransform: "uppercase",
@@ -3243,7 +3987,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 marginBottom: 16,
               }}
             >
-              What's in each email
+              11 Financial Modules Included in Every Report
             </div>
             <div
               style={{
@@ -3255,68 +3999,68 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
               {[
                 {
                   icon: Wallet,
-                  title: "Net Worth Snapshot",
-                  desc: "Assets vs liabilities with full breakdown",
+                  title: "Net Worth Breakdown",
+                  desc: "Assets vs liabilities with MoM change",
                   color: THEME.sage,
                 },
                 {
                   icon: Banknote,
                   title: "Monthly Cash Flow",
-                  desc: "Income vs expenses + savings rate",
+                  desc: "Income vs expenses & savings rate",
                   color: THEME.accent,
                 },
                 {
                   icon: TrendingUp,
-                  title: "Investment Portfolio",
-                  desc: "MF, stocks, FD, RD, PPF, NPS, EPF, bonds, LIC",
+                  title: "Investments Portfolio",
+                  desc: "MF, Stocks, FD, RD, PPF, NPS, EPF, Bonds",
                   color: THEME.sage,
                 },
                 {
                   icon: Landmark,
-                  title: "Other Assets",
-                  desc: "Real estate, vehicles, loans given, deposits",
+                  title: "Physical Assets",
+                  desc: "Real estate & vehicle valuation",
                   color: THEME.sage,
                 },
                 {
                   icon: ClipboardList,
-                  title: "Liabilities",
-                  desc: "Loans, CC dues, borrowings with total",
+                  title: "Liabilities Ledger",
+                  desc: "Home, auto & personal loans balance",
                   color: THEME.rust,
                 },
                 {
                   icon: CreditCard,
-                  title: "Credit Card Status",
-                  desc: "Outstanding + utilization % per card",
+                  title: "Credit Card Health",
+                  desc: "Utilization % and upcoming statements",
                   color: THEME.rust,
                 },
                 {
                   icon: BarChart3,
-                  title: "Budget Health",
-                  desc: "Category budgets with progress bars",
+                  title: "Budget Gauges",
+                  desc: "Category budgets with alert bars",
                   color: THEME.gold,
                 },
                 {
                   icon: ShoppingBag,
-                  title: "Top Spending",
-                  desc: "Your biggest expense categories",
+                  title: "Top Expense Drivers",
+                  desc: "Largest outflow categories this period",
                   color: THEME.gold,
                 },
                 {
                   icon: Target,
-                  title: "Goals Progress",
-                  desc: "How close you are to each goal",
+                  title: "Goal Milestones",
+                  desc: "Progress trajectory toward FIRE & savings",
                   color: THEME.accent,
                 },
                 {
                   icon: Calendar,
                   title: "Upcoming Dues",
-                  desc: "Bills, EMIs and subscriptions in 7 days",
+                  desc: "Bills, EMIs & insurance due in 7 days",
                   color: THEME.gold,
                 },
                 {
                   icon: Zap,
-                  title: "Smart Alerts",
-                  desc: "FD maturity, emergency fund, debt ratio + more",
+                  title: "Smart System Alerts",
+                  desc: "FD maturities, emergency fund & debt ratio",
                   color: THEME.rust,
                 },
               ].map((item) => (
@@ -3325,16 +4069,16 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                   style={{
                     display: "flex",
                     gap: 10,
-                    padding: "10px 12px",
+                    padding: "12px 14px",
                     background: "var(--surface-0)",
-                    borderRadius: 10,
+                    borderRadius: "var(--t-radius, 10px)",
                     border: `1px solid ${THEME.line}`,
-                    borderTop: `3px solid color-mix(in srgb, ${item.color} 27%, transparent)`,
+                    borderTop: `3px solid color-mix(in srgb, ${item.color} 30%, transparent)`,
                   }}
                 >
                   <item.icon size={18} style={{ flexShrink: 0 }} color={item.color} />
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: THEME.ink }}>
                       {item.title}
                     </div>
                     <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
@@ -3346,11 +4090,11 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             </div>
           </Card>
 
-          {/* Send test email */}
+          {/* Test & Live Preview Actions */}
           <Card style={{ padding: 24 }}>
             <div
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: 700,
                 color: THEME.muted,
                 textTransform: "uppercase",
@@ -3358,23 +4102,15 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 marginBottom: 6,
               }}
             >
-              Test Your Email
+              Verification &amp; Test Dispatch
             </div>
             <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 16 }}>
-              Send a test email right now using your current financial data, or preview it without
-              sending anything.
-              {!address && (
-                <span style={{ color: THEME.rust }}> Add your email address above first.</span>
-              )}
-              {address && addrDirty && (
-                <span style={{ color: THEME.gold }}> Save your address changes before sending a test.</span>
-              )}
+              Send an immediate test digest using current portfolio state, or render the live HTML
+              email in a modal.
             </div>
-            <div
-              style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const }}
-            >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <Button variant="secondary" onClick={handlePreview} loading={previewLoading}>
-                Preview Email
+                Preview Live HTML Email
               </Button>
               <Button
                 variant="accent"
@@ -3383,6 +4119,14 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                 loading={sending}
               >
                 Send Test Email Now
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleCheckConfig}
+                loading={checking}
+                icon={<Activity size={14} />}
+              >
+                Server Health Check
               </Button>
               {sendStatus === "ok" && (
                 <span
@@ -3395,7 +4139,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     fontWeight: 600,
                   }}
                 >
-                  <CheckCircle2 size={14} style={{ flexShrink: 0 }} /> Email sent to {address}
+                  <CheckCircle2 size={14} style={{ flexShrink: 0 }} /> Email dispatched
+                  successfully to {address}
                 </span>
               )}
               {sendStatus === "err" && (
@@ -3407,157 +4152,41 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     fontSize: 13,
                     color: THEME.rust,
                     fontWeight: 600,
-                    maxWidth: 480,
                   }}
                 >
-                  <XCircle size={14} style={{ flexShrink: 0 }} />{" "}
-                  {errMsg || "Failed to send. Check RESEND_API_KEY in Vercel."}
+                  <AlertCircle size={14} style={{ flexShrink: 0 }} /> {errMsg}
                 </span>
               )}
             </div>
-          </Card>
 
-          {/* Config diagnostics */}
-          <Card style={{ padding: 24, border: `1px solid ${THEME.line}` }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  Configuration Check
-                </div>
-                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
-                  Diagnose why emails may not be delivering
-                </div>
-              </div>
-              <Button variant="secondary" size="sm" onClick={handleCheckConfig} loading={checking}>
-                Check Config
-              </Button>
-            </div>
-
-            {health && !health.error && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[
-                  {
-                    ok: health.resendKey,
-                    label: "Resend API Key",
-                    pass: "Configured in Vercel",
-                    fail: "Missing — add Resend_Email_API to Vercel Environment Variables",
-                  },
-                  {
-                    ok: health.supabaseServiceKey,
-                    label: "Supabase Service Role Key",
-                    pass: "Configured in Vercel",
-                    fail: "Missing — add SUPABASE_SERVICE_EMAIL_ROLE_KEY to Vercel",
-                  },
-                  {
-                    ok: health.supabaseUrl,
-                    label: "Supabase URL",
-                    pass: "Configured",
-                    fail: "Missing VITE_SUPABASE_URL",
-                  },
-                  {
-                    ok: !health.usingTestDomain,
-                    label: "From Email (Sender)",
-                    pass: `Sending from: ${health.fromEmail}`,
-                    fail:
-                      health.testDomainWarning ||
-                      `Using test sender (onboarding@resend.dev) — enter your Resend account email in the 'Sender Email' field above`,
-                  },
-                  {
-                    ok: health.ready,
-                    label: "Overall Status",
-                    pass: "All checks passed — emails will deliver correctly",
-                    fail: "Fix the From Email above to enable reliable email delivery",
-                  },
-                ].map((row) => (
-                  <div
-                    key={row.label}
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "flex-start",
-                      padding: "10px 12px",
-                      borderRadius: 8,
-                      background: row.ok
-                        ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)`
-                        : `color-mix(in srgb, ${THEME.rust} 4%, transparent)`,
-                      border: row.ok
-                        ? `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`
-                        : `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
-                    }}
-                  >
-                    {row.ok ? (
-                      <CheckCircle2
-                        size={15}
-                        color={THEME.sage}
-                        style={{ flexShrink: 0, marginTop: 1 }}
-                      />
-                    ) : (
-                      <XCircle
-                        size={15}
-                        color={THEME.rust}
-                        style={{ flexShrink: 0, marginTop: 1 }}
-                      />
-                    )}
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
-                        {row.label}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: row.ok ? THEME.sage : THEME.rust,
-                          marginTop: 2,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        {row.ok ? row.pass : row.fail}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {health?.error && (
-              <div style={{ fontSize: 13, color: THEME.rust }}>
-                Could not reach API: {health.error}
-              </div>
-            )}
-            {!health && !checking && (
-              <div style={{ fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>
-                {fromEmail
-                  ? `Will check config using sender: ${fromEmail}`
-                  : 'Click "Check Config" to diagnose. Enter your Sender Email above first for accurate results.'}
+            {health && (
+              <div
+                style={{
+                  marginTop: 16,
+                  padding: "12px 16px",
+                  borderRadius: 8,
+                  background: "var(--surface-0)",
+                  border: `1px solid ${THEME.line}`,
+                  fontSize: 12,
+                  fontFamily: "monospace",
+                  color: THEME.ink,
+                }}
+              >
+                <strong>Diagnostic Result:</strong> {JSON.stringify(health)}
               </div>
             )}
           </Card>
         </>
       )}
 
+      {/* Preview Modal */}
       {previewOpen && (
-        <Modal
-          title="Email Preview"
-          onClose={() => setPreviewOpen(false)}
-          maxWidth={760}
-        >
+        <Modal title="Live Email Digest Preview" onClose={() => setPreviewOpen(false)} maxWidth={780}>
           {previewLoading && (
-            <div style={{ padding: "40px 0", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
-              Rendering your latest data…
+            <div
+              style={{ padding: "40px 0", textAlign: "center", color: THEME.muted, fontSize: 13 }}
+            >
+              Rendering live financial data into email template…
             </div>
           )}
           {previewError && (
@@ -3605,7 +4234,6 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
   const [saved, setSaved] = useState(false);
   const timerRef = useRef<any>(null);
 
-  // Sync local buffer if the saved key changes elsewhere (e.g. DB load after mount).
   useEffect(() => {
     setKeyVal(geminiApiKey || "");
   }, [geminiApiKey]);
@@ -3634,7 +4262,7 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
     boxSizing: "border-box",
     background: "var(--t-paper)",
     border: `1.5px solid ${THEME.line}`,
-    borderRadius: 10,
+    borderRadius: "var(--t-radius, 10px)",
     color: THEME.ink,
     fontSize: 14,
     outline: "none",
@@ -3643,13 +4271,20 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <Card style={{ padding: 24 }}>
+      <Card style={{ padding: 26, borderTop: `4px solid ${THEME.accent}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-          <div style={{ display: "flex", alignItems: "center", color: THEME.accent, flexShrink: 0 }}>
-            <Bot size={22} />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              color: THEME.accent,
+              flexShrink: 0,
+            }}
+          >
+            <Bot size={24} />
           </div>
-          <div style={{ fontSize: 17, fontWeight: 800, color: THEME.ink }}>
-            AI Financial Advisor
+          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink }}>
+            Google Gemini AI Financial Advisor
           </div>
         </div>
         <div
@@ -3657,17 +4292,17 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
             fontSize: 13,
             color: THEME.muted,
             lineHeight: 1.6,
-            maxWidth: 480,
+            maxWidth: 560,
             marginBottom: 24,
           }}
         >
-          Configure your Gemini API key to enable the AI Financial Advisor. Your data will be
-          anonymized before being sent to Google's Gemini API for personalized insights and advice.
+          Configure your personal Gemini API key to activate instant portfolio analysis, tax
+          optimization strategies, and real-time FIRE wealth recommendations.
         </div>
 
         <div
           style={{
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: 700,
             color: THEME.muted,
             textTransform: "uppercase",
@@ -3675,9 +4310,9 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
             marginBottom: 12,
           }}
         >
-          API Settings
+          API Key Configuration
         </div>
-        <Field label="Gemini API Key">
+        <Field label="Google Gemini API Key">
           <div style={{ display: "flex", gap: 8 }}>
             <input
               style={inp}
@@ -3693,7 +4328,7 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
               aria-label={showKey ? "Hide API key" : "Show API key"}
               style={{
                 padding: "0 14px",
-                borderRadius: 10,
+                borderRadius: "var(--t-radius, 10px)",
                 border: `1.5px solid ${THEME.line}`,
                 background: "var(--t-paper)",
                 cursor: "pointer",
@@ -3708,66 +4343,66 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
               onClick={saveKey}
               disabled={!isDirty}
               icon={saved ? <Check size={15} /> : undefined}
-              style={saved ? { background: THEME.sage } : !isDirty ? { opacity: 0.6 } : {}}
+              style={
+                saved ? { background: THEME.sage } : !isDirty ? { opacity: 0.6 } : {}
+              }
             >
-              {saved ? "Saved!" : "Save"}
+              {saved ? "Saved!" : "Save Key"}
             </Button>
           </div>
           {!looksValid && (
             <div style={{ marginTop: 8, fontSize: 11, color: THEME.gold, fontWeight: 600 }}>
-              That doesn't look like a full Gemini API key — double-check before saving.
+              Key length seems short for a Gemini API key — verify before saving.
             </div>
           )}
         </Field>
         <div style={{ marginTop: 12, fontSize: 12, color: THEME.muted }}>
-          Get a free API key from{" "}
+          Get a free API key with generous rate limits from{" "}
           <a
             href="https://aistudio.google.com/app/apikey"
             target="_blank"
             rel="noreferrer"
-            style={{ color: THEME.accent, textDecoration: "none" }}
+            style={{ color: THEME.accent, textDecoration: "none", fontWeight: 600 }}
           >
-            Google AI Studio
-          </a>{" "}
-          — free tier supports up to 15 requests/minute. The key is sent directly from your
-          browser to Google when you use the AI Advisor, so it's visible in your browser's network
-          traffic — this is expected for a bring-your-own-key setup.
+            Google AI Studio <ExternalLink size={11} style={{ verticalAlign: -1 }} />
+          </a>
+          . Keys remain strictly stored in your private browser database.
         </div>
 
         {geminiApiKey ? (
           <div
             style={{
-              marginTop: 16,
-              padding: "10px 14px",
-              borderRadius: 8,
-              background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
+              marginTop: 18,
+              padding: "12px 16px",
+              borderRadius: "var(--t-radius, 8px)",
+              background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
               display: "flex",
               alignItems: "center",
               gap: 8,
             }}
           >
-            <Check size={14} color={THEME.sage} />
-            <span style={{ fontSize: 12, color: THEME.sage, fontWeight: 600 }}>
-              API key configured — AI Financial Advisor is active
+            <CheckCircle2 size={16} color={THEME.sage} />
+            <span style={{ fontSize: 12.5, color: THEME.sage, fontWeight: 700 }}>
+              Gemini API Connected — AI Financial Advisor is active and ready for consultations.
             </span>
           </div>
         ) : (
           <div
             style={{
-              marginTop: 16,
-              padding: "10px 14px",
-              borderRadius: 8,
-              background: `color-mix(in srgb, ${THEME.gold} 4%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
+              marginTop: 18,
+              padding: "12px 16px",
+              borderRadius: "var(--t-radius, 8px)",
+              background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)`,
               display: "flex",
               alignItems: "center",
               gap: 8,
             }}
           >
-            <AlertTriangle size={14} color={THEME.gold} />
-            <span style={{ fontSize: 12, color: THEME.gold, fontWeight: 600 }}>
-              No key set — enter your Gemini API key above to enable AI analysis
+            <AlertTriangle size={16} color={THEME.gold} />
+            <span style={{ fontSize: 12.5, color: THEME.gold, fontWeight: 600 }}>
+              No API Key Set — Paste your Google Gemini API key above to unlock AI Advisor insights.
             </span>
           </div>
         )}
@@ -3776,19 +4411,7 @@ function AIAssistantSection({ geminiApiKey, updateSettings }: any) {
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
-const TOP_TABS = [
-  { id: "appearance", label: "Appearance", icon: Palette },
-  { id: "profile", label: "Profile", icon: User },
-  { id: "security", label: "Security & Privacy", icon: Shield },
-  { id: "family", label: "Family Profiles", icon: Users },
-  { id: "masterdata", label: "Master Data", icon: Tags },
-  { id: "ai", label: "AI Advisor", icon: Bot },
-  { id: "email", label: "Email Reports", icon: Mail },
-  { id: "documents", label: "Documents", icon: Database },
-  { id: "data", label: "Data & Account", icon: HardDrive },
-];
-
+// ─── Main Settings Tab ────────────────────────────────────────────────────────
 export function SettingsTab({
   state,
   addItem,
@@ -3826,89 +4449,113 @@ export function SettingsTab({
 }: any) {
   const [tab, setTab] = useState("appearance");
 
+  const activePreset = THEME_PRESETS.find(
+    (p) => p.darkMode === darkMode && p.accentKey === (accentKey || "blue")
+  );
+
+  const fontLabels: Record<string, string> = {
+    inter: "Inter",
+    outfit: "Outfit",
+    roboto: "Roboto",
+    poppins: "Poppins",
+    "dm-sans": "DM Sans",
+    nunito: "Nunito",
+    "space-grotesk": "Space Grotesk",
+    lato: "Lato",
+    "sf-pro": "SF Pro",
+  };
+
+  const regime = state?.profile?.regime || "new";
+
+  const tiles = [
+    {
+      label: "Active Theme",
+      value: activePreset?.label || "Custom",
+      sub: darkMode ? "Dark mode active" : "Light mode active",
+      color: THEME.accent,
+      Icon: Palette,
+      onClick: () => setTab("appearance"),
+    },
+    {
+      label: "Interface Font & Density",
+      value: fontLabels[fontKey || "inter"] || "Inter",
+      sub:
+        density === "compact"
+          ? "Compact density"
+          : density === "comfortable"
+            ? "Comfortable density"
+            : "Normal density",
+      color: THEME.muted,
+      Icon: ArrowUpAZ,
+      onClick: () => setTab("appearance"),
+    },
+    {
+      label: "Active Fiscal Year",
+      value: `FY ${state?.profile?.fy || "Current"}`,
+      sub: "Tax & reports baseline",
+      color: THEME.gold,
+      Icon: Calendar,
+      onClick: () => setTab("profile"),
+    },
+    {
+      label: "Tax Regime",
+      value: regime === "new" ? "New Regime" : "Old Regime",
+      sub: regime === "new" ? "Standard ₹75K rebate" : "Exemptions & 80C/80D",
+      color: THEME.sage,
+      Icon: Tags,
+      onClick: () => setTab("profile"),
+    },
+  ];
+
   return (
-    <div className="animate-fade-in-up">
-      <SectionTitle sub="Customize your experience, manage dropdown values, and control your data">
-        Settings
-      </SectionTitle>
+    <div className="animate-fade-in-up" style={{ display: "grid", gap: 20 }}>
+      {/* ── Executive Header ── */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          flexWrap: "wrap",
+          gap: 16,
+        }}
+      >
+        <div>
+          <SectionTitle sub="Manage visual design, financial fiscal profile, account security, and master dropdowns">
+            Settings &amp; Preferences
+          </SectionTitle>
+        </div>
+      </div>
 
-      {(() => {
-        const activePreset = THEME_PRESETS.find(
-          (p) => p.darkMode === darkMode && p.accentKey === (accentKey || "blue")
-        );
-        const fontLabels: Record<string, string> = {
-          inter: "Inter",
-          outfit: "Outfit",
-          roboto: "Roboto",
-          poppins: "Poppins",
-          "dm-sans": "DM Sans",
-          nunito: "Nunito",
-          "space-grotesk": "Space Grotesk",
-          lato: "Lato",
-          "sf-pro": "SF Pro",
-        };
-        const regime = state?.profile?.regime || "new";
-        const tiles = [
-          {
-            label: "Active Theme",
-            value: activePreset?.label || "Custom",
-            sub: darkMode ? "Dark mode" : "Light mode",
-            color: THEME.accent,
-            Icon: Palette,
-          },
-          {
-            label: "Interface Font",
-            value: fontLabels[fontKey || "inter"] || "Inter",
-            sub:
-              density === "compact"
-                ? "Compact density"
-                : density === "comfortable"
-                  ? "Comfortable density"
-                  : "Normal density",
-            color: THEME.muted,
-            Icon: ArrowUpAZ,
-          },
-          {
-            label: "Financial Year",
-            value: `FY ${state?.profile?.fy || "—"}`,
-            sub: "Active fiscal year for reports",
-            color: THEME.gold,
-            Icon: Calendar,
-          },
-          {
-            label: "Tax Regime",
-            value: regime === "new" ? "New Regime" : "Old Regime",
-            sub: regime === "new" ? "Default from FY 2024-25" : "Deductions & exemptions",
-            color: THEME.sage,
-            Icon: Tags,
-          },
-        ];
-        return (
+      {/* ── Executive KPI Quick Cards ── */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+          gap: 14,
+        }}
+      >
+        {tiles.map(({ label, value, sub, color, Icon, onClick }) => (
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: 14,
-              marginBottom: 28,
-            }}
+            key={label}
+            onClick={onClick}
+            style={{ cursor: "pointer", transition: "transform 0.15s ease" }}
           >
-            {tiles.map(({ label, value, sub, color, Icon }) => (
-              <StatCard
-                key={label}
-                label={label}
-                value={value}
-                sub={sub}
-                icon={<Icon />}
-                color={color}
-                maskInPrivacyMode={false}
-              />
-            ))}
+            <StatCard
+              label={label}
+              value={value}
+              sub={sub}
+              icon={<Icon />}
+              color={color}
+              maskInPrivacyMode={false}
+            />
           </div>
-        );
-      })()}
+        ))}
+      </div>
 
+      {/* ── Segmented Navigation ── */}
       <PillNav tabs={TOP_TABS} active={tab} onChange={setTab} />
 
+      {/* ── Sub-Tabs Content ── */}
       {tab === "appearance" && (
         <div key="appearance" className="tab-content-enter">
           <AppearanceSection
@@ -3981,11 +4628,6 @@ export function SettingsTab({
 
       {tab === "documents" && (
         <div key="documents" className="tab-content-enter">
-          {/* This used to embed the full DocumentVaultTab here as a second copy of the same
-              page — one nav entry showed all profiles' documents, the other showed only the
-              active profile's, so the "same" screen looked different depending on where you
-              opened it from. Document Vault (System) is the single source of truth now; this
-              is just a shortcut to it. */}
           <Card style={{ padding: "48px 24px", textAlign: "center" }}>
             <div
               style={{
@@ -3996,30 +4638,30 @@ export function SettingsTab({
                 color: "var(--t-muted)",
               }}
             >
-              <FolderOpen size={40} strokeWidth={1.5} />
+              <FolderOpen size={44} strokeWidth={1.5} color={THEME.accent} />
             </div>
             <div
               style={{
-                fontSize: 18,
+                fontSize: 19,
                 fontWeight: 800,
                 color: THEME.ink,
                 marginBottom: 8,
                 letterSpacing: "-0.02em",
               }}
             >
-              Document Vault
+              Centralized Document Vault
             </div>
             <div
               style={{
-                fontSize: 13,
+                fontSize: 13.5,
                 color: THEME.muted,
-                maxWidth: 380,
+                maxWidth: 420,
                 margin: "0 auto 24px",
                 lineHeight: 1.6,
               }}
             >
-              Wills, policies, IDs, and every other document now live in one place under System →
-              Document Vault, so what you see there always matches the rest of the app.
+              Wills, insurance policy PDFs, identity proofs, and property deeds are stored securely
+              under System &rarr; Document Vault.
             </div>
             <Button
               variant="accent"
