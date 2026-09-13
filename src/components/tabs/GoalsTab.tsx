@@ -21,7 +21,6 @@ import {
   Sparkles,
   TrendingUp,
   Sliders,
-  ChevronRight,
   Clock,
   ArrowUpDown,
   Zap,
@@ -33,18 +32,27 @@ import {
   Heart,
   Briefcase,
   Palmtree,
+  Calculator,
+  Layers,
+  ChevronDown,
+  ChevronUp,
+  X,
+  User,
+  Compass,
+  Award,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { Money } from "../ui/Money";
 import { ConfirmDialog } from "../ui/Feedback";
-import { GoalModal } from "../modals/GoalModal";
+import { GoalModal, Goal } from "../modals/GoalModal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
+import { Modal } from "../ui/Modal";
 
 const EmptyHint = ({ text }: { text: string }) => (
   <div style={{ padding: "36px 20px", textAlign: "center", color: THEME.muted }}>
@@ -57,8 +65,8 @@ const GoalEmptyState = ({ onAdd }: any) => (
     icon={Flag}
     gradient={`linear-gradient(135deg, ${THEME.accent}, ${THEME.sage})`}
     title="No Financial Goals Set Yet"
-    description="Set targets for what money is for — retirement freedom, home down payment, higher education, dream vehicle, or travel reserves."
-    pills={["Retirement Corpus", "Home Down Payment", "Education Fund", "Emergency Reserve", "Dream Vacation"]}
+    description="Set targets for what your money is for — retirement freedom, home down payment, higher education, dream vehicle, or emergency buffer."
+    pills={["Retirement Corpus", "Home Down Payment", "Education Fund", "Emergency Buffer", "Dream Vacation"]}
     buttonLabel="Set Your First Goal"
     onAdd={onAdd}
   />
@@ -71,7 +79,7 @@ const PRIORITY_COLOR: Record<string, string> = {
   Low: THEME.sage,
 };
 
-const getCategoryIcon = (category: string, size = 14) => {
+const getCategoryIcon = (category: string, size = 15) => {
   const cat = (category || "").toLowerCase();
   if (cat.includes("retire")) return <Palmtree size={size} color={THEME.accent} />;
   if (cat.includes("home") || cat.includes("house") || cat.includes("property")) return <Home size={size} color={THEME.accent} />;
@@ -84,24 +92,57 @@ const getCategoryIcon = (category: string, size = 14) => {
   return <Target size={size} color={THEME.accent} />;
 };
 
+const getAssetAllocationRecommendation = (monthsLeft: number) => {
+  if (monthsLeft <= 0) return { equity: 0, debt: 100, gold: 0, label: "Cash / Liquid Funds" };
+  if (monthsLeft <= 36) {
+    return {
+      equity: 20,
+      debt: 70,
+      gold: 10,
+      label: "Capital Preservation (Arbitrage / Short-Duration Debt & FDs)",
+    };
+  }
+  if (monthsLeft <= 84) {
+    return {
+      equity: 60,
+      debt: 30,
+      gold: 10,
+      label: "Balanced Growth (Flexicap / Multi-Asset / Hybrid MFs)",
+    };
+  }
+  return {
+    equity: 75,
+    debt: 15,
+    gold: 10,
+    label: "Aggressive Wealth Compounding (Nifty 50 / Midcap / Smallcap MFs)",
+  };
+};
+
 export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, showToast }: any) {
   const [show, setShow] = useState(false);
   const [editGoal, setEditGoal] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "roadmap" | "table">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "roadmap" | "matrix" | "table">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [sortBy, setSortBy] = useState<"priority" | "deadline" | "progress" | "amount">("priority");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "completed" | "on_track" | "behind" | "overdue">("all");
   const [sipExpanded, setSipExpanded] = useState<Set<string>>(new Set());
-  const [sipInputs, setSipInputs] = useState<Record<string, string>>({});
   const [showInflation, setShowInflation] = useState(false);
   const [inflationRate, setInflationRate] = useState("6");
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  const [showSimulator, setShowSimulator] = useState(false);
+  const [customSipRate, setCustomSipRate] = useState<Record<string, number>>({});
+
+  // Quick Top-up State
+  const [contribOpen, setContribOpen] = useState<string | null>(null);
+  const [contribValue, setContribValue] = useState("");
 
   const { run: runAddGoal, loading: addingGoal } = useAsyncAction(
     async (v: any) => {
       await addItem("goals", v);
+      showToast?.("Goal created successfully!", "success");
     },
     {
       onSuccess: () => setShow(false),
@@ -113,6 +154,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
   const { run: runUpdateGoal, loading: updatingGoal } = useAsyncAction(
     async (id: string, v: any) => {
       await updateItem("goals", id, v);
+      showToast?.("Goal updated successfully!", "success");
     },
     {
       onSuccess: () => setEditGoal(null),
@@ -121,12 +163,10 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
     }
   );
 
-  const [contribOpen, setContribOpen] = useState<string | null>(null);
-  const [contribValue, setContribValue] = useState("");
-
   const { run: runAddContribution } = useAsyncAction(
-    async (goalId: string, currentAmount: number, amt: number) => {
+    async (goalId: string, currentAmount: number, amt: number, goalName: string) => {
       await updateItem("goals", goalId, { currentAmount: Number(currentAmount || 0) + amt });
+      showToast?.(`Added ₹${fmtINR(amt)} to "${goalName}"!`, "success");
     },
     {
       onSuccess: () => {
@@ -138,10 +178,10 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
     }
   );
 
-  const addContribution = (goalId: string, currentAmount: number, customAmt?: number) => {
+  const addContribution = (g: any, customAmt?: number) => {
     const amt = customAmt !== undefined ? customAmt : Number(contribValue);
     if (amt > 0) {
-      runAddContribution(goalId, currentAmount, amt);
+      runAddContribution(g.id, g.currentAmount, amt, g.name);
     } else {
       setContribOpen(null);
       setContribValue("");
@@ -151,6 +191,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
   const { run: deleteGoal } = useAsyncAction(
     async (id: string) => {
       await removeItem("goals", id);
+      showToast?.("Goal deleted", "info");
     },
     {
       onError: (e: any) =>
@@ -159,52 +200,130 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
   );
 
   const allGoals: any[] = state.goals || [];
-  const totalTarget = allGoals.reduce((s: number, g: any) => s + Number(g.targetAmount || 0), 0);
-  const totalSaved = allGoals.reduce((s: number, g: any) => s + Number(g.currentAmount || 0), 0);
-  const totalRemaining = Math.max(0, totalTarget - totalSaved);
+  const inflRateNum = (Number(inflationRate) || 6) / 100;
 
-  const totalMonthlyRequired = allGoals.reduce((s: number, g: any) => {
-    const nominalTarget = Number(g.targetAmount) || 0;
-    const inflRate = (Number(inflationRate) || 6) / 100;
-    const yearsToTarget = g.targetDate ? Math.max(0, monthsBetween(today(), g.targetDate) / 12) : 0;
-    const inflatedTarget =
-      showInflation && yearsToTarget > 0
-        ? nominalTarget * Math.pow(1 + inflRate, yearsToTarget)
-        : nominalTarget;
-    const effectiveTarget = showInflation ? inflatedTarget : nominalTarget;
-    const isComplete = effectiveTarget > 0 && Number(g.currentAmount) >= effectiveTarget;
-    if (isComplete || !g.targetDate) return s;
-    const rawML = monthsBetween(today(), g.targetDate);
-    const ml = Math.max(0, rawML);
-    const remaining = Math.max(0, effectiveTarget - Number(g.currentAmount));
-    const effM = ml > 0 ? ml : rawML === 0 ? 1 : 0;
-    return s + (effM > 0 ? remaining / effM : 0);
-  }, 0);
+  // Portfolio Totals & Calculations
+  const {
+    totalTarget,
+    totalInflatedTarget,
+    totalSaved,
+    totalRemaining,
+    totalMonthlyRequired,
+    completedCount,
+    onTrackCount,
+    behindCount,
+    overdueCount,
+    horizonBreakdown,
+  } = useMemo(() => {
+    let targetSum = 0;
+    let inflatedTargetSum = 0;
+    let savedSum = 0;
+    let monthlyReqSum = 0;
+    let completed = 0;
+    let onTrack = 0;
+    let behind = 0;
+    let overdue = 0;
+
+    const horizons = {
+      near: { count: 0, amount: 0 },
+      medium: { count: 0, amount: 0 },
+      long: { count: 0, amount: 0 },
+      done: { count: 0, amount: 0 },
+    };
+
+    allGoals.forEach((g: any) => {
+      const nominalTarget = Number(g.targetAmount || 0);
+      const current = Number(g.currentAmount || 0);
+      targetSum += nominalTarget;
+      savedSum += current;
+
+      const yearsToTarget = g.targetDate ? Math.max(0, monthsBetween(today(), g.targetDate) / 12) : 0;
+      const inflatedTarget =
+        showInflation && yearsToTarget > 0
+          ? nominalTarget * Math.pow(1 + inflRateNum, yearsToTarget)
+          : nominalTarget;
+      inflatedTargetSum += inflatedTarget;
+
+      const effectiveTarget = showInflation ? inflatedTarget : nominalTarget;
+      const isComplete = effectiveTarget > 0 && current >= effectiveTarget;
+      const progress = effectiveTarget > 0 ? (current / effectiveTarget) * 100 : 0;
+
+      if (isComplete) {
+        completed++;
+        horizons.done.count++;
+        horizons.done.amount += current;
+        return;
+      }
+
+      const rawML = g.targetDate ? monthsBetween(today(), g.targetDate) : null;
+      if (rawML !== null && rawML < 0) {
+        overdue++;
+      }
+
+      const ml = rawML !== null ? Math.max(0, rawML) : 0;
+      const remaining = Math.max(0, effectiveTarget - current);
+      const effM = ml > 0 ? ml : rawML === 0 ? 1 : 0;
+
+      if (effM > 0) {
+        monthlyReqSum += remaining / effM;
+      }
+
+      // Elapsed & expected progress
+      const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
+      const totalMonths = elapsed + ml;
+      const expectedPct = totalMonths > 0 ? (elapsed / totalMonths) * 100 : 0;
+      const isBehind = g.targetDate && progress < expectedPct - 10;
+
+      if (isBehind) {
+        behind++;
+      } else {
+        onTrack++;
+      }
+
+      // Horizon categorization
+      if (ml <= 12) {
+        horizons.near.count++;
+        horizons.near.amount += effectiveTarget;
+      } else if (ml <= 36) {
+        horizons.medium.count++;
+        horizons.medium.amount += effectiveTarget;
+      } else {
+        horizons.long.count++;
+        horizons.long.amount += effectiveTarget;
+      }
+    });
+
+    const rem = Math.max(0, (showInflation ? inflatedTargetSum : targetSum) - savedSum);
+
+    return {
+      totalTarget: targetSum,
+      totalInflatedTarget: inflatedTargetSum,
+      totalSaved: savedSum,
+      totalRemaining: rem,
+      totalMonthlyRequired: monthlyReqSum,
+      completedCount: completed,
+      onTrackCount: onTrack,
+      behindCount: behind,
+      overdueCount: overdue,
+      horizonBreakdown: horizons,
+    };
+  }, [allGoals, showInflation, inflRateNum]);
 
   const monthlySavings = metrics
     ? Math.max(0, (metrics.monthIncome || 0) - (metrics.monthExpense || 0))
     : 0;
+
   const overallPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
   const animatedOverallPct = useAnimatedNumber(overallPct);
 
-  const completedCount = allGoals.filter(
-    (g: any) => Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount)
-  ).length;
-
-  const onTrackCount = allGoals.filter((g: any) => {
-    const progress = Number(g.targetAmount)
-      ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
-      : 0;
-    if (progress >= 100) return false;
-    if (!g.targetDate) return true;
-    const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
-    const rem = Math.max(0, monthsBetween(today(), g.targetDate));
-    const total = elapsed + rem;
-    const expectedPct = total > 0 ? (elapsed / total) * 100 : 0;
-    return progress >= expectedPct - 10;
-  }).length;
-
-  const behindCount = Math.max(0, allGoals.length - completedCount - onTrackCount);
+  // Portfolio Velocity Score (0 to 100)
+  const portfolioVelocityScore = useMemo(() => {
+    if (allGoals.length === 0) return 100;
+    const activeGoals = allGoals.length - completedCount;
+    if (activeGoals === 0) return 100;
+    const score = Math.round((onTrackCount / activeGoals) * 100);
+    return Math.min(100, Math.max(0, score));
+  }, [allGoals, completedCount, onTrackCount]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -218,15 +337,35 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
     return allGoals.filter((g) => {
       if (filterPriority !== "all" && (g.priority || "Medium") !== filterPriority) return false;
       if (filterCategory !== "all" && g.category !== filterCategory) return false;
+
+      const nominalTarget = Number(g.targetAmount || 0);
+      const current = Number(g.currentAmount || 0);
+      const isComplete = nominalTarget > 0 && current >= nominalTarget;
+      const rawML = g.targetDate ? monthsBetween(today(), g.targetDate) : null;
+      const isOverdue = rawML !== null && rawML < 0 && !isComplete;
+
+      const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
+      const ml = rawML !== null ? Math.max(0, rawML) : 0;
+      const totalMonths = elapsed + ml;
+      const progress = nominalTarget > 0 ? (current / nominalTarget) * 100 : 0;
+      const expectedPct = totalMonths > 0 ? (elapsed / totalMonths) * 100 : 0;
+      const isBehind = !isComplete && g.targetDate && progress < expectedPct - 10;
+
+      if (filterStatus === "completed" && !isComplete) return false;
+      if (filterStatus === "overdue" && !isOverdue) return false;
+      if (filterStatus === "behind" && !isBehind) return false;
+      if (filterStatus === "on_track" && (isComplete || isBehind || isOverdue)) return false;
+
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchName = (g.name || "").toLowerCase().includes(q);
         const matchCat = (g.category || "").toLowerCase().includes(q);
-        if (!matchName && !matchCat) return false;
+        const matchOwner = (g.owner || "").toLowerCase().includes(q);
+        if (!matchName && !matchCat && !matchOwner) return false;
       }
       return true;
     });
-  }, [allGoals, filterPriority, filterCategory, searchQuery]);
+  }, [allGoals, filterPriority, filterCategory, filterStatus, searchQuery]);
 
   const sortedGoals = useMemo(() => {
     return [...filteredGoals].sort((a, b) => {
@@ -259,15 +398,26 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
       ? new Date(d + "T00:00:00").toLocaleDateString("en-IN", { month: "short", year: "2-digit" })
       : "";
 
+  const cashflowSurplusDelta = monthlySavings - totalMonthlyRequired;
+
   return (
     <div className="tab-content-enter">
       <SectionTitle
-        sub="Plan and track life milestones — retirement freedom, real estate, education, and wealth"
+        sub="Master your financial destiny — track wealth milestones, retirement freedom, and strategic compounding"
         rightElement={
           allGoals.length > 0 && (
-            <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShow(true)}>
-              Add Goal
-            </Button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <Button
+                variant="secondary"
+                icon={<Sparkles size={14} color={THEME.accent} />}
+                onClick={() => setShowSimulator(true)}
+              >
+                What-If Simulator
+              </Button>
+              <Button variant="accent" icon={<Plus size={14} />} onClick={() => setShow(true)}>
+                Add Goal
+              </Button>
+            </div>
           )
         }
       >
@@ -276,14 +426,14 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
 
       {allGoals.length > 0 && (
         <>
-          {/* Hero Portfolio Cockpit */}
+          {/* Executive Goal Mastery Cockpit */}
           <Card
             variant="base"
             style={{
               marginBottom: 20,
-              padding: "clamp(24px, 4vw, 36px)",
+              padding: "clamp(20px, 3.5vw, 32px)",
               background:
-                "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 94%, var(--t-accent) 6%), var(--surface-0))",
+                "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 92%, var(--t-accent) 8%), var(--surface-0))",
               border: `1px solid ${THEME.line}`,
               borderTop: `4px solid ${THEME.accent}`,
               borderRadius: "var(--radius-xl)",
@@ -291,186 +441,345 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
               overflow: "hidden",
             }}
           >
+            {/* Ambient Background Glow */}
             <div
               style={{
                 position: "absolute",
-                top: -40,
-                right: -40,
-                width: 180,
-                height: 180,
+                top: -60,
+                right: -60,
+                width: 240,
+                height: 240,
                 borderRadius: "50%",
-                background: `radial-gradient(circle, color-mix(in srgb, ${THEME.accent} 15%, transparent) 0%, transparent 70%)`,
+                background: `radial-gradient(circle, color-mix(in srgb, ${THEME.accent} 16%, transparent) 0%, transparent 70%)`,
                 pointerEvents: "none",
               }}
             />
 
             <div
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                flexWrap: "wrap",
-                gap: 20,
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: 24,
+                alignItems: "center",
               }}
             >
-              <div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    fontSize: 11,
-                    fontWeight: 800,
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    color: THEME.muted,
-                    marginBottom: 6,
-                  }}
-                >
-                  <Activity size={14} color={THEME.accent} /> Overall Portfolio Completion
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "clamp(36px, 5vw, 56px)",
-                    fontWeight: 900,
-                    color: THEME.ink,
-                    letterSpacing: "-0.03em",
-                    lineHeight: 1.05,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {animatedOverallPct.toFixed(1)}%
-                </div>
-                <div style={{ fontSize: 13, color: THEME.muted, marginTop: 6, fontWeight: 600 }}>
-                  <Money value={totalSaved} variant="full" /> saved of{" "}
-                  <Money value={totalTarget} variant="full" /> target across {allGoals.length} goal
-                  {allGoals.length !== 1 ? "s" : ""}
+              {/* Left Column: Radial Completion Ring & Total Corpus */}
+              <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
+                {/* Large Radial SVG Gauge */}
+                {(() => {
+                  const size = 110;
+                  const strokeWidth = 9;
+                  const radius = (size - strokeWidth) / 2;
+                  const circumference = 2 * Math.PI * radius;
+                  const strokeDashoffset =
+                    circumference - (Math.min(overallPct, 100) / 100) * circumference;
+                  return (
+                    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+                      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+                        <circle
+                          cx={size / 2}
+                          cy={size / 2}
+                          r={radius}
+                          stroke="var(--t-line)"
+                          strokeWidth={strokeWidth}
+                          fill="transparent"
+                        />
+                        <circle
+                          cx={size / 2}
+                          cy={size / 2}
+                          r={radius}
+                          stroke={THEME.accent}
+                          strokeWidth={strokeWidth}
+                          fill="transparent"
+                          strokeDasharray={circumference}
+                          strokeDashoffset={strokeDashoffset}
+                          strokeLinecap="round"
+                          style={{ transition: "stroke-dashoffset 1s ease" }}
+                        />
+                      </svg>
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 900,
+                            color: THEME.ink,
+                            fontVariantNumeric: "tabular-nums",
+                            lineHeight: 1,
+                          }}
+                        >
+                          {animatedOverallPct.toFixed(0)}%
+                        </span>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: THEME.muted, textTransform: "uppercase", marginTop: 2 }}>
+                          Funded
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: THEME.muted,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <Activity size={14} color={THEME.accent} /> Goal Mastery Velocity
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "clamp(24px, 3.5vw, 36px)",
+                      fontWeight: 900,
+                      color: THEME.ink,
+                      letterSpacing: "-0.02em",
+                      lineHeight: 1.1,
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: 8,
+                    }}
+                  >
+                    <span>{fmtINRFull(totalSaved)}</span>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: THEME.muted }}>
+                      / {fmtINRFull(showInflation ? totalInflatedTarget : totalTarget)}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
+                    {allGoals.length} Active Financial Goal{allGoals.length !== 1 ? "s" : ""} ·{" "}
+                    <strong style={{ color: totalRemaining > 0 ? THEME.gold : THEME.sage }}>
+                      {fmtINRFull(totalRemaining)} Remaining Gap
+                    </strong>
+                  </div>
                 </div>
               </div>
 
-              {/* Quick Status Chips */}
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "6px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
-                    color: THEME.sage,
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  <CheckCircle2 size={13} /> {completedCount} Done
-                </span>
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "6px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
-                    color: THEME.accent,
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  <TrendingUp size={13} /> {onTrackCount} On Track
-                </span>
-                {behindCount > 0 && (
+              {/* Right Column: Portfolio Health & Surplus Run-Rate Assessment */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  justifyContent: "center",
+                  background: "var(--surface-1)",
+                  padding: "16px 20px",
+                  borderRadius: "var(--radius-lg)",
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.muted }}>
+                    Monthly Goal Savings Run-Rate
+                  </div>
                   <span
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "6px 12px",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      padding: "2px 8px",
                       borderRadius: "var(--radius-sm)",
-                      background: `color-mix(in srgb, ${THEME.rust} 12%, transparent)`,
-                      border: `1px solid color-mix(in srgb, ${THEME.rust} 25%, transparent)`,
-                      color: THEME.rust,
-                      fontSize: 12,
-                      fontWeight: 700,
+                      background:
+                        cashflowSurplusDelta >= 0
+                          ? `color-mix(in srgb, ${THEME.sage} 15%, transparent)`
+                          : `color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
+                      color: cashflowSurplusDelta >= 0 ? THEME.sage : THEME.rust,
                     }}
                   >
-                    <AlertTriangle size={13} /> {behindCount} Behind
+                    {cashflowSurplusDelta >= 0 ? "Surplus Funded" : "Savings Deficit"}
                   </span>
-                )}
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
+                      {fmtINR(totalMonthlyRequired)}
+                      <span style={{ fontSize: 12, fontWeight: 600, color: THEME.muted }}>/mo required</span>
+                    </div>
+                  </div>
+                  {monthlySavings > 0 && (
+                    <div style={{ textAlign: "right", fontSize: 12, color: THEME.muted }}>
+                      Net Surplus: <strong style={{ color: THEME.ink }}>{fmtINR(monthlySavings)}/mo</strong>
+                    </div>
+                  )}
+                </div>
+
+                {/* Horizon Quick Pills */}
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", borderTop: `1px solid ${THEME.line}`, paddingTop: 10 }}>
+                  <span style={{ fontSize: 11, color: THEME.muted }}>
+                    Near-Term (&lt;1y): <strong style={{ color: THEME.ink }}>{horizonBreakdown.near.count}</strong>
+                  </span>
+                  <span style={{ color: THEME.muted }}>·</span>
+                  <span style={{ fontSize: 11, color: THEME.muted }}>
+                    Mid-Term (1-3y): <strong style={{ color: THEME.ink }}>{horizonBreakdown.medium.count}</strong>
+                  </span>
+                  <span style={{ color: THEME.muted }}>·</span>
+                  <span style={{ fontSize: 11, color: THEME.muted }}>
+                    Long-Term (3y+): <strong style={{ color: THEME.ink }}>{horizonBreakdown.long.count}</strong>
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Overall Progress Gradient Track */}
-            <div style={{ marginTop: 20 }}>
-              <div
+            {/* Quick Status Filter Bar */}
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                alignItems: "center",
+                marginTop: 20,
+                borderTop: `1px solid ${THEME.line}`,
+                paddingTop: 16,
+              }}
+            >
+              <button
+                onClick={() => setFilterStatus("all")}
+                className={`demat-portfolio-pill ${filterStatus === "all" ? "active" : ""}`}
+                style={{ fontSize: 11, padding: "5px 12px", display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <span>All Goals</span>
+                <span style={{ opacity: 0.7, fontWeight: 800 }}>({allGoals.length})</span>
+              </button>
+
+              <button
+                onClick={() => setFilterStatus("on_track")}
+                className={`demat-portfolio-pill ${filterStatus === "on_track" ? "active" : ""}`}
                 style={{
-                  height: 10,
-                  borderRadius: "var(--radius-full)",
-                  background: "var(--t-line)",
-                  overflow: "hidden",
-                  position: "relative",
+                  fontSize: 11,
+                  padding: "5px 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  ...(filterStatus === "on_track"
+                    ? { background: THEME.accent, borderColor: THEME.accent, color: "#fff" }
+                    : {}),
                 }}
               >
-                <div
+                <TrendingUp size={12} />
+                <span>On Track</span>
+                <span style={{ opacity: 0.8, fontWeight: 800 }}>({onTrackCount})</span>
+              </button>
+
+              {behindCount > 0 && (
+                <button
+                  onClick={() => setFilterStatus("behind")}
+                  className={`demat-portfolio-pill ${filterStatus === "behind" ? "active" : ""}`}
                   style={{
-                    height: "100%",
-                    width: `${Math.min(overallPct, 100)}%`,
-                    background: `linear-gradient(90deg, ${THEME.accent}, ${THEME.sage})`,
-                    borderRadius: "var(--radius-full)",
-                    transition: "width 0.8s var(--ease-premium)",
+                    fontSize: 11,
+                    padding: "5px 12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    ...(filterStatus === "behind"
+                      ? { background: THEME.rust, borderColor: THEME.rust, color: "#fff" }
+                      : {}),
                   }}
-                />
-              </div>
+                >
+                  <AlertTriangle size={12} />
+                  <span>Behind Schedule</span>
+                  <span style={{ opacity: 0.8, fontWeight: 800 }}>({behindCount})</span>
+                </button>
+              )}
+
+              {overdueCount > 0 && (
+                <button
+                  onClick={() => setFilterStatus("overdue")}
+                  className={`demat-portfolio-pill ${filterStatus === "overdue" ? "active" : ""}`}
+                  style={{
+                    fontSize: 11,
+                    padding: "5px 12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    ...(filterStatus === "overdue"
+                      ? { background: THEME.rust, borderColor: THEME.rust, color: "#fff" }
+                      : {}),
+                  }}
+                >
+                  <Clock size={12} />
+                  <span>Overdue</span>
+                  <span style={{ opacity: 0.8, fontWeight: 800 }}>({overdueCount})</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setFilterStatus("completed")}
+                className={`demat-portfolio-pill ${filterStatus === "completed" ? "active" : ""}`}
+                style={{
+                  fontSize: 11,
+                  padding: "5px 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  ...(filterStatus === "completed"
+                    ? { background: THEME.sage, borderColor: THEME.sage, color: "#fff" }
+                    : {}),
+                }}
+              >
+                <CheckCircle2 size={12} />
+                <span>Completed</span>
+                <span style={{ opacity: 0.8, fontWeight: 800 }}>({completedCount})</span>
+              </button>
             </div>
           </Card>
 
-          {/* Secondary Stats Grid */}
+          {/* Secondary Summary Metric Cards */}
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
               gap: 14,
-              marginBottom: 24,
+              marginBottom: 20,
             }}
           >
             <StatCard
               label="Total Target"
-              value={fmtINRFull(totalTarget)}
-              numericValue={totalTarget}
+              value={fmtINRFull(showInflation ? totalInflatedTarget : totalTarget)}
+              numericValue={showInflation ? totalInflatedTarget : totalTarget}
               formatValue={fmtINRFull}
+              sub={showInflation ? `Adjusted for ${inflationRate}% annual inflation` : "Nominal portfolio targets"}
               icon={<Target />}
               color={THEME.accent}
             />
             <StatCard
-              label="Total Saved"
+              label="Accumulated Corpus"
               value={fmtINRFull(totalSaved)}
               numericValue={totalSaved}
               formatValue={fmtINRFull}
+              sub={`${overallPct.toFixed(1)}% of total portfolio goal`}
               icon={<PiggyBank />}
               color={THEME.sage}
             />
             <StatCard
-              label="Remaining Gap"
+              label="Funding Gap"
               value={fmtINRFull(totalRemaining)}
               numericValue={totalRemaining}
               formatValue={fmtINRFull}
+              sub={totalRemaining === 0 ? "100% Fully Funded!" : "Net capital to be accumulated"}
               icon={<TrendingDown />}
-              color={totalRemaining > 0 ? THEME.rust : THEME.sage}
+              color={totalRemaining > 0 ? THEME.gold : THEME.sage}
             />
             <StatCard
-              label="Monthly Savings Needed"
+              label="Required Monthly SIP"
               value={
                 totalMonthlyRequired > 0
-                  ? fmtINRFull(totalMonthlyRequired)
+                  ? fmtINR(totalMonthlyRequired) + "/mo"
                   : completedCount === allGoals.length
                     ? "All Goals Funded!"
-                    : behindCount > 0
-                      ? "Behind Schedule"
-                      : "On Track"
+                    : "On Schedule"
               }
               sub={
                 monthlySavings > 0
@@ -483,12 +792,12 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                   ? THEME.rust
                   : completedCount === allGoals.length
                     ? THEME.sage
-                    : THEME.gold
+                    : THEME.accent
               }
             />
           </div>
 
-          {/* View Controls & Filter Bar */}
+          {/* Controls Bar & View Mode Switcher */}
           <div
             style={{
               display: "flex",
@@ -503,7 +812,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
               borderRadius: "var(--radius-lg)",
             }}
           >
-            {/* View Mode Switcher */}
+            {/* View Mode Pills */}
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <button
                 onClick={() => setViewMode("grid")}
@@ -522,6 +831,14 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 <Milestone size={13} /> Roadmap
               </button>
               <button
+                onClick={() => setViewMode("matrix")}
+                className={`demat-portfolio-pill ${viewMode === "matrix" ? "active" : ""}`}
+                title="Priority Urgency Wealth Matrix"
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
+              >
+                <Compass size={13} /> Priority Matrix
+              </button>
+              <button
                 onClick={() => setViewMode("table")}
                 className={`demat-portfolio-pill ${viewMode === "table" ? "active" : ""}`}
                 title="High-Density Table View"
@@ -531,8 +848,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
               </button>
             </div>
 
-            {/* Search and Filters */}
+            {/* Search, Priority, and Inflation Adjuster */}
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              {/* Search Bar */}
               <div style={{ position: "relative", minWidth: 160 }}>
                 <Search
                   size={13}
@@ -546,7 +864,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 />
                 <input
                   type="text"
-                  placeholder="Search goals..."
+                  placeholder="Search goals or owners..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
@@ -573,7 +891,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                       fontSize: 11,
                       padding: "4px 10px",
                       ...(filterPriority === p && p !== "all"
-                        ? { background: PRIORITY_COLOR[p], borderColor: PRIORITY_COLOR[p] }
+                        ? { background: PRIORITY_COLOR[p], borderColor: PRIORITY_COLOR[p], color: "#fff" }
                         : {}),
                     }}
                   >
@@ -582,49 +900,51 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 ))}
               </div>
 
-              {/* Inflation Toggle */}
-              <button
-                onClick={() => setShowInflation((v) => !v)}
-                className={`demat-portfolio-pill ${showInflation ? "active" : ""}`}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  fontSize: 11,
-                  padding: "4px 10px",
-                }}
-                title="Calculate future inflation-adjusted required corpus"
-              >
-                <BarChart3 size={12} /> {showInflation ? `Inflation (${inflationRate}%)` : "Inflation"}
-              </button>
-              {showInflation && (
-                <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                  <input
-                    type="number"
-                    min="1"
-                    max="15"
-                    value={inflationRate}
-                    onChange={(e) => setInflationRate(e.target.value)}
-                    style={{
-                      width: 44,
-                      padding: "3px 4px",
-                      borderRadius: 4,
-                      border: `1px solid ${THEME.line}`,
-                      fontSize: 11,
-                      textAlign: "center",
-                      background: "var(--surface-1)",
-                      color: THEME.ink,
-                    }}
-                  />
-                  <span style={{ fontSize: 10, color: THEME.muted }}>%</span>
-                </div>
-              )}
+              {/* Inflation Toggle & Rate Input */}
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <button
+                  onClick={() => setShowInflation((v) => !v)}
+                  className={`demat-portfolio-pill ${showInflation ? "active" : ""}`}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontSize: 11,
+                    padding: "4px 10px",
+                  }}
+                  title="Calculate future inflation-adjusted required corpus"
+                >
+                  <BarChart3 size={12} /> {showInflation ? `Inflation (${inflationRate}%)` : "Inflation"}
+                </button>
+                {showInflation && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max="15"
+                      value={inflationRate}
+                      onChange={(e) => setInflationRate(e.target.value)}
+                      style={{
+                        width: 44,
+                        padding: "3px 4px",
+                        borderRadius: 4,
+                        border: `1px solid ${THEME.line}`,
+                        fontSize: 11,
+                        textAlign: "center",
+                        background: "var(--surface-1)",
+                        color: THEME.ink,
+                      }}
+                    />
+                    <span style={{ fontSize: 10, color: THEME.muted }}>%</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </>
       )}
 
-      {/* Goal Render Views */}
+      {/* Main Content Area */}
       {allGoals.length === 0 ? (
         <GoalEmptyState onAdd={() => setShow(true)} />
       ) : sortedGoals.length === 0 ? (
@@ -633,14 +953,33 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
         </Card>
       ) : viewMode === "roadmap" ? (
         /* ROADMAP TIMELINE VIEW */
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {(() => {
-            const groups: Record<string, any[]> = {
-              "Near-Term (< 1 Year)": [],
-              "Medium-Term (1 - 3 Years)": [],
-              "Long-Term (3+ Years)": [],
-              "Completed & Milestone Achieved": [],
-              "No Set Deadline": [],
+            const groups: Record<string, { desc: string; items: any[] }> = {
+              "Immediate & Near-Term (< 1 Year)": {
+                desc: "Critical short-term liquidity buffers, urgent debt retirement, and immediate milestones",
+                items: [],
+              },
+              "Medium-Term Horizon (1 – 3 Years)": {
+                desc: "Vehicle upgrades, home renovations, and planned major expenditures",
+                items: [],
+              },
+              "Long-Term Wealth Milestones (3 – 7 Years)": {
+                desc: "Home down payments, child higher education, and aggressive compounding funds",
+                items: [],
+              },
+              "Decade Horizon & Retirement (7+ Years)": {
+                desc: "Retirement freedom corpus, FIRE independence, and generational legacy wealth",
+                items: [],
+              },
+              "Completed & Milestones Celebrated": {
+                desc: "Goals 100% funded and ready for realization",
+                items: [],
+              },
+              "No Set Target Date": {
+                desc: "Open-ended wealth creation targets",
+                items: [],
+              },
             };
 
             sortedGoals.forEach((g) => {
@@ -648,70 +987,186 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
                 : 0;
               if (progress >= 100) {
-                groups["Completed & Milestone Achieved"].push(g);
+                groups["Completed & Milestones Celebrated"].items.push(g);
                 return;
               }
               if (!g.targetDate) {
-                groups["No Set Deadline"].push(g);
+                groups["No Set Target Date"].items.push(g);
                 return;
               }
               const ml = monthsBetween(today(), g.targetDate);
-              if (ml <= 12) groups["Near-Term (< 1 Year)"].push(g);
-              else if (ml <= 36) groups["Medium-Term (1 - 3 Years)"].push(g);
-              else groups["Long-Term (3+ Years)"].push(g);
+              if (ml <= 12) groups["Immediate & Near-Term (< 1 Year)"].items.push(g);
+              else if (ml <= 36) groups["Medium-Term Horizon (1 – 3 Years)"].items.push(g);
+              else if (ml <= 84) groups["Long-Term Wealth Milestones (3 – 7 Years)"].items.push(g);
+              else groups["Decade Horizon & Retirement (7+ Years)"].items.push(g);
             });
 
-            return Object.entries(groups).map(([title, items]) => {
-              if (items.length === 0) return null;
+            return Object.entries(groups).map(([title, grp]) => {
+              if (grp.items.length === 0) return null;
               return (
-                <div key={title} style={{ marginBottom: 12 }}>
+                <div key={title} style={{ marginBottom: 8 }}>
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                      color: THEME.muted,
-                      marginBottom: 12,
+                      justifyContent: "space-between",
+                      marginBottom: 10,
                       paddingLeft: 4,
                     }}
                   >
-                    <Clock size={14} color={THEME.accent} /> {title} ({items.length})
+                    <div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          fontSize: 13,
+                          fontWeight: 800,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.06em",
+                          color: THEME.ink,
+                        }}
+                      >
+                        <Clock size={15} color={THEME.accent} /> {title} ({grp.items.length})
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{grp.desc}</div>
+                    </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14 }}>
-                    {items.map((g) => renderGoalCard(g))}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
+                    {grp.items.map((g) => renderGoalCard(g))}
                   </div>
                 </div>
               );
             });
           })()}
         </div>
+      ) : viewMode === "matrix" ? (
+        /* PRIORITY & URGENCY WEALTH MATRIX (EISENHOWER QUADRANT) */
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 18 }}>
+          {(() => {
+            const quadrants = [
+              {
+                id: "q1",
+                title: "Urgent & High Priority (Non-Negotiable)",
+                desc: "Immediate emergency buffers & critical near-term obligations",
+                color: THEME.rust,
+                icon: AlertTriangle,
+                filter: (g: any) => {
+                  const ml = g.targetDate ? monthsBetween(today(), g.targetDate) : 999;
+                  return g.priority === "High" && ml <= 36;
+                },
+              },
+              {
+                id: "q2",
+                title: "Strategic Long-Term Wealth (High Compounding)",
+                desc: "Retirement freedom, education corpus, and generational wealth",
+                color: THEME.accent,
+                icon: TrendingUp,
+                filter: (g: any) => {
+                  const ml = g.targetDate ? monthsBetween(today(), g.targetDate) : 999;
+                  return g.priority === "High" && ml > 36;
+                },
+              },
+              {
+                id: "q3",
+                title: "Important Milestones (Medium Priority)",
+                desc: "Planned lifestyle upgrades, vehicles, and real estate renovation",
+                color: THEME.gold,
+                icon: Compass,
+                filter: (g: any) => g.priority === "Medium",
+              },
+              {
+                id: "q4",
+                title: "Discretionary & Lifestyle Aspirations",
+                desc: "Vacations, luxury experiences, and elective spending goals",
+                color: THEME.sage,
+                icon: Palmtree,
+                filter: (g: any) => (g.priority || "Low") === "Low",
+              },
+            ];
+
+            return quadrants.map((quad) => {
+              const items = sortedGoals.filter(quad.filter);
+              const QuadIcon = quad.icon;
+              return (
+                <Card
+                  key={quad.id}
+                  style={{
+                    padding: 20,
+                    borderTop: `4px solid ${quad.color}`,
+                    background: "var(--surface-0)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <QuadIcon size={16} color={quad.color} />
+                    <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>{quad.title}</div>
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: "2px 7px",
+                        borderRadius: "var(--radius-sm)",
+                        background: `color-mix(in srgb, ${quad.color} 12%, transparent)`,
+                        color: quad.color,
+                      }}
+                    >
+                      {items.length} Goal{items.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 14 }}>{quad.desc}</div>
+
+                  {items.length === 0 ? (
+                    <div style={{ padding: "24px 0", textAlign: "center", color: THEME.muted, fontSize: 12 }}>
+                      No goals in this quadrant
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {items.map((g) => renderGoalCard(g, true))}
+                    </div>
+                  )}
+                </Card>
+              );
+            });
+          })()}
+        </div>
       ) : viewMode === "table" ? (
-        /* COMPACT HIGH-DENSITY TABLE VIEW */
+        /* COMPACT HIGH-DENSITY SPREADSHEET TABLE VIEW */
         <Card style={{ overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ background: "var(--surface-1)", borderBottom: `1.5px solid ${THEME.line}` }}>
-                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Goal Name</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Goal Name & Owner</th>
                   <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Category</th>
                   <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Priority</th>
                   <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Target</th>
-                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Saved</th>
-                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", minWidth: 140 }}>Progress</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Accumulated</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Gap</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", minWidth: 130 }}>Progress</th>
                   <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Deadline</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Monthly SIP</th>
                   <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedGoals.map((g) => {
-                  const targetAmt = Number(g.targetAmount || 0);
+                  const nominalTarget = Number(g.targetAmount || 0);
+                  const yearsToTarget = g.targetDate ? Math.max(0, monthsBetween(today(), g.targetDate) / 12) : 0;
+                  const inflatedTarget =
+                    showInflation && yearsToTarget > 0
+                      ? nominalTarget * Math.pow(1 + inflRateNum, yearsToTarget)
+                      : nominalTarget;
+                  const effectiveTarget = showInflation ? inflatedTarget : nominalTarget;
                   const savedAmt = Number(g.currentAmount || 0);
-                  const progress = targetAmt > 0 ? (savedAmt / targetAmt) * 100 : 0;
+                  const progress = effectiveTarget > 0 ? (savedAmt / effectiveTarget) * 100 : 0;
                   const isDone = progress >= 100;
+                  const gap = Math.max(0, effectiveTarget - savedAmt);
+
+                  const rawML = g.targetDate ? monthsBetween(today(), g.targetDate) : 0;
+                  const ml = Math.max(0, rawML);
+                  const monthlyNeeded = ml > 0 ? gap / ml : 0;
+
                   return (
                     <tr
                       key={g.id}
@@ -723,12 +1178,19 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                     >
                       <td style={{ padding: "14px 16px", fontWeight: 700, color: THEME.ink }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {getCategoryIcon(g.category, 14)}
-                          <span>{g.name}</span>
+                          {getCategoryIcon(g.category, 15)}
+                          <div>
+                            <div>{g.name}</div>
+                            {g.owner && g.owner !== "self" && (
+                              <div style={{ fontSize: 10, color: THEME.muted, display: "flex", alignItems: "center", gap: 3 }}>
+                                <User size={10} /> {g.owner}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td style={{ padding: "14px 16px", color: THEME.muted, fontSize: 12 }}>
-                        {g.category || "General"}
+                        {g.category || "Wealth"}
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <span
@@ -746,10 +1208,13 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                         </span>
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 700 }}>
-                        <Money value={targetAmt} variant="full" />
+                        <Money value={effectiveTarget} variant="full" />
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800, color: THEME.sage }}>
                         <Money value={savedAmt} variant="full" />
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 700, color: gap > 0 ? THEME.gold : THEME.sage }}>
+                        <Money value={gap} variant="full" />
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -771,8 +1236,27 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                       <td style={{ padding: "14px 16px", textAlign: "center", fontSize: 12, color: THEME.muted }}>
                         {fmtGoalDate(g.targetDate) || "—"}
                       </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800, color: THEME.ink }}>
+                        {monthlyNeeded > 0 ? fmtINR(monthlyNeeded) : isDone ? "Done" : "—"}
+                      </td>
                       <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                        <div style={{ display: "inline-flex", gap: 6 }}>
+                        <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                          <button
+                            onClick={() => addContribution(g, 10000)}
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              border: `1px solid color-mix(in srgb, ${THEME.sage} 30%, transparent)`,
+                              background: `color-mix(in srgb, ${THEME.sage} 10%, transparent)`,
+                              color: THEME.sage,
+                              cursor: "pointer",
+                            }}
+                            title="Quick Top-up +₹10,000"
+                          >
+                            +10k
+                          </button>
                           <button
                             onClick={() => setEditGoal(g)}
                             className="icon-btn"
@@ -831,19 +1315,27 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
           onCancel={() => setConfirmDelete(null)}
         />
       )}
+
+      {/* Interactive What-If Goal Realization Simulator */}
+      {showSimulator && (
+        <GoalSimulatorModal
+          goals={allGoals}
+          metrics={metrics}
+          onClose={() => setShowSimulator(false)}
+        />
+      )}
     </div>
   );
 
   // Helper render for Goal Card
-  function renderGoalCard(g: any) {
+  function renderGoalCard(g: any, compact = false) {
     const nominalTarget = Number(g.targetAmount) || 0;
-    const inflRate = (Number(inflationRate) || 6) / 100;
     const yearsToTarget = g.targetDate
       ? Math.max(0, monthsBetween(today(), g.targetDate) / 12)
       : 0;
     const inflatedTarget =
       showInflation && yearsToTarget > 0
-        ? nominalTarget * Math.pow(1 + inflRate, yearsToTarget)
+        ? nominalTarget * Math.pow(1 + inflRateNum, yearsToTarget)
         : nominalTarget;
     const effectiveTarget = showInflation ? inflatedTarget : nominalTarget;
     const progress = effectiveTarget > 0 ? (Number(g.currentAmount) / effectiveTarget) * 100 : 0;
@@ -857,68 +1349,100 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
     const totalDuration = elapsed + monthsLeft;
     const expectedPct = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
     const isBehind = !isComplete && g.targetDate && progress < expectedPct - 10;
+    const isOverdue = !isComplete && g.targetDate && rawMonthsLeft < 0;
     const rc = ringColor(progress);
+
+    const assetMix = getAssetAllocationRecommendation(monthsLeft);
+    const currentRate = customSipRate[g.id] || 12;
 
     return (
       <div
         key={g.id}
         className="card-lift"
         style={{
-          padding: 22,
+          padding: compact ? "16px 18px" : "20px 22px",
           background: "var(--surface-0)",
           border: `1px solid ${THEME.line}`,
-          borderTop: `4px solid ${isComplete ? THEME.sage : PRIORITY_COLOR[g.priority] || THEME.accent}`,
+          borderTop: `4px solid ${
+            isComplete
+              ? THEME.sage
+              : isOverdue
+                ? THEME.rust
+                : PRIORITY_COLOR[g.priority] || THEME.accent
+          }`,
           borderRadius: "var(--radius-xl)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          gap: 16,
+          gap: 14,
           boxShadow: "var(--shadow-xs)",
         }}
       >
         <div>
-          {/* Header Row: Category Badge, Priority Tag, and Actions */}
+          {/* Header Row: Category Badge, Owner Tag, and Actions */}
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 12,
+              marginBottom: 10,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              {getCategoryIcon(g.category, 14)}
-              <span
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <div
                 style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "3px 8px",
+                  borderRadius: "var(--radius-sm)",
+                  background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
+                  color: THEME.accent,
                   fontSize: 10,
                   fontWeight: 800,
-                  letterSpacing: "0.15em",
+                  letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: THEME.muted,
                 }}
               >
-                {g.category || "General"}
-              </span>
+                {getCategoryIcon(g.category, 13)}
+                <span>{g.category || "Wealth"}</span>
+              </div>
+
               {g.priority && (
                 <span
                   style={{
                     fontSize: 9,
                     fontWeight: 800,
-                    letterSpacing: "0.1em",
+                    letterSpacing: "0.08em",
                     textTransform: "uppercase",
                     color: PRIORITY_COLOR[g.priority] || THEME.muted,
                     background: `color-mix(in srgb, ${PRIORITY_COLOR[g.priority] || THEME.muted} 12%, transparent)`,
                     border: `1px solid color-mix(in srgb, ${PRIORITY_COLOR[g.priority] || THEME.muted} 25%, transparent)`,
                     borderRadius: 4,
-                    padding: "1px 6px",
+                    padding: "2px 6px",
                   }}
                 >
                   {g.priority}
                 </span>
               )}
+
+              {g.owner && g.owner !== "self" && (
+                <span
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3,
+                  }}
+                >
+                  <User size={10} /> {g.owner}
+                </span>
+              )}
             </div>
 
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
               {isComplete ? (
                 <span
                   style={{
@@ -928,10 +1452,24 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                     color: THEME.sage,
                     border: `1px solid color-mix(in srgb, ${THEME.sage} 30%, transparent)`,
                     borderRadius: 6,
-                    padding: "2px 8px",
+                    padding: "2px 7px",
                   }}
                 >
-                  COMPLETED
+                  ACHIEVED
+                </span>
+              ) : isOverdue ? (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    background: `color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
+                    color: THEME.rust,
+                    border: `1px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)`,
+                    borderRadius: 6,
+                    padding: "2px 7px",
+                  }}
+                >
+                  OVERDUE
                 </span>
               ) : isBehind ? (
                 <span
@@ -942,7 +1480,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                     color: THEME.rust,
                     border: `1px solid color-mix(in srgb, ${THEME.rust} 30%, transparent)`,
                     borderRadius: 6,
-                    padding: "2px 8px",
+                    padding: "2px 7px",
                   }}
                 >
                   BEHIND
@@ -982,26 +1520,41 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
             </div>
           </div>
 
-          {/* Goal Title and Dates */}
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>
+          {/* Goal Title & Target Horizon Badge */}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 17, fontWeight: 900, color: THEME.ink, letterSpacing: "-0.01em" }}>
               {g.name}
             </div>
-            <div style={{ display: "flex", gap: 10, fontSize: 11, color: THEME.muted, marginTop: 4, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 10, fontSize: 11, color: THEME.muted, marginTop: 4, flexWrap: "wrap", alignItems: "center" }}>
               {g.startDate && <span>Started: {fmtGoalDate(g.startDate)}</span>}
               {g.targetDate && (
-                <span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "1px 6px",
+                    borderRadius: 4,
+                    background: "var(--surface-1)",
+                    border: `1px solid ${THEME.line}`,
+                    fontWeight: 700,
+                    color: rawMonthsLeft < 0 ? THEME.rust : THEME.ink,
+                  }}
+                >
+                  <Calendar size={11} />
                   Target: {fmtGoalDate(g.targetDate)} ·{" "}
-                  <strong style={{ color: rawMonthsLeft < 0 ? THEME.rust : THEME.ink }}>
-                    {rawMonthsLeft < 0 ? "Overdue" : `${monthsLeft}m left`}
-                  </strong>
+                  {rawMonthsLeft < 0
+                    ? `${Math.abs(rawMonthsLeft)}m overdue`
+                    : monthsLeft >= 12
+                      ? `${(monthsLeft / 12).toFixed(1)}y left`
+                      : `${monthsLeft}m left`}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Amount and Circular Progress */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, marginBottom: 14 }}>
+          {/* Amount and Mini Radial Gauge */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, marginBottom: 12 }}>
             <div>
               <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
                 <Money value={g.currentAmount} variant="full" />
@@ -1018,21 +1571,21 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
 
             {/* Circular Gauge */}
             {(() => {
-              const r = 26,
-                sz = 68,
+              const r = 24,
+                sz = 60,
                 cx = sz / 2;
               const circ = 2 * Math.PI * r;
               const dashOff = circ * (1 - Math.min(progress, 100) / 100);
               return (
                 <svg width={sz} height={sz} style={{ flexShrink: 0 }}>
-                  <circle cx={cx} cy={cx} r={r} fill="none" stroke={THEME.line} strokeWidth="5.5" />
+                  <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--t-line)" strokeWidth="5" />
                   <circle
                     cx={cx}
                     cy={cx}
                     r={r}
                     fill="none"
                     stroke={rc}
-                    strokeWidth="5.5"
+                    strokeWidth="5"
                     strokeDasharray={circ}
                     strokeDashoffset={dashOff}
                     strokeLinecap="round"
@@ -1042,7 +1595,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                       transition: "stroke-dashoffset 0.6s ease",
                     }}
                   />
-                  <text x={cx} y={cx + 4} textAnchor="middle" fontSize="12" fontWeight="800" fill={rc}>
+                  <text x={cx} y={cx + 4} textAnchor="middle" fontSize="11" fontWeight="800" fill={rc}>
                     {Math.min(Math.round(progress), 100)}%
                   </text>
                 </svg>
@@ -1050,8 +1603,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
             })()}
           </div>
 
-          {/* Milestone Checkpoints (25, 50, 75, 100%) */}
-          <div style={{ marginBottom: 14 }}>
+          {/* 4-Stage Milestone Progression */}
+          <div style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
               {[25, 50, 75, 100].map((m) => {
                 const reached = progress >= m;
@@ -1072,13 +1625,14 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 );
               })}
             </div>
-            <div style={{ height: 5, borderRadius: 3, background: "var(--t-line)", overflow: "hidden" }}>
+            <div style={{ height: 6, borderRadius: 3, background: "var(--t-line)", overflow: "hidden" }}>
               <div
                 style={{
                   height: "100%",
                   width: `${Math.min(progress, 100)}%`,
                   background: isComplete ? THEME.sage : `linear-gradient(90deg, ${THEME.accent}, ${rc})`,
                   borderRadius: 3,
+                  transition: "width 0.6s ease",
                 }}
               />
             </div>
@@ -1092,17 +1646,17 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 borderRadius: "var(--radius-md)",
                 background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
                 border: `1px solid color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
-                marginBottom: 10,
+                marginBottom: 8,
               }}
             >
-              <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, marginBottom: 6 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, marginBottom: 5 }}>
                 Quick Top-Up
               </div>
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                 {[5000, 10000, 25000, 50000].map((amt) => (
                   <button
                     key={amt}
-                    onClick={() => addContribution(g.id, g.currentAmount, amt)}
+                    onClick={() => addContribution(g, amt)}
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
@@ -1150,7 +1704,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                     value={contribValue}
                     onChange={(e) => setContribValue(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") addContribution(g.id, g.currentAmount);
+                      if (e.key === "Enter") addContribution(g);
                       if (e.key === "Escape") setContribOpen(null);
                     }}
                     style={{
@@ -1167,7 +1721,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                   <Button
                     size="sm"
                     variant="accent"
-                    onClick={() => addContribution(g.id, g.currentAmount)}
+                    onClick={() => addContribution(g)}
                     disabled={!(Number(contribValue) > 0)}
                     style={{ height: 26, fontSize: 10, padding: "2px 8px" }}
                   >
@@ -1179,7 +1733,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
           )}
         </div>
 
-        {/* Footer: Monthly Needed & SIP Expansion */}
+        {/* Footer: Monthly Needed, Smart SIP & Asset Allocation Guidance */}
         {monthlyNeeded > 0 && !isComplete && (
           <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1206,25 +1760,26 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                   gap: 3,
                 }}
               >
-                SIP Planner {sipExpanded.has(g.id) ? "▲" : "▼"}
+                SIP & Asset Mix {sipExpanded.has(g.id) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               </button>
             </div>
 
             {sipExpanded.has(g.id) && (
               <div
                 style={{
-                  marginTop: 8,
-                  padding: 10,
-                  borderRadius: "var(--radius-sm)",
+                  marginTop: 10,
+                  padding: 12,
+                  borderRadius: "var(--radius-md)",
                   background: "var(--surface-1)",
                   border: `1px solid ${THEME.line}`,
                 }}
               >
+                {/* 3-Tier Monthly SIP compound table */}
                 <div style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, marginBottom: 6 }}>
-                  Monthly SIP Required by Expected CAGR
+                  Monthly SIP Required by Expected Return
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-                  {[10, 12, 15].map((rate) => {
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 10 }}>
+                  {[8, 12, 15].map((rate) => {
                     const r = rate / 100 / 12;
                     const n = effectiveMonths;
                     const fvCurrent = Number(g.currentAmount || 0) * Math.pow(1 + r, n);
@@ -1241,11 +1796,26 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                           border: `1px solid ${THEME.line}`,
                         }}
                       >
-                        <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>{rate}%</div>
+                        <div style={{ fontSize: 9, color: THEME.muted, fontWeight: 700 }}>
+                          {rate}% {rate === 8 ? "Debt" : rate === 12 ? "Index" : "Equity"}
+                        </div>
                         <div style={{ fontSize: 11, fontWeight: 800, color: THEME.accent }}>{fmtINR(sip)}</div>
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Horizon Asset Allocation Guidance */}
+                <div style={{ borderTop: `1px dashed ${THEME.line}`, paddingTop: 8 }}>
+                  <div style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, marginBottom: 4 }}>
+                    Recommended Asset Mix ({monthsLeft >= 12 ? `${(monthsLeft / 12).toFixed(1)}y Horizon` : `${monthsLeft}m Horizon`})
+                  </div>
+                  <div style={{ display: "flex", gap: 6, fontSize: 10, fontWeight: 700 }}>
+                    <span style={{ color: THEME.accent }}>{assetMix.equity}% Equity</span> ·{" "}
+                    <span style={{ color: THEME.sage }}>{assetMix.debt}% Debt</span> ·{" "}
+                    <span style={{ color: THEME.gold }}>{assetMix.gold}% Gold</span>
+                  </div>
+                  <div style={{ fontSize: 9, color: THEME.muted, marginTop: 2 }}>{assetMix.label}</div>
                 </div>
               </div>
             )}
@@ -1254,4 +1824,178 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
       </div>
     );
   }
+}
+
+// Interactive What-If Goal Realization Simulator Modal
+function GoalSimulatorModal({ goals, metrics, onClose }: { goals: any[]; metrics: any; onClose: () => void }) {
+  const [stepUpRate, setStepUpRate] = useState(10);
+  const [extraMonthly, setExtraMonthly] = useState(10000);
+  const [expectedCagr, setExpectedCagr] = useState(12);
+
+  const activeGoals = goals.filter((g) => {
+    const target = Number(g.targetAmount || 0);
+    const current = Number(g.currentAmount || 0);
+    return target > 0 && current < target;
+  });
+
+  const totalGap = activeGoals.reduce((s, g) => s + Math.max(0, Number(g.targetAmount || 0) - Number(g.currentAmount || 0)), 0);
+
+  // Simulation: Time to achieve portfolio target with Step-Up SIP
+  const simulationResults = useMemo(() => {
+    const monthlyRate = expectedCagr / 100 / 12;
+    let baseMonths = 0;
+    let stepUpMonths = 0;
+
+    // Normal SIP calculation (Fixed monthly surplus)
+    let corpusNormal = goals.reduce((s, g) => s + Number(g.currentAmount || 0), 0);
+    const targetCorpus = goals.reduce((s, g) => s + Number(g.targetAmount || 0), 0);
+    const monthlyDeposit = extraMonthly;
+
+    if (monthlyDeposit > 0 && targetCorpus > corpusNormal) {
+      let m = 0;
+      while (corpusNormal < targetCorpus && m < 600) {
+        corpusNormal = corpusNormal * (1 + monthlyRate) + monthlyDeposit;
+        m++;
+      }
+      baseMonths = m;
+    }
+
+    // Step-Up SIP (increases every 12 months by stepUpRate)
+    let corpusStepUp = goals.reduce((s, g) => s + Number(g.currentAmount || 0), 0);
+    if (monthlyDeposit > 0 && targetCorpus > corpusStepUp) {
+      let m = 0;
+      let currDeposit = monthlyDeposit;
+      while (corpusStepUp < targetCorpus && m < 600) {
+        if (m > 0 && m % 12 === 0) {
+          currDeposit *= 1 + stepUpRate / 100;
+        }
+        corpusStepUp = corpusStepUp * (1 + monthlyRate) + currDeposit;
+        m++;
+      }
+      stepUpMonths = m;
+    }
+
+    const monthsSaved = Math.max(0, baseMonths - stepUpMonths);
+    const yearsSaved = (monthsSaved / 12).toFixed(1);
+
+    return {
+      baseYears: (baseMonths / 12).toFixed(1),
+      stepUpYears: (stepUpMonths / 12).toFixed(1),
+      monthsSaved,
+      yearsSaved,
+      targetCorpus,
+    };
+  }, [goals, extraMonthly, stepUpRate, expectedCagr]);
+
+  return (
+    <Modal title="Interactive Goal Realization & Step-Up Simulator" onClose={onClose}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.5 }}>
+          Simulate how stepping up your monthly investments annually accelerates your financial freedom and helps you achieve your life goals years earlier.
+        </div>
+
+        {/* Sliders & Inputs */}
+        <div
+          style={{
+            padding: 16,
+            borderRadius: "var(--radius-lg)",
+            background: "var(--surface-1)",
+            border: `1px solid ${THEME.line}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
+          }}
+        >
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+              <span>Monthly Surplus Dedicated to Goals</span>
+              <strong style={{ color: THEME.accent }}>₹{fmtINR(extraMonthly)}/mo</strong>
+            </div>
+            <input
+              type="range"
+              min="1000"
+              max="200000"
+              step="1000"
+              value={extraMonthly}
+              onChange={(e) => setExtraMonthly(Number(e.target.value))}
+              style={{ width: "100%", accentColor: THEME.accent }}
+            />
+          </div>
+
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+              <span>Annual Step-Up Percentage</span>
+              <strong style={{ color: THEME.gold }}>+{stepUpRate}% / year</strong>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="25"
+              step="1"
+              value={stepUpRate}
+              onChange={(e) => setStepUpRate(Number(e.target.value))}
+              style={{ width: "100%", accentColor: THEME.gold }}
+            />
+          </div>
+
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+              <span>Expected Portfolio Return (CAGR)</span>
+              <strong style={{ color: THEME.sage }}>{expectedCagr}% CAGR</strong>
+            </div>
+            <input
+              type="range"
+              min="6"
+              max="18"
+              step="0.5"
+              value={expectedCagr}
+              onChange={(e) => setExpectedCagr(Number(e.target.value))}
+              style={{ width: "100%", accentColor: THEME.sage }}
+            />
+          </div>
+        </div>
+
+        {/* Simulation Outcome Highlight */}
+        <div
+          style={{
+            padding: 16,
+            borderRadius: "var(--radius-lg)",
+            background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.sage} 12%, var(--surface-0)), var(--surface-0))`,
+            border: `1.5px solid color-mix(in srgb, ${THEME.sage} 30%, transparent)`,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+            gap: 12,
+            textAlign: "center",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: THEME.muted }}>Fixed SIP Horizon</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink, marginTop: 2 }}>
+              {simulationResults.baseYears} Years
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: THEME.muted }}>Step-Up SIP Horizon</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: THEME.accent, marginTop: 2 }}>
+              {simulationResults.stepUpYears} Years
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: THEME.sage }}>Time Saved Earlier</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage, marginTop: 2 }}>
+              ⚡ {simulationResults.yearsSaved} Years
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button variant="secondary" onClick={onClose}>
+            Close Simulator
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
 }
