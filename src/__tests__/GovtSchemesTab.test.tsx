@@ -8,6 +8,7 @@ import {
   calculateSSYProjection,
   calculateSCSSProjection,
   calculatePOMISProjection,
+  calculateMSSCProjection,
   calculateCompoundingScheme,
   SCHEME_RULES,
 } from "../utils/govtSchemes";
@@ -131,4 +132,23 @@ describe("Govt Schemes Calculator Utilities", () => {
     expect(res.maturityAmount).toBeCloseTo(724517, -2);
     expect(res.totalInterest).toBe(res.maturityAmount - 500000);
   });
+
+  it("calculates MSSC 2-year quarterly compounding return accurately", () => {
+    const res = calculateMSSCProjection(200000, 7.5, 2);
+    expect(res.depositAmount).toBe(200000);
+    // 200000 * (1 + 7.5/400)^8 = ~232,044.33
+    expect(res.maturityAmount).toBeCloseTo(232044.33, 2);
+    expect(res.totalInterest).toBeCloseTo(32044.33, 2);
+  });
+
+  it("verifies SCHEME_RULES contains official sovereign limits and parameters", () => {
+    expect(SCHEME_RULES.SSY.annualContributionCap).toBe(150000);
+    expect(SCHEME_RULES.SCSS.depositCapSingle).toBe(3000000);
+    expect(SCHEME_RULES.POST_MIS.depositCapSingle).toBe(900000);
+    expect(SCHEME_RULES.POST_MIS.depositCapJoint).toBe(1500000);
+    expect(SCHEME_RULES.MSSC.depositCapSingle).toBe(200000);
+    expect(SCHEME_RULES.PMJJBY.defaultPremium).toBe(436);
+    expect(SCHEME_RULES.PMSBY.defaultPremium).toBe(20);
+  });
 });
+

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Shield,
@@ -34,6 +35,10 @@ import {
   Info,
   Sliders,
   Award,
+  Copy,
+  UserCheck,
+  Zap,
+  Percent,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -51,10 +56,8 @@ import {
 import { THEME } from "../../utils/constants";
 import {
   useMasterData,
-  formatProfileOption,
   formatProfileOptionWithAge,
   calculateAge,
-  formatAge,
   isSeniorCitizen,
 } from "../../utils/masterData";
 import { fmtINR, fmtINRFull, uid, today, exportArrayToCSV } from "../../utils/finance";
@@ -81,11 +84,12 @@ import {
   calculateSSYProjection,
   calculateSCSSProjection,
   calculatePOMISProjection,
+  calculateMSSCProjection,
   calculateCompoundingScheme,
   APY_CONTRIBUTION_TABLE,
 } from "../../utils/govtSchemes";
 
-interface SchemeDefinition {
+export interface SchemeDefinition {
   value: string;
   label: string;
   shortLabel: string;
@@ -107,23 +111,7 @@ interface SchemeDefinition {
 }
 
 // Master Schemes definition with enhanced metadata, branding colors, and tax benefits
-const SCHEMES: SchemeDefinition[] = [
-  {
-    value: "APY",
-    label: "APY — Atal Pension Yojana",
-    shortLabel: "APY",
-    category: "pension",
-    description: "Guaranteed monthly pension of ₹1,000–₹5,000 at age 60 for unorganised sector workers.",
-    color: THEME.accent,
-    icon: Users,
-    fields: ["pensionAmount"],
-    hasBalance: false,
-    officialRate: 8.0,
-    tenure: "Until age 60",
-    taxBadge: "Section 80CCD(1B)",
-    payoutType: "Guaranteed Pension at 60",
-    eligibility: "Indian citizens aged 18–40",
-  },
+export const SCHEMES: SchemeDefinition[] = [
   {
     value: "SSY",
     label: "SSY — Sukanya Samriddhi Yojana",
@@ -139,6 +127,118 @@ const SCHEMES: SchemeDefinition[] = [
     taxBadge: "Section 80C · EEE Tax-Free",
     payoutType: "Compounding at Maturity",
     eligibility: "Parents of girl child aged < 10 years",
+  },
+  {
+    value: "SCSS",
+    label: "SCSS — Senior Citizen Savings Scheme",
+    shortLabel: "SCSS",
+    category: "fixed_income",
+    description: "Safe quarterly interest payout scheme for senior citizens offering high guaranteed yield.",
+    color: THEME.violet,
+    icon: Landmark,
+    fields: ["interestRate"],
+    hasBalance: true,
+    officialRate: 8.2,
+    tenure: "5 Years (Extendable by 3y)",
+    taxBadge: "Section 80C (Deposit)",
+    payoutType: "Quarterly Interest Payout",
+    eligibility: "Individuals aged 60+ (55+ for VRS retirees)",
+  },
+  {
+    value: "MSSC",
+    label: "MSSC — Mahila Samman Savings Certificate",
+    shortLabel: "MSSC",
+    category: "child",
+    description: "2-year sovereign fixed deposit certificate for women & girls with high quarterly compounding yield.",
+    color: "#E11D48",
+    icon: Award,
+    fields: ["memberName", "interestRate"],
+    hasBalance: true,
+    officialRate: 7.5,
+    tenure: "2 Years Fixed",
+    taxBadge: "Taxable as per Slab",
+    payoutType: "Compounding at Maturity",
+    eligibility: "Women of any age or girl child",
+  },
+  {
+    value: "POST_MIS",
+    label: "Post Office MIS — Monthly Income Scheme",
+    shortLabel: "POMIS",
+    category: "fixed_income",
+    description: "Regular predictable monthly income scheme with sovereign safety. Max deposit ₹9L (single) / ₹15L (joint).",
+    color: THEME.accent,
+    icon: Wallet,
+    fields: ["interestRate"],
+    hasBalance: true,
+    officialRate: 7.4,
+    tenure: "5 Years Fixed",
+    taxBadge: "Monthly Interest Taxable",
+    payoutType: "Monthly Interest Payout",
+    eligibility: "All Indian Residents (Single/Joint)",
+  },
+  {
+    value: "NSC",
+    label: "NSC — National Savings Certificate",
+    shortLabel: "NSC",
+    category: "fixed_income",
+    description: "Post office backed 5-year fixed savings instrument with guaranteed annual compounding.",
+    color: THEME.rust,
+    icon: FileText,
+    fields: ["interestRate"],
+    hasBalance: true,
+    officialRate: 7.7,
+    tenure: "5 Years Fixed",
+    taxBadge: "Section 80C Deduction",
+    payoutType: "Compounding at Maturity",
+    eligibility: "All Indian Resident Individuals",
+  },
+  {
+    value: "KVP",
+    label: "KVP — Kisan Vikas Patra",
+    shortLabel: "KVP",
+    category: "fixed_income",
+    description: "Guaranteed doubling certificate scheme maturing in approximately 115 months (9.6 years).",
+    color: THEME.gold,
+    icon: Coins,
+    fields: ["interestRate"],
+    hasBalance: true,
+    officialRate: 7.5,
+    tenure: "115 Months (~9.6 Years)",
+    taxBadge: "Taxable as per Slab",
+    payoutType: "Doubles Corpus at Maturity",
+    eligibility: "All Indian Resident Individuals",
+  },
+  {
+    value: "RBI_BOND",
+    label: "RBI Floating Rate Savings Bond",
+    shortLabel: "RBI Bond",
+    category: "fixed_income",
+    description: "7-year sovereign bond with semi-annual payout linked to NSC benchmark + 0.35% spread.",
+    color: THEME.cyan,
+    icon: Landmark,
+    fields: ["interestRate"],
+    hasBalance: true,
+    officialRate: 8.05,
+    tenure: "7 Years Fixed",
+    taxBadge: "Taxable (TDS applies)",
+    payoutType: "Half-Yearly Payout",
+    eligibility: "Citizens of India & HUFs",
+  },
+  {
+    value: "APY",
+    label: "APY — Atal Pension Yojana",
+    shortLabel: "APY",
+    category: "pension",
+    description: "Guaranteed monthly pension of ₹1,000–₹5,000 at age 60 for unorganised sector workers.",
+    color: THEME.accent,
+    icon: Users,
+    fields: ["pensionAmount"],
+    hasBalance: false,
+    officialRate: 8.0,
+    tenure: "Until age 60",
+    taxBadge: "Section 80CCD(1B)",
+    payoutType: "Guaranteed Pension at 60",
+    eligibility: "Indian citizens aged 18–40",
   },
   {
     value: "PMJJBY",
@@ -195,86 +295,6 @@ const SCHEMES: SchemeDefinition[] = [
     eligibility: "Landholding farmer families",
   },
   {
-    value: "SCSS",
-    label: "SCSS — Senior Citizen Savings Scheme",
-    shortLabel: "SCSS",
-    category: "fixed_income",
-    description: "Safe quarterly interest payout scheme for senior citizens offering high guaranteed yield.",
-    color: THEME.violet,
-    icon: Landmark,
-    fields: ["interestRate"],
-    hasBalance: true,
-    officialRate: 8.2,
-    tenure: "5 Years (Extendable by 3y)",
-    taxBadge: "Section 80C (Deposit)",
-    payoutType: "Quarterly Interest Payout",
-    eligibility: "Individuals aged 60+ (55+ for VRS retirees)",
-  },
-  {
-    value: "NSC",
-    label: "NSC — National Savings Certificate",
-    shortLabel: "NSC",
-    category: "fixed_income",
-    description: "Post office backed 5-year fixed savings instrument with guaranteed annual compounding.",
-    color: THEME.rust,
-    icon: FileText,
-    fields: ["interestRate"],
-    hasBalance: true,
-    officialRate: 7.7,
-    tenure: "5 Years Fixed",
-    taxBadge: "Section 80C Deduction",
-    payoutType: "Compounding at Maturity",
-    eligibility: "All Indian Resident Individuals",
-  },
-  {
-    value: "KVP",
-    label: "KVP — Kisan Vikas Patra",
-    shortLabel: "KVP",
-    category: "fixed_income",
-    description: "Guaranteed doubling certificate scheme maturing in approximately 115 months (9.6 years).",
-    color: THEME.gold,
-    icon: Coins,
-    fields: ["interestRate"],
-    hasBalance: true,
-    officialRate: 7.5,
-    tenure: "115 Months (~9.6 Years)",
-    taxBadge: "Taxable as per Slab",
-    payoutType: "Doubles Corpus at Maturity",
-    eligibility: "All Indian Resident Individuals",
-  },
-  {
-    value: "POST_MIS",
-    label: "Post Office MIS — Monthly Income Scheme",
-    shortLabel: "POMIS",
-    category: "fixed_income",
-    description: "Regular predictable monthly income scheme with sovereign safety. Max deposit ₹9L (single) / ₹15L (joint).",
-    color: THEME.accent,
-    icon: Wallet,
-    fields: ["interestRate"],
-    hasBalance: true,
-    officialRate: 7.4,
-    tenure: "5 Years Fixed",
-    taxBadge: "Monthly Interest Taxable",
-    payoutType: "Monthly Interest Payout",
-    eligibility: "All Indian Residents (Single/Joint)",
-  },
-  {
-    value: "RBI_BOND",
-    label: "RBI Floating Rate Savings Bond",
-    shortLabel: "RBI Bond",
-    category: "fixed_income",
-    description: "7-year sovereign bond with semi-annual payout linked to NSC benchmark + 0.35% spread.",
-    color: THEME.cyan,
-    icon: Landmark,
-    fields: ["interestRate"],
-    hasBalance: true,
-    officialRate: 8.05,
-    tenure: "7 Years Fixed",
-    taxBadge: "Taxable (TDS applies)",
-    payoutType: "Half-Yearly Payout",
-    eligibility: "Citizens of India & HUFs",
-  },
-  {
     value: "NPS_LITE",
     label: "NPS Lite — Swavalamban",
     shortLabel: "NPS Lite",
@@ -292,14 +312,14 @@ const SCHEMES: SchemeDefinition[] = [
   },
 ];
 
-const SCHEME_MAP = Object.fromEntries(SCHEMES.map((s) => [s.value, s]));
+export const SCHEME_MAP = Object.fromEntries(SCHEMES.map((s) => [s.value, s]));
 
 // Categories for unified filter tab
 const CATEGORIES = [
   { id: "ALL", label: "All Schemes", icon: Sparkles },
-  { id: "pension", label: "Pension & Retirement", icon: Users },
-  { id: "child", label: "Girl Child & Family", icon: Heart },
+  { id: "child", label: "Girl Child & Family (SSY / MSSC)", icon: Heart },
   { id: "fixed_income", label: "Guaranteed Savings & Payouts", icon: Landmark },
+  { id: "pension", label: "Pension & Retirement", icon: Users },
   { id: "insurance", label: "Govt Insurance", icon: ShieldCheck },
   { id: "dbt", label: "Direct Benefit (DBT)", icon: TrendingUp },
 ];
@@ -773,8 +793,8 @@ function SchemeForm({ initial, onSave, onClose, saving = false }: any) {
 }
 
 // ─── LIVE INTERACTIVE GOVERNMENT SCHEMES CALCULATOR ─────────────────────────
-function SchemeCalculator({ onSelectScheme }: { onSelectScheme: (scheme: string) => void }) {
-  const [calcType, setCalcType] = useState<"SSY" | "SCSS" | "POST_MIS" | "NSC" | "APY">("SSY");
+function SchemeCalculator({ onSelectScheme }: { onSelectScheme: (scheme: string, prefill?: any) => void }) {
+  const [calcType, setCalcType] = useState<"SSY" | "SCSS" | "POST_MIS" | "NSC" | "MSSC" | "APY">("SSY");
 
   // SSY States
   const [ssyYearly, setSsyYearly] = useState(150000);
@@ -793,6 +813,10 @@ function SchemeCalculator({ onSelectScheme }: { onSelectScheme: (scheme: string)
   const [nscRate, setNscRate] = useState(7.7);
   const [nscYears, setNscYears] = useState(5);
 
+  // MSSC States
+  const [msscDeposit, setMsscDeposit] = useState(200000);
+  const [msscRate, setMsscRate] = useState(7.5);
+
   // APY States
   const [apyAge, setApyAge] = useState(25);
   const [apyTarget, setApyTarget] = useState(5000);
@@ -800,6 +824,7 @@ function SchemeCalculator({ onSelectScheme }: { onSelectScheme: (scheme: string)
   const ssyResult = useMemo(() => calculateSSYProjection(ssyYearly, ssyRate), [ssyYearly, ssyRate]);
   const scssResult = useMemo(() => calculateSCSSProjection(scssDeposit, scssRate), [scssDeposit, scssRate]);
   const pomisResult = useMemo(() => calculatePOMISProjection(pomisDeposit, pomisRate), [pomisDeposit, pomisRate]);
+  const msscResult = useMemo(() => calculateMSSCProjection(msscDeposit, msscRate), [msscDeposit, msscRate]);
   const nscResult = useMemo(
     () => calculateCompoundingScheme(nscDeposit, nscRate, nscYears),
     [nscDeposit, nscRate, nscYears]
@@ -845,6 +870,7 @@ function SchemeCalculator({ onSelectScheme }: { onSelectScheme: (scheme: string)
           {[
             { id: "SSY", label: "SSY (Sukanya)", icon: Heart, color: THEME.pink },
             { id: "SCSS", label: "SCSS (Quarterly)", icon: Landmark, color: THEME.violet },
+            { id: "MSSC", label: "MSSC (Mahila)", icon: Award, color: "#E11D48" },
             { id: "POST_MIS", label: "POMIS (Monthly)", icon: Wallet, color: THEME.accent },
             { id: "NSC", label: "NSC / KVP", icon: FileText, color: THEME.rust },
             { id: "APY", label: "APY Pension", icon: Users, color: THEME.sage },
@@ -960,6 +986,43 @@ function SchemeCalculator({ onSelectScheme }: { onSelectScheme: (scheme: string)
                   step="0.1"
                   value={scssRate}
                   onChange={(e) => setScssRate(Number(e.target.value))}
+                  className="form-input"
+                />
+              </div>
+            </div>
+          )}
+
+          {calcType === "MSSC" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                  <span>Deposit Amount (Max ₹2 Lakh)</span>
+                  <span style={{ fontWeight: 700, color: "#E11D48" }}>{fmtINRFull(msscDeposit)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={1000}
+                  max={200000}
+                  step={1000}
+                  value={msscDeposit}
+                  onChange={(e) => setMsscDeposit(Number(e.target.value))}
+                  style={{ width: "100%", accentColor: "#E11D48" }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.textMuted }}>
+                  <span>₹1,000</span>
+                  <span>Max ₹2,00,000 cap</span>
+                </div>
+              </div>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                  <span>Official Rate (% p.a.)</span>
+                  <span style={{ fontWeight: 700 }}>{msscRate}% (Quarterly Compounded)</span>
+                </div>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={msscRate}
+                  onChange={(e) => setMsscRate(Number(e.target.value))}
                   className="form-input"
                 />
               </div>
@@ -1149,6 +1212,33 @@ function SchemeCalculator({ onSelectScheme }: { onSelectScheme: (scheme: string)
             </div>
           )}
 
+          {calcType === "MSSC" && (
+            <div>
+              <div style={{ fontSize: 12, color: THEME.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                Maturity Corpus at 2 Years (Quarterly Compounding)
+              </div>
+              <div
+                style={{
+                  fontSize: 28,
+                  fontWeight: 800,
+                  color: "#E11D48",
+                  fontFamily: "var(--font-display)",
+                  margin: "8px 0 16px 0",
+                }}
+              >
+                {fmtINRFull(msscResult.maturityAmount)}
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid var(--t-line)", fontSize: 13 }}>
+                <span style={{ color: THEME.textMuted }}>Principal Deposit:</span>
+                <span style={{ fontWeight: 600 }}>{fmtINRFull(msscResult.depositAmount)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 13 }}>
+                <span style={{ color: THEME.textMuted }}>Total Guaranteed Interest:</span>
+                <span style={{ fontWeight: 700, color: THEME.success }}>+{fmtINRFull(msscResult.totalInterest)}</span>
+              </div>
+            </div>
+          )}
+
           {calcType === "POST_MIS" && (
             <div>
               <div style={{ fontSize: 12, color: THEME.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>
@@ -1235,9 +1325,33 @@ function SchemeCalculator({ onSelectScheme }: { onSelectScheme: (scheme: string)
           <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
             <Button
               size="sm"
-              onClick={() => onSelectScheme(calcType)}
+              onClick={() => {
+                const prefill: any = {};
+                if (calcType === "SSY") {
+                  prefill.contributionAmount = ssyYearly;
+                  prefill.interestRate = ssyRate;
+                  prefill.frequency = "annual";
+                } else if (calcType === "SCSS") {
+                  prefill.currentBalance = scssDeposit;
+                  prefill.interestRate = scssRate;
+                } else if (calcType === "MSSC") {
+                  prefill.currentBalance = msscDeposit;
+                  prefill.interestRate = msscRate;
+                } else if (calcType === "POST_MIS") {
+                  prefill.currentBalance = pomisDeposit;
+                  prefill.interestRate = pomisRate;
+                } else if (calcType === "NSC") {
+                  prefill.currentBalance = nscDeposit;
+                  prefill.interestRate = nscRate;
+                } else if (calcType === "APY") {
+                  prefill.pensionAmount = apyTarget;
+                  prefill.contributionAmount = apyMonthly;
+                  prefill.frequency = "monthly";
+                }
+                onSelectScheme(calcType, prefill);
+              }}
             >
-              <Plus size={13} /> Track this Scheme
+              <Plus size={13} /> Track this in Portfolio
             </Button>
           </div>
         </div>
@@ -1352,6 +1466,219 @@ function SchemeRatesDirectory({ onTrackScheme }: { onTrackScheme: (scheme: any) 
           </tbody>
         </table>
       </div>
+    </Card>
+  );
+}
+
+// ─── PROACTIVE FAMILY ELIGIBILITY SCANNER MATRIX ─────────────────────────────
+function FamilyEligibilityMatrix({
+  schemes,
+  onTrack,
+}: {
+  schemes: any[];
+  onTrack: (schemeType: string, ownerId?: string, memberName?: string) => void;
+}) {
+  const { familyProfiles } = useMasterData();
+  const [collapsed, setCollapsed] = useState(false);
+
+  const recommendations = useMemo(() => {
+    const recs: any[] = [];
+    if (!familyProfiles || familyProfiles.length === 0) return recs;
+
+    // 1. SSY Check
+    const daughters = familyProfiles.filter((p: any) => {
+      const age = p.dob ? calculateAge(p.dob) : null;
+      return age !== null && age <= 10 && (/daughter|girl|child/i.test(p.relation || "") || p.gender === "female");
+    });
+    daughters.forEach((d: any) => {
+      const existing = schemes.find((sc) => sc.schemeType === "SSY" && (sc.memberName?.toLowerCase() === d.name.toLowerCase() || sc.owner === d.id));
+      const age = calculateAge(d.dob);
+      if (!existing) {
+        recs.push({
+          schemeType: "SSY",
+          targetProfile: d,
+          title: `Sukanya Samriddhi Yojana for ${d.name} (${age}y)`,
+          desc: "Triple Tax-Exempt (EEE) 8.2% p.a. sovereign growth for girl child under 10.",
+          actionLabel: `Start SSY for ${d.name}`,
+          color: THEME.pink,
+          icon: Heart,
+          urgency: "high",
+          ownerId: "self",
+          memberName: d.name,
+        });
+      }
+    });
+
+    // 2. SCSS Check (60+ years)
+    const seniors = familyProfiles.filter((p: any) => p.dob && isSeniorCitizen(p.dob));
+    seniors.forEach((s: any) => {
+      const trackedScss = schemes.filter((sc) => sc.schemeType === "SCSS" && sc.owner === s.id);
+      const totalInvested = trackedScss.reduce((acc, cur) => acc + Number(cur.currentBalance || 0), 0);
+      const remainingQuota = Math.max(0, 3000000 - totalInvested);
+      const age = calculateAge(s.dob);
+      if (remainingQuota > 0) {
+        recs.push({
+          schemeType: "SCSS",
+          targetProfile: s,
+          title: `SCSS 8.2% Quarterly Income Quota for ${s.name} (${age}y)`,
+          desc: totalInvested > 0
+            ? `Utilised ₹${(totalInvested / 100000).toFixed(1)}L out of ₹30L quota. ₹${(remainingQuota / 100000).toFixed(1)}L headroom remaining.`
+            : `Eligible for ₹30 Lakh quota at 8.2% p.a. guaranteed quarterly income payouts.`,
+          actionLabel: `Invest in SCSS (${s.name})`,
+          color: THEME.violet,
+          icon: Landmark,
+          urgency: totalInvested === 0 ? "high" : "normal",
+          ownerId: s.id,
+        });
+      }
+    });
+
+    // 3. MSSC Check (Women / Girls for Mahila Samman)
+    const women = familyProfiles.filter((p: any) => p.gender === "female" || /wife|daughter|mother|sister/i.test(p.relation || ""));
+    women.forEach((w: any) => {
+      const existing = schemes.find((sc) => sc.schemeType === "MSSC" && (sc.owner === w.id || sc.memberName?.toLowerCase() === w.name.toLowerCase()));
+      if (!existing) {
+        recs.push({
+          schemeType: "MSSC",
+          targetProfile: w,
+          title: `Mahila Samman Certificate (7.5%) for ${w.name}`,
+          desc: "2-year high yielding quarterly compounding deposit (up to ₹2 Lakh cap).",
+          actionLabel: `Add MSSC for ${w.name}`,
+          color: "#E11D48",
+          icon: Award,
+          urgency: "normal",
+          ownerId: w.id,
+          memberName: w.name,
+        });
+      }
+    });
+
+    // 4. APY Check (Age 18–40)
+    const youngAdults = familyProfiles.filter((p: any) => {
+      const age = p.dob ? calculateAge(p.dob) : null;
+      return age !== null && age >= 18 && age <= 40;
+    });
+    youngAdults.forEach((y: any) => {
+      const existing = schemes.find((sc) => sc.schemeType === "APY" && sc.owner === y.id);
+      const age = calculateAge(y.dob);
+      if (!existing) {
+        recs.push({
+          schemeType: "APY",
+          targetProfile: y,
+          title: `Guaranteed Lifelong Pension (APY) for ${y.name} (${age}y)`,
+          desc: "Lock in ₹5,000/month guaranteed sovereign pension starting at age 60 with extra 80CCD(1B) tax deduction.",
+          actionLabel: `Enroll ${y.name} in APY`,
+          color: THEME.sage,
+          icon: Users,
+          urgency: "normal",
+          ownerId: y.id,
+        });
+      }
+    });
+
+    return recs;
+  }, [familyProfiles, schemes]);
+
+  if (recommendations.length === 0) return null;
+
+  return (
+    <Card style={{ padding: 18, marginBottom: 20, background: "color-mix(in srgb, var(--t-accent) 4%, var(--surface-0))", border: "1px solid color-mix(in srgb, var(--t-accent) 20%, var(--t-line))" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setCollapsed(!collapsed)}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "var(--radius-full)",
+              background: "color-mix(in srgb, var(--t-accent) 15%, transparent)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--t-accent)",
+            }}
+          >
+            <UserCheck size={16} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
+              <span>Smart Family Sovereign Opportunity Matrix</span>
+              <Badge variant="accent">{recommendations.length} Recommendations</Badge>
+            </div>
+            <div style={{ fontSize: 12, color: THEME.textMuted }}>
+              Proactively scanned family member ages &amp; untapped government scheme limits
+            </div>
+          </div>
+        </div>
+        <button
+          style={{ background: "none", border: "none", color: "var(--t-muted)", cursor: "pointer", padding: 4 }}
+          aria-label={collapsed ? "Expand recommendations" : "Collapse recommendations"}
+        >
+          {collapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+        </button>
+      </div>
+
+      {!collapsed && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: 12,
+            marginTop: 14,
+          }}
+        >
+          {recommendations.slice(0, 4).map((rec, i) => {
+            const Icon = rec.icon;
+            return (
+              <div
+                key={i}
+                style={{
+                  background: "var(--surface-0)",
+                  padding: 12,
+                  borderRadius: "var(--radius-md)",
+                  border: `1px solid color-mix(in srgb, ${rec.color} 25%, var(--t-line))`,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <span
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 6,
+                        background: `color-mix(in srgb, ${rec.color} 15%, transparent)`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: rec.color,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon size={13} />
+                    </span>
+                    <strong style={{ fontSize: 12.5, color: "var(--t-ink)" }}>{rec.title}</strong>
+                  </div>
+                  <p style={{ margin: "0 0 10px 0", fontSize: 11.5, color: THEME.textMuted, lineHeight: 1.4 }}>
+                    {rec.desc}
+                  </p>
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    onClick={() => onTrack(rec.schemeType, rec.ownerId, rec.memberName)}
+                    style={{ fontSize: 11 }}
+                  >
+                    <Plus size={11} /> {rec.actionLabel}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </Card>
   );
 }
@@ -1577,6 +1904,16 @@ export function GovtSchemesTab({
     { onError: (e: any) => showToast?.(`Failed to delete scheme: ${e?.message || "Unknown error"}`, "error") }
   );
 
+  // Duplicate / Clone Scheme helper
+  const handleDuplicate = (sc: any) => {
+    const clone = {
+      ...sc,
+      id: uid(),
+      schemeName: `${sc.schemeName || SCHEME_MAP[sc.schemeType]?.shortLabel || "Scheme"} (Copy)`,
+    };
+    save(clone);
+  };
+
   // ─── CSV EXPORT ───────────────────────────────────────────────────────────
   const handleExportCSV = () => {
     if (schemes.length === 0) return;
@@ -1638,7 +1975,7 @@ export function GovtSchemesTab({
           value={fmtINRFull(totalCorpus)}
           numericValue={totalCorpus}
           formatValue={fmtINRFull}
-          sub={`${schemes.length} active holdings`}
+          sub={`${schemes.length} active holdings · 100% Capital Safe`}
           icon={<IndianRupee size={18} />}
           color={THEME.success}
         />
@@ -1683,6 +2020,18 @@ export function GovtSchemesTab({
           />
         )}
       </div>
+
+      {/* ─── PROACTIVE FAMILY ELIGIBILITY & OPPORTUNITY MATRIX ──────────────── */}
+      <FamilyEligibilityMatrix
+        schemes={schemes}
+        onTrack={(schemeType, ownerId, memberName) => {
+          setModal({
+            schemeType,
+            owner: ownerId || "self",
+            memberName: memberName || "",
+          });
+        }}
+      />
 
       {/* ─── VISUAL ALLOCATION & CASHFLOW SECTION (COLLAPSIBLE) ────────────── */}
       {schemes.length > 0 && chartData.length > 0 && (
@@ -2060,10 +2409,10 @@ export function GovtSchemesTab({
       {viewMode === "explorer" && (
         <div>
           <SchemeCalculator
-            onSelectScheme={(scheme) => setModal({ schemeType: scheme })}
+            onSelectScheme={(scheme, prefill) => setModal({ schemeType: scheme, ...prefill })}
           />
           <SchemeRatesDirectory
-            onTrackScheme={(s) => setModal({ schemeType: s.value })}
+            onTrackScheme={(s) => setModal({ schemeType: s.value, interestRate: s.officialRate > 0 ? String(s.officialRate) : undefined })}
           />
         </div>
       )}
@@ -2275,6 +2624,15 @@ export function GovtSchemesTab({
                         <td style={{ padding: "12px 16px", textAlign: "right" }}>
                           <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
                             <button
+                              onClick={() => handleDuplicate(sc)}
+                              className="icon-btn"
+                              aria-label="Duplicate scheme"
+                              title="Duplicate"
+                              style={{ background: "none", border: "none", cursor: "pointer", color: THEME.textMuted, padding: 6 }}
+                            >
+                              <Copy size={14} />
+                            </button>
+                            <button
                               onClick={() => setModal(sc)}
                               className="icon-btn"
                               aria-label="Edit scheme"
@@ -2318,12 +2676,12 @@ export function GovtSchemesTab({
               description={
                 selectedSchemeFilter !== "ALL"
                   ? SCHEME_MAP[selectedSchemeFilter]?.description
-                  : "Track high-yield government savings like Sukanya Samriddhi (SSY 8.2%), SCSS, Post Office MIS, APY pensions, and sovereign insurance schemes."
+                  : "Track high-yield government savings like Sukanya Samriddhi (SSY 8.2%), SCSS (8.2%), MSSC (7.5%), Post Office MIS (7.4%), APY pensions, and sovereign insurance schemes."
               }
               pills={[
                 "High Interest (up to 8.2%)",
                 "Tax-Free Returns (Section 80C & EEE)",
-                "Sovereign Guarantee",
+                "100% Sovereign Guarantee",
                 "Regular Quarterly / Monthly Payouts",
               ]}
               buttonLabel={
@@ -2469,6 +2827,15 @@ export function GovtSchemesTab({
 
                         {/* Action Buttons */}
                         <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                          <button
+                            onClick={() => handleDuplicate(sc)}
+                            className="icon-btn"
+                            aria-label="Duplicate scheme"
+                            title="Duplicate scheme"
+                            style={{ background: "none", border: "none", cursor: "pointer", color: THEME.textMuted, padding: 6 }}
+                          >
+                            <Copy size={16} />
+                          </button>
                           <button
                             onClick={() => setExpanded(isExpanded ? null : sc.id)}
                             className="icon-btn"
@@ -2671,3 +3038,5 @@ export function GovtSchemesTab({
     </div>
   );
 }
+
+export default GovtSchemesTab;

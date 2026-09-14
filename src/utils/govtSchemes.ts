@@ -116,6 +116,16 @@ export const SCHEME_RULES: Record<string, SchemeRule> = {
     taxBenefit: "Section 80CCD(1B) up to ₹50,000 extra",
     eligibility: "Citizens aged 18–40 (Pension starts at age 60)",
   },
+  MSSC: {
+    growth: "compounding",
+    category: "child",
+    depositCapSingle: 200000,
+    officialRate: 7.5,
+    tenureYears: 2,
+    taxBenefit: "Taxable as per Slab (TDS not deducted up to ₹40k)",
+    minDeposit: 1000,
+    eligibility: "Women of any age or Guardian on behalf of a girl child",
+  },
   PMKISAN: {
     growth: "none",
     category: "dbt",
@@ -299,6 +309,19 @@ export function calculatePOMISProjection(depositAmount: number, rate = 7.4) {
   };
 }
 
+// MSSC (Mahila Samman Savings Certificate) 2-Year Quarterly Compounding Helper
+export function calculateMSSCProjection(depositAmount: number, rate = 7.5, years = 2) {
+  // Quarterly compounding: A = P * (1 + r / 400)^(4 * t)
+  const quarters = years * 4;
+  const maturityAmount = Math.round(depositAmount * Math.pow(1 + rate / 400, quarters) * 100) / 100;
+  const totalInterest = Math.round((maturityAmount - depositAmount) * 100) / 100;
+  return {
+    depositAmount,
+    totalInterest,
+    maturityAmount,
+  };
+}
+
 // NSC / KVP Compounding Calculator Helper
 export function calculateCompoundingScheme(depositAmount: number, rate: number, years: number) {
   const maturityAmount = depositAmount * Math.pow(1 + rate / 100, years);
@@ -309,3 +332,4 @@ export function calculateCompoundingScheme(depositAmount: number, rate: number, 
     maturityAmount,
   };
 }
+
