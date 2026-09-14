@@ -3846,7 +3846,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
         }}
       >
         <div
-          className="demat-portfolio-bar no-scrollbar"
+          className="exec-subnav-bar no-scrollbar"
           style={{ flex: "0 1 auto", minWidth: 0, marginBottom: 0 }}
         >
           {subs.map((s) => {
@@ -3855,9 +3855,8 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
               <button
                 key={s.id}
                 onClick={() => setSub(s.id)}
-                className={`demat-portfolio-pill ${sub === s.id ? "active" : ""}`}
+                className={`exec-subnav-pill ${sub === s.id ? "active" : ""}`}
                 aria-pressed={sub === s.id}
-                style={{ display: "flex", alignItems: "center", gap: 6 }}
               >
                 <Icon size={14} />
                 {s.label}
@@ -4645,20 +4644,24 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
                     return (
                       <div style={{ position: "relative", zIndex: 1, marginBottom: 28 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, fontWeight: 800, color: THEME.muted, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                           <span>Asset Allocation Balance</span>
-                          <span>{segments.length} Core Asset Classes</span>
+                          <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: "var(--radius-xs)", background: "var(--surface-1)", border: `1px solid ${THEME.line}` }}>
+                            {segments.length} Core Asset Classes
+                          </span>
                         </div>
 
                         {/* Multi-segment Progress Bar */}
                         <div
                           style={{
                             display: "flex",
-                            height: 10,
-                            borderRadius: 6,
+                            height: 12,
+                            borderRadius: 8,
                             overflow: "hidden",
-                            background: THEME.line,
+                            background: "var(--surface-1)",
+                            border: `1px solid ${THEME.line}`,
                             gap: 2,
+                            padding: 1,
                           }}
                         >
                           {segments.map((s, idx) => (
@@ -4668,6 +4671,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                                 width: `${s.pct}%`,
                                 background: s.color,
                                 height: "100%",
+                                borderRadius: 5,
                                 transition: "width 0.6s ease",
                               }}
                               title={`${s.label}: ${s.pct.toFixed(1)}%`}
@@ -4675,13 +4679,26 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           ))}
                         </div>
 
-                        {/* Legend */}
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 10 }}>
+                        {/* Legend Pills */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 12 }}>
                           {segments.map((s, idx) => (
-                            <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600 }}>
-                              <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color }} />
+                            <div
+                              key={idx}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 7,
+                                fontSize: 11.5,
+                                fontWeight: 600,
+                                padding: "4px 10px",
+                                borderRadius: "var(--radius-full)",
+                                background: "var(--surface-0)",
+                                border: `1px solid ${THEME.line}`,
+                              }}
+                            >
+                              <div style={{ width: 7, height: 7, borderRadius: "50%", background: s.color }} />
                               <span style={{ color: THEME.muted }}>{s.label}:</span>
-                              <span style={{ color: THEME.ink, fontWeight: 700 }}>{s.pct.toFixed(1)}%</span>
+                              <span style={{ color: THEME.ink, fontWeight: 800 }}>{s.pct.toFixed(1)}%</span>
                             </div>
                           ))}
                         </div>
@@ -5674,15 +5691,15 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                             <Money value={d.amount} variant="full" />
                           </div>
                           {d.isFdMaturity ? (
-                            <Badge variant="sage" style={{ fontSize: 9, marginTop: 3, padding: "1px 6px" }}>
-                              Matures in {d.daysLeft}d
+                            <Badge variant="sage" style={{ fontSize: 9, marginTop: 3, padding: "2px 7px" }}>
+                              {d.daysLeft === 0 ? "Matures Today" : d.daysLeft === 1 ? "Matures Tomorrow" : `Matures in ${d.daysLeft}d`}
                             </Badge>
                           ) : (
                             <Badge
-                              variant={d.daysLeft <= 5 ? "rust" : "gold"}
-                              style={{ fontSize: 9, marginTop: 3, padding: "1px 6px" }}
+                              variant={d.daysLeft <= 3 ? "rust" : "gold"}
+                              style={{ fontSize: 9, marginTop: 3, padding: "2px 7px" }}
                             >
-                              {d.daysLeft}d left
+                              {d.daysLeft === 0 ? "Due Today" : d.daysLeft === 1 ? "Due Tomorrow" : `${d.daysLeft}d left`}
                             </Badge>
                           )}
                         </div>
@@ -5792,21 +5809,22 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
                           display: "flex",
                           flexDirection: "column",
                           alignItems: "center",
-                          gap: 3,
+                          gap: 4,
+                          cursor: "default",
                         }}
                       >
                         <div
                           style={{
-                            width: 9,
-                            height: 9,
+                            width: 11,
+                            height: 11,
                             borderRadius: "50%",
                             background: hasData ? (saved ? THEME.sage : THEME.rust) : THEME.line,
-                            opacity: hasData ? 1 : 0.4,
-                            transition: "all 0.2s ease",
-                            boxShadow: hasData && saved ? `0 0 6px color-mix(in srgb, var(--t-sage) 40%, transparent)` : "none",
+                            opacity: hasData ? 1 : 0.35,
+                            transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                            boxShadow: hasData && saved ? `0 0 8px color-mix(in srgb, var(--t-sage) 45%, transparent)` : "none",
                           }}
                         />
-                        <span style={{ fontSize: 8, color: THEME.muted, fontWeight: 700 }}>
+                        <span style={{ fontSize: 9, color: THEME.muted, fontWeight: 800 }}>
                           {t.label.slice(0, 1)}
                         </span>
                       </div>
@@ -15993,21 +16011,22 @@ const HeroStat = ({
             },
           }
         : {})}
-      className="exec-stat-tile"
+      className={`exec-stat-tile ${negative ? "is-negative" : ""}`}
       style={{
         borderLeft: `3.5px solid ${accentColor}`,
         cursor: isClickable ? "pointer" : "default",
+        background: `color-mix(in srgb, ${accentColor} 3%, var(--surface-0))`,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
           {icon && (
             <div
               style={{
-                width: 22,
-                height: 22,
+                width: 24,
+                height: 24,
                 borderRadius: "var(--radius-xs)",
-                background: `color-mix(in srgb, ${accentColor} 12%, transparent)`,
+                background: `color-mix(in srgb, ${accentColor} 14%, transparent)`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -16020,8 +16039,8 @@ const HeroStat = ({
           )}
           <span
             style={{
-              fontSize: 10,
-              letterSpacing: "0.08em",
+              fontSize: 10.5,
+              letterSpacing: "0.06em",
               textTransform: "uppercase",
               color: "var(--t-muted)",
               fontWeight: 700,
@@ -16035,7 +16054,7 @@ const HeroStat = ({
           </span>
         </div>
         {isClickable && (
-          <span style={{ color: "var(--t-muted)", opacity: 0.6, fontSize: 11, fontWeight: 800 }}>↗</span>
+          <span style={{ color: accentColor, opacity: 0.7, fontSize: 12, fontWeight: 800 }}>↗</span>
         )}
       </div>
       <div
@@ -16047,7 +16066,7 @@ const HeroStat = ({
           fontVariantNumeric: "tabular-nums",
           letterSpacing: "-0.03em",
           lineHeight: 1.1,
-          marginTop: 4,
+          marginTop: 6,
         }}
       >
         <Money value={value} variant="full" />
