@@ -27,6 +27,16 @@ import {
   FileCheck,
   X,
   SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+  Code,
+  Eye,
+  CheckSquare,
+  Square,
+  ArrowRight,
+  Filter,
+  FileCode,
+  CheckCircle2,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { today } from "../../utils/finance";
@@ -35,7 +45,22 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Button } from "../ui/Button";
 import { StatCard } from "../ui/StatCard";
 
-// ─── Domain Groupings & Categorized Collections ─────────────────────────────
+// ─── Domain Groupings & Categorized Collections (with Sub-Objects & Fields) ───
+
+export interface SubObjectMeta {
+  name: string;
+  key: string;
+  description: string;
+  fields: string[];
+}
+
+export interface DataItemMeta {
+  key: string;
+  label: string;
+  description?: string;
+  fields?: string[];
+  subObjects?: SubObjectMeta[];
+}
 
 export interface DataCategory {
   id: string;
@@ -43,124 +68,399 @@ export interface DataCategory {
   description: string;
   icon: any;
   color: string;
-  items: {
-    key: string;
-    label: string;
-    description?: string;
-  }[];
+  items: DataItemMeta[];
 }
 
 export const DOMAIN_CATEGORIES: DataCategory[] = [
   {
     id: "banking",
     name: "Banking, Cash & Cards",
-    description: "Liquid bank accounts, cards, and day-to-day cashflow records",
+    description: "Liquid bank accounts, credit/prepaid cards, card companion variants, bills & transactions",
     icon: PiggyBank,
     color: "#3b82f6",
     items: [
-      { key: "bankAccounts", label: "Bank Accounts", description: "Savings, current & checking ledgers" },
-      { key: "transactions", label: "Account Transactions", description: "Inflows, outflows & transfers" },
-      { key: "creditCards", label: "Credit Cards", description: "Cards, limits & statements" },
-      { key: "prepaidCards", label: "Prepaid & Forex Cards", description: "Wallets & prepaid cards" },
-      { key: "billPayments", label: "Bills & Subscriptions", description: "Utility bills & scheduled dues" },
-      { key: "billPaymentHistory", label: "Bill Payment History", description: "Historical payment receipts" },
-      { key: "recurringExpenses", label: "Recurring Expenses", description: "Standing orders & repetitive costs" },
+      {
+        key: "bankAccounts",
+        label: "Bank Accounts",
+        description: "Savings, current, salary & checking ledgers with branch & IFSC info",
+        fields: ["id", "bankName", "accountNumber", "accountType", "balance", "ifsc", "minBalance", "notes"],
+      },
+      {
+        key: "transactions",
+        label: "Account Transactions",
+        description: "Inflows, outflows, category tags, ledger transfers & reference IDs",
+        fields: ["id", "date", "accountId", "type", "category", "amount", "description", "tags", "refNo"],
+      },
+      {
+        key: "creditCards",
+        label: "Credit Cards & Variants",
+        description: "Cards, limits, billing dates, reward points, companion cards & sub-card ledgers",
+        fields: ["id", "issuer", "network", "last4", "limit", "outstanding", "billDate", "dueDay", "annualFee", "rewardPointsBalance"],
+        subObjects: [
+          {
+            name: "Card Variants",
+            key: "variants",
+            description: "Multi-card linked companion cards (RuPay UPI, Virtual, Add-on, Companion Amex)",
+            fields: ["id", "name", "network", "last4", "cardType", "status"],
+          },
+          {
+            name: "Card Transactions",
+            key: "transactions",
+            description: "Card-level transaction history and merchant entries",
+            fields: ["id", "date", "merchant", "amount", "category", "variantId", "variantName"],
+          },
+        ],
+      },
+      {
+        key: "prepaidCards",
+        label: "Prepaid & Forex Wallets",
+        description: "Travel cards, digital prepaid balances & multi-currency wallets",
+        fields: ["id", "issuer", "cardName", "last4", "balance", "currency", "expiry"],
+      },
+      {
+        key: "billPayments",
+        label: "Bills & Subscriptions",
+        description: "Utility bills, scheduled dues, auto-pay setups & frequency",
+        fields: ["id", "biller", "category", "amount", "dueDate", "autoPay", "status", "notes"],
+      },
+      {
+        key: "billPaymentHistory",
+        label: "Bill Payment History",
+        description: "Historical payment receipts, transaction reference IDs & audit timestamps",
+        fields: ["id", "biller", "amount", "datePaid", "paymentRef", "paymentMode"],
+      },
+      {
+        key: "recurringExpenses",
+        label: "Recurring Expenses",
+        description: "Standing orders, rent agreements & scheduled recurring costs",
+        fields: ["id", "title", "category", "amount", "frequency", "nextDueDate", "accountId"],
+      },
     ],
   },
   {
     id: "investments",
     name: "Wealth, Stocks & Markets",
-    description: "Equities, mutual funds, fixed income, gold, and retirement deposits",
+    description: "Equities, mutual funds, demat accounts, fixed income, gold, PF & retirement deposits",
     icon: TrendingUp,
     color: "#10b981",
     items: [
-      { key: "mutualFunds", label: "Mutual Funds", description: "Active folios, units & NAVs" },
-      { key: "stocks", label: "Stocks Portfolio", description: "Equities, demat holdings & avg price" },
-      { key: "demat", label: "Demat Accounts", description: "Depository accounts & broker IDs" },
-      { key: "fixedDeposits", label: "Fixed Deposits (FD)", description: "Bank term deposits & maturities" },
-      { key: "recurringDeposits", label: "Recurring Deposits (RD)", description: "Monthly recurring deposit accounts" },
-      { key: "bonds", label: "Bonds & SGBs", description: "Corporate bonds & Sovereign Gold Bonds" },
-      { key: "goldHoldings", label: "Physical & Digital Gold", description: "Gold jewelry, bars & digital gold" },
-      { key: "ppf", label: "Public Provident Fund (PPF)", description: "PPF accounts & balances" },
-      { key: "ppfLedger", label: "PPF Contribution Ledger", description: "Yearly PPF deposit history" },
-      { key: "nps", label: "National Pension Scheme (NPS)", description: "Tier 1 & Tier 2 retirement pots" },
-      { key: "epf", label: "Employee Provident Fund (EPF)", description: "UAN balances & passbook records" },
-      { key: "sips", label: "Systematic Investment Plans", description: "Active monthly SIP schedules" },
-      { key: "dividends", label: "Dividend Income Logs", description: "Equities & MF dividend payouts" },
-      { key: "stockSells", label: "Stock Realized Sells", description: "Historical equity sell trades" },
-      { key: "mfSells", label: "MF Realized Redemptions", description: "Historical mutual fund sell trades" },
-      { key: "corporateActions", label: "Corporate Actions", description: "Bonus, splits & rights logs" },
-      { key: "govtSchemes", label: "Government Schemes", description: "SSY, SCSS, NSC, KVP & others" },
+      {
+        key: "mutualFunds",
+        label: "Mutual Funds Portfolio",
+        description: "Active folios, AMC schemes, units, purchase NAV, current NAV & category",
+        fields: ["id", "schemeName", "folioNo", "amc", "category", "units", "nav", "invested", "currentValue", "sipId"],
+      },
+      {
+        key: "stocks",
+        label: "Stocks & Equities",
+        description: "Demat equity holdings, ticker symbols, average price, CMP & sector classification",
+        fields: ["id", "symbol", "companyName", "dematId", "qty", "avgPrice", "cmp", "invested", "currentValue", "sector", "marketCap"],
+      },
+      {
+        key: "demat",
+        label: "Demat & Broker Accounts",
+        description: "Depository accounts (NSDL/CDSL), broker IDs & holding valuations",
+        fields: ["id", "brokerName", "boId", "depository", "linkedBank", "holdingValue"],
+      },
+      {
+        key: "fixedDeposits",
+        label: "Fixed Deposits (FD)",
+        description: "Bank term deposits, principal, tenure, compounding, interest rate & maturity amount",
+        fields: ["id", "bank", "fdNumber", "principal", "interestRate", "startDate", "tenureMonths", "maturityDate", "maturityAmount", "compounding"],
+      },
+      {
+        key: "recurringDeposits",
+        label: "Recurring Deposits (RD)",
+        description: "Monthly recurring deposit accounts, tenure & cumulative maturity estimates",
+        fields: ["id", "bank", "monthlyDeposit", "rate", "startDate", "tenureMonths", "maturityAmount"],
+      },
+      {
+        key: "bonds",
+        label: "Bonds & SGBs",
+        description: "Corporate bonds, Government Securities & Sovereign Gold Bonds",
+        fields: ["id", "issuer", "isin", "units", "buyPrice", "couponRate", "maturityDate", "frequency"],
+      },
+      {
+        key: "goldHoldings",
+        label: "Physical & Digital Gold",
+        description: "Gold jewelry, 24K bars, coins, digital gold & storage locker locations",
+        fields: ["id", "type", "weightGrams", "purityKarat", "buyPrice", "buyDate", "currentValuation", "lockerLocation"],
+      },
+      {
+        key: "ppf",
+        label: "Public Provident Fund (PPF)",
+        description: "PPF accounts, bank branches, maturity years & accumulated balances",
+        fields: ["id", "accountNumber", "bank", "openYear", "balance", "maturityYear"],
+      },
+      {
+        key: "ppfLedger",
+        label: "PPF Contribution Ledger",
+        description: "Yearly PPF deposit history, financial year breakdowns & transaction receipts",
+        fields: ["id", "date", "amount", "financialYear", "depositRef"],
+      },
+      {
+        key: "nps",
+        label: "National Pension Scheme (NPS)",
+        description: "Tier 1 & Tier 2 retirement pots, PRAN & asset allocation ratios (E/C/G)",
+        fields: ["id", "pran", "tier", "equityRatio", "corpRatio", "govtRatio", "balance", "monthlyContribution"],
+      },
+      {
+        key: "epf",
+        label: "Employee Provident Fund (EPF)",
+        description: "UAN balances, employee share, employer share & pension fund passbook",
+        fields: ["id", "uan", "employer", "employeeShare", "employerShare", "pensionShare", "totalBalance"],
+      },
+      {
+        key: "sips",
+        label: "Systematic Investment Plans",
+        description: "Active monthly SIP schedules, deduction dates, mandate banks & auto-debit status",
+        fields: ["id", "schemeName", "type", "amount", "dayOfMonth", "frequency", "linkedAccount", "status"],
+      },
+      {
+        key: "dividends",
+        label: "Dividend Income Logs",
+        description: "Equities & Mutual Fund dividend payouts, credit dates & tax deduction logs",
+        fields: ["id", "symbol", "date", "amount", "perShare", "accountId", "creditDate"],
+      },
+      {
+        key: "stockSells",
+        label: "Stock Realized Sells",
+        description: "Historical equity sell trades, buy/sell dates, STCG/LTCG capital gains",
+        fields: ["id", "symbol", "buyDate", "sellDate", "qty", "buyPrice", "sellPrice", "pnl", "gainType"],
+      },
+      {
+        key: "mfSells",
+        label: "MF Realized Redemptions",
+        description: "Historical mutual fund sell trades, NAV differences & tax classifications",
+        fields: ["id", "schemeName", "folioNo", "buyDate", "sellDate", "units", "navBuy", "navSell", "pnl", "stcgLtcg"],
+      },
+      {
+        key: "corporateActions",
+        label: "Corporate Actions",
+        description: "Bonus shares, stock splits, rights issues & merger logs",
+        fields: ["id", "symbol", "actionType", "ratio", "recordDate", "remarks"],
+      },
+      {
+        key: "govtSchemes",
+        label: "Government Schemes",
+        description: "Sukanya Samriddhi (SSY), SCSS, NSC, KVP, PMVVY & other sovereign schemes",
+        fields: ["id", "schemeType", "accountNo", "balance", "interestRate", "maturityDate", "holder"],
+      },
     ],
   },
   {
     id: "realEstate",
     name: "Real Estate & Physical Assets",
-    description: "Property holdings, construction payments, rentals, and automobiles",
+    description: "Property holdings, builder demands, construction disbursements, rental agreements & vehicles",
     icon: Building,
     color: "#f59e0b",
     items: [
-      { key: "realEstateProperties", label: "Real Estate Properties", description: "Land, residential & commercial units" },
-      { key: "realEstateDemands", label: "Real Estate Demands", description: "Builder milestone payment notices" },
-      { key: "realEstatePayments", label: "Real Estate Payments", description: "Disbursements & receipts paid" },
-      { key: "rentalProperties", label: "Rental Properties (Income)", description: "Tenants & monthly rental inflows" },
-      { key: "rentedProperties", label: "Rented Properties (Expense)", description: "Landlord agreements & rent paid" },
-      { key: "vehicles", label: "Vehicles & Automobiles", description: "Cars, bikes & valuation logs" },
+      {
+        key: "realEstateProperties",
+        label: "Real Estate Properties",
+        description: "Land, residential apartments, commercial units, registry & valuation data",
+        fields: ["id", "name", "type", "location", "purchasePrice", "currentValue", "loanId", "registrationDate", "areaSqFt"],
+      },
+      {
+        key: "realEstateDemands",
+        label: "Real Estate Demands",
+        description: "Builder milestone payment notices, architectural stages & due dates",
+        fields: ["id", "propertyId", "demandStage", "demandDate", "amountDue", "dueDate", "status"],
+      },
+      {
+        key: "realEstatePayments",
+        label: "Real Estate Payments",
+        description: "Disbursements, receipts, builder challans & payment modes",
+        fields: ["id", "propertyId", "demandId", "datePaid", "amountPaid", "paymentMode", "receiptNo"],
+      },
+      {
+        key: "rentalProperties",
+        label: "Rental Properties (Income)",
+        description: "Tenants, lease agreements, monthly rental inflows & security deposits received",
+        fields: ["id", "propertyId", "tenantName", "monthlyRent", "depositReceived", "leaseStart", "leaseEnd", "status"],
+      },
+      {
+        key: "rentedProperties",
+        label: "Rented Properties (Expense)",
+        description: "Landlord agreements, monthly rent obligations & security deposits paid",
+        fields: ["id", "propertyName", "landlordName", "rentAmount", "depositPaid", "agreementEnd"],
+      },
+      {
+        key: "vehicles",
+        label: "Vehicles & Automobiles",
+        description: "Cars, motorcycles, registration, purchase price, current valuation & insurance/PUCC dates",
+        fields: ["id", "vehicleName", "registrationNo", "makeModel", "purchaseYear", "purchasePrice", "currentValue", "insuranceExpiry", "puccExpiry", "loanId"],
+      },
     ],
   },
   {
     id: "insuranceTax",
     name: "Insurance, Tax & Income",
-    description: "Life/Health protection policies, tax filings, and income declarations",
+    description: "Life/Health protection policies, salary slips, advance tax challans & Form 26AS TDS",
     icon: Shield,
     color: "#8b5cf6",
     items: [
-      { key: "lic", label: "Life Insurance (LIC)", description: "Traditional life insurance policies" },
-      { key: "termPlans", label: "Term Life Insurance", description: "Pure risk term cover & sum assured" },
-      { key: "healthInsurance", label: "Health & Mediclaim", description: "Family floater & individual health covers" },
-      { key: "investmentPlans", label: "ULIPs & Endowments", description: "Investment-linked insurance plans" },
-      { key: "income", label: "Income Entries", description: "Salary, business, consulting & bonus" },
-      { key: "salarySlips", label: "Salary Slips & CTC", description: "Payslip breakdowns & deductions" },
-      { key: "taxPayments", label: "Advance Tax & Self-Assessment", description: "Challan payments & direct taxes" },
-      { key: "form26as", label: "Form 26AS Tax Credits", description: "TDS deductions & tax credit logs" },
+      {
+        key: "lic",
+        label: "Life Insurance (Traditional)",
+        description: "Endowment policies, money-back plans, sum assured & premium schedules",
+        fields: ["id", "policyNo", "company", "planName", "sumAssured", "premium", "premiumFrequency", "premiumDueDate", "maturityDate", "nominee"],
+      },
+      {
+        key: "termPlans",
+        label: "Term Life Insurance",
+        description: "Pure risk term protection, critical illness riders, cover amounts & expiry",
+        fields: ["id", "policyNo", "insurer", "sumAssured", "premium", "termYears", "riderCover", "expiryDate"],
+      },
+      {
+        key: "healthInsurance",
+        label: "Health & Mediclaim",
+        description: "Family floater, individual health covers, TPA contact & No-Claim Bonus",
+        fields: ["id", "policyNo", "insurer", "planType", "sumInsured", "membersCovered", "premium", "renewalDate", "tpaContact", "noClaimBonus"],
+      },
+      {
+        key: "investmentPlans",
+        label: "ULIPs & Endowments",
+        description: "Investment-linked insurance plans, fund values & lock-in periods",
+        fields: ["id", "policyNo", "insurer", "planName", "fundValue", "annualizedPremium", "lockInEnd"],
+      },
+      {
+        key: "income",
+        label: "Income Entries",
+        description: "Salary, business revenues, consulting retainers, interest & capital gains",
+        fields: ["id", "source", "category", "amount", "frequency", "grossAmount", "deductions", "date"],
+      },
+      {
+        key: "salarySlips",
+        label: "Salary Slips & CTC Structure",
+        description: "Monthly payslips with Basic, HRA, allowances, EPF/PT/TDS deductions & net pay",
+        fields: ["id", "month", "year", "basic", "hra", "specialAllowance", "epfEmployee", "epfEmployer", "pt", "tds", "netPay", "ctc"],
+      },
+      {
+        key: "taxPayments",
+        label: "Advance Tax & Self-Assessment",
+        description: "Tax challans, BSR codes, minor heads (100/300/400) & tender dates",
+        fields: ["id", "fy", "ay", "bsrCode", "challanNo", "tenderDate", "amount", "taxHead"],
+      },
+      {
+        key: "form26as",
+        label: "Form 26AS Tax Credits",
+        description: "TDS deductions, deductor TAN, sections (194A/C/J/I), quarterly credits & FY logs",
+        fields: ["id", "deductor", "tan", "section", "amountPaid", "tdsDeducted", "quarter", "fy"],
+      },
     ],
   },
   {
     id: "liabilities",
     name: "Liabilities & Loans",
-    description: "Formal bank borrowings, mortgages, and informal loan tracking",
+    description: "Formal mortgages, bank borrowings, vehicle loans, and informal lending/borrowing",
     icon: CreditCard,
     color: "#ef4444",
     items: [
-      { key: "loansTaken", label: "Formal Loans Taken", description: "Home, vehicle, education & personal loans" },
-      { key: "loansGiven", label: "Loans Given (Formal)", description: "Lending to businesses or entities" },
-      { key: "informalLent", label: "Informal Loans (Given)", description: "Lent to friends, family & relatives" },
-      { key: "informalBorrowed", label: "Informal Loans (Borrowed)", description: "Borrowed from friends & family" },
+      {
+        key: "loansTaken",
+        label: "Formal Loans Taken",
+        description: "Home loans, vehicle loans, personal loans, EMI, principal & interest rates",
+        fields: ["id", "loanName", "lender", "loanType", "principal", "outstandingPrincipal", "interestRate", "emiAmount", "tenureMonths", "startDate", "endDate"],
+      },
+      {
+        key: "loansGiven",
+        label: "Loans Given (Formal)",
+        description: "Lending to businesses, corporate notes or legally documented loan agreements",
+        fields: ["id", "borrower", "principal", "interestRate", "dueDate", "status"],
+      },
+      {
+        key: "informalLent",
+        label: "Informal Loans (Lent)",
+        description: "Money lent to friends, relatives, colleagues & tracking repayment status",
+        fields: ["id", "personName", "amount", "dateLent", "expectedReturnDate", "status", "notes"],
+      },
+      {
+        key: "informalBorrowed",
+        label: "Informal Loans (Borrowed)",
+        description: "Money borrowed from friends & family with settlement reminders",
+        fields: ["id", "personName", "amount", "dateBorrowed", "expectedReturnDate", "notes"],
+      },
     ],
   },
   {
     id: "planningVault",
     name: "Goals, Vault & Planning",
-    description: "Financial goals, budgets, documents, nominees, and audit metrics",
+    description: "Financial goals, budgets, vault document indexes, nominees, watchlists & credit history",
     icon: FolderOpen,
     color: "#06b6d4",
     items: [
-      { key: "goals", label: "Financial Goals", description: "Milestones, targets & target dates" },
-      { key: "budgets", label: "Category Budgets", description: "Monthly & annual budget limits" },
-      { key: "subscriptions", label: "Active Subscriptions", description: "Recurring digital services" },
-      { key: "documents", label: "Document Vault Meta", description: "Vault document records & index" },
-      { key: "nominees", label: "Will & Nominees", description: "Asset beneficiaries & allocations" },
-      { key: "reminders", label: "Reminders & Alerts", description: "Custom calendar notifications" },
-      { key: "lifeEvents", label: "Life Events & Milestones", description: "Major career and personal events" },
-      { key: "wishlists", label: "Watchlists", description: "Stock & fund tracking watchlists" },
-      { key: "wishlistItems", label: "Watchlist Items", description: "Tracked tickers & instruments" },
-      { key: "netWorthHistory", label: "Net Worth History", description: "Historical valuation time-series" },
-      { key: "creditScores", label: "Credit Score History", description: "CIBIL / Experian score snapshots" },
+      {
+        key: "goals",
+        label: "Financial Goals",
+        description: "Retirement, child education, house down payment, target amounts & timelines",
+        fields: ["id", "title", "targetAmount", "currentAmount", "targetDate", "category", "priority"],
+      },
+      {
+        key: "budgets",
+        label: "Category Budgets",
+        description: "Monthly expense caps, category limits, alerts & fiscal year budget lines",
+        fields: ["id", "category", "monthlyLimit", "fy", "alertThreshold"],
+      },
+      {
+        key: "subscriptions",
+        label: "Active Subscriptions",
+        description: "Digital SaaS subscriptions, streaming services, billing intervals & payment cards",
+        fields: ["id", "serviceName", "cost", "billingCycle", "nextBillingDate", "paymentMethod", "category"],
+      },
+      {
+        key: "documents",
+        label: "Document Vault Meta",
+        description: "Vault document records, physical locker tags, issue/expiry dates & certificate numbers",
+        fields: ["id", "title", "category", "documentType", "issueDate", "expiryDate", "documentNumber", "tags", "storageLocation"],
+      },
+      {
+        key: "nominees",
+        label: "Will & Nominees",
+        description: "Asset allocations, nominee percentages, relationships, contact & guardian data",
+        fields: ["id", "name", "relation", "dob", "contact", "allocatedAssets", "guardianName"],
+      },
+      {
+        key: "reminders",
+        label: "Reminders & Alerts",
+        description: "Custom calendar notifications, policy renewals, maturity alerts & due dates",
+        fields: ["id", "title", "dueDate", "category", "priority", "recurrence", "isCompleted"],
+      },
+      {
+        key: "lifeEvents",
+        label: "Life Events & Milestones",
+        description: "Career promotions, relocations, marriages, childbirths & estimated capital impact",
+        fields: ["id", "eventTitle", "eventDate", "estimatedCost", "notes", "status"],
+      },
+      {
+        key: "wishlists",
+        label: "Watchlists",
+        description: "Stock & mutual fund watchlists, themes & target allocations",
+        fields: ["id", "name", "description", "targetAllocation"],
+      },
+      {
+        key: "wishlistItems",
+        label: "Watchlist Items",
+        description: "Tracked tickers, target entry prices, buy notes & alerts",
+        fields: ["id", "wishlistId", "symbol", "targetPrice", "notes"],
+      },
+      {
+        key: "netWorthHistory",
+        label: "Net Worth History",
+        description: "Historical asset/liability timeline points & balance sheet evolution",
+        fields: ["id", "date", "totalAssets", "totalLiabilities", "netWorth", "breakdown"],
+      },
+      {
+        key: "creditScores",
+        label: "Credit Score History",
+        description: "CIBIL, Experian, CRIF & Equifax monthly score snapshots",
+        fields: ["id", "score", "bureau", "date", "remarks"],
+      },
     ],
   },
 ];
 
-// Flat lookup of all items
+// Flat lookup of all 44 data items
 export const ALL_DATA_SECTIONS = DOMAIN_CATEGORIES.flatMap((c) => c.items);
 
 // ─── Quick Preset Bundles ───────────────────────────────────────────────────
@@ -179,7 +479,7 @@ export const EXPORT_PRESETS: PresetBundle[] = [
   {
     id: "all",
     label: "Complete Archive",
-    description: "All collections across banking, investments, real estate, taxes, liabilities & goals",
+    description: "All 44 collections across banking, investments, real estate, taxes, liabilities & goals",
     tagline: "100% Full System Export",
     icon: Sparkles,
     color: THEME.accent,
@@ -188,7 +488,7 @@ export const EXPORT_PRESETS: PresetBundle[] = [
   {
     id: "tax",
     label: "CA & Tax Prep Pack",
-    description: "Income, 26AS, TDS, Tax Payments, Capital Gains, Dividends & Sec 80 items",
+    description: "Income, Salary Slips, 26AS, TDS, Tax Payments, Capital Gains, Dividends & Sec 80 items",
     tagline: "Ready for Tax Filing / CA Audit",
     icon: FileSpreadsheet,
     color: "#8b5cf6",
@@ -203,6 +503,7 @@ export const EXPORT_PRESETS: PresetBundle[] = [
       "bankAccounts",
       "fixedDeposits",
       "ppf",
+      "ppfLedger",
       "nps",
       "healthInsurance",
       "lic",
@@ -213,7 +514,7 @@ export const EXPORT_PRESETS: PresetBundle[] = [
   {
     id: "wealth",
     label: "Portfolio & Wealth Snapshot",
-    description: "Stocks, Mutual Funds, Demat, FDs, Gold, Bonds, EPF/PPF & Real Estate",
+    description: "Stocks, Mutual Funds, Demat, FDs, Gold, Bonds, EPF/PPF, Real Estate & Net Worth History",
     tagline: "Net Worth & Investment Review",
     icon: TrendingUp,
     color: "#10b981",
@@ -237,7 +538,7 @@ export const EXPORT_PRESETS: PresetBundle[] = [
   {
     id: "banking",
     label: "Cashflow & Banking Ledger",
-    description: "Bank accounts, statements, credit cards, bills & recurring expenses",
+    description: "Bank accounts, statements, credit cards, bills, subscriptions & recurring expenses",
     tagline: "Monthly Cash Flow & Expenses",
     icon: PiggyBank,
     color: "#3b82f6",
@@ -255,7 +556,7 @@ export const EXPORT_PRESETS: PresetBundle[] = [
   {
     id: "vault",
     label: "Insurance & Estate Vault",
-    description: "LIC, Health/Term policies, documents, nominees & life events",
+    description: "LIC, Health/Term policies, documents, nominees, life events & reminders",
     tagline: "Family Protection & Estate Records",
     icon: Shield,
     color: "#06b6d4",
@@ -272,18 +573,28 @@ export const EXPORT_PRESETS: PresetBundle[] = [
   },
 ];
 
-// ─── CSV Sanitization & Generation Utilities ────────────────────────────────
+// ─── Smart CSV Sanitization & Generation Utilities ──────────────────────────
 
-const csvCell = (val: any) => {
+const csvCell = (val: any): string => {
   if (val === null || val === undefined) return "";
-  const str = typeof val === "object" ? JSON.stringify(val) : String(val);
+  if (Array.isArray(val)) {
+    // If array of primitives, join by semicolon
+    if (val.length === 0) return "";
+    if (typeof val[0] !== "object") return `"${val.join("; ").replace(/"/g, '""')}"`;
+    // If array of objects, summarize count or concise description
+    return `"${val.length} items (${JSON.stringify(val).replace(/"/g, '""')})"`;
+  }
+  if (typeof val === "object") {
+    return `"${JSON.stringify(val).replace(/"/g, '""')}"`;
+  }
+  const str = String(val);
   if (/[",\n\r]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return str;
 };
 
-const toCleanCSV = (data: any[]) => {
+const toCleanCSV = (data: any[]): string | null => {
   if (!Array.isArray(data) || data.length === 0) return null;
   const allKeys = new Set<string>();
   data.forEach((row) => {
@@ -330,8 +641,8 @@ export const DataExportTab: React.FC<{
   lastBackupTs,
   isCloudSynced = false,
 }) => {
-  // Navigation View State: 'export' | 'restore' | 'security'
-  const [activeTab, setActiveTab] = useState<"export" | "restore" | "security">("export");
+  // Navigation View State: 'export' | 'restore' | 'schema' | 'security'
+  const [activeTab, setActiveTab] = useState<"export" | "restore" | "schema" | "security">("export");
 
   // Selection, Preset & Search State
   const [selectedSections, setSelectedSections] = useState<Set<string>>(
@@ -340,7 +651,9 @@ export const DataExportTab: React.FC<{
   const [activePresetId, setActivePresetId] = useState<string>("all");
   const [exportFormat, setExportFormat] = useState<"json-full" | "json-selective" | "csv">("json-full");
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("all");
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
+  const [inspectedObjectKey, setInspectedObjectKey] = useState<string | null>(null);
 
   // Restore Drag & Drop & Inspector State
   const [dragOver, setDragOver] = useState(false);
@@ -349,7 +662,7 @@ export const DataExportTab: React.FC<{
     fileSizeKb: number;
     rawJson: any;
     exportedAt?: string;
-    recordCounts: { key: string; label: string; count: number }[];
+    recordCounts: { key: string; label: string; count: number; currentCount: number }[];
     totalRecords: number;
     profileName?: string;
     version?: string;
@@ -482,7 +795,6 @@ export const DataExportTab: React.FC<{
     }
     const found = EXPORT_PRESETS.find((p) => p.id === activePresetId);
     if (found) {
-      // Check if current selection matches preset keys exactly
       const matchesExactly =
         found.id === "all"
           ? selectedSections.size === ALL_DATA_SECTIONS.length
@@ -690,17 +1002,20 @@ export const DataExportTab: React.FC<{
           return;
         }
 
-        const counts: { key: string; label: string; count: number }[] = [];
+        const counts: { key: string; label: string; count: number; currentCount: number }[] = [];
         let total = 0;
 
         ALL_DATA_SECTIONS.forEach((s) => {
-          if (Array.isArray(parsed[s.key]) && parsed[s.key].length > 0) {
+          const incomingCount = Array.isArray(parsed[s.key]) ? parsed[s.key].length : 0;
+          const currCount = Array.isArray(state[s.key]) ? state[s.key].length : 0;
+          if (incomingCount > 0 || currCount > 0) {
             counts.push({
               key: s.key,
               label: s.label,
-              count: parsed[s.key].length,
+              count: incomingCount,
+              currentCount: currCount,
             });
-            total += parsed[s.key].length;
+            total += incomingCount;
           }
         });
 
@@ -778,12 +1093,17 @@ export const DataExportTab: React.FC<{
     }
   };
 
-  // ─── Filtered Categories based on search query ────────────────────────────
+  // ─── Filtered Categories based on search query & category filter ─────────
 
   const filteredCategories = useMemo(() => {
-    if (!searchQuery.trim()) return categoryCounts;
+    let cats = categoryCounts;
+    if (activeCategoryFilter !== "all") {
+      cats = cats.filter((c) => c.id === activeCategoryFilter);
+    }
+    if (!searchQuery.trim()) return cats;
+
     const q = searchQuery.toLowerCase().trim();
-    return categoryCounts
+    return cats
       .map((cat) => {
         const matchesCat = cat.name.toLowerCase().includes(q) || cat.description.toLowerCase().includes(q);
         const filteredItems = cat.items.filter(
@@ -791,7 +1111,9 @@ export const DataExportTab: React.FC<{
             matchesCat ||
             it.label.toLowerCase().includes(q) ||
             (it.description && it.description.toLowerCase().includes(q)) ||
-            it.key.toLowerCase().includes(q)
+            it.key.toLowerCase().includes(q) ||
+            (it.subObjects && it.subObjects.some((so) => so.name.toLowerCase().includes(q) || so.description.toLowerCase().includes(q))) ||
+            (it.fields && it.fields.some((f) => f.toLowerCase().includes(q)))
         );
         return {
           ...cat,
@@ -799,11 +1121,17 @@ export const DataExportTab: React.FC<{
         };
       })
       .filter((cat) => cat.items.length > 0);
-  }, [categoryCounts, searchQuery]);
+  }, [categoryCounts, searchQuery, activeCategoryFilter]);
+
+  // Selected object for Schema Inspector
+  const currentInspectedItem = useMemo(() => {
+    if (!inspectedObjectKey) return null;
+    return ALL_DATA_SECTIONS.find((s) => s.key === inspectedObjectKey) || null;
+  }, [inspectedObjectKey]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {/* Styles for interactive micro-animations */}
+      {/* Styles for interactive micro-animations & layout */}
       <style>{`
         .export-tab-btn {
           transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -836,13 +1164,19 @@ export const DataExportTab: React.FC<{
           0%, 100% { border-color: color-mix(in srgb, var(--t-accent) 40%, transparent); }
           50% { border-color: var(--t-accent); }
         }
+        .schema-card-row {
+          transition: all 0.15s ease;
+        }
+        .schema-card-row:hover {
+          background: color-mix(in srgb, var(--t-accent) 5%, var(--surface-0)) !important;
+        }
       `}</style>
 
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
         <div>
-          <SectionTitle sub="Enterprise-grade local backup snapshots, Excel CSV exports, and safe disaster recovery">
-            Data Export & Backup Hub
+          <SectionTitle sub="Enterprise-grade local backup snapshots, structured Excel exports, and complete 44-collection schema architecture">
+            Data Export &amp; Backup Hub
           </SectionTitle>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -863,7 +1197,7 @@ export const DataExportTab: React.FC<{
         variant="hero"
         style={{
           padding: "20px 24px",
-          background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 7%, var(--t-card)) 0%, var(--t-card) 100%)",
+          background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 8%, var(--t-card)) 0%, var(--t-card) 100%)",
           border: "1px solid color-mix(in srgb, var(--t-accent) 25%, var(--t-line, rgba(255,255,255,0.08)))",
         }}
       >
@@ -871,8 +1205,8 @@ export const DataExportTab: React.FC<{
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div
               style={{
-                width: 48,
-                height: 48,
+                width: 50,
+                height: 50,
                 borderRadius: 14,
                 background: backupStatus.badgeBg,
                 border: `1.5px solid ${backupStatus.badgeBorder}`,
@@ -886,7 +1220,7 @@ export const DataExportTab: React.FC<{
               <Database size={24} />
             </div>
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 16, fontWeight: 800, color: THEME.text }}>
                   Backup Health Status
                 </span>
@@ -967,10 +1301,18 @@ export const DataExportTab: React.FC<{
             <Button
               variant="secondary"
               size="sm"
+              onClick={() => setActiveTab("schema")}
+              icon={<Code size={14} />}
+            >
+              Schema Explorer
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setActiveTab("security")}
               icon={<Shield size={14} />}
             >
-              Privacy &amp; Safety
+              Privacy &amp; Audit
             </Button>
           </div>
         </div>
@@ -991,7 +1333,7 @@ export const DataExportTab: React.FC<{
           formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
           icon={<Database />}
           color={THEME.accent}
-          sub={`Across ${activeDomainsCount} active categories`}
+          sub={`Across ${activeDomainsCount} populated categories`}
         />
         <StatCard
           label="Selected for Export"
@@ -1000,21 +1342,21 @@ export const DataExportTab: React.FC<{
           formatValue={(n) => Math.round(n).toLocaleString("en-IN")}
           icon={<CheckCircle />}
           color="var(--t-sage, #10b981)"
-          sub={`${selectedSections.size} of ${ALL_DATA_SECTIONS.length} sections`}
+          sub={`${selectedSections.size} of ${ALL_DATA_SECTIONS.length} collections`}
         />
         <StatCard
-          label="Estimated Data Size"
-          value={`${estimatedStorageKb} KB`}
+          label="Schema Collections"
+          value={`${ALL_DATA_SECTIONS.length} Primary`}
           icon={<Layers />}
           color="#8b5cf6"
-          sub="Local JSON memory footprint"
+          sub="6 Core Domains + Sub-Objects"
         />
         <StatCard
-          label="Last Verified Backup"
-          value={backupDateLabel ? backupDateLabel.split(",")[0] : "None Recorded"}
-          icon={<Clock />}
-          color={backupStatus.color}
-          sub={backupDateLabel ? backupDateLabel.split(",")[1] || "" : "Take your first backup"}
+          label="Estimated Data Footprint"
+          value={`${estimatedStorageKb} KB`}
+          icon={<FileCode />}
+          color="#06b6d4"
+          sub="Client-side JSON buffer"
         />
       </div>
 
@@ -1028,10 +1370,12 @@ export const DataExportTab: React.FC<{
           borderRadius: 12,
           border: "1px solid var(--t-line, rgba(255,255,255,0.08))",
           width: "fit-content",
+          flexWrap: "wrap",
         }}
       >
         {[
           { id: "export", label: "Export Hub & Spreadsheets", icon: Download },
+          { id: "schema", label: "Object & Sub-Object Schemas", icon: Code },
           { id: "restore", label: "Restore & Disaster Recovery", icon: Upload },
           { id: "security", label: "Privacy & Storage Insights", icon: Shield },
         ].map((tab) => {
@@ -1197,8 +1541,8 @@ export const DataExportTab: React.FC<{
                   {exportFormat === "json-full" && (
                     <>
                       <strong>Full Backup Snapshot:</strong> Captures complete state (all profile data,
-                      ledgers, settings, and histories) with sanitization of private API keys. Ideal for
-                      periodic offline safety.
+                      ledgers, sub-objects, settings, and histories) with sanitization of private API keys. Ideal for
+                      periodic offline safety and 100% data restoration.
                     </>
                   )}
                   {exportFormat === "json-selective" && (
@@ -1210,7 +1554,7 @@ export const DataExportTab: React.FC<{
                   {exportFormat === "csv" && (
                     <>
                       <strong>Domain Spreadsheets (.csv):</strong> Generates clean, RFC-4180 compliant CSV
-                      tables with standard headers for direct import into Microsoft Excel, Google Sheets, or Apple Numbers.
+                      tables with standard headers and flattened sub-objects for direct import into Microsoft Excel, Google Sheets, or Apple Numbers.
                     </>
                   )}
                 </span>
@@ -1425,7 +1769,7 @@ export const DataExportTab: React.FC<{
                 border: "1px solid var(--t-line, rgba(255,255,255,0.1))",
                 minWidth: 260,
                 flex: 1,
-                maxWidth: 420,
+                maxWidth: 400,
               }}
             >
               <Search size={15} color={THEME.textSecondary} />
@@ -1433,7 +1777,7 @@ export const DataExportTab: React.FC<{
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search collections (e.g. mutual, tax, demat)..."
+                placeholder="Search 44 collections (e.g. variants, tax, demat, ppf)..."
                 style={{
                   background: "transparent",
                   border: "none",
@@ -1457,6 +1801,43 @@ export const DataExportTab: React.FC<{
                   Clear
                 </button>
               )}
+            </div>
+
+            {/* Category Filter Pills */}
+            <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <button
+                onClick={() => setActiveCategoryFilter("all")}
+                style={{
+                  padding: "5px 10px",
+                  borderRadius: 6,
+                  fontSize: 11.5,
+                  fontWeight: activeCategoryFilter === "all" ? 700 : 500,
+                  background: activeCategoryFilter === "all" ? "var(--t-accent)" : "var(--surface-1)",
+                  color: activeCategoryFilter === "all" ? "#fff" : THEME.textSecondary,
+                  border: "1px solid var(--t-line)",
+                  cursor: "pointer",
+                }}
+              >
+                All ({ALL_DATA_SECTIONS.length})
+              </button>
+              {DOMAIN_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategoryFilter(cat.id)}
+                  style={{
+                    padding: "5px 10px",
+                    borderRadius: 6,
+                    fontSize: 11.5,
+                    fontWeight: activeCategoryFilter === cat.id ? 700 : 500,
+                    background: activeCategoryFilter === cat.id ? `color-mix(in srgb, ${cat.color} 25%, var(--surface-1))` : "var(--surface-1)",
+                    color: activeCategoryFilter === cat.id ? cat.color : THEME.textSecondary,
+                    border: `1px solid ${activeCategoryFilter === cat.id ? cat.color : "var(--t-line)"}`,
+                    cursor: "pointer",
+                  }}
+                >
+                  {cat.name.split(",")[0]} ({cat.items.length})
+                </button>
+              ))}
             </div>
 
             {/* Bulk Selection Actions */}
@@ -1561,9 +1942,9 @@ export const DataExportTab: React.FC<{
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div
                         style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: 8,
+                          width: 36,
+                          height: 36,
+                          borderRadius: 9,
                           background: `color-mix(in srgb, ${cat.color} 15%, transparent)`,
                           color: cat.color,
                           display: "flex",
@@ -1571,10 +1952,10 @@ export const DataExportTab: React.FC<{
                           justifyContent: "center",
                         }}
                       >
-                        <Icon size={18} />
+                        <Icon size={19} />
                       </div>
                       <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                           <span style={{ fontSize: 14.5, fontWeight: 700, color: THEME.text }}>
                             {cat.name}
                           </span>
@@ -1630,6 +2011,9 @@ export const DataExportTab: React.FC<{
                       >
                         {isAllSelected ? "Deselect Group" : `Select All (${cat.items.length})`}
                       </button>
+                      <div style={{ color: THEME.textSecondary, cursor: "pointer", padding: 4 }} onClick={() => toggleCategoryCollapse(cat.id)}>
+                        {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                      </div>
                     </div>
                   </div>
 
@@ -1639,7 +2023,7 @@ export const DataExportTab: React.FC<{
                       style={{
                         padding: 16,
                         display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
                         gap: 10,
                       }}
                     >
@@ -1653,9 +2037,9 @@ export const DataExportTab: React.FC<{
                             className="domain-row-item"
                             style={{
                               display: "flex",
-                              alignItems: "center",
+                              flexDirection: "column",
                               justifyContent: "space-between",
-                              padding: "10px 14px",
+                              padding: "12px 14px",
                               borderRadius: 10,
                               background: isChecked
                                 ? "color-mix(in srgb, var(--t-accent) 7%, var(--t-card))"
@@ -1665,97 +2049,146 @@ export const DataExportTab: React.FC<{
                                   ? "color-mix(in srgb, var(--t-accent) 35%, transparent)"
                                   : "var(--t-line, rgba(255,255,255,0.06))"
                               }`,
+                              gap: 8,
                             }}
                           >
-                            <label
-                              style={{
-                                display: "flex",
-                                alignItems: "flex-start",
-                                gap: 10,
-                                cursor: "pointer",
-                                flex: 1,
-                                marginRight: 8,
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => toggleSection(item.key)}
+                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                              <label
                                 style={{
-                                  accentColor: "var(--t-accent)",
-                                  width: 16,
-                                  height: 16,
-                                  marginTop: 2,
+                                  display: "flex",
+                                  alignItems: "flex-start",
+                                  gap: 10,
                                   cursor: "pointer",
-                                }}
-                              />
-                              <div>
-                                <div
-                                  style={{
-                                    fontSize: 13,
-                                    fontWeight: isChecked ? 700 : 500,
-                                    color: THEME.text,
-                                    lineHeight: 1.3,
-                                  }}
-                                >
-                                  {item.label}
-                                </div>
-                                {item.description && (
-                                  <div
-                                    style={{
-                                      fontSize: 11,
-                                      color: THEME.textSecondary,
-                                      marginTop: 2,
-                                    }}
-                                  >
-                                    {item.description}
-                                  </div>
-                                )}
-                              </div>
-                            </label>
-
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                              <span
-                                style={{
-                                  fontSize: 11.5,
-                                  fontWeight: 700,
-                                  padding: "2px 7px",
-                                  borderRadius: 6,
-                                  background:
-                                    count > 0
-                                      ? "color-mix(in srgb, var(--t-accent) 15%, transparent)"
-                                      : "var(--surface-1)",
-                                  color: count > 0 ? "var(--t-accent)" : THEME.textSecondary,
+                                  flex: 1,
+                                  marginRight: 8,
                                 }}
                               >
-                                {count}
-                              </span>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleSection(item.key)}
+                                  style={{
+                                    accentColor: "var(--t-accent)",
+                                    width: 16,
+                                    height: 16,
+                                    marginTop: 2,
+                                    cursor: "pointer",
+                                  }}
+                                />
+                                <div>
+                                  <div
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight: isChecked ? 700 : 600,
+                                      color: THEME.text,
+                                      lineHeight: 1.3,
+                                    }}
+                                  >
+                                    {item.label}
+                                  </div>
+                                  {item.description && (
+                                    <div
+                                      style={{
+                                        fontSize: 11,
+                                        color: THEME.textSecondary,
+                                        marginTop: 2,
+                                      }}
+                                    >
+                                      {item.description}
+                                    </div>
+                                  )}
+                                </div>
+                              </label>
 
-                              {/* Single CSV Download Action */}
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                                <span
+                                  style={{
+                                    fontSize: 11.5,
+                                    fontWeight: 700,
+                                    padding: "2px 7px",
+                                    borderRadius: 6,
+                                    background:
+                                      count > 0
+                                        ? "color-mix(in srgb, var(--t-accent) 15%, transparent)"
+                                        : "var(--surface-1)",
+                                    color: count > 0 ? "var(--t-accent)" : THEME.textSecondary,
+                                  }}
+                                >
+                                  {count}
+                                </span>
+
+                                {/* Single CSV Download Action */}
+                                <button
+                                  title={`Download clean CSV for ${item.label}`}
+                                  disabled={count === 0}
+                                  onClick={() => downloadSingleCSV(item.key, item.label)}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    color: count > 0 ? THEME.textSecondary : "transparent",
+                                    cursor: count > 0 ? "pointer" : "default",
+                                    padding: 4,
+                                    borderRadius: 4,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    opacity: count > 0 ? 0.8 : 0.2,
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (count > 0) e.currentTarget.style.color = "var(--t-accent)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (count > 0) e.currentTarget.style.color = THEME.textSecondary;
+                                  }}
+                                >
+                                  <Download size={14} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Sub-Objects and Field Tags */}
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 6, borderTop: "1px dashed var(--t-line)", marginTop: 2 }}>
+                              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                                {item.subObjects?.map((so) => (
+                                  <span
+                                    key={so.key}
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      padding: "1px 5px",
+                                      borderRadius: 4,
+                                      background: `color-mix(in srgb, ${cat.color} 15%, transparent)`,
+                                      color: cat.color,
+                                    }}
+                                  >
+                                    +{so.name}
+                                  </span>
+                                ))}
+                                {item.fields && (
+                                  <span style={{ fontSize: 10.5, color: THEME.textSecondary }}>
+                                    {item.fields.length} schema fields
+                                  </span>
+                                )}
+                              </div>
                               <button
-                                title={`Download clean CSV for ${item.label}`}
-                                disabled={count === 0}
-                                onClick={() => downloadSingleCSV(item.key, item.label)}
+                                onClick={() => {
+                                  setInspectedObjectKey(item.key);
+                                  setActiveTab("schema");
+                                }}
                                 style={{
                                   background: "none",
                                   border: "none",
-                                  color: count > 0 ? THEME.textSecondary : "transparent",
-                                  cursor: count > 0 ? "pointer" : "default",
-                                  padding: 4,
-                                  borderRadius: 4,
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  color: "var(--t-accent)",
+                                  cursor: "pointer",
                                   display: "flex",
                                   alignItems: "center",
-                                  justifyContent: "center",
-                                  opacity: count > 0 ? 0.8 : 0.2,
-                                }}
-                                onMouseEnter={(e) => {
-                                  if (count > 0) e.currentTarget.style.color = "var(--t-accent)";
-                                }}
-                                onMouseLeave={(e) => {
-                                  if (count > 0) e.currentTarget.style.color = THEME.textSecondary;
+                                  gap: 2,
+                                  padding: 0,
                                 }}
                               >
-                                <Download size={14} />
+                                View Schema <ArrowRight size={11} />
                               </button>
                             </div>
                           </div>
@@ -1771,7 +2204,263 @@ export const DataExportTab: React.FC<{
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* VIEW 2: RESTORE & DISASTER RECOVERY                                 */}
+      {/* VIEW 2: OBJECT & SUB-OBJECT SCHEMAS EXPLORER                        */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {activeTab === "schema" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <Card style={{ padding: 22 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <Code size={20} color={THEME.accent} />
+                  <span style={{ fontSize: 16, fontWeight: 800, color: THEME.text }}>
+                    Financial Domain Object &amp; Sub-Object Architecture
+                  </span>
+                </div>
+                <div style={{ fontSize: 13, color: THEME.textSecondary }}>
+                  Explore comprehensive schema definitions, sub-objects, child relationships, and fields across all 44 data collections.
+                </div>
+              </div>
+
+              {inspectedObjectKey && (
+                <button
+                  onClick={() => setInspectedObjectKey(null)}
+                  style={{
+                    background: "var(--surface-1)",
+                    border: "1px solid var(--t-line)",
+                    borderRadius: 8,
+                    padding: "6px 12px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    color: THEME.text,
+                  }}
+                >
+                  Show All Collections
+                </button>
+              )}
+            </div>
+          </Card>
+
+          {/* Inspected Object Detail Focus Modal/Banner */}
+          {currentInspectedItem && (
+            <Card style={{ padding: 22, border: "1.5px solid var(--t-accent)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: THEME.text }}>
+                      {currentInspectedItem.label}
+                    </span>
+                    <code style={{ fontSize: 12, padding: "2px 6px", borderRadius: 4, background: "var(--surface-1)", color: "var(--t-accent)" }}>
+                      state.{currentInspectedItem.key}
+                    </code>
+                    <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: "var(--surface-1)", color: THEME.text }}>
+                      {allCountMap[currentInspectedItem.key] || 0} active records
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, color: THEME.textSecondary, marginTop: 4 }}>
+                    {currentInspectedItem.description}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setInspectedObjectKey(null)}
+                  style={{ background: "none", border: "none", color: THEME.textSecondary, cursor: "pointer", padding: 4 }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Primary Fields */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.textSecondary, textTransform: "uppercase", marginBottom: 8 }}>
+                  Core Schema Fields ({currentInspectedItem.fields?.length || 0})
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {currentInspectedItem.fields?.map((f) => (
+                    <span
+                      key={f}
+                      style={{
+                        fontSize: 12,
+                        padding: "4px 8px",
+                        borderRadius: 6,
+                        background: "var(--surface-1)",
+                        border: "1px solid var(--t-line)",
+                        fontFamily: "monospace",
+                        color: THEME.text,
+                      }}
+                    >
+                      {f}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sub-Objects if any */}
+              {currentInspectedItem.subObjects && currentInspectedItem.subObjects.length > 0 && (
+                <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--t-line)" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--t-accent)", textTransform: "uppercase", marginBottom: 10 }}>
+                    Nested Child Sub-Objects ({currentInspectedItem.subObjects.length})
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
+                    {currentInspectedItem.subObjects.map((so) => (
+                      <div
+                        key={so.key}
+                        style={{
+                          padding: 12,
+                          borderRadius: 8,
+                          background: "var(--surface-1)",
+                          border: "1px solid var(--t-line)",
+                        }}
+                      >
+                        <div style={{ fontSize: 13, fontWeight: 700, color: THEME.text, marginBottom: 2 }}>
+                          {so.name} (<code style={{ color: "var(--t-accent)" }}>.{so.key}[]</code>)
+                        </div>
+                        <div style={{ fontSize: 12, color: THEME.textSecondary, marginBottom: 8 }}>
+                          {so.description}
+                        </div>
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          {so.fields.map((sf) => (
+                            <span
+                              key={sf}
+                              style={{
+                                fontSize: 11,
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                background: "var(--surface-0)",
+                                border: "1px solid var(--t-line)",
+                                fontFamily: "monospace",
+                                color: THEME.textSecondary,
+                              }}
+                            >
+                              {sf}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sample Live State JSON Peek */}
+              {Array.isArray(state[currentInspectedItem.key]) && state[currentInspectedItem.key].length > 0 && (
+                <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--t-line)" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: THEME.textSecondary, textTransform: "uppercase", marginBottom: 8 }}>
+                    Sample Record Live Preview
+                  </div>
+                  <pre
+                    style={{
+                      margin: 0,
+                      padding: 12,
+                      borderRadius: 8,
+                      background: "var(--surface-0)",
+                      border: "1px solid var(--t-line)",
+                      fontSize: 12,
+                      fontFamily: "monospace",
+                      color: THEME.text,
+                      maxHeight: 200,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {JSON.stringify(state[currentInspectedItem.key][0], null, 2)}
+                  </pre>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* All 6 Domain Categories & 44 Collections Catalog */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {DOMAIN_CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              return (
+                <Card key={cat.id} style={{ padding: 20 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                    <div
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        background: `color-mix(in srgb, ${cat.color} 15%, transparent)`,
+                        color: cat.color,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Icon size={16} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: THEME.text }}>
+                        {cat.name} ({cat.items.length} collections)
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.textSecondary }}>{cat.description}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 10 }}>
+                    {cat.items.map((item) => {
+                      const count = allCountMap[item.key] || 0;
+                      return (
+                        <div
+                          key={item.key}
+                          className="schema-card-row"
+                          onClick={() => setInspectedObjectKey(item.key)}
+                          style={{
+                            padding: 12,
+                            borderRadius: 8,
+                            background: "var(--surface-0)",
+                            border: "1px solid var(--t-line)",
+                            cursor: "pointer",
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            gap: 8,
+                          }}
+                        >
+                          <div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: THEME.text }}>
+                                {item.label}
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  padding: "1px 6px",
+                                  borderRadius: 4,
+                                  background: count > 0 ? "color-mix(in srgb, var(--t-accent) 15%, transparent)" : "var(--surface-1)",
+                                  color: count > 0 ? "var(--t-accent)" : THEME.textSecondary,
+                                }}
+                              >
+                                {count} records
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 11.5, color: THEME.textSecondary, marginTop: 4 }}>
+                              {item.description}
+                            </div>
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 6, borderTop: "1px dashed var(--t-line)" }}>
+                            <code style={{ fontSize: 11, color: "var(--t-accent)" }}>state.{item.key}</code>
+                            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: THEME.textSecondary }}>
+                              {item.subObjects ? `+${item.subObjects.length} sub-objects` : `${item.fields?.length || 0} fields`}
+                              <ArrowRight size={12} />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* VIEW 3: RESTORE & DISASTER RECOVERY                                 */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {activeTab === "restore" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -1906,7 +2595,7 @@ export const DataExportTab: React.FC<{
                 </div>
               </div>
 
-              {/* Records Breakdown Diff */}
+              {/* Records Breakdown Diff (Incoming vs Current) */}
               <div style={{ marginBottom: 20 }}>
                 <div
                   style={{
@@ -1923,7 +2612,7 @@ export const DataExportTab: React.FC<{
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
                     gap: 8,
                     maxHeight: 240,
                     overflowY: "auto",
@@ -1945,17 +2634,23 @@ export const DataExportTab: React.FC<{
                       }}
                     >
                       <span style={{ color: THEME.text }}>{rec.label}</span>
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          color: "var(--t-accent)",
-                          background: "color-mix(in srgb, var(--t-accent) 15%, transparent)",
-                          padding: "1px 6px",
-                          borderRadius: 4,
-                        }}
-                      >
-                        {rec.count}
-                      </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span
+                          title="Incoming backup count"
+                          style={{
+                            fontWeight: 700,
+                            color: "var(--t-accent)",
+                            background: "color-mix(in srgb, var(--t-accent) 15%, transparent)",
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          {rec.count}
+                        </span>
+                        <span style={{ fontSize: 11, color: THEME.textSecondary }}>
+                          (curr: {rec.currentCount})
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2011,7 +2706,7 @@ export const DataExportTab: React.FC<{
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* VIEW 3: SECURITY, PRIVACY & STORAGE INSIGHTS                        */}
+      {/* VIEW 4: SECURITY, PRIVACY & STORAGE INSIGHTS                        */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {activeTab === "security" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -2138,3 +2833,4 @@ export const DataExportTab: React.FC<{
     </div>
   );
 };
+
