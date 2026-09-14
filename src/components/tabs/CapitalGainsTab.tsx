@@ -16,7 +16,36 @@ import {
   IndianRupee,
   ArrowRight,
   Info,
+  Search,
+  Filter,
+  PieChart as PieChartIcon,
+  Calculator,
+  BookOpen,
+  CheckCircle2,
+  HelpCircle,
+  Sparkles,
+  Layers,
+  ArrowUpRight,
+  ArrowDownRight,
+  RefreshCw,
+  Copy,
+  Check,
+  Percent,
+  Sliders,
+  Wallet,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  Cell,
+  PieChart,
+  Pie,
+} from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, today, exportArrayToCSV } from "../../utils/finance";
 import { Card } from "../ui/Card";
@@ -26,6 +55,9 @@ import { StatCard } from "../ui/StatCard";
 import { SectionTitle } from "../ui/SectionTitle";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
+import { Modal, ModalActions } from "../ui/Modal";
+import { EmptyState } from "../ui/EmptyState";
+import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 /* ══════════════════════════════════════════════════════════════════
    CONSTANTS & HELPERS
@@ -58,16 +90,6 @@ export const isEquityMF = (mf: any): boolean => {
 const mfKey = (name: string, owner: string) =>
   `${(name || "").trim().toLowerCase()}|${owner || "self"}`;
 
-// mf_sells rows written before migration 94 (2026-08-16) never got a `category`
-// column to write into — Supabase silently stripped the field on save (PGRST204
-// auto-retry, see App.tsx), so those historical sale records have no category
-// and isEquityMF() falls all the way back to guessing Equity/Debt from the fund
-// NAME text. A plain name like "Axis Bluechip Fund" matches none of
-// EQUITY_CATEGORIES, so it silently misfiles into the Debt STCG/LTCG tab
-// instead of Equity. Recover the real category from the user's still-live
-// holding of the same fund (same name + owner) before falling back to the
-// keyword guess — fixes the classification for any fund not yet fully sold
-// off, with zero risk since it only fills in a value that's currently empty.
 const buildMFCategoryIndex = (mutualFunds: any[]): Map<string, string> => {
   const idx = new Map<string, string>();
   for (const mf of mutualFunds || []) {
@@ -83,13 +105,6 @@ const resolveMFSellCategory = (m: any, categoryIndex: Map<string, string>): stri
   return categoryIndex.get(mfKey(m.name || m.scheme, m.owner)) || "";
 };
 
-// Parse a "YYYY-MM-DD" string as a local-midnight Date instead of letting the
-// Date constructor treat it as UTC (per the ISO-8601 spec, a date-only string
-// parses as UTC). Reading local getters (getMonth/getDate) off a UTC-parsed
-// date can silently shift the date by a day depending on the runtime's
-// timezone — the same footgun already documented and worked around in
-// calcXIRR() in utils/finance.ts. Matters here because getHoldingMonths/
-// isLongTerm below do exact day-of-month arithmetic.
 const parseLocalDate = (dateStr: string): Date => {
   const clean = String(dateStr || "").trim();
   const parts = clean.split("-");
@@ -102,13 +117,6 @@ const parseLocalDate = (dateStr: string): Date => {
   return new Date(clean);
 };
 
-// Complete months elapsed between two dates, honoring day-of-month.
-// The shared monthsBetween() helper only diffs calendar (year, month) pairs
-// and ignores the day component entirely — e.g. monthsBetween('2023-02-15',
-// '2024-02-10') returns 12 even though only ~11mo 26d actually elapsed. That
-// coarse approximation is fine for its other callers (SIP/loan tenure
-// displays) but is not acceptable here: it can flip a transaction's STCG/LTCG
-// classification (and thus its tax rate) near a month boundary.
 export const getHoldingMonths = (buyDate: string, sellDate: string): number => {
   if (!buyDate || !sellDate) return 0;
   const a = parseLocalDate(buyDate);
@@ -118,12 +126,6 @@ export const getHoldingMonths = (buyDate: string, sellDate: string): number => {
   return Math.max(0, months);
 };
 
-// Section 2(42A): a capital asset qualifies for LTCG only when held for MORE
-// than `monthsThreshold` months — i.e. the sale date must be strictly after
-// the N-month anniversary of the purchase date, not on it. Selling exactly on
-// the anniversary (e.g. bought 15-Jan-2023, sold 15-Jan-2024) is still
-// short-term. Comparing calendar-month counts with >= (the previous approach)
-// incorrectly treated the exact-anniversary sale as long-term.
 export const isLongTerm = (buyDate: string, sellDate: string, monthsThreshold: number): boolean => {
   if (!buyDate || !sellDate) return false;
   const buy = parseLocalDate(buyDate);
@@ -132,12 +134,6 @@ export const isLongTerm = (buyDate: string, sellDate: string, monthsThreshold: n
   return sell > anniversary;
 };
 
-// NOTE: every date comparison below goes through parseLocalDate (never the
-// bare `new Date(dateStr)` constructor) — see the comment on parseLocalDate
-// above for why: a raw `new Date("YYYY-MM-DD")` parses as UTC midnight, and
-// reading local getters off it (or comparing it against a locally-built
-// Date) can silently shift the effective calendar day depending on the
-// runtime's timezone.
 const fmtDate = (d: string) => {
   if (!d) return "-";
   const dt = parseLocalDate(d);
@@ -149,7 +145,6 @@ const dateToFYStart = (d: string): number => {
   return dt.getMonth() >= 3 ? dt.getFullYear() : dt.getFullYear() - 1;
 };
 
-// FY (April→March) that "today" falls in.
 const getCurrentFYStartYear = (): number => {
   const now = new Date();
   return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
@@ -162,11 +157,11 @@ const buildFYOptions = (
   const fySet = new Set<number>();
   fySet.add(getCurrentFYStartYear());
 
-  for (const s of stockSells) {
+  for (const s of stockSells || []) {
     if (s.sellDate) fySet.add(dateToFYStart(s.sellDate));
     if (s.buyDate) fySet.add(dateToFYStart(s.buyDate));
   }
-  for (const m of mfSells) {
+  for (const m of mfSells || []) {
     if (m.sellDate) fySet.add(dateToFYStart(m.sellDate));
     if (m.buyDate) fySet.add(dateToFYStart(m.buyDate));
   }
@@ -184,20 +179,7 @@ const isInFY = (dateStr: string, fyStartYear: number): boolean => {
   return d >= fyStart && d <= fyEnd;
 };
 
-/* ── Tax Rate helpers ──────────────────────────────────────────────
-   Budget 2024 raised equity STCG/LTCG rates effective a specific
-   TRANSACTION date — 23-Jul-2024 — not at the start of FY2024-25
-   (01-Apr-2024). FY2024-25 straddles the change: a sale on, say,
-   15-May-2024 must still be taxed at the OLD rate even though it falls in
-   the same financial year as a sale made after 23-Jul-2024, which gets the
-   NEW rate. So these two rate lookups are keyed off the actual sell date,
-   NOT the selected/filed financial year (fixing a bug where the whole of
-   FY2024-25 was previously taxed at the new rate, including pre-23-Jul
-   sales).
-   The LTCG exemption limit is the one exception that legitimately stays
-   FY-keyed: per CBDT's Budget 2024 clarification, the enhanced ₹1.25L
-   exemption applies to the ENTIRE FY2024-25 (it is not prorated/split at
-   23-Jul), unlike the tax rate itself. */
+/* ── Tax Rate constants & helpers ────────────────────────────────── */
 const EQUITY_RATE_CHANGE_DATE = "2024-07-23";
 const DEBT_INDEXATION_CUTOFF_DATE = "2023-04-01";
 
@@ -212,24 +194,19 @@ const getEquityLTCGExemption = (fy: number) => (fy >= 2024 ? 125000 : 100000);
 const DEBT_STCG_SLAB_RATE = 0.3;
 const DEBT_LTCG_RATE = 0.2;
 
-// For display-only "headline" rate figures (glossary banner, category cards,
-// disclaimer) where a single scalar rate is shown for a whole FY: use
-// today's rate if the FY is still open/ongoing, or the rate as of that FY's
-// last day if it's a closed, past FY. Per-transaction figures (the ledger
-// table, tax totals) never use this — they use each row's own sell-date-based
-// rate via getEquitySTCGRate/getEquityLTCGRate above.
 const referenceDateForFY = (fyStartYear: number): string => {
   if (fyStartYear >= getCurrentFYStartYear()) return today();
   return `${fyStartYear + 1}-03-31`;
 };
 
 /* ── Classification Types ──────────────────────────────────────── */
-type GainType = "EQUITY_STCG" | "EQUITY_LTCG" | "DEBT_STCG" | "DEBT_LTCG";
+export type GainType = "EQUITY_STCG" | "EQUITY_LTCG" | "DEBT_STCG" | "DEBT_LTCG";
 const GAIN_TYPE_ORDER: GainType[] = ["EQUITY_STCG", "EQUITY_LTCG", "DEBT_STCG", "DEBT_LTCG"];
 
-interface ClassifiedSell {
+export interface ClassifiedSell {
   id?: string;
   name: string;
+  symbol?: string;
   buyDate: string;
   buyPrice: number;
   sellDate: string;
@@ -237,39 +214,50 @@ interface ClassifiedSell {
   qty: number;
   holdingMonths: number;
   profit: number;
+  profitPct: number;
   taxRate: number;
   estimatedTax: number;
   gainType: GainType;
   assetType: "Stock" | "Mutual Fund";
-  // true when this MF sell has no confirmed Equity/Debt category — from itself
-  // or a still-live matching holding — so its gain type/tax rate above are
-  // only a best-effort guess from the fund's name text (see isEquityMF).
+  owner?: string;
   categoryGuessed?: boolean;
 }
 
-interface UnrealizedHolding {
+export interface UnrealizedHolding {
+  id?: string;
   name: string;
+  symbol?: string;
   buyDate: string;
   buyPrice: number;
   currentPrice: number;
   qty: number;
   holdingMonths: number;
   unrealizedPL: number;
+  unrealizedPLPct: number;
   wouldBeType: GainType;
   assetType: "Stock" | "Mutual Fund";
-  // number = months remaining to LTCG; null = already LTCG; "never" = this
-  // lot can NEVER become LTCG regardless of holding period (debt MF units
-  // bought on/after 1-Apr-2023 — no indexation/LTCG benefit exists for them).
+  owner?: string;
   monthsToLTCG: number | null | "never";
+  daysToLTCG?: number | null;
+}
+
+export interface QuarterAccrual {
+  key: string;
+  label: string;
+  period: string;
+  fromDate: string;
+  toDate: string;
+  equitySTCG: number;
+  equityLTCG: number;
+  debtSTCG: number;
+  debtLTCG: number;
+  totalGain: number;
+  estimatedTax: number;
+  txnCount: number;
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   SELL CLASSIFICATION & TAX-TOTAL COMPUTATION (pure, FY-parameterized)
-   Pulled out of the component so the same logic can be run twice: once
-   for whichever FY the user has selected in the ledger dropdown, and
-   once — independently — for the CURRENT FY, which the tax-loss
-   harvesting section below always needs regardless of which FY the user
-   is browsing (see the comment above harvestingSuggestions).
+   CLASSIFICATION & COMPUTATION ENGINES
    ══════════════════════════════════════════════════════════════════ */
 
 const classifySells = (
@@ -287,13 +275,15 @@ const classifySells = (
     const buyTotal = (Number(s.buyPrice) || 0) * qty;
     const sellTotal = (Number(s.sellPrice) || 0) * qty;
     const profit = s.profit != null ? Number(s.profit) : sellTotal - buyTotal;
+    const profitPct = buyTotal > 0 ? (profit / buyTotal) * 100 : 0;
     const isLTCG = isLongTerm(s.buyDate, s.sellDate, 12);
     const gainType: GainType = isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG";
-    // Rate keyed to the actual sell date (see comment above getEquitySTCGRate).
     const taxRate = isLTCG ? getEquityLTCGRate(s.sellDate) : getEquitySTCGRate(s.sellDate);
 
     result.push({
+      id: s.id,
       name: s.symbol || s.name || "Unknown Stock",
+      symbol: s.symbol,
       buyDate: s.buyDate,
       buyPrice: buyTotal,
       sellDate: s.sellDate,
@@ -301,10 +291,12 @@ const classifySells = (
       qty,
       holdingMonths: months,
       profit,
+      profitPct,
       taxRate,
       estimatedTax: 0,
       gainType,
       assetType: "Stock",
+      owner: s.owner || "self",
     });
   }
 
@@ -315,6 +307,7 @@ const classifySells = (
     const buyTotal = (Number(m.buyNav || m.buyPrice) || 0) * units;
     const sellTotal = (Number(m.sellNav || m.sellPrice) || 0) * units;
     const profit = m.profit != null ? Number(m.profit) : sellTotal - buyTotal;
+    const profitPct = buyTotal > 0 ? (profit / buyTotal) * 100 : 0;
     const resolvedCategory = resolveMFSellCategory(m, mfCategoryIndex);
     const equity = isEquityMF({ ...m, category: resolvedCategory });
 
@@ -348,10 +341,12 @@ const classifySells = (
       qty: units,
       holdingMonths: months,
       profit,
+      profitPct,
       taxRate,
       estimatedTax: 0,
       gainType,
       assetType: "Mutual Fund",
+      owner: m.owner || "self",
       categoryGuessed: !resolvedCategory,
     });
   }
@@ -380,8 +375,7 @@ const computeGainTotals = (classified: ClassifiedSell[], fyStartYear: number) =>
   const stcgRate = getEquitySTCGRate(refDate);
   const ltcgRate = getEquityLTCGRate(refDate);
 
-  // Section 70 Loss Set-Off Rules (equity only — see report for the
-  // debt-cross-asset-class limitation this simplification carries):
+  // Section 70 Loss Set-Off Rules:
   // 1. STCL (Short Term Loss) can set off STCG and LTCG.
   // 2. LTCL (Long Term Loss) can only set off LTCG.
   const rawEqSTCG = totals.EQUITY_STCG;
@@ -389,35 +383,33 @@ const computeGainTotals = (classified: ClassifiedSell[], fyStartYear: number) =>
   const rawDebtSTCG = totals.DEBT_STCG;
   const rawDebtLTCG = totals.DEBT_LTCG;
 
-  // Calculate net STCG after absorbing short-term losses
-  let netSTCG = Math.max(0, rawEqSTCG);
-  let stclRemaining = rawEqSTCG < 0 ? Math.abs(rawEqSTCG) : 0;
+  const stclAvailable = rawEqSTCG < 0 ? Math.abs(rawEqSTCG) : 0;
+  const ltclAvailable = rawEqLTCG < 0 ? Math.abs(rawEqLTCG) : 0;
 
-  // Calculate net LTCG after absorbing long-term losses
+  let netSTCG = Math.max(0, rawEqSTCG);
+  let stclRemaining = stclAvailable;
+
   let netEqLTCG = Math.max(0, rawEqLTCG);
 
   // Apply remaining STCL against Equity LTCG (u/s 70)
+  let stclOffsetAgainstLTCG = 0;
   if (stclRemaining > 0 && netEqLTCG > 0) {
-    const offset = Math.min(stclRemaining, netEqLTCG);
-    netEqLTCG -= offset;
-    stclRemaining -= offset;
+    stclOffsetAgainstLTCG = Math.min(stclRemaining, netEqLTCG);
+    netEqLTCG -= stclOffsetAgainstLTCG;
+    stclRemaining -= stclOffsetAgainstLTCG;
   }
 
-  // Apply Section 112A exemption (1.25L / 1L) to net Equity LTCG
+  // Section 112A exemption (1.25L / 1L) to net Equity LTCG
   const exemptionUsed = Math.min(netEqLTCG, ltcgExemptionLimit);
   const taxableEquityLTCG = Math.max(0, netEqLTCG - exemptionUsed);
   const taxableEquitySTCG = netSTCG;
   const taxableDebtSTCG = Math.max(0, rawDebtSTCG);
   const taxableDebtLTCG = Math.max(0, rawDebtLTCG);
 
-  // Distribute each taxable pool back across its member rows, proportional
-  // to each row's own profit share, using each ROW'S OWN tax rate — not a
-  // single blended FY rate. This matters now that equity rates can differ
-  // transaction-to-transaction within FY2024-25 (see getEquitySTCGRate). It
-  // also fixes a prior bug where a row's "Est. Tax" ignored other losses in
-  // the same bucket (a profitable STCG row showed tax on its full gross
-  // profit even when a loss elsewhere in the same STCG bucket had already
-  // reduced the group's true net taxable amount).
+  const carryForwardSTCL = stclRemaining;
+  const carryForwardLTCL = ltclAvailable;
+
+  // Distribute tax back to individual transaction rows
   const distributeTax = (rows: ClassifiedSell[], taxablePool: number) => {
     const grossPositive = rows.filter((r) => r.profit > 0).reduce((s, r) => s + r.profit, 0);
     for (const r of rows) {
@@ -427,6 +419,7 @@ const computeGainTotals = (classified: ClassifiedSell[], fyStartYear: number) =>
           : 0;
     }
   };
+
   distributeTax(groups.EQUITY_STCG, taxableEquitySTCG);
   distributeTax(groups.EQUITY_LTCG, taxableEquityLTCG);
   distributeTax(groups.DEBT_STCG, taxableDebtSTCG);
@@ -446,66 +439,137 @@ const computeGainTotals = (classified: ClassifiedSell[], fyStartYear: number) =>
     ltcgExemptionLimit,
     stcgRate,
     ltcgRate,
+    taxablePools: {
+      equitySTCG: taxableEquitySTCG,
+      equityLTCG: taxableEquityLTCG,
+      debtSTCG: taxableDebtSTCG,
+      debtLTCG: taxableDebtLTCG,
+    },
+    setOffDetails: {
+      rawEqSTCG,
+      rawEqLTCG,
+      stclAvailable,
+      ltclAvailable,
+      stclOffsetAgainstLTCG,
+      carryForwardSTCL,
+      carryForwardLTCL,
+      totalCarryForward: carryForwardSTCL + carryForwardLTCL,
+    },
   };
 };
 
+/* ── Compute ITR Schedule CG Section F Quarters ──────────────────── */
+export const computeScheduleCGQuarters = (
+  classified: ClassifiedSell[],
+  fyStartYear: number
+): QuarterAccrual[] => {
+  const fyNext = fyStartYear + 1;
+  const quartersDef = [
+    {
+      key: "Q1",
+      label: "Up to 15-Jun",
+      period: `01-Apr-${fyStartYear} to 15-Jun-${fyStartYear}`,
+      from: `${fyStartYear}-04-01`,
+      to: `${fyStartYear}-06-15`,
+    },
+    {
+      key: "Q2",
+      label: "16-Jun to 15-Sep",
+      period: `16-Jun-${fyStartYear} to 15-Sep-${fyStartYear}`,
+      from: `${fyStartYear}-06-16`,
+      to: `${fyStartYear}-09-15`,
+    },
+    {
+      key: "Q3",
+      label: "16-Sep to 15-Dec",
+      period: `16-Sep-${fyStartYear} to 15-Dec-${fyStartYear}`,
+      from: `${fyStartYear}-09-16`,
+      to: `${fyStartYear}-12-15`,
+    },
+    {
+      key: "Q4A",
+      label: "16-Dec to 15-Mar",
+      period: `16-Dec-${fyStartYear} to 15-Mar-${fyNext}`,
+      from: `${fyStartYear}-12-16`,
+      to: `${fyNext}-03-15`,
+    },
+    {
+      key: "Q4B",
+      label: "16-Mar to 31-Mar",
+      period: `16-Mar-${fyNext} to 31-Mar-${fyNext}`,
+      from: `${fyNext}-03-16`,
+      to: `${fyNext}-03-31`,
+    },
+  ];
+
+  return quartersDef.map((q) => {
+    const qFrom = parseLocalDate(q.from);
+    const qTo = parseLocalDate(q.to);
+    qTo.setHours(23, 59, 59, 999);
+
+    const rows = classified.filter((r) => {
+      const d = parseLocalDate(r.sellDate);
+      return d >= qFrom && d <= qTo;
+    });
+
+    const eqSTCG = rows.filter((r) => r.gainType === "EQUITY_STCG").reduce((s, r) => s + r.profit, 0);
+    const eqLTCG = rows.filter((r) => r.gainType === "EQUITY_LTCG").reduce((s, r) => s + r.profit, 0);
+    const dSTCG = rows.filter((r) => r.gainType === "DEBT_STCG").reduce((s, r) => s + r.profit, 0);
+    const dLTCG = rows.filter((r) => r.gainType === "DEBT_LTCG").reduce((s, r) => s + r.profit, 0);
+    const totalGain = rows.reduce((s, r) => s + r.profit, 0);
+    const estTax = rows.reduce((s, r) => s + r.estimatedTax, 0);
+
+    return {
+      key: q.key,
+      label: q.label,
+      period: q.period,
+      fromDate: q.from,
+      toDate: q.to,
+      equitySTCG: eqSTCG,
+      equityLTCG: eqLTCG,
+      debtSTCG: dSTCG,
+      debtLTCG: dLTCG,
+      totalGain,
+      estimatedTax: estTax,
+      txnCount: rows.length,
+    };
+  });
+};
+
 /* ══════════════════════════════════════════════════════════════════
-   SHARED TABLE STYLES (matching TaxVaultTab / AnnualReportTab)
+   SHARED UI STYLES
    ══════════════════════════════════════════════════════════════════ */
 
 const thStyle: React.CSSProperties = {
-  padding: "8px 10px",
+  padding: "10px 12px",
   borderBottom: `1.5px solid ${THEME.line}`,
-  fontSize: 10,
+  fontSize: 11,
   fontWeight: 700,
   textTransform: "uppercase",
-  letterSpacing: "0.1em",
+  letterSpacing: "0.08em",
   color: THEME.muted,
   whiteSpace: "nowrap",
-  background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
+  background: "color-mix(in srgb, var(--surface-1) 70%, transparent)",
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "10px 10px",
+  padding: "12px 12px",
   borderBottom: `1px solid ${THEME.line}`,
   fontSize: 12,
   verticalAlign: "middle",
 };
 
 /* ══════════════════════════════════════════════════════════════════
-   CARD HEADING (matching AnnualReportTab)
+   CATEGORY FIX BADGE / MODAL
    ══════════════════════════════════════════════════════════════════ */
 
-const CardHeading = ({ icon: Icon, title, color = THEME.accent }: any) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-    <div style={{ display: "flex", alignItems: "center" }}>
-      <Icon size={19} style={{ color }} />
-    </div>
-    <div
-      style={{
-        fontFamily: "var(--font-display)",
-        fontSize: 15,
-        fontWeight: 600,
-        color: THEME.ink,
-        letterSpacing: "-0.005em",
-      }}
-    >
-      {title}
-    </div>
-  </div>
-);
-
-/* ── Category Fix Badge ──────────────────────────────────────────
-   Shown on an MF sell row whose Equity/Debt category couldn't be confirmed
-   (neither the sale record nor any still-live matching holding had one, so
-   the gain type/tax rate shown is only a best-effort guess from the fund's
-   name text). Lets the user resolve it inline — the fix is written straight
-   back to the mf_sells row so it's permanent, not just a display patch. */
 const CategoryFixBadge = ({
   sellId,
+  name,
   onFix,
 }: {
   sellId?: string;
+  name?: string;
   onFix?: (id: string, category: string) => Promise<void> | void;
 }) => {
   const [open, setOpen] = useState(false);
@@ -513,8 +577,8 @@ const CategoryFixBadge = ({
 
   if (!sellId || !onFix) {
     return (
-      <span title="Equity/Debt could not be confirmed for this sale — showing a best-effort guess based on the fund's name.">
-        <AlertTriangle size={12} color={THEME.gold} />
+      <span title="Equity/Debt category not confirmed — showing best-effort guess.">
+        <AlertTriangle size={13} color={THEME.gold} />
       </span>
     );
   }
@@ -530,249 +594,88 @@ const CategoryFixBadge = ({
   };
 
   return (
-    <span style={{ position: "relative", display: "inline-flex" }}>
+    <>
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          setOpen((v) => !v);
+          setOpen(true);
         }}
-        title="Equity/Debt not confirmed for this sale — showing a best-effort guess. Click to set it."
-        aria-label="Fix mutual fund tax category"
+        className="button-ghost"
+        title="Category unconfirmed — Click to fix"
         style={{
-          background: "none",
-          border: "none",
-          padding: 0,
+          background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${THEME.gold} 30%, transparent)`,
+          color: THEME.gold,
+          padding: "2px 6px",
+          borderRadius: 6,
+          fontSize: 10,
+          fontWeight: 700,
           cursor: "pointer",
           display: "inline-flex",
           alignItems: "center",
+          gap: 4,
         }}
       >
-        <AlertTriangle size={12} color={THEME.gold} />
+        <AlertTriangle size={11} />
+        <span>Fix</span>
       </button>
+
       {open && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            marginTop: 4,
-            zIndex: 20,
-            background: "var(--surface-0)",
-            border: `1px solid ${THEME.line}`,
-            borderRadius: 8,
-            padding: 8,
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            minWidth: 150,
-          }}
+        <Modal
+          title="Resolve Fund Tax Category"
+          onClose={() => setOpen(false)}
+          width={440}
         >
-          <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>
-            This fund is actually:
-          </span>
-          <Button variant="secondary" size="sm" disabled={saving} onClick={() => pick("Equity")}>
-            Equity
-          </Button>
-          <Button variant="secondary" size="sm" disabled={saving} onClick={() => pick("Debt")}>
-            Debt
-          </Button>
-        </div>
-      )}
-    </span>
-  );
-};
-
-/* ══════════════════════════════════════════════════════════════════
-   TRANSACTION TABLE
-   ══════════════════════════════════════════════════════════════════ */
-
-const TransactionTable = ({
-  rows,
-  title,
-  color,
-  onFixCategory,
-}: {
-  rows: ClassifiedSell[];
-  title: string;
-  color: string;
-  onFixCategory?: (id: string, category: string) => Promise<void> | void;
-}) => {
-  const [expanded, setExpanded] = useState(true);
-  if (!rows.length) return null;
-
-  const totalProfit = rows.reduce((s, r) => s + r.profit, 0);
-  const totalTax = rows.reduce((s, r) => s + r.estimatedTax, 0);
-
-  return (
-    <Card style={{ padding: 0, overflow: "hidden" }}>
-      {/* Section header bar (matching TaxVaultTab section headers) */}
-      <div
-        onClick={() => setExpanded(!expanded)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            setExpanded(!expanded);
-          }
-        }}
-        aria-expanded={expanded}
-        style={{
-          padding: "10px 16px",
-          background: `color-mix(in srgb, ${color} 6%, transparent)`,
-          borderBottom: expanded ? `1px solid ${THEME.line}` : "none",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          cursor: "pointer",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color }}>{title}</span>
-          <Badge variant={totalProfit >= 0 ? "sage" : "rust"}>{rows.length} txns</Badge>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ textAlign: "right" }}>
-            <span
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <p style={{ fontSize: 13, color: THEME.muted, margin: 0, lineHeight: 1.5 }}>
+              Choose whether <strong style={{ color: THEME.ink }}>{name}</strong> is an Equity or Debt mutual fund. This permanently updates your historical record and ensures correct tax calculation.
+            </p>
+            <div
               style={{
+                padding: "12px",
+                borderRadius: 8,
+                background: "var(--surface-1)",
+                border: `1px solid ${THEME.line}`,
                 fontSize: 12,
-                fontWeight: 700,
-                color: totalProfit >= 0 ? THEME.sage : THEME.rust,
+                color: THEME.muted,
               }}
             >
-              P&L: <Money value={totalProfit} variant="full" />
-            </span>
-            <span style={{ fontSize: 11, color: THEME.muted, marginLeft: 12 }}>
-              Tax: <Money value={totalTax} variant="full" />
-            </span>
+              <div style={{ marginBottom: 4 }}>
+                <strong style={{ color: THEME.ink }}>Equity:</strong> ≥65% domestic equities (STCG @ 15/20%, LTCG @ 10/12.5% above ₹1.25L).
+              </div>
+              <div>
+                <strong style={{ color: THEME.ink }}>Debt:</strong> &lt;65% equity (Post-Apr 2023 units taxed at slab rate).
+              </div>
+            </div>
+            <ModalActions>
+              <Button variant="secondary" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={saving}
+                onClick={() => pick("Debt")}
+              >
+                Set as Debt
+              </Button>
+              <Button
+                variant="primary"
+                disabled={saving}
+                onClick={() => pick("Equity")}
+              >
+                Set as Equity
+              </Button>
+            </ModalActions>
           </div>
-          {expanded ? (
-            <ChevronUp size={14} color={THEME.muted} />
-          ) : (
-            <ChevronDown size={14} color={THEME.muted} />
-          )}
-        </div>
-      </div>
-      {expanded && (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", minWidth: 760, borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                {[
-                  { h: "Asset", align: "left" },
-                  { h: "Type", align: "left" },
-                  { h: "Buy Date", align: "right" },
-                  { h: "Buy Price", align: "right" },
-                  { h: "Sell Date", align: "right" },
-                  { h: "Sell Price", align: "right" },
-                  { h: "Qty", align: "right" },
-                  { h: "Holding", align: "right" },
-                  { h: "P&L", align: "right" },
-                  { h: "Tax Rate", align: "right" },
-                  { h: "Est. Tax", align: "right" },
-                ].map(({ h, align }) => (
-                  <th key={h} style={{ ...thStyle, textAlign: align as any }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr
-                  key={i}
-                  className="table-row-hover"
-                >
-                  <td
-                    style={{
-                      ...tdStyle,
-                      fontWeight: 600,
-                      color: THEME.ink,
-                      maxWidth: 180,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {r.name}
-                  </td>
-                  <td style={tdStyle}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <Badge variant="muted">{r.assetType}</Badge>
-                      {r.assetType === "Mutual Fund" && r.categoryGuessed && (
-                        <CategoryFixBadge sellId={r.id} onFix={onFixCategory} />
-                      )}
-                    </div>
-                  </td>
-                  <td
-                    style={{
-                      ...tdStyle,
-                      textAlign: "right",
-                      color: THEME.muted,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {fmtDate(r.buyDate)}
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                    <Money value={r.buyPrice} variant="full" />
-                  </td>
-                  <td
-                    style={{
-                      ...tdStyle,
-                      textAlign: "right",
-                      color: THEME.muted,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {fmtDate(r.sellDate)}
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                    <Money value={r.sellPrice} variant="full" />
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>{r.qty}</td>
-                  <td
-                    style={{
-                      ...tdStyle,
-                      textAlign: "right",
-                      color: THEME.muted,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {r.holdingMonths} mo
-                  </td>
-                  <td
-                    style={{
-                      ...tdStyle,
-                      textAlign: "right",
-                      fontWeight: 700,
-                      color: r.profit >= 0 ? THEME.sage : THEME.rust,
-                    }}
-                  >
-                    <Money value={r.profit} variant="full" />
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: "right", color: THEME.muted }}>
-                    {(r.taxRate * 100).toFixed(1)}%
-                  </td>
-                  <td
-                    style={{ ...tdStyle, textAlign: "right", fontWeight: 600, color: THEME.rust }}
-                  >
-                    <Money value={r.estimatedTax} variant="full" />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        </Modal>
       )}
-    </Card>
+    </>
   );
 };
 
 /* ══════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
+   MAIN CAPITAL GAINS TAB COMPONENT
    ══════════════════════════════════════════════════════════════════ */
 
 export const CapitalGainsTab = ({
@@ -786,6 +689,51 @@ export const CapitalGainsTab = ({
 }) => {
   const { privacyMode } = usePrivacy();
 
+  /* ── State ─────────────────────────────────────────────────────── */
+  const fyOptions = useMemo(
+    () => buildFYOptions(state.stockSells || [], state.mfSells || []),
+    [state.stockSells, state.mfSells]
+  );
+  const currentFYStartYear = getCurrentFYStartYear();
+  const [fyStartYear, setFyStartYear] = useState<number>(currentFYStartYear);
+
+  // Sub-navigation workspace views
+  const [activeView, setActiveView] = useState<
+    "overview" | "ledger" | "unrealized" | "harvesting" | "calculator" | "rules"
+  >("overview");
+
+  // Filter & Search states for Ledger
+  const [ledgerSearch, setLedgerSearch] = useState("");
+  const [ledgerAssetFilter, setLedgerAssetFilter] = useState<"ALL" | "Stock" | "Mutual Fund">("ALL");
+  const [ledgerGainFilter, setLedgerGainFilter] = useState<"ALL" | GainType>("ALL");
+  const [ledgerOutcomeFilter, setLedgerOutcomeFilter] = useState<"ALL" | "PROFIT" | "LOSS">("ALL");
+  const [ledgerSortBy, setLedgerSortBy] = useState<"date" | "profit" | "holding" | "tax">("date");
+  const [ledgerSortOrder, setLedgerSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Filter & Search states for Unrealized
+  const [unrealizedSearch, setUnrealizedSearch] = useState("");
+  const [unrealizedClassFilter, setUnrealizedClassFilter] = useState<
+    "ALL" | "EQUITY_STCG" | "EQUITY_LTCG" | "DEBT_STCG" | "SOON_LTCG"
+  >("ALL");
+
+  // Tax-Loss Harvesting Simulator selection
+  const [selectedHarvestIds, setSelectedHarvestIds] = useState<Set<string>>(new Set());
+
+  // What-If Simulator Inputs
+  const [simAssetType, setSimAssetType] = useState<"Stock" | "Mutual Fund">("Stock");
+  const [simFundCategory, setSimFundCategory] = useState<"Equity" | "Debt">("Equity");
+  const [simBuyDate, setSimBuyDate] = useState<string>(`${currentFYStartYear - 1}-06-15`);
+  const [simBuyPrice, setSimBuyPrice] = useState<number>(100000);
+  const [simSellDate, setSimSellDate] = useState<string>(today());
+  const [simSellPrice, setSimSellPrice] = useState<number>(135000);
+  const [copiedPlan, setCopiedPlan] = useState(false);
+
+  /* ── Category Index ────────────────────────────────────────────── */
+  const mfCategoryIndex = useMemo(
+    () => buildMFCategoryIndex(state.mutualFunds || []),
+    [state.mutualFunds]
+  );
+
   const handleFixMFCategory = async (id: string, category: string) => {
     if (!updateItem) return;
     try {
@@ -795,54 +743,25 @@ export const CapitalGainsTab = ({
       showToast?.(`Failed to update tax category: ${e?.message || "Unknown error"}`, "error");
     }
   };
-  const fyOptions = useMemo(
-    () => buildFYOptions(state.stockSells || [], state.mfSells || []),
-    [state.stockSells, state.mfSells]
-  );
 
-  const [fyStartYear, setFyStartYear] = useState(getCurrentFYStartYear);
-  // null = user hasn't manually picked a tab yet — default to whichever gain
-  // type actually has transactions (STCG/LTCG/Equity/Debt in that priority
-  // order) instead of always opening on Equity STCG, which can be empty while
-  // all of a user's real activity sits under a different tab (e.g. all
-  // long-term MF sales), making the report look like it's missing data.
-  const [manualActiveDetailTab, setManualActiveDetailTab] = useState<GainType | null>(null);
-  const [showUnrealized, setShowUnrealized] = useState(true);
-  const [showHarvesting, setShowHarvesting] = useState(true);
-
-  const currentFYStartYear = getCurrentFYStartYear();
-
-  const mfCategoryIndex = useMemo(
-    () => buildMFCategoryIndex(state.mutualFunds || []),
-    [state.mutualFunds]
-  );
-
-  /* ── Classify Sells (for whichever FY is selected in the dropdown) ── */
+  /* ── Classify Realized Transactions ────────────────────────────── */
   const classified = useMemo(
     () => classifySells(state.stockSells || [], state.mfSells || [], fyStartYear, mfCategoryIndex),
     [state.stockSells, state.mfSells, fyStartYear, mfCategoryIndex]
   );
 
-  /* ── Compute Totals by Type (for the selected FY) ──────────────── */
-  const { byType, totalTax, ltcgExemptionUsed, ltcgExemptionLimit, stcgRate, ltcgRate } = useMemo(
-    () => computeGainTotals(classified, fyStartYear),
-    [classified, fyStartYear]
-  );
+  const {
+    byType,
+    totalTax,
+    ltcgExemptionUsed,
+    ltcgExemptionLimit,
+    stcgRate,
+    ltcgRate,
+    taxablePools,
+    setOffDetails,
+  } = useMemo(() => computeGainTotals(classified, fyStartYear), [classified, fyStartYear]);
 
-  const activeDetailTab: GainType =
-    manualActiveDetailTab ??
-    GAIN_TYPE_ORDER.find((k) => byType.groups[k].length > 0) ??
-    "EQUITY_STCG";
-  const setActiveDetailTab = setManualActiveDetailTab;
-
-  // Tax-loss harvesting concerns a hypothetical sale made TODAY, to offset
-  // whatever realized gains exist in the CURRENTLY OPEN financial year — it
-  // is independent of whichever FY the user happens to be browsing in the
-  // ledger dropdown above. Recompute totals against the current FY
-  // specifically (reusing `classified`/`byType` when the dropdown already
-  // is on the current FY, to avoid duplicate work) so switching the FY
-  // filter to review old, closed years doesn't silently change the
-  // harvesting savings estimate to stale numbers from a past year.
+  // Current FY totals specifically for harvesting
   const isViewingCurrentFY = fyStartYear === currentFYStartYear;
   const currentFYClassified = useMemo(
     () =>
@@ -859,133 +778,347 @@ export const CapitalGainsTab = ({
     [isViewingCurrentFY, byType, ltcgExemptionLimit, stcgRate, ltcgRate, currentFYClassified, currentFYStartYear]
   );
 
-  /* ── Unrealized Gains ────────────────────────────────────────── */
+  /* ── Schedule CG Section F Quarters ────────────────────────────── */
+  const scheduleCGQuarters = useMemo(
+    () => computeScheduleCGQuarters(classified, fyStartYear),
+    [classified, fyStartYear]
+  );
+
+  /* ── Unrealized Holdings Analysis ──────────────────────────────── */
   const unrealized = useMemo(() => {
     const result: UnrealizedHolding[] = [];
     const todayStr = today();
+    const todayDate = parseLocalDate(todayStr);
 
     const stocks = state.stocks || [];
     for (const s of stocks) {
       if (!s.buyDate) continue;
       const qty = Number(s.qty) || 0;
-      const buyPrice = Number(s.buyPrice || s.avgPrice) || 0;
-      const currentPrice = Number(s.currentPrice || s.ltp || s.price) || 0;
+      if (qty <= 0) continue;
+      const buyPricePerUnit = Number(s.buyPrice || s.avgPrice) || 0;
+      const currentPricePerUnit = Number(s.currentPrice || s.ltp || s.price) || 0;
+      const buyTotal = buyPricePerUnit * qty;
+      const currentTotal = currentPricePerUnit * qty;
       const months = getHoldingMonths(s.buyDate, todayStr);
-      const unrealizedPL = (currentPrice - buyPrice) * qty;
+      const unrealizedPL = currentTotal - buyTotal;
+      const unrealizedPLPct = buyTotal > 0 ? (unrealizedPL / buyTotal) * 100 : 0;
       const isLTCG = isLongTerm(s.buyDate, todayStr, 12);
+
+      // Days to LTCG calculation
+      const buyD = parseLocalDate(s.buyDate);
+      const anniversary = new Date(buyD.getFullYear() + 1, buyD.getMonth(), buyD.getDate());
+      const diffMs = anniversary.getTime() - todayDate.getTime();
+      const daysToLTCG = isLTCG ? 0 : Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
       result.push({
-        name: s.symbol || s.name || "Unknown",
+        id: s.id || `stock-${s.symbol}-${s.buyDate}`,
+        name: s.symbol || s.name || "Unknown Stock",
+        symbol: s.symbol,
         buyDate: s.buyDate,
-        buyPrice: buyPrice * qty,
-        currentPrice: currentPrice * qty,
+        buyPrice: buyTotal,
+        currentPrice: currentTotal,
         qty,
         holdingMonths: months,
         unrealizedPL,
+        unrealizedPLPct,
         wouldBeType: isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG",
         assetType: "Stock",
+        owner: s.owner || "self",
         monthsToLTCG: isLTCG ? null : 12 - months,
+        daysToLTCG: isLTCG ? null : daysToLTCG,
       });
     }
 
     const mfs = state.mutualFunds || [];
     for (const m of mfs) {
-      if (!m.buyDate && !m.purchaseDate) continue;
       const bd = m.buyDate || m.purchaseDate;
+      if (!bd) continue;
       const units = Number(m.units || m.qty) || 0;
+      if (units <= 0) continue;
       const buyNav = Number(m.buyNav || m.avgNav || m.purchaseNav) || 0;
       const currentNav = Number(m.currentNav || m.nav || m.ltp) || 0;
+      const buyTotal = buyNav * units;
+      const currentTotal = currentNav * units;
       const months = getHoldingMonths(bd, todayStr);
-      const unrealizedPL = (currentNav - buyNav) * units;
+      const unrealizedPL = currentTotal - buyTotal;
+      const unrealizedPLPct = buyTotal > 0 ? (unrealizedPL / buyTotal) * 100 : 0;
       const equity = isEquityMF(m);
       const ltcgThreshold = equity ? 12 : 36;
 
       let wouldBeType: GainType;
       let monthsToLTCG: number | null | "never";
+      let daysToLTCG: number | null = null;
+
       if (equity) {
         const isLTCG = isLongTerm(bd, todayStr, ltcgThreshold);
         wouldBeType = isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG";
         monthsToLTCG = isLTCG ? null : ltcgThreshold - months;
+        const buyD = parseLocalDate(bd);
+        const anniversary = new Date(buyD.getFullYear() + 1, buyD.getMonth(), buyD.getDate());
+        const diffMs = anniversary.getTime() - todayDate.getTime();
+        daysToLTCG = isLTCG ? 0 : Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
       } else {
         const postApr2023 = parseLocalDate(bd) >= parseLocalDate(DEBT_INDEXATION_CUTOFF_DATE);
         if (postApr2023) {
-          // Units bought on/after 1-Apr-2023 can NEVER qualify for LTCG or
-          // indexation, no matter how long they're held — always slab rate.
-          // (Previously this fell through to the isLTCG check below, which
-          // could hit >36 months and wrongly show a green "LTCG" badge —
-          // implying a tax benefit that does not exist for these units.)
           wouldBeType = "DEBT_STCG";
           monthsToLTCG = "never";
+          daysToLTCG = null;
         } else {
           const isLTCG = isLongTerm(bd, todayStr, ltcgThreshold);
           wouldBeType = isLTCG ? "DEBT_LTCG" : "DEBT_STCG";
           monthsToLTCG = isLTCG ? null : ltcgThreshold - months;
+          const buyD = parseLocalDate(bd);
+          const anniversary = new Date(buyD.getFullYear() + 3, buyD.getMonth(), buyD.getDate());
+          const diffMs = anniversary.getTime() - todayDate.getTime();
+          daysToLTCG = isLTCG ? 0 : Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
         }
       }
 
       result.push({
+        id: m.id || `mf-${m.name || m.scheme}-${bd}`,
         name: m.name || m.scheme || "Unknown MF",
         buyDate: bd,
-        buyPrice: buyNav * units,
-        currentPrice: currentNav * units,
+        buyPrice: buyTotal,
+        currentPrice: currentTotal,
         qty: units,
         holdingMonths: months,
         unrealizedPL,
+        unrealizedPLPct,
         wouldBeType,
         assetType: "Mutual Fund",
+        owner: m.owner || "self",
         monthsToLTCG,
+        daysToLTCG,
       });
     }
 
     return result;
   }, [state.stocks, state.mutualFunds]);
 
-  /* ── Tax-Loss Harvesting Suggestions ─────────────────────────── */
-  // Deliberately pulls its offset pool + rates from `currentFYTotals` (always
-  // the CURRENT financial year), not from `byType`/`stcgRate`/`ltcgRate`
-  // (whichever FY the ledger dropdown above is set to) — see the comment on
-  // currentFYTotals above.
-  const harvestingSuggestions = useMemo(() => {
-    const losses = unrealized.filter((h) => h.unrealizedPL < 0);
+  /* ── Tax-Loss Harvesting Suggestions & Simulator ────────────────── */
+  const lossCandidates = useMemo(
+    () => unrealized.filter((h) => h.unrealizedPL < 0),
+    [unrealized]
+  );
+
+  // Initialize selected IDs with all loss positions on first load
+  React.useEffect(() => {
+    if (lossCandidates.length > 0 && selectedHarvestIds.size === 0) {
+      setSelectedHarvestIds(new Set(lossCandidates.map((c) => c.id || c.name)));
+    }
+  }, [lossCandidates]);
+
+  const harvestingCalculations = useMemo(() => {
     let remainingSTCG = Math.max(0, currentFYTotals.byType.totals.EQUITY_STCG);
     let remainingLTCG = Math.max(
       0,
       currentFYTotals.byType.totals.EQUITY_LTCG - currentFYTotals.ltcgExemptionLimit
     );
 
-    // Harvest largest losses first so the shared, finite realized-gains pool
-    // is depleted across suggestions rather than reused by each independently
-    // (which previously overstated the combined "potential savings" total).
-    const sorted = [...losses].sort(
+    const sorted = [...lossCandidates].sort(
       (a, b) => Math.abs(b.unrealizedPL) - Math.abs(a.unrealizedPL)
     );
 
-    return sorted
-      .map((h) => {
-        const absLoss = Math.abs(h.unrealizedPL);
-        const isSTCG = h.wouldBeType === "EQUITY_STCG" || h.wouldBeType === "DEBT_STCG";
-        const rate = isSTCG ? currentFYTotals.stcgRate : currentFYTotals.ltcgRate;
-        let usableLoss: number;
+    const activeList = sorted.map((h) => {
+      const isSelected = selectedHarvestIds.has(h.id || h.name);
+      const absLoss = Math.abs(h.unrealizedPL);
+      const isSTCG = h.wouldBeType === "EQUITY_STCG" || h.wouldBeType === "DEBT_STCG";
+      const rate = isSTCG ? currentFYTotals.stcgRate : currentFYTotals.ltcgRate;
+
+      let usableLoss = 0;
+      if (isSelected) {
         if (isSTCG) {
-          // STCG losses can offset either realized STCG or LTCG gains.
           const fromSTCG = Math.min(absLoss, remainingSTCG);
           remainingSTCG -= fromSTCG;
           const fromLTCG = Math.min(absLoss - fromSTCG, remainingLTCG);
           remainingLTCG -= fromLTCG;
           usableLoss = fromSTCG + fromLTCG;
         } else {
-          // LTCG losses can only offset realized LTCG gains.
           usableLoss = Math.min(absLoss, remainingLTCG);
           remainingLTCG -= usableLoss;
         }
-        const potentialSaving = Math.round(usableLoss * rate);
-        return { ...h, usableLoss, potentialSaving };
-      })
-      .filter((h) => h.potentialSaving > 0)
-      .sort((a, b) => b.potentialSaving - a.potentialSaving);
-  }, [unrealized, currentFYTotals]);
+      }
 
-  /* ── CSV Export ──────────────────────────────────────────────── */
-  const handleExport = () => {
+      const potentialSaving = Math.round(usableLoss * rate);
+
+      return {
+        ...h,
+        isSelected,
+        usableLoss,
+        potentialSaving,
+        rate,
+      };
+    });
+
+    const totalPotentialSavings = activeList.reduce((s, h) => s + h.potentialSaving, 0);
+    const totalHarvestedLoss = activeList
+      .filter((h) => h.isSelected)
+      .reduce((s, h) => s + Math.abs(h.unrealizedPL), 0);
+    const totalUsableLoss = activeList.reduce((s, h) => s + h.usableLoss, 0);
+
+    return {
+      activeList,
+      totalPotentialSavings,
+      totalHarvestedLoss,
+      totalUsableLoss,
+      currentRealizedTax: currentFYTotals.totalTax || 0,
+      projectedTaxAfterHarvest: Math.max(
+        0,
+        (currentFYTotals.totalTax || 0) - totalPotentialSavings
+      ),
+    };
+  }, [lossCandidates, selectedHarvestIds, currentFYTotals]);
+
+  /* ── Filtered & Sorted Ledger ──────────────────────────────────── */
+  const filteredLedger = useMemo(() => {
+    let list = [...classified];
+
+    if (ledgerSearch.trim()) {
+      const q = ledgerSearch.toLowerCase();
+      list = list.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          (r.symbol && r.symbol.toLowerCase().includes(q))
+      );
+    }
+
+    if (ledgerAssetFilter !== "ALL") {
+      list = list.filter((r) => r.assetType === ledgerAssetFilter);
+    }
+
+    if (ledgerGainFilter !== "ALL") {
+      list = list.filter((r) => r.gainType === ledgerGainFilter);
+    }
+
+    if (ledgerOutcomeFilter === "PROFIT") {
+      list = list.filter((r) => r.profit >= 0);
+    } else if (ledgerOutcomeFilter === "LOSS") {
+      list = list.filter((r) => r.profit < 0);
+    }
+
+    list.sort((a, b) => {
+      let cmp = 0;
+      if (ledgerSortBy === "date") {
+        cmp = parseLocalDate(a.sellDate).getTime() - parseLocalDate(b.sellDate).getTime();
+      } else if (ledgerSortBy === "profit") {
+        cmp = a.profit - b.profit;
+      } else if (ledgerSortBy === "holding") {
+        cmp = a.holdingMonths - b.holdingMonths;
+      } else if (ledgerSortBy === "tax") {
+        cmp = a.estimatedTax - b.estimatedTax;
+      }
+      return ledgerSortOrder === "asc" ? cmp : -cmp;
+    });
+
+    return list;
+  }, [
+    classified,
+    ledgerSearch,
+    ledgerAssetFilter,
+    ledgerGainFilter,
+    ledgerOutcomeFilter,
+    ledgerSortBy,
+    ledgerSortOrder,
+  ]);
+
+  /* ── Filtered Unrealized Holdings ──────────────────────────────── */
+  const filteredUnrealized = useMemo(() => {
+    let list = [...unrealized];
+
+    if (unrealizedSearch.trim()) {
+      const q = unrealizedSearch.toLowerCase();
+      list = list.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          (r.symbol && r.symbol.toLowerCase().includes(q))
+      );
+    }
+
+    if (unrealizedClassFilter === "SOON_LTCG") {
+      list = list.filter(
+        (r) =>
+          r.daysToLTCG !== null &&
+          r.daysToLTCG !== undefined &&
+          r.daysToLTCG > 0 &&
+          r.daysToLTCG <= 60
+      );
+    } else if (unrealizedClassFilter !== "ALL") {
+      list = list.filter((r) => r.wouldBeType === unrealizedClassFilter);
+    }
+
+    return list;
+  }, [unrealized, unrealizedSearch, unrealizedClassFilter]);
+
+  /* ── What-If Simulator Output ──────────────────────────────────── */
+  const whatIfCalculation = useMemo(() => {
+    const buyD = parseLocalDate(simBuyDate);
+    const months = getHoldingMonths(simBuyDate, simSellDate);
+    const profit = simSellPrice - simBuyPrice;
+    const profitPct = simBuyPrice > 0 ? (profit / simBuyPrice) * 100 : 0;
+
+    let isLTCG = false;
+    let gainType: GainType;
+    let taxRate = 0;
+    let taxAmount = 0;
+
+    if (simAssetType === "Stock" || simFundCategory === "Equity") {
+      isLTCG = isLongTerm(simBuyDate, simSellDate, 12);
+      gainType = isLTCG ? "EQUITY_LTCG" : "EQUITY_STCG";
+      taxRate = isLTCG ? getEquityLTCGRate(simSellDate) : getEquitySTCGRate(simSellDate);
+
+      if (isLTCG) {
+        const simFY = dateToFYStart(simSellDate);
+        const exemptionLimit = getEquityLTCGExemption(simFY);
+        const exemptionRemaining =
+          simFY === fyStartYear
+            ? Math.max(0, ltcgExemptionLimit - ltcgExemptionUsed)
+            : exemptionLimit;
+        const taxableGain = Math.max(0, profit - exemptionRemaining);
+        taxAmount = profit > 0 ? Math.round(taxableGain * taxRate) : 0;
+      } else {
+        taxAmount = profit > 0 ? Math.round(profit * taxRate) : 0;
+      }
+    } else {
+      // Debt Fund
+      const postApr2023 = buyD >= parseLocalDate(DEBT_INDEXATION_CUTOFF_DATE);
+      if (postApr2023) {
+        gainType = "DEBT_STCG";
+        taxRate = DEBT_STCG_SLAB_RATE;
+        taxAmount = profit > 0 ? Math.round(profit * taxRate) : 0;
+      } else {
+        isLTCG = isLongTerm(simBuyDate, simSellDate, 36);
+        gainType = isLTCG ? "DEBT_LTCG" : "DEBT_STCG";
+        taxRate = isLTCG ? DEBT_LTCG_RATE : DEBT_STCG_SLAB_RATE;
+        taxAmount = profit > 0 ? Math.round(profit * taxRate) : 0;
+      }
+    }
+
+    const netInHand = simSellPrice - taxAmount;
+
+    return {
+      months,
+      profit,
+      profitPct,
+      isLTCG,
+      gainType,
+      taxRate,
+      taxAmount,
+      netInHand,
+    };
+  }, [
+    simBuyDate,
+    simSellDate,
+    simBuyPrice,
+    simSellPrice,
+    simAssetType,
+    simFundCategory,
+    fyStartYear,
+    ltcgExemptionLimit,
+    ltcgExemptionUsed,
+  ]);
+
+  /* ── Export Handlers ───────────────────────────────────────────── */
+  const handleExportDetailedLedger = () => {
     if (!classified.length) return;
     const allRows = classified.map((r) => ({
       assetName: r.name,
@@ -1001,9 +1134,7 @@ export const CapitalGainsTab = ({
       taxRate: `${(r.taxRate * 100).toFixed(1)}%`,
       estimatedTax: r.estimatedTax,
     }));
-    // Reuse the shared, already-tested CSV exporter (it correctly escapes
-    // embedded quotes/commas in fund names — the previous hand-rolled
-    // version here did not) instead of duplicating that logic.
+
     exportArrayToCSV(
       allRows,
       [
@@ -1020,656 +1151,1915 @@ export const CapitalGainsTab = ({
         { key: "taxRate", label: "Tax Rate" },
         { key: "estimatedTax", label: "Estimated Tax" },
       ],
-      `Capital_Gains_FY${fyStartYear}-${String(fyStartYear + 1).slice(2)}.csv`
+      `Capital_Gains_Detailed_FY${fyStartYear}-${String(fyStartYear + 1).slice(2)}.csv`
     );
   };
 
-  /* ── Derived ─────────────────────────────────────────────────── */
+  const handleExportScheduleCGSummary = () => {
+    if (!scheduleCGQuarters.length) return;
+    const rows = scheduleCGQuarters.map((q) => ({
+      quarter: q.label,
+      period: q.period,
+      equitySTCG: Math.round(q.equitySTCG),
+      equityLTCG: Math.round(q.equityLTCG),
+      debtSTCG: Math.round(q.debtSTCG),
+      debtLTCG: Math.round(q.debtLTCG),
+      totalGain: Math.round(q.totalGain),
+      estimatedTax: Math.round(q.estimatedTax),
+      txns: q.txnCount,
+    }));
+
+    exportArrayToCSV(
+      rows,
+      [
+        { key: "quarter", label: "ITR Quarter" },
+        { key: "period", label: "Period" },
+        { key: "equitySTCG", label: "Equity STCG (₹)" },
+        { key: "equityLTCG", label: "Equity LTCG (₹)" },
+        { key: "debtSTCG", label: "Debt STCG (₹)" },
+        { key: "debtLTCG", label: "Debt LTCG (₹)" },
+        { key: "totalGain", label: "Net Gain (₹)" },
+        { key: "estimatedTax", label: "Est. Tax (₹)" },
+        { key: "txns", label: "Txn Count" },
+      ],
+      `Schedule_CG_Quarterly_FY${fyStartYear}-${String(fyStartYear + 1).slice(2)}.csv`
+    );
+  };
+
+  const handleCopyHarvestPlan = () => {
+    const selectedRows = harvestingCalculations.activeList.filter((h) => h.isSelected);
+    if (!selectedRows.length) return;
+
+    let text = `TAX-LOSS HARVESTING PLAN — ${today()}\n`;
+    text += `Target Savings: ₹${harvestingCalculations.totalPotentialSavings.toLocaleString("en-IN")}\n`;
+    text += `Total Loss Harvested: ₹${harvestingCalculations.totalHarvestedLoss.toLocaleString("en-IN")}\n\n`;
+    text += `POSITIONS TO SELL:\n`;
+    selectedRows.forEach((r, idx) => {
+      text += `${idx + 1}. ${r.name} (${r.assetType}) | Unrealized Loss: ₹${Math.abs(Math.round(r.unrealizedPL)).toLocaleString("en-IN")} | Tax Saving: ₹${r.potentialSaving.toLocaleString("en-IN")}\n`;
+    });
+
+    navigator.clipboard.writeText(text);
+    setCopiedPlan(true);
+    setTimeout(() => setCopiedPlan(false), 2500);
+    showToast?.("Harvesting plan copied to clipboard!", "success");
+  };
+
+  /* ── Derived Metrics & Visual Charts Data ──────────────────────── */
   const hasSells = classified.length > 0;
   const hasHoldings = unrealized.length > 0;
   const fyLabel = `FY ${fyStartYear}-${String(fyStartYear + 1).slice(2)}`;
   const currentFYLabel = `FY ${currentFYStartYear}-${String(currentFYStartYear + 1).slice(2)}`;
   const totalRealizedPL = classified.reduce((s, r) => s + r.profit, 0);
+  const totalTurnover = classified.reduce((s, r) => s + r.sellPrice, 0);
 
-  const detailTabs: { key: GainType; label: string; color: string }[] = [
-    { key: "EQUITY_STCG", label: "Equity STCG", color: THEME.gold },
-    { key: "EQUITY_LTCG", label: "Equity LTCG", color: THEME.sage },
-    { key: "DEBT_STCG", label: "Debt STCG", color: THEME.rust },
-    { key: "DEBT_LTCG", label: "Debt LTCG", color: THEME.accent },
-  ];
+  // Animated numbers for Hero KPIs
+  const animRealizedPL = useAnimatedNumber(totalRealizedPL);
+  const animTotalTax = useAnimatedNumber(totalTax);
+  const animHarvestSavings = useAnimatedNumber(harvestingCalculations.totalPotentialSavings);
+  const animExemptionUsed = useAnimatedNumber(ltcgExemptionUsed);
 
-  /* ── Empty State ─────────────────────────────────────────────── */
+  // Chart Data: Quarterly Accrual Bar Chart
+  const quarterlyChartData = scheduleCGQuarters.map((q) => ({
+    name: q.key,
+    label: q.label,
+    "Equity STCG": Math.round(q.equitySTCG),
+    "Equity LTCG": Math.round(q.equityLTCG),
+    Debt: Math.round(q.debtSTCG + q.debtLTCG),
+    Total: Math.round(q.totalGain),
+    Tax: Math.round(q.estimatedTax),
+  }));
+
+  /* ══════════════════════════════════════════════════════════════════
+     EMPTY STATE
+     ══════════════════════════════════════════════════════════════════ */
   if (!hasSells && !hasHoldings) {
     return (
       <div style={{ padding: "0 0 40px" }}>
-        <SectionTitle sub="Capital gains report for ITR filing with tax estimates and harvesting insights">
-          Capital Gains Report
+        <SectionTitle sub="Capital gains workstation for Schedule CG ITR filing, tax optimization & harvesting">
+          Capital Gains & Tax Studio
         </SectionTitle>
         <Card style={{ padding: "48px 32px", textAlign: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "var(--t-muted)" }}>
-            <FileText size={32} strokeWidth={1.5} />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+              color: THEME.muted,
+            }}
+          >
+            <Layers size={40} strokeWidth={1.5} />
           </div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink, marginBottom: 6 }}>
-            No Capital Gains Data
+          <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, marginBottom: 8 }}>
+            No Capital Gains Records Found
           </div>
           <div
             style={{
               fontSize: 13,
               color: THEME.muted,
-              maxWidth: 380,
-              margin: "0 auto",
+              maxWidth: 440,
+              margin: "0 auto 20px",
               lineHeight: 1.6,
             }}
           >
-            Add stock or mutual fund sell transactions in the Demat or Investments tab to see your
-            capital gains report, tax estimates, and harvesting suggestions.
+            Add stock or mutual fund trade transactions in the Demat or Investments workspace.
+            Realized sales and live holdings will automatically generate Schedule CG reports, tax
+            estimates, and harvesting insights.
           </div>
         </Card>
       </div>
     );
   }
 
-  /* ═══════════════════════════════════════════════════════════════
-     RENDER
-     ═══════════════════════════════════════════════════════════════ */
+  /* ══════════════════════════════════════════════════════════════════
+     RENDER WORKSTATION
+     ══════════════════════════════════════════════════════════════════ */
   return (
-    <div style={{ padding: "0 0 40px", display: "flex", flexDirection: "column", gap: 24 }}>
-      {/* ── Header ────────────────────────────────────────────────── */}
+    <div style={{ padding: "0 0 40px", display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* ── Header & Action Bar ───────────────────────────────────── */}
       <SectionTitle
-        sub={`${fyLabel} · Capital gains report with tax estimates, LTCG exemption tracking & harvesting insights`}
+        sub={`${fyLabel} · Schedule CG ITR studio with Budget 2024 compliance, quarterly advance-tax accrual & loss harvesting`}
         rightElement={
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <select
-              className="form-input"
-              value={fyStartYear}
-              onChange={(e) => setFyStartYear(Number(e.target.value))}
-              aria-label="Select financial year"
-              style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, minWidth: 130 }}
-            >
-              {fyOptions.map((fy) => (
-                <option key={fy.startYear} value={fy.startYear}>
-                  {fy.label}
-                </option>
-              ))}
-            </select>
-            {hasSells && (
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<Download size={14} />}
-                onClick={handleExport}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>FY:</span>
+              <select
+                className="form-input"
+                value={fyStartYear}
+                onChange={(e) => setFyStartYear(Number(e.target.value))}
+                aria-label="Select financial year"
+                style={{
+                  padding: "6px 12px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  minWidth: 125,
+                  borderRadius: 8,
+                }}
               >
-                Export CSV
-              </Button>
+                {fyOptions.map((fy) => (
+                  <option key={fy.startYear} value={fy.startYear}>
+                    {fy.label} {fy.startYear === currentFYStartYear ? "(Current)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {hasSells && (
+              <div style={{ display: "flex", gap: 6 }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<Download size={13} />}
+                  onClick={handleExportDetailedLedger}
+                  title="Export complete transaction ledger to CSV"
+                >
+                  Export Ledger
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<FileText size={13} />}
+                  onClick={handleExportScheduleCGSummary}
+                  title="Export ITR Schedule CG Quarterly Summary"
+                >
+                  ITR Schedule CG
+                </Button>
+              </div>
             )}
           </div>
         }
       >
-        Capital Gains Report
+        Capital Gains & Schedule CG Studio
       </SectionTitle>
 
-      {/* Plain-English glossary for the STCG/LTCG jargon used throughout this
-          page's stat cards below — placed up top, before a first-time user
-          hits those abbreviations, rather than only in the small-print
-          disclaimer at the very bottom of the page. */}
+      {/* ── Sub-Navigation Tabs ───────────────────────────────────── */}
       <div
         style={{
-          padding: "10px 14px",
-          borderRadius: 10,
-          background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
-          border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
-          fontSize: 12,
-          color: THEME.muted,
-        }}
-      >
-        <b style={{ color: THEME.ink }}>STCG vs LTCG:</b> Sell an equity stock/fund within 12 months
-        of buying it and the profit is <b style={{ color: THEME.ink }}>Short-Term (STCG)</b>, taxed
-        at {stcgRate * 100}%. Hold it longer and it's{" "}
-        <b style={{ color: THEME.ink }}>Long-Term (LTCG)</b>, taxed at only {ltcgRate * 100}% — and
-        the first <Money value={ltcgExemptionLimit} variant="full" /> of LTCG each financial year is
-        tax-free
-        (Section 112A exemption).
-      </div>
-
-      {/* ── Summary StatCards (standard component) ────────────────── */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 14,
-        }}
-      >
-        <StatCard
-          icon={<TrendingUp />}
-          label="Total Realized P&L"
-          value={fmtINRFull(totalRealizedPL)}
-          numericValue={totalRealizedPL}
-          formatValue={fmtINRFull}
-          sub={`${classified.length} transactions in ${fyLabel}`}
-          subColor={totalRealizedPL >= 0 ? THEME.sage : THEME.rust}
-          color={totalRealizedPL >= 0 ? THEME.sage : THEME.rust}
-        />
-        <StatCard
-          icon={<IndianRupee />}
-          label="Estimated Tax"
-          value={fmtINRFull(totalTax)}
-          numericValue={totalTax}
-          formatValue={fmtINRFull}
-          sub="Across all gain categories"
-          color={THEME.rust}
-        />
-        <StatCard
-          icon={<Shield />}
-          label="LTCG Exemption Used"
-          value={fmtINRFull(ltcgExemptionUsed)}
-          numericValue={ltcgExemptionUsed}
-          formatValue={fmtINRFull}
-          sub={privacyMode ? "of •••• (Sec 112A)" : `of ${fmtINRFull(ltcgExemptionLimit)} (Sec 112A)`}
-          subColor={ltcgExemptionUsed >= ltcgExemptionLimit ? THEME.sage : undefined}
-          color={THEME.sage}
-        />
-        <StatCard
-          icon={<Scissors />}
-          label="Harvesting Potential"
-          value={fmtINRFull(harvestingSuggestions.reduce((s, h) => s + h.potentialSaving, 0))}
-          numericValue={harvestingSuggestions.reduce((s, h) => s + h.potentialSaving, 0)}
-          formatValue={fmtINRFull}
-          sub={
-            isViewingCurrentFY
-              ? `${harvestingSuggestions.length} opportunities`
-              : `${harvestingSuggestions.length} opportunities (current FY, not ${fyLabel})`
-          }
-          color={THEME.gold}
-        />
-      </div>
-
-      {/* ── Gain Breakdown Cards ──────────────────────────────────── */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 14,
+          display: "flex",
+          gap: 6,
+          padding: 4,
+          background: "var(--surface-1)",
+          borderRadius: 12,
+          border: `1px solid ${THEME.line}`,
+          overflowX: "auto",
+          alignItems: "center",
         }}
       >
         {[
+          { id: "overview", label: "Overview & Analytics", icon: BarChart3 },
           {
-            label: "Equity STCG",
-            key: "EQUITY_STCG" as GainType,
-            rate: `${stcgRate * 100}%`,
-            color: THEME.gold,
-            icon: <TrendingUp />,
+            id: "ledger",
+            label: "Schedule CG Ledger",
+            icon: FileText,
+            count: classified.length,
           },
           {
-            label: "Equity LTCG",
-            key: "EQUITY_LTCG" as GainType,
-            rate: `${ltcgRate * 100}%`,
-            color: THEME.sage,
-            icon: <TrendingUp />,
+            id: "unrealized",
+            label: "Holdings & LTCG Radar",
+            icon: Clock,
+            count: unrealized.length,
           },
           {
-            label: "Debt STCG",
-            key: "DEBT_STCG" as GainType,
-            rate: "~30% slab",
-            color: THEME.rust,
-            icon: <BarChart3 />,
+            id: "harvesting",
+            label: "Loss Harvesting Studio",
+            icon: Scissors,
+            badge:
+              harvestingCalculations.totalPotentialSavings > 0
+                ? `Save ₹${Math.round(harvestingCalculations.totalPotentialSavings / 1000)}k`
+                : undefined,
           },
-          {
-            label: "Debt LTCG",
-            key: "DEBT_LTCG" as GainType,
-            rate: "20%",
-            color: THEME.accent,
-            icon: <BarChart3 />,
-          },
-        ].map((g) => (
-          <StatCard
-            key={g.key}
-            label={g.label}
-            value={fmtINRFull(byType.totals[g.key])}
-            numericValue={byType.totals[g.key]}
-            formatValue={fmtINRFull}
-            icon={g.icon}
-            color={g.color}
-            valueColor={byType.totals[g.key] >= 0 ? THEME.sage : THEME.rust}
-            sub={`Tax @ ${g.rate} · ${byType.groups[g.key].length} txns`}
-          />
-        ))}
-      </div>
-
-      {/* ── LTCG Exemption Progress ───────────────────────────────── */}
-      <Card style={{ padding: 20 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 12,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <Shield size={20} style={{ color: THEME.sage }} />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                }}
-              >
-                LTCG Exemption (Sec 112A)
-              </div>
-              <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
-                {fyLabel} · Equity long-term gains
-              </div>
-            </div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <span
+          { id: "calculator", label: "What-If Simulator", icon: Calculator },
+          { id: "rules", label: "Tax Rules & Guide", icon: BookOpen },
+        ].map((tab) => {
+          const active = activeView === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveView(tab.id as any)}
               style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 18,
-                fontWeight: 800,
-                color: THEME.sage,
-                letterSpacing: "-0.02em",
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "8px 14px",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: active ? 700 : 600,
+                color: active ? "var(--surface-0)" : THEME.muted,
+                background: active ? THEME.accent : "transparent",
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                whiteSpace: "nowrap",
               }}
             >
-              <Money value={ltcgExemptionUsed} variant="full" />
-            </span>
-            <span style={{ fontSize: 12, color: THEME.muted, marginLeft: 4 }}>
-              / <Money value={ltcgExemptionLimit} variant="full" />
-            </span>
-          </div>
-        </div>
-        <div className="progress-track">
-          <div
-            className="progress-fill progress-fill-sage"
-            style={{ width: `${Math.min(100, (ltcgExemptionUsed / ltcgExemptionLimit) * 100)}%` }}
-          />
-        </div>
-        <div style={{ fontSize: 10, color: THEME.muted, marginTop: 6 }}>
-          {ltcgExemptionUsed >= ltcgExemptionLimit ? (
-            "Exemption fully utilized"
-          ) : (
-            <>
-              <Money value={ltcgExemptionLimit - ltcgExemptionUsed} variant="full" /> remaining exemption
-            </>
-          )}
-        </div>
-      </Card>
-
-      {/* ── Transaction Details ───────────────────────────────────── */}
-      {hasSells && (
-        <Card style={{ padding: 24 }}>
-          <CardHeading icon={FileText} title="Transaction Details" />
-
-          {/* Pill-bar tabs */}
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
-            {detailTabs.map((t) => {
-              const active = activeDetailTab === t.key;
-              const count = byType.groups[t.key].length;
-              return (
-                <button
-                  key={t.key}
-                  onClick={() => setActiveDetailTab(t.key)}
-                  aria-pressed={active}
-                  className={active ? "" : "table-row-hover"}
+              <Icon size={14} />
+              <span>{tab.label}</span>
+              {tab.count !== undefined && tab.count > 0 && (
+                <span
                   style={{
-                    background: active
-                      ? `color-mix(in srgb, ${t.color} 8%, transparent)`
-                      : "transparent",
-                    border: `1.5px solid ${active ? `color-mix(in srgb, ${t.color} 19%, transparent)` : THEME.line}`,
-                    color: active ? t.color : THEME.muted,
-                    padding: "6px 14px",
-                    borderRadius: 20,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
+                    padding: "1px 6px",
+                    borderRadius: 10,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    background: active ? "rgba(255,255,255,0.25)" : "var(--surface-2)",
+                    color: active ? "#ffffff" : THEME.ink,
                   }}
                 >
-                  {t.label}
-                  {count > 0 && (
-                    <span
-                      style={{
-                        background: active ? t.color : THEME.muted,
-                        color: "#fff",
-                        borderRadius: 10,
-                        padding: "1px 7px",
-                        fontSize: 10,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {count}
+                  {tab.count}
+                </span>
+              )}
+              {tab.badge && (
+                <span
+                  style={{
+                    padding: "1px 6px",
+                    borderRadius: 10,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    background: active ? "#ffffff" : THEME.gold,
+                    color: active ? THEME.gold : "#ffffff",
+                  }}
+                >
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Budget 2024 Statutory Banner ──────────────────────────── */}
+      <div
+        style={{
+          padding: "12px 16px",
+          borderRadius: 12,
+          background: `color-mix(in srgb, ${THEME.accent} 5%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${THEME.accent} 18%, transparent)`,
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 12,
+          fontSize: 12,
+          color: THEME.muted,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flex: 1, minWidth: 280 }}>
+          <Shield size={18} color={THEME.accent} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <div style={{ fontWeight: 700, color: THEME.ink, marginBottom: 2 }}>
+              Budget 2024 Tax Regime Active ({fyLabel})
+            </div>
+            <div>
+              Equity STCG @ <strong style={{ color: THEME.ink }}>{stcgRate * 100}%</strong> · Equity
+              LTCG @ <strong style={{ color: THEME.ink }}>{ltcgRate * 100}%</strong> with{" "}
+              <strong style={{ color: THEME.sage }}>
+                <Money value={ltcgExemptionLimit} variant="full" />
+              </strong>{" "}
+              tax-free limit (Sec 112A) · Post-Apr 2023 Debt Funds at slab rate.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <span
+            style={{
+              padding: "4px 8px",
+              borderRadius: 6,
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+              fontSize: 11,
+              fontWeight: 600,
+              color: THEME.ink,
+            }}
+          >
+            STCG Threshold: &lt; 12 Mo
+          </span>
+          <span
+            style={{
+              padding: "4px 8px",
+              borderRadius: 6,
+              background: "var(--surface-0)",
+              border: `1px solid ${THEME.line}`,
+              fontSize: 11,
+              fontWeight: 600,
+              color: THEME.ink,
+            }}
+          >
+            LTCG Threshold: &gt; 12 Mo
+          </span>
+        </div>
+      </div>
+
+      {/* ═════════════════════════════════════════════════════════════
+         VIEW 1: OVERVIEW & ANALYTICS
+         ═════════════════════════════════════════════════════════════ */}
+      {activeView === "overview" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Executive KPI Stats */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 14,
+            }}
+          >
+            <StatCard
+              icon={<TrendingUp />}
+              label="Total Realized P&L"
+              value={fmtINRFull(animRealizedPL)}
+              numericValue={totalRealizedPL}
+              formatValue={fmtINRFull}
+              sub={`${classified.length} closed trades · Turnover: ${fmtINRFull(totalTurnover)}`}
+              subColor={totalRealizedPL >= 0 ? THEME.sage : THEME.rust}
+              color={totalRealizedPL >= 0 ? THEME.sage : THEME.rust}
+            />
+            <StatCard
+              icon={<IndianRupee />}
+              label="Net Tax Liability"
+              value={fmtINRFull(animTotalTax)}
+              numericValue={totalTax}
+              formatValue={fmtINRFull}
+              sub="Across all asset classes u/s 111A & 112A"
+              color={THEME.rust}
+            />
+            <StatCard
+              icon={<Shield />}
+              label="Sec 112A LTCG Exemption"
+              value={fmtINRFull(animExemptionUsed)}
+              numericValue={ltcgExemptionUsed}
+              formatValue={fmtINRFull}
+              sub={
+                privacyMode
+                  ? "of •••• exemption ceiling"
+                  : `of ${fmtINRFull(ltcgExemptionLimit)} max tax-free cap`
+              }
+              subColor={ltcgExemptionUsed >= ltcgExemptionLimit ? THEME.sage : undefined}
+              color={THEME.sage}
+            />
+            <StatCard
+              icon={<Scissors />}
+              label="Tax Harvesting Savings"
+              value={fmtINRFull(animHarvestSavings)}
+              numericValue={harvestingCalculations.totalPotentialSavings}
+              formatValue={fmtINRFull}
+              sub={`${lossCandidates.length} unrealized loss holdings available`}
+              color={THEME.gold}
+            />
+          </div>
+
+          {/* Gain Classification Breakdown 4-Card Grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 14,
+            }}
+          >
+            {[
+              {
+                label: "Equity STCG (u/s 111A)",
+                key: "EQUITY_STCG" as GainType,
+                rate: `${stcgRate * 100}%`,
+                color: THEME.gold,
+                taxable: taxablePools.equitySTCG,
+                icon: <TrendingUp size={16} />,
+              },
+              {
+                label: "Equity LTCG (u/s 112A)",
+                key: "EQUITY_LTCG" as GainType,
+                rate: `${ltcgRate * 100}%`,
+                color: THEME.sage,
+                taxable: taxablePools.equityLTCG,
+                icon: <TrendingUp size={16} />,
+              },
+              {
+                label: "Debt STCG (Slab Rate)",
+                key: "DEBT_STCG" as GainType,
+                rate: "Slab ~30%",
+                color: THEME.rust,
+                taxable: taxablePools.debtSTCG,
+                icon: <BarChart3 size={16} />,
+              },
+              {
+                label: "Debt LTCG (Grandfathered)",
+                key: "DEBT_LTCG" as GainType,
+                rate: "20% + idx",
+                color: THEME.accent,
+                taxable: taxablePools.debtLTCG,
+                icon: <BarChart3 size={16} />,
+              },
+            ].map((g) => {
+              const val = byType.totals[g.key];
+              const count = byType.groups[g.key].length;
+              return (
+                <Card key={g.key} style={{ padding: 16 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 8,
+                    }}
+                  >
+                    <span style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>
+                      {g.label}
                     </span>
-                  )}
-                </button>
+                    <Badge variant={val >= 0 ? "sage" : "rust"}>{count} txns</Badge>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 800,
+                      color: val >= 0 ? THEME.sage : THEME.rust,
+                      fontFamily: "var(--font-display)",
+                      letterSpacing: "-0.01em",
+                      marginBottom: 6,
+                    }}
+                  >
+                    <Money value={val} variant="full" />
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 11,
+                      color: THEME.muted,
+                      borderTop: `1px dashed ${THEME.line}`,
+                      paddingTop: 6,
+                    }}
+                  >
+                    <span>Rate: {g.rate}</span>
+                    <span>
+                      Taxable: <Money value={g.taxable} variant="full" />
+                    </span>
+                  </div>
+                </Card>
               );
             })}
           </div>
 
-          {byType.groups[activeDetailTab].length > 0 ? (
-            <TransactionTable
-              rows={byType.groups[activeDetailTab]}
-              title={detailTabs.find((t) => t.key === activeDetailTab)?.label || ""}
-              color={detailTabs.find((t) => t.key === activeDetailTab)?.color || THEME.accent}
-              onFixCategory={handleFixMFCategory}
-            />
-          ) : (
-            <div
-              style={{
-                padding: "32px 20px",
-                textAlign: "center",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <FileText size={22} color={THEME.muted} />
-              </div>
-              <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 500 }}>
-                No {detailTabs.find((t) => t.key === activeDetailTab)?.label} transactions in{" "}
-                {fyLabel}
-              </div>
-            </div>
-          )}
-        </Card>
-      )}
-
-      {/* ── Unrealized Gains ──────────────────────────────────────── */}
-      {hasHoldings && (
-        <Card style={{ padding: 24 }}>
+          {/* Visual Recharts Analytics & LTCG Gauge */}
           <div
-            onClick={() => setShowUnrealized(!showUnrealized)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setShowUnrealized(!showUnrealized);
-              }
-            }}
-            aria-expanded={showUnrealized}
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              cursor: "pointer",
-              marginBottom: showUnrealized ? 16 : 0,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gap: 16,
             }}
           >
-            <CardHeading icon={Clock} title="Unrealized Gains (Current Holdings)" />
-            {showUnrealized ? (
-              <ChevronUp size={16} color={THEME.muted} />
-            ) : (
-              <ChevronDown size={16} color={THEME.muted} />
-            )}
+            {/* LTCG Exemption Tracker Card */}
+            <Card style={{ padding: 20 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Shield size={20} color={THEME.sage} />
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                      Section 112A Tax-Free Exemption Tracker
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>
+                      {fyLabel} · Annual Equity Long-Term Exemption
+                    </div>
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: 18,
+                      fontWeight: 800,
+                      color: THEME.sage,
+                    }}
+                  >
+                    <Money value={ltcgExemptionUsed} variant="full" />
+                  </span>
+                  <span style={{ fontSize: 12, color: THEME.muted, marginLeft: 4 }}>
+                    / <Money value={ltcgExemptionLimit} variant="full" />
+                  </span>
+                </div>
+              </div>
+
+              <div className="progress-track" style={{ height: 10, borderRadius: 5, marginBottom: 10 }}>
+                <div
+                  className="progress-fill progress-fill-sage"
+                  style={{
+                    width: `${Math.min(100, (ltcgExemptionUsed / ltcgExemptionLimit) * 100)}%`,
+                    borderRadius: 5,
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 12,
+                  color: THEME.muted,
+                  padding: "8px 12px",
+                  background: "var(--surface-1)",
+                  borderRadius: 8,
+                }}
+              >
+                <span>
+                  {ltcgExemptionUsed >= ltcgExemptionLimit ? (
+                    <strong style={{ color: THEME.gold }}>Exemption ceiling fully exhausted</strong>
+                  ) : (
+                    <>
+                      <strong style={{ color: THEME.sage }}>
+                        <Money value={ltcgExemptionLimit - ltcgExemptionUsed} variant="full" />
+                      </strong>{" "}
+                      tax-free headroom remaining
+                    </>
+                  )}
+                </span>
+                <span>{((ltcgExemptionUsed / ltcgExemptionLimit) * 100).toFixed(0)}% Used</span>
+              </div>
+            </Card>
+
+            {/* Quarterly Accrual Bar Chart */}
+            <Card style={{ padding: 20 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Calendar size={18} color={THEME.accent} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                    Quarterly Realized P&L Distribution
+                  </span>
+                </div>
+                <Badge variant="muted">Schedule CG Sec F</Badge>
+              </div>
+
+              <div style={{ width: "100%", height: 180 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={quarterlyChartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11, fill: "var(--t-muted)" }}
+                      axisLine={{ stroke: "var(--t-line)" }}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "var(--t-muted)" }}
+                      axisLine={{ stroke: "var(--t-line)" }}
+                      tickFormatter={(v) => `₹${Math.round(v / 1000)}k`}
+                    />
+                    <Tooltip
+                      formatter={(val: any) => [fmtINRFull(val), ""]}
+                      contentStyle={{
+                        background: "var(--surface-0)",
+                        border: `1px solid ${THEME.line}`,
+                        borderRadius: 8,
+                        fontSize: 11,
+                      }}
+                    />
+                    <Bar dataKey="Equity STCG" fill={THEME.gold} stackId="a" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="Equity LTCG" fill={THEME.sage} stackId="a" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="Debt" fill={THEME.accent} stackId="a" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
           </div>
 
-          {showUnrealized && (
-            <div style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${THEME.line}` }}>
-              <table style={{ width: "100%", minWidth: 760, borderCollapse: "collapse" }}>
+          {/* Section 70 Loss Set-Off & Carry-Forward Waterfall Card */}
+          <Card style={{ padding: 20 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Layers size={20} color={THEME.accent} />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                    Section 70 Inter-Source Loss Set-Off Flow
+                  </div>
+                  <div style={{ fontSize: 11, color: THEME.muted }}>
+                    Statutory rules: STCL absorbs STCG & LTCG · LTCL absorbs only LTCG
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 10,
+                  background: "var(--surface-1)",
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
+                  1. Realized STCL Absorbed
+                </div>
+                <div
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: setOffDetails.stclAvailable > 0 ? THEME.rust : THEME.ink,
+                  }}
+                >
+                  <Money value={setOffDetails.stclAvailable} variant="full" />
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                  Set off against STCG first, then LTCG
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 10,
+                  background: "var(--surface-1)",
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
+                  2. STCL Used Against LTCG
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
+                  <Money value={setOffDetails.stclOffsetAgainstLTCG} variant="full" />
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                  Permitted cross-category offset
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 10,
+                  background: "var(--surface-1)",
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
+                  3. Sec 112A Exemption Offset
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: THEME.sage }}>
+                  <Money value={ltcgExemptionUsed} variant="full" />
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                  Direct reduction of taxable LTCG
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 10,
+                  background: `color-mix(in srgb, ${THEME.gold} 5%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
+                  4. Unabsorbed Loss Carry-Forward
+                </div>
+                <div
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: setOffDetails.totalCarryForward > 0 ? THEME.gold : THEME.muted,
+                  }}
+                >
+                  <Money value={setOffDetails.totalCarryForward} variant="full" />
+                </div>
+                <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                  Eligible for 8 AYs carry forward
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+         VIEW 2: SCHEDULE CG & REALIZED LEDGER
+         ═════════════════════════════════════════════════════════════ */}
+      {activeView === "ledger" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* ITR Schedule CG Section F Quarterly Accordion */}
+          <Card style={{ padding: 18 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Calendar size={18} color={THEME.accent} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                  ITR-2 / ITR-3 Schedule CG (Section F) — Accrual / Receipt Breakdown
+                </span>
+              </div>
+              <Badge variant="sage">For Advance Tax & Surcharge Computation</Badge>
+            </div>
+
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", minWidth: 680, borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    {[
-                      { h: "Asset", align: "left" },
-                      { h: "Type", align: "left" },
-                      { h: "Buy Date", align: "right" },
-                      { h: "Invested", align: "right" },
-                      { h: "Current", align: "right" },
-                      { h: "P&L", align: "right" },
-                      { h: "Holding", align: "right" },
-                      { h: "Class", align: "left" },
-                      { h: "To LTCG", align: "left" },
-                    ].map(({ h, align }) => (
-                      <th key={h} style={{ ...thStyle, textAlign: align as any }}>
-                        {h}
-                      </th>
-                    ))}
+                    <th style={{ ...thStyle, textAlign: "left" }}>ITR Accrual Bucket</th>
+                    <th style={{ ...thStyle, textAlign: "left" }}>Period</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Equity STCG</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Equity LTCG</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Debt STCG/LTCG</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Net Gain</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Est. Tax</th>
+                    <th style={{ ...thStyle, textAlign: "center" }}>Trades</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {unrealized.map((h, i) => (
-                    <tr
-                      key={i}
-                      className="table-row-hover"
-                    >
+                  {scheduleCGQuarters.map((q) => (
+                    <tr key={q.key} className="table-row-hover">
+                      <td style={{ ...tdStyle, fontWeight: 700, color: THEME.ink }}>{q.label}</td>
+                      <td style={{ ...tdStyle, color: THEME.muted, fontSize: 11 }}>{q.period}</td>
                       <td
                         style={{
                           ...tdStyle,
+                          textAlign: "right",
                           fontWeight: 600,
-                          color: THEME.ink,
-                          maxWidth: 180,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
+                          color: q.equitySTCG >= 0 ? THEME.sage : THEME.rust,
                         }}
                       >
-                        {h.name}
-                      </td>
-                      <td style={tdStyle}>
-                        <Badge variant="muted">{h.assetType}</Badge>
+                        <Money value={q.equitySTCG} variant="full" />
                       </td>
                       <td
                         style={{
                           ...tdStyle,
                           textAlign: "right",
-                          color: THEME.muted,
-                          whiteSpace: "nowrap",
+                          fontWeight: 600,
+                          color: q.equityLTCG >= 0 ? THEME.sage : THEME.rust,
                         }}
                       >
-                        {fmtDate(h.buyDate)}
+                        <Money value={q.equityLTCG} variant="full" />
                       </td>
                       <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                        <Money value={h.buyPrice} variant="full" />
-                      </td>
-                      <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                        <Money value={h.currentPrice} variant="full" />
+                        <Money value={q.debtSTCG + q.debtLTCG} variant="full" />
                       </td>
                       <td
                         style={{
                           ...tdStyle,
                           textAlign: "right",
                           fontWeight: 700,
-                          color: h.unrealizedPL >= 0 ? THEME.sage : THEME.rust,
+                          color: q.totalGain >= 0 ? THEME.sage : THEME.rust,
                         }}
                       >
-                        <Money value={h.unrealizedPL} variant="full" />
+                        <Money value={q.totalGain} variant="full" />
                       </td>
                       <td
                         style={{
                           ...tdStyle,
                           textAlign: "right",
-                          color: THEME.muted,
-                          whiteSpace: "nowrap",
+                          fontWeight: 700,
+                          color: THEME.rust,
                         }}
                       >
-                        {h.holdingMonths} mo
+                        <Money value={q.estimatedTax} variant="full" />
                       </td>
-                      <td style={tdStyle}>
-                        <Badge variant={h.wouldBeType.includes("LTCG") ? "sage" : "gold"}>
-                          {h.wouldBeType.replace("_", " ")}
-                        </Badge>
-                      </td>
-                      <td style={{ ...tdStyle, color: THEME.muted, whiteSpace: "nowrap" }}>
-                        {h.monthsToLTCG === "never" ? (
-                          <span
-                            title="Debt fund units bought on/after 1-Apr-2023 never qualify for LTCG or indexation, no matter how long they're held — always taxed at slab rate"
-                          >
-                            <Badge variant="muted">No LTCG (slab)</Badge>
-                          </span>
-                        ) : h.monthsToLTCG != null ? (
-                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <Clock size={11} />
-                            {h.monthsToLTCG} mo
-                          </span>
-                        ) : (
-                          <Badge variant="sage">LTCG</Badge>
-                        )}
+                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                        <Badge variant="muted">{q.txnCount}</Badge>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )}
-        </Card>
-      )}
+          </Card>
 
-      {/* ── Tax-Loss Harvesting ───────────────────────────────────── */}
-      {harvestingSuggestions.length > 0 && (
-        <Card style={{ padding: 24 }}>
-          <div
-            onClick={() => setShowHarvesting(!showHarvesting)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setShowHarvesting(!showHarvesting);
-              }
-            }}
-            aria-expanded={showHarvesting}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              cursor: "pointer",
-              marginBottom: showHarvesting ? 16 : 0,
-            }}
-          >
-            <CardHeading
-              icon={Scissors}
-              title="Tax-Loss Harvesting Suggestions"
-              color={THEME.gold}
-            />
-            {showHarvesting ? (
-              <ChevronUp size={16} color={THEME.muted} />
-            ) : (
-              <ChevronDown size={16} color={THEME.muted} />
-            )}
-          </div>
-
-          {showHarvesting && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {/* Info banner */}
-              <div
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: 10,
-                  background: `color-mix(in srgb, ${THEME.gold} 4%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.gold} 13%, transparent)`,
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 8,
-                  fontSize: 12,
-                  color: THEME.muted,
-                }}
-              >
-                <Lightbulb size={15} color={THEME.gold} style={{ flexShrink: 0, marginTop: 1 }} />
-                <span>
-                  You have{" "}
-                  <strong style={{ color: THEME.ink }}>
-                    {harvestingSuggestions.length} holdings
-                  </strong>{" "}
-                  with unrealized losses. Selling them could save up to{" "}
-                  <strong style={{ color: THEME.sage }}>
-                    <Money
-                      value={harvestingSuggestions.reduce((s, h) => s + h.potentialSaving, 0)}
-                      variant="full"
-                    />
-                  </strong>{" "}
-                  in taxes by offsetting your realized gains in {currentFYLabel}
-                  {!isViewingCurrentFY ? ` (the currently open FY, not the ${fyLabel} shown above)` : ""}.
-                </span>
+          {/* Ledger Filter & Search Toolbar */}
+          <Card style={{ padding: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 12,
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 14,
+              }}
+            >
+              {/* Search */}
+              <div style={{ position: "relative", minWidth: 220, flex: 1 }}>
+                <Search
+                  size={14}
+                  style={{
+                    position: "absolute",
+                    left: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: THEME.muted,
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search stock symbol or fund name..."
+                  value={ledgerSearch}
+                  onChange={(e) => setLedgerSearch(e.target.value)}
+                  className="form-input"
+                  style={{ width: "100%", paddingLeft: 30, fontSize: 12 }}
+                />
               </div>
 
-              {/* Table */}
+              {/* Filters */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {/* Asset Filter */}
+                <select
+                  value={ledgerAssetFilter}
+                  onChange={(e) => setLedgerAssetFilter(e.target.value as any)}
+                  className="form-input"
+                  style={{ fontSize: 12, padding: "6px 10px" }}
+                >
+                  <option value="ALL">All Asset Types</option>
+                  <option value="Stock">Stocks Only</option>
+                  <option value="Mutual Fund">Mutual Funds Only</option>
+                </select>
+
+                {/* Gain Type Filter */}
+                <select
+                  value={ledgerGainFilter}
+                  onChange={(e) => setLedgerGainFilter(e.target.value as any)}
+                  className="form-input"
+                  style={{ fontSize: 12, padding: "6px 10px" }}
+                >
+                  <option value="ALL">All Gain Types</option>
+                  <option value="EQUITY_STCG">Equity STCG</option>
+                  <option value="EQUITY_LTCG">Equity LTCG</option>
+                  <option value="DEBT_STCG">Debt STCG</option>
+                  <option value="DEBT_LTCG">Debt LTCG</option>
+                </select>
+
+                {/* Outcome Filter */}
+                <select
+                  value={ledgerOutcomeFilter}
+                  onChange={(e) => setLedgerOutcomeFilter(e.target.value as any)}
+                  className="form-input"
+                  style={{ fontSize: 12, padding: "6px 10px" }}
+                >
+                  <option value="ALL">All Outcomes</option>
+                  <option value="PROFIT">Profits Only</option>
+                  <option value="LOSS">Losses Only</option>
+                </select>
+
+                {/* Sort Order */}
+                <select
+                  value={`${ledgerSortBy}-${ledgerSortOrder}`}
+                  onChange={(e) => {
+                    const [by, ord] = e.target.value.split("-") as any;
+                    setLedgerSortBy(by);
+                    setLedgerSortOrder(ord);
+                  }}
+                  className="form-input"
+                  style={{ fontSize: 12, padding: "6px 10px" }}
+                >
+                  <option value="date-desc">Sell Date (Newest First)</option>
+                  <option value="date-asc">Sell Date (Oldest First)</option>
+                  <option value="profit-desc">Highest Profit</option>
+                  <option value="profit-asc">Highest Loss</option>
+                  <option value="holding-desc">Longest Holding</option>
+                  <option value="tax-desc">Highest Tax</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Results Table */}
+            {filteredLedger.length > 0 ? (
               <div
-                style={{ overflowX: "auto", borderRadius: 10, border: `1px solid ${THEME.line}` }}
+                style={{
+                  overflowX: "auto",
+                  borderRadius: 10,
+                  border: `1px solid ${THEME.line}`,
+                }}
               >
-                <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse" }}>
+                <table style={{ width: "100%", minWidth: 880, borderCollapse: "collapse" }}>
                   <thead>
                     <tr>
-                      {[
-                        { h: "Asset", align: "left" },
-                        { h: "Type", align: "left" },
-                        { h: "Unrealized Loss", align: "right" },
-                        { h: "Usable Loss", align: "right" },
-                        { h: "Tax Saving", align: "right" },
-                        { h: "Class", align: "left" },
-                      ].map(({ h, align }) => (
-                        <th key={h} style={{ ...thStyle, textAlign: align as any }}>
-                          {h}
-                        </th>
-                      ))}
+                      <th style={{ ...thStyle, textAlign: "left" }}>Asset</th>
+                      <th style={{ ...thStyle, textAlign: "left" }}>Type / Classification</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Buy Date</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Buy Price</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Sell Date</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Sell Price</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Qty</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Holding</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Realized P&L</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Tax Rate</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Est. Tax</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {harvestingSuggestions.map((h, i) => (
-                      <tr
-                        key={i}
-                        className="table-row-hover"
-                      >
+                    {filteredLedger.map((r, i) => (
+                      <tr key={r.id || i} className="table-row-hover">
                         <td
                           style={{
                             ...tdStyle,
                             fontWeight: 600,
                             color: THEME.ink,
-                            maxWidth: 180,
+                            maxWidth: 200,
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
                           }}
                         >
-                          {h.name}
+                          <div>{r.name}</div>
+                          {r.owner && r.owner !== "self" && (
+                            <span style={{ fontSize: 10, color: THEME.muted }}>
+                              Owner: {r.owner}
+                            </span>
+                          )}
                         </td>
                         <td style={tdStyle}>
-                          <Badge variant="muted">{h.assetType}</Badge>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <Badge
+                              variant={
+                                r.gainType.includes("LTCG")
+                                  ? "sage"
+                                  : r.gainType.includes("DEBT")
+                                    ? "rust"
+                                    : "gold"
+                              }
+                            >
+                              {r.gainType.replace("_", " ")}
+                            </Badge>
+                            {r.assetType === "Mutual Fund" && r.categoryGuessed && (
+                              <CategoryFixBadge
+                                sellId={r.id}
+                                name={r.name}
+                                onFix={handleFixMFCategory}
+                              />
+                            )}
+                          </div>
                         </td>
-                        <td
-                          style={{
-                            ...tdStyle,
-                            textAlign: "right",
-                            fontWeight: 700,
-                            color: THEME.rust,
-                          }}
-                        >
-                          <Money value={h.unrealizedPL} variant="full" />
+                        <td style={{ ...tdStyle, textAlign: "right", color: THEME.muted }}>
+                          {fmtDate(r.buyDate)}
                         </td>
                         <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                          <Money value={h.usableLoss} variant="full" />
+                          <Money value={r.buyPrice} variant="full" />
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", color: THEME.muted }}>
+                          {fmtDate(r.sellDate)}
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
+                          <Money value={r.sellPrice} variant="full" />
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
+                          {r.qty}
+                        </td>
+                        <td
+                          style={{
+                            ...tdStyle,
+                            textAlign: "right",
+                            color: THEME.muted,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {r.holdingMonths} mo
                         </td>
                         <td
                           style={{
                             ...tdStyle,
                             textAlign: "right",
                             fontWeight: 700,
-                            color: THEME.sage,
+                            color: r.profit >= 0 ? THEME.sage : THEME.rust,
                           }}
                         >
-                          <Money value={h.potentialSaving} variant="full" />
+                          <div>
+                            <Money value={r.profit} variant="full" />
+                          </div>
+                          <div style={{ fontSize: 10, fontWeight: 500 }}>
+                            {r.profitPct >= 0 ? "+" : ""}
+                            {r.profitPct.toFixed(1)}%
+                          </div>
                         </td>
-                        <td style={tdStyle}>
-                          <Badge variant={h.wouldBeType.includes("LTCG") ? "sage" : "gold"}>
-                            {h.wouldBeType.replace("_", " ")}
-                          </Badge>
+                        <td style={{ ...tdStyle, textAlign: "right", color: THEME.muted }}>
+                          {(r.taxRate * 100).toFixed(1)}%
+                        </td>
+                        <td
+                          style={{
+                            ...tdStyle,
+                            textAlign: "right",
+                            fontWeight: 700,
+                            color: r.estimatedTax > 0 ? THEME.rust : THEME.muted,
+                          }}
+                        >
+                          <Money value={r.estimatedTax} variant="full" />
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            ) : (
+              <EmptyState
+                icon={Filter}
+                title="No matching transactions"
+                description="Try clearing your search query or adjusting your filters above."
+              />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+         VIEW 3: UNREALIZED HOLDINGS & LTCG RADAR
+         ═════════════════════════════════════════════════════════════ */}
+      {activeView === "unrealized" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Radar Hero Banner */}
+          <div
+            style={{
+              padding: "16px 20px",
+              borderRadius: 12,
+              background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Clock size={24} color={THEME.sage} />
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>
+                  LTCG Milestone Radar & Holding Horizons
+                </div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>
+                  Track time remaining until your short-term investments cross into lower long-term
+                  tax brackets
+                </div>
+              </div>
             </div>
-          )}
-        </Card>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <Badge variant="sage">
+                {unrealized.filter((u) => u.wouldBeType.includes("LTCG")).length} Already LTCG
+              </Badge>
+              <Badge variant="gold">
+                {
+                  unrealized.filter(
+                    (u) => u.daysToLTCG !== null && u.daysToLTCG !== undefined && u.daysToLTCG <= 60
+                  ).length
+                }{" "}
+                Crossing in &lt;60d
+              </Badge>
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <Card style={{ padding: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+                marginBottom: 14,
+              }}
+            >
+              <div style={{ position: "relative", minWidth: 220, flex: 1 }}>
+                <Search
+                  size={14}
+                  style={{
+                    position: "absolute",
+                    left: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: THEME.muted,
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Filter holdings..."
+                  value={unrealizedSearch}
+                  onChange={(e) => setUnrealizedSearch(e.target.value)}
+                  className="form-input"
+                  style={{ width: "100%", paddingLeft: 30, fontSize: 12 }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <select
+                  value={unrealizedClassFilter}
+                  onChange={(e) => setUnrealizedClassFilter(e.target.value as any)}
+                  className="form-input"
+                  style={{ fontSize: 12, padding: "6px 10px" }}
+                >
+                  <option value="ALL">All Holdings ({unrealized.length})</option>
+                  <option value="SOON_LTCG">Becoming LTCG Soon (&lt;60 Days)</option>
+                  <option value="EQUITY_LTCG">Equity LTCG (&gt;12 Months)</option>
+                  <option value="EQUITY_STCG">Equity STCG (&lt;12 Months)</option>
+                  <option value="DEBT_STCG">Debt (Slab Rate)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Holdings Table */}
+            {filteredUnrealized.length > 0 ? (
+              <div
+                style={{
+                  overflowX: "auto",
+                  borderRadius: 10,
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                <table style={{ width: "100%", minWidth: 840, borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...thStyle, textAlign: "left" }}>Asset</th>
+                      <th style={{ ...thStyle, textAlign: "left" }}>Type</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Buy Date</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Invested</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Current Value</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Unrealized P&L</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Holding</th>
+                      <th style={{ ...thStyle, textAlign: "left" }}>Target Status</th>
+                      <th style={{ ...thStyle, textAlign: "left" }}>Countdown to LTCG</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUnrealized.map((h, i) => (
+                      <tr key={h.id || i} className="table-row-hover">
+                        <td
+                          style={{
+                            ...tdStyle,
+                            fontWeight: 600,
+                            color: THEME.ink,
+                            maxWidth: 200,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <div>{h.name}</div>
+                          {h.owner && h.owner !== "self" && (
+                            <span style={{ fontSize: 10, color: THEME.muted }}>
+                              Owner: {h.owner}
+                            </span>
+                          )}
+                        </td>
+                        <td style={tdStyle}>
+                          <Badge variant="muted">{h.assetType}</Badge>
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", color: THEME.muted }}>
+                          {fmtDate(h.buyDate)}
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
+                          <Money value={h.buyPrice} variant="full" />
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
+                          <Money value={h.currentPrice} variant="full" />
+                        </td>
+                        <td
+                          style={{
+                            ...tdStyle,
+                            textAlign: "right",
+                            fontWeight: 700,
+                            color: h.unrealizedPL >= 0 ? THEME.sage : THEME.rust,
+                          }}
+                        >
+                          <div>
+                            <Money value={h.unrealizedPL} variant="full" />
+                          </div>
+                          <div style={{ fontSize: 10, fontWeight: 500 }}>
+                            {h.unrealizedPLPct >= 0 ? "+" : ""}
+                            {h.unrealizedPLPct.toFixed(1)}%
+                          </div>
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", color: THEME.muted }}>
+                          {h.holdingMonths} mo
+                        </td>
+                        <td style={tdStyle}>
+                          <Badge variant={h.wouldBeType.includes("LTCG") ? "sage" : "gold"}>
+                            {h.wouldBeType.replace("_", " ")}
+                          </Badge>
+                        </td>
+                        <td style={{ ...tdStyle, color: THEME.muted, whiteSpace: "nowrap" }}>
+                          {h.monthsToLTCG === "never" ? (
+                            <Badge variant="muted">No LTCG (Slab)</Badge>
+                          ) : h.daysToLTCG === 0 || h.monthsToLTCG === null ? (
+                            <Badge variant="sage">Eligible for LTCG</Badge>
+                          ) : h.daysToLTCG && h.daysToLTCG <= 60 ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <Sparkles size={13} color={THEME.gold} />
+                              <strong style={{ color: THEME.gold }}>{h.daysToLTCG} days</strong>
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <Clock size={12} />
+                              <span>{h.monthsToLTCG} mo</span>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <EmptyState
+                icon={Clock}
+                title="No holdings found"
+                description="No holdings match the current filter criteria."
+              />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+         VIEW 4: TAX-LOSS HARVESTING STUDIO
+         ═════════════════════════════════════════════════════════════ */}
+      {activeView === "harvesting" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Harvesting Studio Overview */}
+          <div
+            style={{
+              padding: "16px 20px",
+              borderRadius: 12,
+              background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <Scissors size={24} color={THEME.gold} style={{ marginTop: 2 }} />
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>
+                  Tax-Loss Harvesting Studio & Offset Planner
+                </div>
+                <div style={{ fontSize: 12, color: THEME.muted, maxWidth: 580 }}>
+                  Realize losses on underperforming holdings to legally wipe out capital gains tax
+                  in {currentFYLabel}. You can immediately reinvest proceeds into similar index funds
+                  or alternative securities to keep your portfolio allocation intact.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={copiedPlan ? <Check size={14} /> : <Copy size={14} />}
+                onClick={handleCopyHarvestPlan}
+              >
+                {copiedPlan ? "Copied!" : "Copy Harvest Plan"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Interactive Impact Simulator Bar */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 14,
+            }}
+          >
+            <Card style={{ padding: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
+                Realized Gains to Offset ({currentFYLabel})
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink }}>
+                <Money
+                  value={
+                    Math.max(0, currentFYTotals.byType.totals.EQUITY_STCG) +
+                    Math.max(
+                      0,
+                      currentFYTotals.byType.totals.EQUITY_LTCG -
+                        currentFYTotals.ltcgExemptionLimit
+                    )
+                  }
+                  variant="full"
+                />
+              </div>
+              <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                Taxable STCG + LTCG above ₹1.25L
+              </div>
+            </Card>
+
+            <Card style={{ padding: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
+                Selected Losses to Harvest
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: THEME.rust }}>
+                <Money value={harvestingCalculations.totalHarvestedLoss} variant="full" />
+              </div>
+              <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                Usable: <Money value={harvestingCalculations.totalUsableLoss} variant="full" />
+              </div>
+            </Card>
+
+            <Card
+              style={{
+                padding: 16,
+                background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.sage, marginBottom: 4 }}>
+                Immediate Tax Savings
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: THEME.sage }}>
+                <Money value={harvestingCalculations.totalPotentialSavings} variant="full" />
+              </div>
+              <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                Direct reduction in current FY tax
+              </div>
+            </Card>
+          </div>
+
+          {/* Harvesting Table with Checkboxes */}
+          <Card style={{ padding: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                Select Positions to Harvest ({harvestingCalculations.activeList.length} opportunities)
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedHarvestIds(
+                      new Set(harvestingCalculations.activeList.map((h) => h.id || h.name))
+                    )
+                  }
+                  className="button-ghost"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: THEME.accent,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Select All
+                </button>
+                <span style={{ color: THEME.line }}>|</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedHarvestIds(new Set())}
+                  className="button-ghost"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: THEME.muted,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+
+            {harvestingCalculations.activeList.length > 0 ? (
+              <div
+                style={{
+                  overflowX: "auto",
+                  borderRadius: 10,
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...thStyle, width: 40, textAlign: "center" }}>Harvest</th>
+                      <th style={{ ...thStyle, textAlign: "left" }}>Asset</th>
+                      <th style={{ ...thStyle, textAlign: "left" }}>Type</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Invested</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Current Value</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Unrealized Loss</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Usable Loss</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Tax Savings</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {harvestingCalculations.activeList.map((h) => {
+                      const id = h.id || h.name;
+                      return (
+                        <tr
+                          key={id}
+                          className="table-row-hover"
+                          onClick={() => {
+                            const next = new Set(selectedHarvestIds);
+                            if (next.has(id)) next.delete(id);
+                            else next.add(id);
+                            setSelectedHarvestIds(next);
+                          }}
+                          style={{ cursor: "pointer" }}
+                        >
+                          <td style={{ ...tdStyle, textAlign: "center" }}>
+                            <input
+                              type="checkbox"
+                              checked={h.isSelected}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                const next = new Set(selectedHarvestIds);
+                                if (e.target.checked) next.add(id);
+                                else next.delete(id);
+                                setSelectedHarvestIds(next);
+                              }}
+                              style={{ cursor: "pointer", accentColor: THEME.accent }}
+                            />
+                          </td>
+                          <td
+                            style={{
+                              ...tdStyle,
+                              fontWeight: 600,
+                              color: THEME.ink,
+                              maxWidth: 180,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {h.name}
+                          </td>
+                          <td style={tdStyle}>
+                            <Badge variant="muted">{h.assetType}</Badge>
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
+                            <Money value={h.buyPrice} variant="full" />
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
+                            <Money value={h.currentPrice} variant="full" />
+                          </td>
+                          <td
+                            style={{
+                              ...tdStyle,
+                              textAlign: "right",
+                              fontWeight: 700,
+                              color: THEME.rust,
+                            }}
+                          >
+                            <Money value={h.unrealizedPL} variant="full" />
+                          </td>
+                          <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
+                            <Money value={h.usableLoss} variant="full" />
+                          </td>
+                          <td
+                            style={{
+                              ...tdStyle,
+                              textAlign: "right",
+                              fontWeight: 700,
+                              color: h.potentialSaving > 0 ? THEME.sage : THEME.muted,
+                            }}
+                          >
+                            <Money value={h.potentialSaving} variant="full" />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <EmptyState
+                icon={Scissors}
+                title="No unrealized losses found"
+                description="All your current holdings are in profit. No tax loss harvesting opportunities currently exist."
+              />
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+         VIEW 5: CAPITAL GAINS WHAT-IF SIMULATOR
+         ═════════════════════════════════════════════════════════════ */}
+      {activeView === "calculator" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <Card style={{ padding: 20 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Calculator size={20} color={THEME.accent} />
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>
+                    Capital Gains "What-If" Trade Simulator
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted }}>
+                    Simulate selling any stock or mutual fund to test holding duration, tax bracket & net profit before trading
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: 20,
+              }}
+            >
+              {/* Input Form */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, display: "block", marginBottom: 4 }}>
+                      Asset Class
+                    </label>
+                    <select
+                      value={simAssetType}
+                      onChange={(e) => setSimAssetType(e.target.value as any)}
+                      className="form-input"
+                      style={{ width: "100%", fontSize: 12 }}
+                    >
+                      <option value="Stock">Direct Equity / Stock</option>
+                      <option value="Mutual Fund">Mutual Fund</option>
+                    </select>
+                  </div>
+
+                  {simAssetType === "Mutual Fund" && (
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, display: "block", marginBottom: 4 }}>
+                        Fund Category
+                      </label>
+                      <select
+                        value={simFundCategory}
+                        onChange={(e) => setSimFundCategory(e.target.value as any)}
+                        className="form-input"
+                        style={{ width: "100%", fontSize: 12 }}
+                      >
+                        <option value="Equity">Equity Fund (≥65% Equity)</option>
+                        <option value="Debt">Debt Fund (&lt;65% Equity)</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, display: "block", marginBottom: 4 }}>
+                      Buy Date
+                    </label>
+                    <input
+                      type="date"
+                      value={simBuyDate}
+                      onChange={(e) => setSimBuyDate(e.target.value)}
+                      className="form-input"
+                      style={{ width: "100%", fontSize: 12 }}
+                    />
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, display: "block", marginBottom: 4 }}>
+                      Total Buy Cost (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={simBuyPrice}
+                      onChange={(e) => setSimBuyPrice(Number(e.target.value))}
+                      className="form-input"
+                      style={{ width: "100%", fontSize: 12 }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, display: "block", marginBottom: 4 }}>
+                      Simulated Sell Date
+                    </label>
+                    <input
+                      type="date"
+                      value={simSellDate}
+                      onChange={(e) => setSimSellDate(e.target.value)}
+                      className="form-input"
+                      style={{ width: "100%", fontSize: 12 }}
+                    />
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, display: "block", marginBottom: 4 }}>
+                      Simulated Sell Value (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={simSellPrice}
+                      onChange={(e) => setSimSellPrice(Number(e.target.value))}
+                      className="form-input"
+                      style={{ width: "100%", fontSize: 12 }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Simulation Result Card */}
+              <div
+                style={{
+                  padding: 18,
+                  borderRadius: 12,
+                  background: "var(--surface-1)",
+                  border: `1px solid ${THEME.line}`,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                    Simulation Outcome
+                  </span>
+                  <Badge variant={whatIfCalculation.isLTCG ? "sage" : "gold"}>
+                    {whatIfCalculation.gainType.replace("_", " ")}
+                  </Badge>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 10,
+                    padding: 12,
+                    background: "var(--surface-0)",
+                    borderRadius: 8,
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 10, color: THEME.muted }}>Holding Period</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                      {whatIfCalculation.months} Months
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: THEME.muted }}>Tax Rate</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                      {(whatIfCalculation.taxRate * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: THEME.muted }}>Gross Profit/Loss</div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: whatIfCalculation.profit >= 0 ? THEME.sage : THEME.rust,
+                      }}
+                    >
+                      <Money value={whatIfCalculation.profit} variant="full" />
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: THEME.muted }}>Estimated Tax</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.rust }}>
+                      <Money value={whatIfCalculation.taxAmount} variant="full" />
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 8,
+                    background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}>
+                    Net In-Hand Realization:
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 800,
+                      color: THEME.accent,
+                      fontFamily: "var(--font-display)",
+                    }}
+                  >
+                    <Money value={whatIfCalculation.netInHand} variant="full" />
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+         VIEW 6: STATUTORY RULES & GUIDE
+         ═════════════════════════════════════════════════════════════ */}
+      {activeView === "rules" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Holding Periods Table */}
+          <Card style={{ padding: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <BookOpen size={18} color={THEME.accent} />
+              <span style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>
+                Statutory Holding Periods & Classification Matrix (Budget 2024 Updated)
+              </span>
+            </div>
+
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", minWidth: 640, borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...thStyle, textAlign: "left" }}>Asset Class</th>
+                    <th style={{ ...thStyle, textAlign: "left" }}>STCG Threshold</th>
+                    <th style={{ ...thStyle, textAlign: "left" }}>LTCG Threshold</th>
+                    <th style={{ ...thStyle, textAlign: "left" }}>STCG Tax Rate</th>
+                    <th style={{ ...thStyle, textAlign: "left" }}>LTCG Tax Rate</th>
+                    <th style={{ ...thStyle, textAlign: "left" }}>Exemption Cap</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="table-row-hover">
+                    <td style={{ ...tdStyle, fontWeight: 700, color: THEME.ink }}>
+                      Listed Equity Shares & Equity MFs (≥65%)
+                    </td>
+                    <td style={tdStyle}>≤ 12 Months</td>
+                    <td style={tdStyle}>&gt; 12 Months</td>
+                    <td style={{ ...tdStyle, color: THEME.gold, fontWeight: 600 }}>20% (15% pre-23-Jul)</td>
+                    <td style={{ ...tdStyle, color: THEME.sage, fontWeight: 600 }}>12.5% (10% pre-23-Jul)</td>
+                    <td style={tdStyle}>₹1,25,000 / FY</td>
+                  </tr>
+                  <tr className="table-row-hover">
+                    <td style={{ ...tdStyle, fontWeight: 700, color: THEME.ink }}>
+                      Debt Mutual Funds (Bought on/after 1-Apr-2023)
+                    </td>
+                    <td style={tdStyle}>Any duration</td>
+                    <td style={{ ...tdStyle, color: THEME.muted }}>No LTCG Allowed</td>
+                    <td style={{ ...tdStyle, color: THEME.rust, fontWeight: 600 }}>Slab Rate (30%)</td>
+                    <td style={{ ...tdStyle, color: THEME.muted }}>N/A (Slab Rate)</td>
+                    <td style={tdStyle}>None</td>
+                  </tr>
+                  <tr className="table-row-hover">
+                    <td style={{ ...tdStyle, fontWeight: 700, color: THEME.ink }}>
+                      Debt Mutual Funds (Bought before 1-Apr-2023)
+                    </td>
+                    <td style={tdStyle}>≤ 36 Months</td>
+                    <td style={tdStyle}>&gt; 36 Months</td>
+                    <td style={{ ...tdStyle, color: THEME.rust, fontWeight: 600 }}>Slab Rate</td>
+                    <td style={{ ...tdStyle, color: THEME.accent, fontWeight: 600 }}>20% with Indexation</td>
+                    <td style={tdStyle}>None</td>
+                  </tr>
+                  <tr className="table-row-hover">
+                    <td style={{ ...tdStyle, fontWeight: 700, color: THEME.ink }}>
+                      Unlisted Shares & Real Estate
+                    </td>
+                    <td style={tdStyle}>≤ 24 Months</td>
+                    <td style={tdStyle}>&gt; 24 Months</td>
+                    <td style={tdStyle}>Slab Rate</td>
+                    <td style={{ ...tdStyle, color: THEME.accent, fontWeight: 600 }}>12.5% (Without Indexation)</td>
+                    <td style={tdStyle}>Sec 54 / 54F</td>
+                  </tr>
+                  <tr className="table-row-hover">
+                    <td style={{ ...tdStyle, fontWeight: 700, color: THEME.ink }}>
+                      Physical Gold & SGBs (Secondary Market)
+                    </td>
+                    <td style={tdStyle}>≤ 24 Months</td>
+                    <td style={tdStyle}>&gt; 24 Months</td>
+                    <td style={tdStyle}>Slab Rate</td>
+                    <td style={{ ...tdStyle, color: THEME.sage, fontWeight: 600 }}>12.5%</td>
+                    <td style={tdStyle}>None</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* Section 70/71 Matrix */}
+          <Card style={{ padding: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <Layers size={18} color={THEME.accent} />
+              <span style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>
+                Set-off & Carry-Forward Matrix (Section 70, 71 & 74)
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: 14,
+              }}
+            >
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 10,
+                  background: "var(--surface-1)",
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.gold, marginBottom: 6 }}>
+                  Short-Term Capital Loss (STCL)
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
+                  <li>Can be set off against <strong>both STCG and LTCG</strong> in the same FY.</li>
+                  <li>Can be carried forward for up to <strong>8 Assessment Years</strong>.</li>
+                  <li>In future years, brought-forward STCL can set off STCG and LTCG.</li>
+                </ul>
+              </div>
+
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 10,
+                  background: "var(--surface-1)",
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, marginBottom: 6 }}>
+                  Long-Term Capital Loss (LTCL)
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
+                  <li>Can only be set off against <strong>LTCG</strong> (cannot offset STCG).</li>
+                  <li>Can be carried forward for up to <strong>8 Assessment Years</strong>.</li>
+                  <li>In future years, brought-forward LTCL can set off only LTCG.</li>
+                </ul>
+              </div>
+            </div>
+          </Card>
+        </div>
       )}
 
       {/* ── Disclaimer ────────────────────────────────────────────── */}
@@ -1689,22 +3079,12 @@ export const CapitalGainsTab = ({
       >
         <Info size={14} style={{ flexShrink: 0, marginTop: 2 }} />
         <span>
-          <strong>Disclaimer:</strong> Tax estimates are approximate. For {fyLabel}: Equity STCG at{" "}
-          {stcgRate * 100}%, Equity LTCG at {ltcgRate * 100}% above{" "}
-          <Money value={ltcgExemptionLimit} variant="full" /> exemption. Debt MFs purchased after 1 Apr 2023
-          are taxed at slab rate regardless of holding period, with no LTCG or indexation benefit
-          ever, no matter how long they are held. Actual liability may vary based on your income
-          slab, surcharge, cess, and indexation benefits. Consult a tax professional for ITR
-          filing.
-          {fyStartYear === 2024 && (
-            <>
-              {" "}
-              Note: FY2024-25 straddled the 23-Jul-2024 Budget rate change — sales before that
-              date were taxed at 15% (STCG) / 10% (LTCG); sales on/after at 20% (STCG) / 12.5%
-              (LTCG). Each transaction in the ledger above is taxed at its own correct rate based
-              on its actual sale date.
-            </>
-          )}
+          <strong>Statutory Disclaimer:</strong> Tax estimates are computed per Indian Income Tax
+          Act provisions (Finance Act 2024). STCG on equity is taxed at {stcgRate * 100}%, LTCG at{" "}
+          {ltcgRate * 100}% above <Money value={ltcgExemptionLimit} variant="full" /> exemption. Debt
+          mutual funds purchased on or after 1-Apr-2023 are taxed at your applicable slab rate with
+          no indexation benefit. For ITR filing, verify against your AIS/TIS and capital gain
+          statements from CAMS/KFintech/brokers.
         </span>
       </div>
     </div>

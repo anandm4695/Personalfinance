@@ -5,7 +5,7 @@ import { Card } from "./Card";
 import { Button } from "./Button";
 
 interface EmptyStateProps {
-  icon?: React.ComponentType<any>;
+  icon?: React.ComponentType<any> | React.ReactNode;
   gradient?: string;
   dotColor?: string;
   title?: string;
@@ -54,7 +54,11 @@ export function EmptyState({
             boxShadow: `0 0 24px -4px color-mix(in srgb, ${accentColor} 20%, transparent)`,
           }}
         >
-          <Icon size={30} strokeWidth={1.75} />
+          {React.isValidElement(Icon) ? (
+            Icon
+          ) : typeof Icon === "function" ? (
+            <Icon size={30} strokeWidth={1.75} />
+          ) : null}
         </div>
       )}
       <div
