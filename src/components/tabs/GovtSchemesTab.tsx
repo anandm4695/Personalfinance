@@ -111,7 +111,7 @@ export interface SchemeDefinition {
 }
 
 // Master Schemes definition with enhanced metadata, branding colors, and tax benefits
-export const SCHEMES: SchemeDefinition[] = [
+const SCHEMES: SchemeDefinition[] = [
   {
     value: "SSY",
     label: "SSY — Sukanya Samriddhi Yojana",
@@ -312,7 +312,7 @@ export const SCHEMES: SchemeDefinition[] = [
   },
 ];
 
-export const SCHEME_MAP = Object.fromEntries(SCHEMES.map((s) => [s.value, s]));
+const SCHEME_MAP = Object.fromEntries(SCHEMES.map((s) => [s.value, s]));
 
 // Categories for unified filter tab
 const CATEGORIES = [
