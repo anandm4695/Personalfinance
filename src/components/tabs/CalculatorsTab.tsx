@@ -29,6 +29,15 @@ import {
   Landmark,
   FileText,
   Award,
+  Search,
+  Copy,
+  Check,
+  Zap,
+  RotateCcw,
+  X,
+  Layers,
+  Filter,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   AreaChart,
@@ -88,6 +97,10 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
     | "gratuity-leave"
     | "nps"
   >((subTab as any) || "emi");
+
+  const [calcCategory, setCalcCategory] = useState<"all" | "wealth" | "retirement" | "loans" | "simulation" | "tax">("all");
+  const [calcSearch, setCalcSearch] = useState("");
+  const [copiedSummary, setCopiedSummary] = useState(false);
 
   useEffect(() => {
     if (subTab) {
@@ -1528,19 +1541,300 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
     </div>
   );
 
+  // ── CALCULATORS REGISTRY & CATEGORIZATION ──
+  const CALCULATOR_REGISTRY = [
+    {
+      id: "emi" as const,
+      label: "EMI Calculator",
+      category: "loans" as const,
+      categoryLabel: "Loans & Debt",
+      icon: Clock,
+      tagline: "Monthly installment & interest breakdown",
+      description: "Compute exact loan repayments, total interest burden, and amortization split.",
+      formulaTip: "E = P × r × (1+r)ⁿ / ((1+r)ⁿ - 1)",
+    },
+    {
+      id: "sip" as const,
+      label: "SIP Returns",
+      category: "wealth" as const,
+      categoryLabel: "Wealth & SIP",
+      icon: TrendingUp,
+      badge: "Popular",
+      badgeColor: THEME.sage,
+      tagline: "Systematic wealth compounding engine",
+      description: "Project future corpus accumulation and compounded wealth gains from disciplined monthly investments.",
+      formulaTip: "FV = P × [ (1+i)ⁿ - 1 ] / i × (1+i)",
+    },
+    {
+      id: "step-sip" as const,
+      label: "Step-Up SIP",
+      category: "wealth" as const,
+      categoryLabel: "Wealth & SIP",
+      icon: Sparkles,
+      badge: "High Impact",
+      badgeColor: THEME.accent,
+      tagline: "Accelerate compounding with annual step-ups",
+      description: "Simulate annual % top-ups to your monthly SIP to reach target wealth goals years faster.",
+    },
+    {
+      id: "swp" as const,
+      label: "SWP Calculator",
+      category: "retirement" as const,
+      categoryLabel: "Retirement & FIRE",
+      icon: Wallet,
+      tagline: "Systematic cash flow without exhausting capital",
+      description: "Plan monthly pension-style cash withdrawals from mutual fund investments post-retirement.",
+    },
+    {
+      id: "cagr" as const,
+      label: "CAGR Calculator",
+      category: "wealth" as const,
+      categoryLabel: "Wealth & SIP",
+      icon: BarChart2,
+      tagline: "True annualized rate of investment return",
+      description: "Calculate point-to-point compounded annual growth rate across multi-year asset holding periods.",
+      formulaTip: "CAGR = (Final / Initial)^(1/n) - 1",
+    },
+    {
+      id: "fire" as const,
+      label: "Retirement Shortfall",
+      category: "retirement" as const,
+      categoryLabel: "Retirement & FIRE",
+      icon: Flame,
+      badge: "FIRE Engine",
+      badgeColor: THEME.gold,
+      tagline: "Inflation-adjusted retirement runway & freedom date",
+      description: "Estimate exact retirement nest egg required, inflation-adjusted expenses, and projected financial freedom year.",
+    },
+    {
+      id: "fdrd" as const,
+      label: "FD & RD Maturity",
+      category: "wealth" as const,
+      categoryLabel: "Wealth & SIP",
+      icon: Coins,
+      tagline: "Fixed & Recurring Deposit compounding",
+      description: "Calculate guaranteed maturity proceeds with quarterly bank compounding across Fixed and Recurring Deposits.",
+    },
+    {
+      id: "loan-invest" as const,
+      label: "Loan vs Invest",
+      category: "loans" as const,
+      categoryLabel: "Loans & Debt",
+      icon: ArrowRightLeft,
+      badge: "Optimizer",
+      badgeColor: THEME.cyan,
+      tagline: "Prepay debt or invest surplus into equity?",
+      description: "Quantify the opportunity cost and terminal net wealth between aggressive loan prepayment vs market investing.",
+    },
+    {
+      id: "projection" as const,
+      label: "Wealth Projection",
+      category: "wealth" as const,
+      categoryLabel: "Wealth & Compounding",
+      icon: Briefcase,
+      tagline: "Multi-year net worth trajectory simulator",
+      description: "Simulate 5 to 30 year forward portfolio trajectory incorporating monthly savings and asset growth.",
+    },
+    {
+      id: "stress" as const,
+      label: "Runway Stress Tester",
+      category: "simulation" as const,
+      categoryLabel: "Stress & Simulation",
+      icon: Shield,
+      badge: "Risk Engine",
+      badgeColor: THEME.rust,
+      tagline: "Portfolio resilience under market crashes & shocks",
+      description: "Stress-test liquid emergency runway under 10% to 50% equity drawdowns and sudden emergency outflow shocks.",
+    },
+    {
+      id: "monte-carlo" as const,
+      label: "Monte Carlo Simulator",
+      category: "simulation" as const,
+      categoryLabel: "Stress & Simulation",
+      icon: Sparkles,
+      tagline: "Probabilistic market path distribution",
+      description: "Run 1,000+ stochastic market return iterations to reveal 10th (pessimistic), 50th (median), and 90th (optimistic) outcomes.",
+    },
+    {
+      id: "scenario-sandbox" as const,
+      label: "Scenario Sandbox",
+      category: "simulation" as const,
+      categoryLabel: "Stress & Simulation",
+      icon: GitBranch,
+      tagline: "Life turning points (sabbatical, startup, real estate)",
+      description: "Model complex real-life decisions: sabbaticals, entrepreneurial ventures, and property acquisitions.",
+    },
+    {
+      id: "indexation" as const,
+      label: "Indexation",
+      category: "tax" as const,
+      categoryLabel: "Tax & Benefits",
+      icon: Coins,
+      tagline: "CII inflation-adjusted capital gains tax",
+      description: "Calculate indexed cost of acquisition and tax savings under Cost Inflation Index (CII) for long-term capital assets.",
+    },
+    {
+      id: "retirement-income" as const,
+      label: "Retirement Income",
+      category: "retirement" as const,
+      categoryLabel: "Retirement & FIRE",
+      icon: Briefcase,
+      tagline: "Multi-bucket sustainable drawdown planner",
+      description: "Model a robust 3-bucket post-retirement income stream across cash, fixed income, and growth equities.",
+    },
+    {
+      id: "gratuity-leave" as const,
+      label: "Gratuity & Leave",
+      category: "tax" as const,
+      categoryLabel: "Tax & Benefits",
+      icon: Award,
+      tagline: "Statutory employee terminal benefits calculator",
+      description: "Calculate statutory tax-exempt and taxable gratuity and leave encashment limits per income tax rules.",
+    },
+    {
+      id: "nps" as const,
+      label: "NPS Pension Analyzer",
+      category: "retirement" as const,
+      categoryLabel: "Retirement & FIRE",
+      icon: Landmark,
+      tagline: "Tier-1 corpus & monthly pension estimator",
+      description: "Project National Pension System corpus, 60% tax-free lump sum withdrawal, and 40% mandatory monthly annuity pension.",
+    },
+  ];
+
+  const CATEGORIES = [
+    { id: "all" as const, label: "All Tools", count: CALCULATOR_REGISTRY.length },
+    { id: "wealth" as const, label: "Wealth & SIP", count: CALCULATOR_REGISTRY.filter((c) => c.category === "wealth").length },
+    { id: "retirement" as const, label: "Retirement & FIRE", count: CALCULATOR_REGISTRY.filter((c) => c.category === "retirement").length },
+    { id: "loans" as const, label: "Loans & Debt", count: CALCULATOR_REGISTRY.filter((c) => c.category === "loans").length },
+    { id: "simulation" as const, label: "Stress & Sandbox", count: CALCULATOR_REGISTRY.filter((c) => c.category === "simulation").length },
+    { id: "tax" as const, label: "Tax & Benefits", count: CALCULATOR_REGISTRY.filter((c) => c.category === "tax").length },
+  ];
+
+  const filteredCalculators = useMemo(() => {
+    return CALCULATOR_REGISTRY.filter((c) => {
+      const matchCat = calcCategory === "all" || c.category === calcCategory;
+      const q = calcSearch.trim().toLowerCase();
+      if (!q) return matchCat;
+      const matchQuery =
+        c.label.toLowerCase().includes(q) ||
+        c.tagline.toLowerCase().includes(q) ||
+        c.description.toLowerCase().includes(q) ||
+        c.categoryLabel.toLowerCase().includes(q) ||
+        c.id.toLowerCase().includes(q);
+      return matchCat && matchQuery;
+    });
+  }, [calcCategory, calcSearch]);
+
+  const currentCalcMeta = useMemo(() => {
+    return CALCULATOR_REGISTRY.find((c) => c.id === calcTab) || CALCULATOR_REGISTRY[0];
+  }, [calcTab]);
+
+  const handleCopySummary = () => {
+    let text = `📊 [${currentCalcMeta.label}] Summary\nCategory: ${currentCalcMeta.categoryLabel}\n`;
+    text += `Personal Finance Hub • Generated on ${new Date().toLocaleDateString("en-IN")}\n\n`;
+
+    if (calcTab === "emi") {
+      text += `Loan Principal: ₹${Number(emiP).toLocaleString("en-IN")}\n`;
+      text += `Interest Rate: ${emiR}%\n`;
+      text += `Tenure: ${emiN} months (${(Number(emiN)/12).toFixed(1)} years)\n`;
+      text += `---------------------------------\n`;
+      text += `Monthly EMI: ₹${Math.round(emiResult.emi).toLocaleString("en-IN")}\n`;
+      text += `Total Interest: ₹${Math.round(emiResult.interest).toLocaleString("en-IN")}\n`;
+      text += `Total Repayment: ₹${Math.round(emiResult.total).toLocaleString("en-IN")}\n`;
+    } else if (calcTab === "sip") {
+      text += `Monthly SIP: ₹${Number(sipAmt).toLocaleString("en-IN")}\n`;
+      text += `Expected Annual Return: ${sipRate}%\n`;
+      text += `Investment Horizon: ${sipYrs} years\n`;
+      text += `---------------------------------\n`;
+      text += `Total Invested: ₹${Math.round(sipResult.invested).toLocaleString("en-IN")}\n`;
+      text += `Compounded Gains: ₹${Math.round(sipResult.gains).toLocaleString("en-IN")}\n`;
+      text += `Expected Future Value: ₹${Math.round(sipResult.corpus).toLocaleString("en-IN")}\n`;
+    } else if (calcTab === "step-sip") {
+      text += `Starting Monthly SIP: ₹${Number(stepSipAmt).toLocaleString("en-IN")}\n`;
+      text += `Annual Step-Up: ${stepSipStep}%\n`;
+      text += `Expected Return: ${stepSipRate}%\n`;
+      text += `Tenure: ${stepSipYrs} years\n`;
+      text += `---------------------------------\n`;
+      text += `Step-Up Future Value: ₹${stepSipResult.corpus.toLocaleString("en-IN")}\n`;
+      text += `Flat SIP Future Value: ₹${stepSipResult.flatCorpus.toLocaleString("en-IN")}\n`;
+      text += `Extra Wealth Generated: ₹${stepSipResult.extraGains.toLocaleString("en-IN")}\n`;
+    } else if (calcTab === "swp") {
+      text += `Starting Corpus: ₹${Number(swpCorpus).toLocaleString("en-IN")}\n`;
+      text += `Monthly Withdrawal: ₹${Number(swpWithdrawal).toLocaleString("en-IN")}\n`;
+      text += `Expected Annual Yield: ${swpRate}%\n`;
+      text += `Withdrawal Horizon: ${swpYears} years\n`;
+      text += `---------------------------------\n`;
+      text += `Total Withdrawn: ₹${swpResult.totalWithdrawn.toLocaleString("en-IN")}\n`;
+      text += `Remaining Portfolio: ₹${swpResult.remainingCorpus.toLocaleString("en-IN")}\n`;
+    } else if (calcTab === "fire") {
+      text += `Current Age: ${fireAge} | Target Retirement: ${fireRetireAge} | Life Expectancy: ${fireLifeExp}\n`;
+      text += `Current Monthly Expenses: ₹${Number(fireExpense).toLocaleString("en-IN")}\n`;
+      text += `Current Portfolio: ₹${Number(firePortfolio).toLocaleString("en-IN")}\n`;
+      text += `Monthly Savings: ₹${Number(fireSavings).toLocaleString("en-IN")}\n`;
+      text += `---------------------------------\n`;
+      text += `Required Nest Egg: ₹${Math.round(fireResult.reqCorpus).toLocaleString("en-IN")}\n`;
+      text += `Projected Corpus: ₹${Math.round(fireResult.projectedCorpus).toLocaleString("en-IN")}\n`;
+      text += `Target Freedom Year: ${fireResult.projectedFireYear || "Achieved"}\n`;
+    } else {
+      text += `Active Calculator: ${currentCalcMeta.label}\n`;
+      text += `Tagline: ${currentCalcMeta.tagline}\n`;
+    }
+
+    try {
+      navigator.clipboard.writeText(text);
+      setCopiedSummary(true);
+      setTimeout(() => setCopiedSummary(false), 2000);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleResetActiveCalc = () => {
+    if (calcTab === "emi") {
+      setEmiP("1000000");
+      setEmiR("8.5");
+      setEmiN("240");
+    } else if (calcTab === "sip") {
+      setSipAmt("10000");
+      setSipRate("12");
+      setSipYrs("10");
+    } else if (calcTab === "step-sip") {
+      setStepSipAmt("10000");
+      setStepSipStep("10");
+      setStepSipRate("12");
+      setStepSipYrs("10");
+    } else if (calcTab === "swp") {
+      setSwpCorpus(String(Math.round((metrics?.netWorth || 5000000) / 100000) * 100000));
+      setSwpWithdrawal("30000");
+      setSwpRate("8");
+      setSwpYears("20");
+    } else if (calcTab === "cagr") {
+      setCagrInvested("100000");
+      setCagrCurrent("200000");
+      setCagrYears("5");
+    } else if (calcTab === "fire") {
+      setFireAge(defaultAgeFromDOB);
+      setFireRetireAge("55");
+      setFireExpense(String(metrics?.monthExpense || 50000));
+      setFirePortfolio(String(metrics?.netWorth || 1000000));
+      setFireSavings(String(Math.max(0, (metrics?.monthIncome || 0) - (metrics?.monthExpense || 0)) || 30000));
+      setFireInflation("6");
+      setFirePreReturn("12");
+      setFirePostReturn("8");
+      setFireLifeExp("85");
+    }
+  };
+
   return (
     <div className="tab-content-enter">
       {/* ── HEADER ── */}
-      <SectionTitle sub="Interactive planning suite for growth projection, liabilities, and retirement targeting">
+      <SectionTitle sub="Interactive planning suite for wealth compounding, debt payoff, stress testing, and retirement targeting">
         Financial Calculators
       </SectionTitle>
 
       {/* ── CONTEXT TILE STRIP ── */}
       {(() => {
-        // totalEMIs/monthlySavings are the hoisted ctxTotalEMIs/ctxMonthlySavings
-        // computed at component top-level (see ANIMATED HERO NUMBERS above) so
-        // their useAnimatedNumber hooks stay unconditional; reused here as plain
-        // aliases to keep this block's logic unchanged.
         const totalEMIs = ctxTotalEMIs;
         const monthlySavings = ctxMonthlySavings;
         const tiles = [
@@ -1586,7 +1880,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
               gap: 14,
-              marginBottom: 28,
+              marginBottom: 20,
             }}
           >
             {tiles.map(({ label, value, numericValue, sub, color, Icon }) => (
@@ -1605,31 +1899,116 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
         );
       })()}
 
-      {/* ── PILL SELECTION BAR ── */}
+      {/* ── CATEGORY BAR & SEARCH TOOLBAR ── */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 16,
+          padding: "8px 12px",
+          background: "var(--surface-0)",
+          borderRadius: 14,
+          border: `1px solid ${THEME.line}`,
+        }}
+      >
+        {/* Category Pills */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {CATEGORIES.map((cat) => {
+            const isSelected = calcCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setCalcCategory(cat.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 12px",
+                  borderRadius: 20,
+                  fontSize: 12,
+                  fontWeight: isSelected ? 700 : 500,
+                  background: isSelected
+                    ? `color-mix(in srgb, ${THEME.accent} 15%, transparent)`
+                    : "transparent",
+                  color: isSelected ? THEME.accent : THEME.muted,
+                  border: isSelected ? `1px solid ${THEME.accent}` : "1px solid transparent",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span>{cat.label}</span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    padding: "1px 6px",
+                    borderRadius: 10,
+                    background: isSelected ? THEME.accent : `color-mix(in srgb, ${THEME.muted} 20%, transparent)`,
+                    color: isSelected ? "#ffffff" : THEME.muted,
+                    fontWeight: 700,
+                  }}
+                >
+                  {cat.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search Input */}
+        <div style={{ position: "relative", minWidth: 220, flex: "1 1 200px", maxWidth: 320 }}>
+          <Search
+            size={14}
+            color={THEME.muted}
+            style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+          />
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Search calculators (e.g. SIP, FIRE, EMI)..."
+            value={calcSearch}
+            onChange={(e) => setCalcSearch(e.target.value)}
+            style={{
+              paddingLeft: 32,
+              paddingRight: calcSearch ? 28 : 10,
+              fontSize: 12,
+              height: 32,
+              borderRadius: 8,
+            }}
+          />
+          {calcSearch && (
+            <button
+              onClick={() => setCalcSearch("")}
+              style={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: THEME.muted,
+                display: "flex",
+                alignItems: "center",
+              }}
+              title="Clear search"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── CALCULATOR SELECTION PILL BAR ── */}
       <div
         className="demat-portfolio-bar no-scrollbar"
         role="tablist"
         aria-label="Calculator tools"
-        style={{ marginBottom: 24, padding: "4px" }}
+        style={{ marginBottom: 16, padding: "4px" }}
       >
-        {[
-          { id: "emi", label: "EMI Calculator", icon: Clock },
-          { id: "sip", label: "SIP Returns", icon: TrendingUp },
-          { id: "step-sip", label: "Step-Up SIP", icon: Sparkles },
-          { id: "swp", label: "SWP Calculator", icon: Wallet },
-          { id: "cagr", label: "CAGR Calculator", icon: BarChart2 },
-          { id: "fire", label: "Retirement Shortfall", icon: Flame },
-          { id: "fdrd", label: "FD & RD Maturity", icon: Coins },
-          { id: "loan-invest", label: "Loan vs Invest", icon: ArrowRightLeft },
-          { id: "projection", label: "Wealth Projection", icon: Briefcase },
-          { id: "stress", label: "Runway Stress Tester", icon: Shield },
-          { id: "monte-carlo", label: "Monte Carlo Simulator", icon: Sparkles },
-          { id: "scenario-sandbox", label: "Scenario Sandbox", icon: GitBranch },
-          { id: "indexation", label: "Indexation", icon: Coins },
-          { id: "retirement-income", label: "Retirement Income", icon: Briefcase },
-          { id: "gratuity-leave", label: "Gratuity & Leave", icon: Award },
-          { id: "nps", label: "NPS Pension Analyzer", icon: Landmark },
-        ].map((t) => {
+        {(filteredCalculators.length > 0 ? filteredCalculators : CALCULATOR_REGISTRY).map((t) => {
           const active = calcTab === t.id;
           const Icon = t.icon;
           return (
@@ -1639,12 +2018,95 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
               role="tab"
               aria-selected={active}
               className={`demat-portfolio-pill ${active ? "active" : ""}`}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
             >
               <Icon size={14} />
               <span>{t.label}</span>
+              {t.badge && (
+                <span
+                  style={{
+                    fontSize: 9,
+                    padding: "1px 5px",
+                    borderRadius: 6,
+                    background: active ? `color-mix(in srgb, ${t.badgeColor || THEME.accent} 25%, transparent)` : `color-mix(in srgb, ${THEME.muted} 15%, transparent)`,
+                    color: t.badgeColor || THEME.accent,
+                    fontWeight: 700,
+                  }}
+                >
+                  {t.badge}
+                </span>
+              )}
             </button>
           );
         })}
+      </div>
+
+      {/* ── ACTIVE CALCULATOR HERO & ACTIONS STRIP ── */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "12px 18px",
+          background: `color-mix(in srgb, ${THEME.accent} 4%, var(--surface-0))`,
+          border: `1px solid ${THEME.line}`,
+          borderRadius: 12,
+          marginBottom: 20,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          {React.createElement(currentCalcMeta.icon, { size: 20, color: THEME.accent })}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
+                {currentCalcMeta.label}
+              </span>
+              <Badge variant="neutral" style={{ fontSize: 10 }}>
+                {currentCalcMeta.categoryLabel}
+              </Badge>
+            </div>
+            <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+              {currentCalcMeta.description}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            onClick={handleCopySummary}
+            className="btn btn-secondary"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 12,
+              padding: "6px 12px",
+              cursor: "pointer",
+            }}
+            title="Copy formatted calculation summary to clipboard"
+          >
+            {copiedSummary ? <Check size={14} color={THEME.sage} /> : <Copy size={14} />}
+            <span>{copiedSummary ? "Copied to Clipboard!" : "Copy Summary"}</span>
+          </button>
+          <button
+            onClick={handleResetActiveCalc}
+            className="btn btn-secondary"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 12,
+              padding: "6px 10px",
+              cursor: "pointer",
+            }}
+            title="Reset parameters to defaults"
+          >
+            <RotateCcw size={13} />
+            <span>Reset</span>
+          </button>
+        </div>
       </div>
 
       {/* ── ACTIVE CALCULATOR CONTAINER ── */}
@@ -1654,11 +2116,76 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
           <>
             <div className="bento-col-4">
               <Card style={{ padding: 24, height: "100%" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-                  <Clock size={18} color={THEME.accent} />
-                  <div style={{ fontSize: 16, fontWeight: 700 }}>EMI Calculator Parameters</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Clock size={18} color={THEME.accent} />
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>EMI Parameters</div>
+                  </div>
                 </div>
+
+                {/* Quick Presets */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 6 }}>
+                    Quick Loan Presets:
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {[
+                      { label: "Home (₹50L @ 8.5% 20Y)", p: "5000000", r: "8.5", n: "240" },
+                      { label: "Car (₹12L @ 9.2% 5Y)", p: "1200000", r: "9.2", n: "60" },
+                      { label: "Personal (₹3L @ 13.5% 3Y)", p: "300000", r: "13.5", n: "36" },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => {
+                          setEmiP(preset.p);
+                          setEmiR(preset.r);
+                          setEmiN(preset.n);
+                        }}
+                        style={{
+                          fontSize: 11,
+                          padding: "4px 8px",
+                          borderRadius: 6,
+                          background: `color-mix(in srgb, ${THEME.accent} 8%, var(--surface-0))`,
+                          border: `1px solid ${THEME.line}`,
+                          color: THEME.ink,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {inpRow("Loan Principal (₹)", emiP, setEmiP)}
+
+                {/* Quick Principal Step Adjusters */}
+                <div style={{ display: "flex", gap: 6, marginTop: -8, marginBottom: 14 }}>
+                  {[
+                    { label: "+₹1L", add: 100000 },
+                    { label: "+₹5L", add: 500000 },
+                    { label: "+₹10L", add: 1000000 },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => setEmiP(String((Number(emiP) || 0) + chip.add))}
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        background: "var(--surface-0)",
+                        border: `1px solid ${THEME.line}`,
+                        color: THEME.muted,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+
                 {sliderRow("Interest Rate", emiR, setEmiR, 1, 20, 0.1, "%")}
                 {sliderRow("Tenure", emiN, setEmiN, 12, 360, 12, " months")}
               </Card>
@@ -1687,6 +2214,31 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
                       {resultRow("Principal Amount", Number(emiP) || 0)}
                       {resultRow("Total Interest Paid", emiResult.interest, false, THEME.gold)}
                       {resultRow("Total Payments", emiResult.total)}
+                    </div>
+
+                    {/* Executive Insight Box */}
+                    <div
+                      style={{
+                        marginTop: 14,
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+                        fontSize: 12,
+                        color: THEME.ink,
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6, marginBottom: 4, color: THEME.accent }}>
+                        <Lightbulb size={13} />
+                        <span>Rule of 40% (FOIR)</span>
+                      </div>
+                      <div style={{ color: THEME.muted, fontSize: 11 }}>
+                        Total debt EMIs should not exceed 40% of net monthly income. Interest represents{" "}
+                        <strong style={{ color: THEME.gold }}>
+                          {emiResult.total > 0 ? ((emiResult.interest / emiResult.total) * 100).toFixed(0) : 0}%
+                        </strong>{" "}
+                        of your total repayment.
+                      </div>
                     </div>
                   </div>
                   <div
@@ -1739,11 +2291,89 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
           <>
             <div className="bento-col-4">
               <Card style={{ padding: 24, height: "100%" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                   <TrendingUp size={18} color={THEME.sage} />
-                  <div style={{ fontSize: 16, fontWeight: 700 }}>SIP Calculator Parameters</div>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>SIP Parameters</div>
                 </div>
+
+                {/* Quick Presets */}
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 6 }}>
+                    Asset Class Presets:
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {[
+                      { label: "Index Fund (12%)", rate: "12" },
+                      { label: "Mid/Smallcap (15%)", rate: "15" },
+                      { label: "Hybrid/Debt (9%)", rate: "9" },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setSipRate(preset.rate)}
+                        style={{
+                          fontSize: 11,
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          background: `color-mix(in srgb, ${THEME.sage} 8%, var(--surface-0))`,
+                          border: `1px solid ${THEME.line}`,
+                          color: THEME.ink,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {inpRow("Monthly Investment (₹)", sipAmt, setSipAmt)}
+
+                {/* Quick SIP Step Adjusters & Live Sync */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: -8, marginBottom: 14 }}>
+                  {[
+                    { label: "+₹1K", add: 1000 },
+                    { label: "+₹5K", add: 5000 },
+                    { label: "+₹10K", add: 10000 },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => setSipAmt(String((Number(sipAmt) || 0) + chip.add))}
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        background: "var(--surface-0)",
+                        border: `1px solid ${THEME.line}`,
+                        color: THEME.muted,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                  {ctxMonthlySavings > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSipAmt(String(ctxMonthlySavings))}
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                        border: `1px solid ${THEME.sage}`,
+                        color: THEME.sage,
+                        cursor: "pointer",
+                        fontWeight: 700,
+                      }}
+                      title="Auto-fill using your live calculated monthly savings"
+                    >
+                      ⚡ Use My Savings (₹{fmtINR(ctxMonthlySavings)})
+                    </button>
+                  )}
+                </div>
+
                 {sliderRow("Expected Annual Return", sipRate, setSipRate, 1, 30, 0.5, "%")}
                 {sliderRow("Period", sipYrs, setSipYrs, 1, 40, 1, " years")}
               </Card>
@@ -1771,6 +2401,31 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
                       {resultRow("Estimated Future Value", sipResult.corpus, true, THEME.sage)}
                       {resultRow("Invested Amount", sipResult.invested)}
                       {resultRow("Wealth Gain", sipResult.gains, false, THEME.sage)}
+                    </div>
+
+                    {/* Executive Insight Box */}
+                    <div
+                      style={{
+                        marginTop: 14,
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+                        border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
+                        fontSize: 12,
+                        color: THEME.ink,
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6, marginBottom: 4, color: THEME.sage }}>
+                        <Lightbulb size={13} />
+                        <span>Compounding Multiplier</span>
+                      </div>
+                      <div style={{ color: THEME.muted, fontSize: 11 }}>
+                        Your wealth gains (₹{fmtINR(sipResult.gains)}) represent{" "}
+                        <strong style={{ color: THEME.sage }}>
+                          {sipResult.invested > 0 ? ((sipResult.gains / sipResult.invested) * 100).toFixed(0) : 0}%
+                        </strong>{" "}
+                        return on your invested capital over {sipYrs} years.
+                      </div>
                     </div>
                   </div>
                   <div
@@ -1822,20 +2477,97 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
         {calcTab === "step-sip" && (
           <>
             <div className="bento-col-5">
-              <Card style={{ padding: 24 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-                  <Sparkles size={18} color={THEME.gold} />
+              <Card style={{ padding: 24, height: "100%" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <Sparkles size={18} color={THEME.accent} />
                   <div style={{ fontSize: 16, fontWeight: 700 }}>Step-Up SIP Parameters</div>
                 </div>
+
+                {/* Quick Step-Up Presets */}
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 6 }}>
+                    Annual Step-Up Presets:
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {[
+                      { label: "5% (Standard)", step: "5" },
+                      { label: "10% (Growth)", step: "10" },
+                      { label: "15% (Aggressive)", step: "15" },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setStepSipStep(preset.step)}
+                        style={{
+                          fontSize: 11,
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          background: `color-mix(in srgb, ${THEME.accent} 8%, var(--surface-0))`,
+                          border: `1px solid ${THEME.line}`,
+                          color: THEME.ink,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {inpRow("Starting Monthly SIP (₹)", stepSipAmt, setStepSipAmt)}
+
+                {/* Quick Step Adjusters & Live Sync */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: -8, marginBottom: 14 }}>
+                  {[
+                    { label: "+₹1K", add: 1000 },
+                    { label: "+₹5K", add: 5000 },
+                    { label: "+₹10K", add: 10000 },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => setStepSipAmt(String((Number(stepSipAmt) || 0) + chip.add))}
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        background: "var(--surface-0)",
+                        border: `1px solid ${THEME.line}`,
+                        color: THEME.muted,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                  {ctxMonthlySavings > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setStepSipAmt(String(ctxMonthlySavings))}
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                        border: `1px solid ${THEME.accent}`,
+                        color: THEME.accent,
+                        cursor: "pointer",
+                        fontWeight: 700,
+                      }}
+                      title="Auto-fill using your live calculated monthly savings"
+                    >
+                      ⚡ Use My Savings (₹{fmtINR(ctxMonthlySavings)})
+                    </button>
+                  )}
+                </div>
+
                 {sliderRow("Annual Step-Up %", stepSipStep, setStepSipStep, 0, 50, 1, "%")}
                 {sliderRow("Investment Period", stepSipYrs, setStepSipYrs, 1, 40, 1, " years")}
                 {sliderRow("Expected Annual Return", stepSipRate, setStepSipRate, 4, 30, 0.5, "%")}
 
-                <div className="divider" style={{ margin: "20px 0 16px" }} />
-                <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, lineHeight: 1.6 }}>
-                  A Step-Up SIP increases your monthly investment by a fixed % each year, matching
-                  salary hikes and compounding wealth faster than a flat SIP.
+                <div className="divider" style={{ margin: "16px 0 12px" }} />
+                <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.5 }}>
+                  A Step-Up SIP systematically steps up your investment as your income grows, creating up to 50%+ more terminal wealth.
                 </div>
               </Card>
             </div>
@@ -2081,28 +2813,129 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
         {calcTab === "swp" && (
           <>
             <div className="bento-col-5">
-              <Card style={{ padding: 24 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+              <Card style={{ padding: 24, height: "100%" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                   <Wallet size={18} color={THEME.accent} />
                   <div style={{ fontSize: 16, fontWeight: 700 }}>SWP Parameters</div>
                 </div>
+
+                {/* Quick Presets & Live Sync */}
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginBottom: 6 }}>
+                    Withdrawal Presets:
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {[
+                      { label: "4% Trinity Rule", rate: "8", w: String(Math.round(((Number(swpCorpus) || 5000000) * 0.04) / 12)) },
+                      { label: "6% Balanced", rate: "8", w: String(Math.round(((Number(swpCorpus) || 5000000) * 0.06) / 12)) },
+                      { label: "8% High Yield", rate: "9", w: String(Math.round(((Number(swpCorpus) || 5000000) * 0.08) / 12)) },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => {
+                          setSwpRate(preset.rate);
+                          setSwpWithdrawal(preset.w);
+                        }}
+                        style={{
+                          fontSize: 11,
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          background: `color-mix(in srgb, ${THEME.accent} 8%, var(--surface-0))`,
+                          border: `1px solid ${THEME.line}`,
+                          color: THEME.ink,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {inpRow("Initial Corpus (₹)", swpCorpus, setSwpCorpus)}
+
+                {/* Corpus Live Sync */}
+                {ctxNetWorth > 0 && (
+                  <div style={{ marginTop: -8, marginBottom: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => setSwpCorpus(String(ctxNetWorth))}
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        background: `color-mix(in srgb, ${THEME.accent} 10%, transparent)`,
+                        border: `1px solid ${THEME.accent}`,
+                        color: THEME.accent,
+                        cursor: "pointer",
+                        fontWeight: 700,
+                      }}
+                    >
+                      ⚡ Use Net Worth (₹{fmtINR(ctxNetWorth)})
+                    </button>
+                  </div>
+                )}
+
                 {inpRow("Monthly Withdrawal (₹)", swpWithdrawal, setSwpWithdrawal)}
+
+                {/* Withdrawal Steppers & Expense Sync */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: -8, marginBottom: 14 }}>
+                  {[
+                    { label: "+₹5K", add: 5000 },
+                    { label: "+₹10K", add: 10000 },
+                    { label: "+₹25K", add: 25000 },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => setSwpWithdrawal(String((Number(swpWithdrawal) || 0) + chip.add))}
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        background: "var(--surface-0)",
+                        border: `1px solid ${THEME.line}`,
+                        color: THEME.muted,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                  {ctxMonthExpense > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSwpWithdrawal(String(ctxMonthExpense))}
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        background: `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
+                        border: `1px solid ${THEME.gold}`,
+                        color: THEME.gold,
+                        cursor: "pointer",
+                        fontWeight: 700,
+                      }}
+                    >
+                      ⚡ Use Expenses (₹{fmtINR(ctxMonthExpense)})
+                    </button>
+                  )}
+                </div>
+
                 {sliderRow("Expected Annual Return", swpRate, setSwpRate, 1, 15, 0.5, "%")}
                 {sliderRow("Planning Period", swpYears, setSwpYears, 1, 40, 1, " years")}
 
-                <div className="divider" style={{ margin: "20px 0 16px" }} />
-                <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600, lineHeight: 1.6 }}>
-                  A Systematic Withdrawal Plan lets you withdraw a fixed amount monthly from your
-                  corpus while the remaining amount continues to earn returns — ideal for retirement
-                  income planning.
+                <div className="divider" style={{ margin: "16px 0 12px" }} />
+                <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.5 }}>
+                  A Systematic Withdrawal Plan lets you withdraw a fixed monthly cash stream while the remaining balance continues compounding.
                 </div>
 
                 {/* Perpetuity tip */}
                 {swpResult.perpetuityCorpus && (
                   <div
                     style={{
-                      marginTop: 14,
+                      marginTop: 12,
                       padding: "10px 14px",
                       borderRadius: 10,
                       background: `color-mix(in srgb, ${THEME.accent} 8%, transparent)`,
@@ -2666,11 +3499,45 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
               </span>
             </div>
             <div className="bento-col-5">
-              <Card style={{ padding: 24 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-                  <Flame size={18} color={THEME.gold} />
-                  <div style={{ fontSize: 16, fontWeight: 700 }}>Retirement Parameters</div>
+              <Card style={{ padding: 24, height: "100%" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Flame size={18} color={THEME.gold} />
+                    <div style={{ fontSize: 16, fontWeight: 700 }}>Retirement Parameters</div>
+                  </div>
                 </div>
+
+                {/* Auto-Fill from Profile & Live Metrics */}
+                <div style={{ marginBottom: 14 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFireAge(defaultAgeFromDOB);
+                      setFireExpense(String(metrics?.monthExpense || 50000));
+                      setFirePortfolio(String(metrics?.netWorth || 1000000));
+                      setFireSavings(String(ctxMonthlySavings || 30000));
+                    }}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      fontSize: 11,
+                      padding: "6px 12px",
+                      borderRadius: 6,
+                      background: `color-mix(in srgb, ${THEME.gold} 10%, transparent)`,
+                      border: `1px solid ${THEME.gold}`,
+                      color: THEME.gold,
+                      cursor: "pointer",
+                      fontWeight: 700,
+                    }}
+                  >
+                    <Zap size={13} />
+                    <span>Auto-Fill from Live Profile & Portfolio</span>
+                  </button>
+                </div>
+
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   {inpRow("Current Age", fireAge, setFireAge)}
                   {inpRow("Retirement Age", fireRetireAge, setFireRetireAge)}
@@ -2679,8 +3546,8 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
                 {inpRow("Current Net Worth / Corpus (₹)", firePortfolio, setFirePortfolio)}
                 {inpRow("Expected Monthly Savings (₹)", fireSavings, setFireSavings)}
 
-                <div className="divider" style={{ margin: "20px 0 16px" }} />
-                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 12 }}>
+                <div className="divider" style={{ margin: "16px 0 12px" }} />
+                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 10 }}>
                   Economic & Yield Assumptions
                 </div>
 
