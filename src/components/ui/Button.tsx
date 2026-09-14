@@ -2,7 +2,7 @@ import React from "react";
 import { Loader2 } from "lucide-react";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "ghost" | "danger" | "accent";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "accent";
   size?: "sm" | "md" | "lg";
   icon?: React.ReactNode;
   /** Shows a spinner in place of the icon and disables the button while true. */
@@ -34,6 +34,12 @@ export const Button: React.FC<ButtonProps> = ({
           background: "var(--t-accent)",
           color: "#fff",
           border: "none",
+        };
+      case "outline":
+        return {
+          background: "var(--t-card-bg)",
+          border: `1.5px solid var(--t-line)`,
+          color: "var(--t-ink)",
         };
       case "secondary":
         return {
@@ -75,6 +81,7 @@ export const Button: React.FC<ButtonProps> = ({
         primary: "btn-primary",
         accent: "btn-accent",
         secondary: "btn-secondary",
+        outline: "btn-outline",
         ghost: "btn-ghost",
         danger: "btn-danger",
       } as Record<string, string>

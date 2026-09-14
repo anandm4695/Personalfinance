@@ -2005,14 +2005,25 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
 /* ── Button variant hover states ──────────────────────────────── */
 .btn-primary:not(:disabled):hover {
   filter: brightness(1.08);
+  box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--t-accent) 35%, transparent);
+  transform: translateY(-1px);
 }
 .btn-accent:not(:disabled):hover {
-  filter: brightness(1.07);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--t-accent) 35%, transparent);
+  transform: translateY(-1px);
 }
 .btn-secondary:not(:disabled):hover {
-  background: color-mix(in srgb, var(--t-accent) 8%, transparent) !important;
+  background: color-mix(in srgb, var(--t-accent) 8%, var(--t-card-bg)) !important;
   border-color: var(--t-accent) !important;
   color: var(--t-accent) !important;
+  transform: translateY(-1px);
+}
+.btn-outline:not(:disabled):hover {
+  background: color-mix(in srgb, var(--t-accent) 8%, var(--t-card-bg)) !important;
+  border-color: var(--t-accent) !important;
+  color: var(--t-accent) !important;
+  transform: translateY(-1px);
 }
 .btn-ghost:not(:disabled):hover {
   background: color-mix(in srgb, var(--t-accent) 8%, transparent) !important;
@@ -2020,7 +2031,10 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
 }
 .btn-danger:not(:disabled):hover {
   background: var(--t-rust) !important;
-  color: #fff !important;
+  color: #ffffff !important;
+  border-color: var(--t-rust) !important;
+  box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--t-rust) 35%, transparent);
+  transform: translateY(-1px);
 }
 
 /* ── Reduced motion ────────────────────────────────────────────── */
