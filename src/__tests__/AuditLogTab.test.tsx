@@ -25,10 +25,6 @@ vi.mock("../supabaseClient", () => ({
   },
 }));
 
-// NOTE: @testing-library/dom (a peer dep of @testing-library/react) is not
-// installed in this project, so this file drives the component with plain
-// react-dom + jsdom (same approach as CalculatorsTab.test.tsx).
-
 let container: HTMLDivElement;
 let root: Root;
 let originalTZ: string | undefined;
@@ -49,12 +45,8 @@ afterEach(() => {
   process.env.TZ = originalTZ;
 });
 
-describe("AuditLogTab date bucketing", () => {
+describe("AuditLogTab UI & Functionality", () => {
   it("groups a log entry under 'Today' using the LOCAL calendar day, not the UTC day", async () => {
-    // Regression test: created_at is a UTC timestamptz from Supabase. A log written at
-    // 1:00 AM IST today is still 7:30 PM UTC on the PREVIOUS calendar day — bucketing by
-    // the raw UTC date (old behavior: `created_at.slice(0, 10)`) would file it under
-    // "Yesterday" even though, for an IST user, it happened today.
     const now = new Date();
     const localMidnightToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
     const oneAmLocalToday = new Date(localMidnightToday.getTime() + 60 * 60 * 1000);
@@ -62,22 +54,85 @@ describe("AuditLogTab date bucketing", () => {
     mockLogs = [
       {
         id: "log-1",
-        action_type: "ADD",
+        action_type: "ADD_FIXEDDEPOSITS",
         description: "Added a fixed deposit",
         created_at: oneAmLocalToday.toISOString(),
-        metadata: null,
+        metadata: { bank: "HDFC Bank", amount: 50000 },
       },
     ];
 
     await act(async () => {
       root = createRoot(container);
       root.render(<AuditLogTab session={{ user: { id: "test-user" } }} />);
-      // let the fetchLogs() promise chain resolve
       await Promise.resolve();
       await Promise.resolve();
     });
 
     expect(container.textContent).toContain("Today");
     expect(container.textContent).not.toContain("Yesterday");
+    expect(container.textContent).toContain("Audit & Activity Log");
+    expect(container.textContent).toContain("Immutable Trail");
+    expect(container.textContent).toContain("Total Audit Events");
+  });
+
+  it("displays executive KPI stats, module badges, and high-impact tags", async () => {
+    const now = new Date();
+    mockLogs = [
+      {
+        id: "log-add-1",
+        action_type: "ADD_STOCKS",
+        description: "Added Reliance Industries shares",
+        created_at: now.toISOString(),
+        metadata: { symbol: "RELIANCE", qty: 10, buy_price: 2800 },
+      },
+      {
+        id: "log-upd-1",
+        action_type: "UPDATE_SETTINGS",
+        description: "Updated theme preferences",
+        created_at: now.toISOString(),
+        metadata: { patch: { darkMode: true } },
+      },
+      {
+        id: "log-del-1",
+        action_type: "BULK_DELETE_TRANSACTIONS",
+        description: "Deleted 5 duplicate transactions",
+        created_at: now.toISOString(),
+        metadata: { count: 5 },
+      },
+    ];
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<AuditLogTab session={{ user: { id: "test-user" } }} />);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Check KPI Ribbon values
+    expect(container.textContent).toContain("Total Audit Events");
+    expect(container.textContent).toContain("Additions & Creates");
+    expect(container.textContent).toContain("Modifications");
+    expect(container.textContent).toContain("High-Impact Deletions");
+
+    // Check High Impact Tag
+    expect(container.textContent).toContain("High Impact");
+
+    // Check Module Filter Buttons
+    expect(container.textContent).toContain("All Modules");
+    expect(container.textContent).toContain("Investments");
+    expect(container.textContent).toContain("Banking & Txns");
+    expect(container.textContent).toContain("System & Settings");
+  });
+
+  it("renders guest mode guidance when offline or session is missing", async () => {
+    mockLogs = [];
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<AuditLogTab session={{ user: { id: "offline-user" } }} />);
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("Cloud Audit Synchronization Inactive");
   });
 });
