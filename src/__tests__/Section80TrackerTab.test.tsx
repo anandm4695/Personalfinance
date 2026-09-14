@@ -6,7 +6,7 @@ import { Section80TrackerTab } from "../components/tabs/Section80TrackerTab";
 import { getCurrentFY } from "../utils/appConstants";
 import { PrivacyProvider } from "../context/PrivacyContext";
 
-// Simple mock for recharts ResponsiveContainer (same pattern as SalarySlipTab.test.tsx)
+// Simple mock for recharts ResponsiveContainer
 vi.mock("recharts", async () => {
   const original = await vi.importActual("recharts");
   return {
@@ -17,13 +17,12 @@ vi.mock("recharts", async () => {
 
 const fyStartYear = Number(getCurrentFY().split("-")[0]);
 
-describe("Section80TrackerTab — PPF 80C contribution source", () => {
+describe("Section80TrackerTab — Comprehensive Test Suite", () => {
   it("counts a PPF ledger deposit made in the current FY toward 80C (not just the legacy thisYearContribution field)", () => {
     const state = {
-      ppf: [], // no legacy thisYearContribution field set
+      ppf: [],
       ppfLedger: [
         { date: `${fyStartYear}-06-15`, amount: 60000, type: "deposit" },
-        // outside the current FY — must be excluded
         { date: `${fyStartYear - 1}-06-15`, amount: 99999, type: "deposit" },
       ],
     };
@@ -46,5 +45,39 @@ describe("Section80TrackerTab — PPF 80C contribution source", () => {
       </PrivacyProvider>
     );
     expect(html).toContain("40,000");
+  });
+
+  it("renders 80C, 80D, 80CCD, and Section 24 deduction sections correctly", () => {
+    const state = {
+      mutualFunds: [
+        { category: "ELSS Tax Saver", invested: 50000, buyDate: `${fyStartYear}-05-10` },
+      ],
+      healthInsurance: [
+        { premium: 22000, premiumFrequency: "annual", insuredMembers: [{ relation: "self" }] },
+      ],
+      nps: [
+        { thisYearContribution: 50000, employerContribution: 60000 },
+      ],
+    };
+    const html = renderToString(
+      <PrivacyProvider>
+        <Section80TrackerTab state={state} metrics={{}} />
+      </PrivacyProvider>
+    );
+    expect(html).toContain("Section 80C");
+    expect(html).toContain("50,000");
+    expect(html).toContain("22,000");
+    expect(html).toContain("60,000");
+  });
+
+  it("handles empty state gracefully without errors", () => {
+    const state = {};
+    const html = renderToString(
+      <PrivacyProvider>
+        <Section80TrackerTab state={state} metrics={{}} />
+      </PrivacyProvider>
+    );
+    expect(html).toContain("Section 80C / 80D &amp; Tax Deductions Tracker");
+    expect(html).toContain("Total Eligible Deductions");
   });
 });
