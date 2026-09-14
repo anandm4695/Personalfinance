@@ -102,4 +102,46 @@ describe("NomineeTrackerTab Premium UI Statically", () => {
     expect(html).toContain("Investments");
     expect((html.match(/No Nominee Assigned/g) || []).length).toBe(0);
   });
+
+  it("renders Estate Readiness score, view mode switchers, and emergency dossier triggers", () => {
+    const html = renderToString(
+      <NomineeTrackerTab
+        state={mockState}
+        addItem={() => {}}
+        removeItem={() => {}}
+        updateItem={() => {}}
+      />
+    );
+
+    expect(html).toContain("Estate Readiness");
+    expect(html).toContain("Emergency Dossier");
+    expect(html).toContain("By Category");
+    expect(html).toContain("Asset Register");
+    expect(html).toContain("By Nominee");
+    expect(html).toContain("Succession Guide");
+    expect(html).toContain("tel:9876543210");
+    expect(html).toContain("mailto:ca@example.com");
+  });
+
+  it("displays batch assign alert when missing nominees exist", () => {
+    const unassignedState = {
+      bankAccounts: [
+        { id: "ba1", bankName: "HDFC Bank", accountNumber: "998877", balance: 120000 },
+        { id: "ba2", bankName: "ICICI Bank", accountNumber: "112233", balance: 80000 },
+      ],
+    };
+
+    const html = renderToString(
+      <NomineeTrackerTab
+        state={unassignedState}
+        addItem={() => {}}
+        removeItem={() => {}}
+        updateItem={() => {}}
+      />
+    );
+
+    expect(html).toContain("1-Click Batch Assign");
+    expect(html).toContain("Action Required");
+  });
 });
+
