@@ -2,8 +2,8 @@ import React from "react";
 import { Loader2 } from "lucide-react";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "accent";
-  size?: "sm" | "md" | "lg";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "accent" | "gold" | "sage" | "warning" | "success";
+  size?: "xs" | "sm" | "md" | "lg";
   icon?: React.ReactNode;
   /** Shows a spinner in place of the icon and disables the button while true. */
   loading?: boolean;
@@ -32,6 +32,20 @@ export const Button: React.FC<ButtonProps> = ({
         // across all 10 accent-color presets.
         return {
           background: "var(--t-accent)",
+          color: "#fff",
+          border: "none",
+        };
+      case "gold":
+      case "warning":
+        return {
+          background: "var(--t-gold)",
+          color: "#fff",
+          border: "none",
+        };
+      case "sage":
+      case "success":
+        return {
+          background: "var(--t-sage)",
           color: "#fff",
           border: "none",
         };
@@ -66,6 +80,8 @@ export const Button: React.FC<ButtonProps> = ({
 
   const getSizeStyle = (): React.CSSProperties => {
     switch (size) {
+      case "xs":
+        return { padding: "4px 8px", fontSize: "11px", minHeight: "24px" };
       case "sm":
         return { padding: "6px 12px", fontSize: "12px", minHeight: "28px" };
       case "lg":
@@ -84,6 +100,10 @@ export const Button: React.FC<ButtonProps> = ({
         outline: "btn-outline",
         ghost: "btn-ghost",
         danger: "btn-danger",
+        gold: "btn-warning",
+        warning: "btn-warning",
+        sage: "btn-success",
+        success: "btn-success",
       } as Record<string, string>
     )[variant] || "";
 

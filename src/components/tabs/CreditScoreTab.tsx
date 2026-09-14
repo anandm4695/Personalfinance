@@ -1398,7 +1398,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
         showToast?.("Credit score logged successfully", "success");
       }
     },
-    { onSuccess: () => setModal(null), onError: (e: Error) => showToast?.(`Failed to save score: ${e?.message || "Unknown error"}`, "error") }
+    { onSuccess: () => setModal(null), onError: (e: any) => showToast?.(`Failed to save score: ${e?.message || "Unknown error"}`, "error") }
   );
 
   const { run: deleteScore } = useAsyncAction(
@@ -1406,7 +1406,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
       await removeItem("creditScores", id);
       showToast?.("Credit score entry removed", "info");
     },
-    { onError: (e: Error) => showToast?.(`Failed to delete score entry: ${e?.message || "Unknown error"}`, "error") }
+    { onError: (e: any) => showToast?.(`Failed to delete score entry: ${e?.message || "Unknown error"}`, "error") }
   );
 
   const handleExportCSV = () => {

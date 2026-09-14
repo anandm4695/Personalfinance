@@ -2849,7 +2849,7 @@ export const DocumentVaultTab: React.FC<DocumentVaultTabProps> = ({
   // ── Render Modals ─────────────────────────────────────────────────────────
 
   // Add / Edit Modal
-  const renderAddEditModal = () => {
+  function renderAddEditModal() {
     const subcats = CATEGORIES[form.category as CategoryKey]?.subcategories || [];
 
     return (

@@ -1548,6 +1548,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 input[type="number"] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* ── Form input (shared modal / form fields) ───────────────────── */
@@ -2484,7 +2485,7 @@ input[type="range"].themed-slider::-moz-range-thumb:hover {
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  justifyContent: space-between;
+  justify-content: space-between;
   gap: 8px;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }

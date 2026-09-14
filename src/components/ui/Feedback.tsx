@@ -8,11 +8,13 @@ const CONFIRM_FOCUSABLE_SELECTOR =
   'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export function ConfirmDialog({
+  title,
   message,
   onConfirm,
   onCancel,
   confirmLabel = "Yes, delete",
 }: {
+  title?: string;
   message: string;
   onConfirm: () => void;
   onCancel: () => void;
@@ -87,12 +89,12 @@ export function ConfirmDialog({
         className="modal-panel"
         role="dialog"
         aria-modal="true"
-        aria-label="Confirm Action"
+        aria-label={title || "Confirm Action"}
         tabIndex={-1}
         style={{ maxWidth: 420 }}
       >
         <div className="modal-header">
-          <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Confirm Action</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{title || "Confirm Action"}</h2>
           <button className="modal-close-btn" onClick={onCancel} aria-label="Close">
             <X size={16} />
           </button>

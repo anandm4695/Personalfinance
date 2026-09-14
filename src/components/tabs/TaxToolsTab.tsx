@@ -1324,43 +1324,46 @@ const HraReceiptSection: React.FC<HraReceiptSectionProps> = ({ state }) => {
           )}
 
           {/* Form 60 Template Modal */}
-          {showForm60Modal && (
-            <Modal title="Form 60 Declaration (No Landlord PAN)" onClose={() => setShowForm60Modal(false)}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 13, color: THEME.ink }}>
-                <p>
-                  Under Rule 114B of Income Tax Rules, if the landlord does not possess a PAN, a signed <strong>Form 60 declaration</strong> must be obtained to substantiate HRA claims exceeding ₹1,00,000 per financial year.
-                </p>
-                <div
-                  style={{
-                    padding: 14,
-                    background: `color-mix(in srgb, ${THEME.muted} 5%, transparent)`,
-                    borderRadius: 8,
-                    border: `1px solid ${THEME.line}`,
-                    fontFamily: "monospace",
-                    fontSize: 12,
-                  }}
-                >
-                  <div>I, <strong>{landlordName || "[Landlord Name]"}</strong>, residing at <strong>{landlordAddress || "[Landlord Address]"}</strong>, do hereby declare that I do not possess a Permanent Account Number (PAN) and my total taxable income during the Financial Year {fy} does not exceed the maximum amount not chargeable to tax.</div>
-                  <div style={{ marginTop: 12 }}>Date: {todayStr}</div>
-                  <div>Signature of Declarant / Landlord: ____________________</div>
-                </div>
-                <ModalActions>
-                  <Button variant="secondary" onClick={() => setShowForm60Modal(false)}>
-                    Close
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const text = `FORM 60 DECLARATION\n\nI, ${landlordName || "[Landlord Name]"}, residing at ${landlordAddress || "[Landlord Address]"}, do hereby declare that I do not possess a Permanent Account Number (PAN) and my total taxable income during the Financial Year ${fy} does not exceed the maximum amount not chargeable to tax.\n\nDate: ${todayStr}\nSignature of Landlord: ____________________`;
-                      navigator.clipboard.writeText(text);
-                      alert("Form 60 template copied to clipboard!");
+          {showForm60Modal && (() => {
+            const todayStr = today();
+            return (
+              <Modal title="Form 60 Declaration (No Landlord PAN)" onClose={() => setShowForm60Modal(false)}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 13, color: THEME.ink }}>
+                  <p>
+                    Under Rule 114B of Income Tax Rules, if the landlord does not possess a PAN, a signed <strong>Form 60 declaration</strong> must be obtained to substantiate HRA claims exceeding ₹1,00,000 per financial year.
+                  </p>
+                  <div
+                    style={{
+                      padding: 14,
+                      background: `color-mix(in srgb, ${THEME.muted} 5%, transparent)`,
+                      borderRadius: 8,
+                      border: `1px solid ${THEME.line}`,
+                      fontFamily: "monospace",
+                      fontSize: 12,
                     }}
                   >
-                    <Copy size={14} style={{ marginRight: 6 }} /> Copy Template
-                  </Button>
-                </ModalActions>
-              </div>
-            </Modal>
-          )}
+                    <div>I, <strong>{landlordName || "[Landlord Name]"}</strong>, residing at <strong>{landlordAddress || "[Landlord Address]"}</strong>, do hereby declare that I do not possess a Permanent Account Number (PAN) and my total taxable income during the Financial Year {fy} does not exceed the maximum amount not chargeable to tax.</div>
+                    <div style={{ marginTop: 12 }}>Date: {todayStr}</div>
+                    <div>Signature of Declarant / Landlord: ____________________</div>
+                  </div>
+                  <ModalActions>
+                    <Button variant="secondary" onClick={() => setShowForm60Modal(false)}>
+                      Close
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const text = `FORM 60 DECLARATION\n\nI, ${landlordName || "[Landlord Name]"}, residing at ${landlordAddress || "[Landlord Address]"}, do hereby declare that I do not possess a Permanent Account Number (PAN) and my total taxable income during the Financial Year ${fy} does not exceed the maximum amount not chargeable to tax.\n\nDate: ${todayStr}\nSignature of Landlord: ____________________`;
+                        navigator.clipboard.writeText(text);
+                        alert("Form 60 template copied to clipboard!");
+                      }}
+                    >
+                      <Copy size={14} style={{ marginRight: 6 }} /> Copy Template
+                    </Button>
+                  </ModalActions>
+                </div>
+              </Modal>
+            );
+          })()}
         </>
       )}
     </div>

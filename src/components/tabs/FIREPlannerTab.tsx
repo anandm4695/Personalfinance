@@ -1760,7 +1760,7 @@ Generated via Personal Finance by Anand Mohta`;
             <div style={{ width: "100%", height: 340 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={chartView === "accumulation" ? fireCalc.accumulation : fireCalc.drawdown}
+                  data={(chartView === "accumulation" ? fireCalc.accumulation : fireCalc.drawdown) as any[]}
                   margin={{ top: 10, right: 30, left: 20, bottom: 0 }}
                 >
                   <defs>

@@ -24,7 +24,7 @@ export const TAX_HUBS: {
   id: TaxHubTab;
   label: string;
   shortLabel: string;
-  icon: React.ComponentType<{ size?: number; className?: string; color?: string }>;
+  icon: React.ComponentType<any>;
   description: string;
   badge?: string;
 }[] = [

@@ -52,19 +52,23 @@ const Sparkline = ({
   );
 };
 
-interface StatCardProps {
-  label: string;
-  value: string;
+export interface StatCardProps {
+  label?: string;
+  title?: string;
+  value: React.ReactNode;
   /** Usually a short string; also accepts a node (e.g. a Badge) for a categorical assessment instead of plain text. */
   sub?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  caption?: React.ReactNode;
+  subtext?: React.ReactNode;
   subColor?: string;
   icon: React.ReactNode;
-  color: string;
+  color?: string;
   borderColor?: string;
   iconBg?: string;
   /** Optional: pass the raw number + a formatter to animate the value on change (count-up/down). */
   numericValue?: number;
-  formatValue?: (n: number) => string;
+  formatValue?: (n: any) => string;
   /** Set false for non-financial/non-sensitive values (e.g. a theme name) that shouldn't blur in Privacy Mode. Defaults to true. */
   maskInPrivacyMode?: boolean;
   /** Optional trend history — renders a small sparkline to the right of the label. */
@@ -78,11 +82,15 @@ interface StatCardProps {
 
 export const StatCard = ({
   label,
+  title,
   value,
   sub,
+  subtitle,
+  caption,
+  subtext,
   subColor,
   icon,
-  color,
+  color = "var(--t-accent)",
   borderColor,
   iconBg,
   numericValue,
@@ -93,6 +101,8 @@ export const StatCard = ({
   onClick,
   active,
 }: StatCardProps) => {
+  const cardLabel = label || title || "";
+  const cardSub = sub || caption || subtitle || subtext;
   const hasAnimation = typeof numericValue === "number" && typeof formatValue === "function";
   const animated = useAnimatedNumber(hasAnimation ? numericValue : 0);
   const displayValue = hasAnimation ? formatValue(animated) : value;
@@ -171,7 +181,7 @@ export const StatCard = ({
                 lineHeight: 1.3,
               }}
             >
-              {label}
+              {cardLabel}
             </div>
           </div>
           {sparklineData && sparklineData.length >= 2 && (
@@ -191,7 +201,7 @@ export const StatCard = ({
         >
           {maskInPrivacyMode ? <Prv>{displayValue}</Prv> : displayValue}
         </div>
-        {sub && (
+        {cardSub && (
           <div
             style={{
               fontSize: 11.5,
@@ -200,7 +210,7 @@ export const StatCard = ({
               opacity: subColor ? 1 : 0.85,
             }}
           >
-            {sub}
+            {cardSub}
           </div>
         )}
       </div>

@@ -776,9 +776,9 @@ export const CapitalGainsTab = ({
   const currentFYTotals = useMemo(
     () =>
       isViewingCurrentFY
-        ? { byType, ltcgExemptionLimit, stcgRate, ltcgRate }
+        ? { byType, totalTax, ltcgExemptionUsed, ltcgExemptionLimit, stcgRate, ltcgRate, taxablePools, setOffDetails }
         : computeGainTotals(currentFYClassified, currentFYStartYear),
-    [isViewingCurrentFY, byType, ltcgExemptionLimit, stcgRate, ltcgRate, currentFYClassified, currentFYStartYear]
+    [isViewingCurrentFY, byType, totalTax, ltcgExemptionUsed, ltcgExemptionLimit, stcgRate, ltcgRate, taxablePools, setOffDetails, currentFYClassified, currentFYStartYear]
   );
 
   /* ── Schedule CG Section F Quarters ────────────────────────────── */

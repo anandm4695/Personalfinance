@@ -9,6 +9,8 @@ interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   maxWidth?: number;
+  width?: number;
+  isOpen?: boolean;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -19,8 +21,12 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   children,
   footer,
-  maxWidth = 560,
+  maxWidth,
+  width,
+  isOpen = true,
 }) => {
+  if (!isOpen) return null;
+  const effectiveMaxWidth = width || maxWidth || 560;
   const panelRef = React.useRef<HTMLDivElement>(null);
   const onCloseRef = React.useRef(onClose);
   onCloseRef.current = onClose;
@@ -94,7 +100,7 @@ export const Modal: React.FC<ModalProps> = ({
         aria-modal="true"
         aria-label={typeof title === "string" ? title : "Modal Dialog"}
         tabIndex={-1}
-        style={{ maxWidth: `min(${maxWidth}px, 95vw)` }}
+        style={{ maxWidth: `min(${effectiveMaxWidth}px, 95vw)` }}
       >
         <div className="modal-header">
           <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{title}</h2>
@@ -127,20 +133,42 @@ export const Modal: React.FC<ModalProps> = ({
 
 export const ModalActions: React.FC<{
   onSave?: () => void;
-  onClose: () => void;
+  onClose?: () => void;
   saveLabel?: string;
+  saveText?: string;
   cancelLabel?: string;
   disabled?: boolean;
   loading?: boolean;
-}> = ({ onSave, onClose, saveLabel = "Save", cancelLabel = "Cancel", disabled = false, loading = false }) => (
-  <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 12, marginTop: 24 }}>
-    <Button variant="secondary" onClick={onClose} disabled={loading}>
-      {cancelLabel}
-    </Button>
-    {onSave && (
-      <Button variant="accent" onClick={onSave} disabled={disabled} loading={loading}>
-        {saveLabel}
-      </Button>
-    )}
-  </div>
-);
+  children?: React.ReactNode;
+}> = ({
+  onSave,
+  onClose,
+  saveLabel = "Save",
+  saveText,
+  cancelLabel = "Cancel",
+  disabled = false,
+  loading = false,
+  children,
+}) => {
+  const actualSave = saveText || saveLabel;
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 12, marginTop: 24 }}>
+      {children ? (
+        children
+      ) : (
+        <>
+          {onClose && (
+            <Button variant="secondary" onClick={onClose} disabled={loading} type="button">
+              {cancelLabel}
+            </Button>
+          )}
+          {onSave && (
+            <Button variant="accent" onClick={onSave} disabled={disabled} loading={loading} type="button">
+              {actualSave}
+            </Button>
+          )}
+        </>
+      )}
+    </div>
+  );
+};

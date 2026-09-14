@@ -28,6 +28,8 @@ export const THEME = {
   violet: "var(--t-violet)",
   pink: "var(--t-pink)",
   cyan: "var(--t-cyan)",
+  teal: "var(--t-teal, #0D9488)",
+  rose: "var(--t-rust)",
   // Validated 6-slot colorblind-safe categorical sequence for charts with a
   // fixed category axis (see --t-chart-N in styles.css). Keep in this order.
   chart1: "var(--t-chart-1)",

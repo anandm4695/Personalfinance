@@ -15,6 +15,7 @@ interface EmptyStateProps {
   pills?: string[];
   buttonLabel?: string;
   onAdd?: () => void;
+  action?: React.ReactNode;
 }
 
 /**
@@ -32,6 +33,7 @@ export function EmptyState({
   pills,
   buttonLabel,
   onAdd,
+  action,
 }: EmptyStateProps) {
   const displayTitle = title || message || "Nothing here yet";
   const displayDescription = description || subtitle || "";
@@ -112,11 +114,13 @@ export function EmptyState({
           </span>
         ))}
       </div>
-      {buttonLabel && onAdd && (
+      {action ? (
+        action
+      ) : buttonLabel && onAdd ? (
         <Button variant="accent" icon={<Plus size={14} />} onClick={onAdd}>
           {buttonLabel}
         </Button>
-      )}
+      ) : null}
     </Card>
   );
 }
