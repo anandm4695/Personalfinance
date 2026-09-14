@@ -31,10 +31,41 @@ import {
   Pencil,
   PartyPopper,
   Save,
+  FileText,
+  Clock,
+  ArrowRight,
+  ExternalLink,
+  Layers,
+  Scale,
+  CheckSquare,
+  Square,
+  DollarSign,
+  PieChart,
+  HelpCircle,
+  FileCheck,
+  Search,
+  Filter,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+  ReferenceLine,
+  Cell,
+  LineChart,
+  Line,
+} from "recharts";
 import { THEME } from "../../utils/constants";
 import { getCurrentFY, getCurrentFYStartYear } from "../../utils/appConstants";
 import {
+  fmtINR,
   fmtINRFull,
   maskCurrencyInText,
   fmtINRExact,
@@ -62,9 +93,10 @@ import { ConfirmDialog } from "../ui/Feedback";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
-// The capital-gains report below is built with document.write() from raw HTML strings —
-// without this, a security/fund name containing e.g. <img onerror=...> (typeable directly,
-// or arriving via a CSV/CAS import) would execute in the popup window.
+/* ══════════════════════════════════════════════════════════════════
+   SECURITY & STRING HELPERS
+   ══════════════════════════════════════════════════════════════════ */
+
 function escapeHtml(value: unknown): string {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -75,26 +107,23 @@ function escapeHtml(value: unknown): string {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   CONSTANTS
+   STATUTORY CONSTANTS & LOOKUPS
    ══════════════════════════════════════════════════════════════════ */
 
 // FY-aware std deduction lookup (old regime fixed at ₹50K from FY 2020-21)
-const getOldStdDed = (fyStart: number) => (fyStart >= 2020 ? 50_000 : 40_000);
-// New regime std deduction by FY
-const getNewStdDed = (fyStart: number) => {
+export const getOldStdDed = (fyStart: number) => (fyStart >= 2020 ? 50_000 : 40_000);
+
+// New regime std deduction by FY (Finance Act 2024 raised it to ₹75,000 for FY 2024-25+)
+export const getNewStdDed = (fyStart: number) => {
   if (fyStart >= 2024) return 75_000;
   if (fyStart >= 2023) return 50_000;
   return 0;
 };
 
-/* ══════════════════════════════════════════════════════════════════
-   HELPERS
-   ══════════════════════════════════════════════════════════════════ */
-
 const fmtL = (n: number) => `₹${(n / 100000).toFixed(n % 100000 === 0 ? 0 : 1)}L`;
 
 /** Estimate marginal slab rate for old regime based on taxable income */
-const oldMarginalRate = (taxable: number) => {
+export const oldMarginalRate = (taxable: number) => {
   if (taxable <= 250_000) return 0;
   if (taxable <= 500_000) return 0.05;
   if (taxable <= 1_000_000) return 0.2;
@@ -104,12 +133,7 @@ const oldMarginalRate = (taxable: number) => {
 /**
  * Section 234C advance-tax shortfall interest. Interest on a quarter's
  * shortfall is a STATUTORILY FIXED period — 3 months for Q1/Q2/Q3, 1 month
- * for Q4 — not a function of how long it's been since the due date. An
- * earlier version of this derived "months late" from (now - dueDate) and
- * capped it at 3 for every quarter, which (a) undercharged Q1-Q3 shortfalls
- * checked soon after their due date (e.g. only 1 month instead of the fixed
- * 3) and (b) overcharged Q4 by up to 3x, since Q4's fixed period is 1 month,
- * not 3.
+ * for Q4 — not a function of how long it's been since the due date.
  */
 export const calcSection234CPenalty = (
   fyStartYear: number,
@@ -136,11 +160,7 @@ export const calcSection234CPenalty = (
   return total;
 };
 
-// Equity-oriented fund detection (mirrors CapitalGainsTab.tsx's isEquityMF) —
-// a fund without any of these keywords is treated as debt/non-equity, which
-// carries a different (36-month, not 12-month) LTCG holding threshold and,
-// for purchases on/after 1 Apr 2023, is always taxed as short-term at slab
-// rate regardless of holding period (Finance Act 2023).
+// Equity-oriented fund detection
 const EQUITY_MF_KEYWORDS = [
   "equity",
   "elss",
@@ -159,23 +179,14 @@ const EQUITY_MF_KEYWORDS = [
   "nifty",
   "sensex",
 ];
+
 const isEquityMF = (m: any): boolean => {
   const cat = (m.category || m.type || m.scheme || m.name || "").toLowerCase();
   return EQUITY_MF_KEYWORDS.some((k) => cat.includes(k));
 };
 
 /**
- * Classify a mutual fund sale/holding's capital-gains bucket for a given
- * holding-period length in days. Single source of truth for the two call
- * sites below (realizedGainsData and harvestCandidates) that both used to
- * duplicate — and had each independently gotten wrong — this logic:
- *   - Equity-oriented funds: LTCG threshold is 12 months (~365 days).
- *   - Debt funds bought on/after 1 Apr 2023 (Finance Act 2023): ALWAYS
- *     short-term, taxed at slab rate, regardless of holding period.
- *   - Debt funds bought before 1 Apr 2023: LTCG threshold is 36 months
- *     (~1095 days), not 12 — using the equity threshold here silently
- *     reclassified 12-36 month debt-fund STCG (slab-taxed) as LTCG
- *     (exemption-eligible, 10-12.5% rate).
+ * Classify a mutual fund sale/holding's capital-gains bucket for a given holding period in days.
  */
 export const classifyMFHolding = (
   m: any,
@@ -189,18 +200,9 @@ export const classifyMFHolding = (
   return { isEquity, isSlabTaxed, isLtcg };
 };
 
-// Union Budget 2024 raised equity STCG 15%→20% and LTCG 10%→12.5% (LTCG exemption
-// ₹1L→₹1.25L), effective 23 Jul 2024 — mid-way through FY2024-25. This used to be
-// applied as a single FY-wide rate (fyStartYear >= 2024 ? new : old), which taxed
-// EVERY sale in FY2024-25 at the new rate, including ones made before 23 Jul 2024
-// at the old (lower) rate. This nets gains/losses within each rate period first
-// (mirrors ITR Schedule 111A/112A's "up to 22.7.2024" / "23.7.2024 onwards" rows),
-// spills a period's net loss into the other period of the same head (STCG or LTCG)
-// when one period is net-negative, then applies each period's own rate. For FYs
-// entirely before or after the cutoff this degenerates to the old single-rate math.
-// The ₹1.25L LTCG exemption applies to the whole of FY2024-25 (not split per period,
-// per CBDT guidance) so it's taken once against the combined LTCG total.
+// Union Budget 2024 rate change date
 const CG_RATE_CHANGE_DATE = "2024-07-23";
+
 export const computeEquityCGTax = (
   sells: { isLtcg: boolean; profit: number; sellDate?: string }[],
   ltcgExemption: number
@@ -213,6 +215,7 @@ export const computeEquityCGTax = (
     ltcgLossesPre = 0,
     ltcgGainsPost = 0,
     ltcgLossesPost = 0;
+
   (sells || []).forEach((s) => {
     const isPost = !s.sellDate || s.sellDate >= CG_RATE_CHANGE_DATE;
     const p = Number(s.profit) || 0;
@@ -250,7 +253,7 @@ export const computeEquityCGTax = (
   netLTCGpre = Math.max(0, netLTCGpre);
   netLTCGpost = Math.max(0, netLTCGpost);
 
-  // Any STCG loss left after intra-STCG set-off can offset LTCG gains (post period first)
+  // STCG loss offset against LTCG gains
   let remainingSTCGLoss = -residualSTCGLoss;
   if (remainingSTCGLoss > 0) {
     const usePost = Math.min(remainingSTCGLoss, netLTCGpost);
@@ -260,7 +263,7 @@ export const computeEquityCGTax = (
     netLTCGpre -= usePre;
   }
 
-  // Exemption applies once against the FY's combined LTCG total, not per period
+  // Combined LTCG exemption
   const exemptUsedPost = Math.min(ltcgExemption, netLTCGpost);
   const exemptUsedPre = Math.min(ltcgExemption - exemptUsedPost, netLTCGpre);
   const taxableLTCGpost = netLTCGpost - exemptUsedPost;
@@ -275,15 +278,88 @@ export const computeEquityCGTax = (
 };
 
 /* ══════════════════════════════════════════════════════════════════
-   ADD PAYMENT MODAL
+   DATE NORMALIZATION FOR 26AS
    ══════════════════════════════════════════════════════════════════ */
 
-const AddTaxPaymentModal = ({ onClose, onSave, saving = false }: any) => {
-  const [f, setF] = useState({ date: today(), type: "TDS", amount: "", note: "" });
-  const types = ["TDS", "Advance Tax", "Self-Assessment", "Professional Tax"];
+const MONTH_ABBR: Record<string, string> = {
+  jan: "01",
+  feb: "02",
+  mar: "03",
+  apr: "04",
+  may: "05",
+  jun: "06",
+  jul: "07",
+  aug: "08",
+  sep: "09",
+  oct: "10",
+  nov: "11",
+  dec: "12",
+};
+
+const normalize26ASDate = (raw: string): string | null => {
+  if (!raw) return null;
+  const s = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const dmyMatch = s.match(/^(\d{1,2})[-/ ]([A-Za-z]{3})[-/ ](\d{2,4})$/);
+  if (dmyMatch) {
+    const day = dmyMatch[1].padStart(2, "0");
+    const mStr = dmyMatch[2].toLowerCase();
+    const month = MONTH_ABBR[mStr];
+    if (month) {
+      let year = dmyMatch[3];
+      if (year.length === 2) year = (Number(year) < 70 ? "20" : "19") + year;
+      return `${year}-${month}-${day}`;
+    }
+  }
+  const numericMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);
+  if (numericMatch) {
+    const day = numericMatch[1].padStart(2, "0");
+    const month = numericMatch[2].padStart(2, "0");
+    let year = numericMatch[3];
+    if (year.length === 2) year = (Number(year) < 70 ? "20" : "19") + year;
+    return `${year}-${month}-${day}`;
+  }
+  return null;
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   ADD TAX PAYMENT MODAL
+   ══════════════════════════════════════════════════════════════════ */
+
+const AddTaxPaymentModal = ({
+  onClose,
+  onSave,
+  saving = false,
+  fy,
+}: {
+  onClose: () => void;
+  onSave: (data: any) => void;
+  saving?: boolean;
+  fy: string;
+}) => {
+  const [f, setF] = useState({
+    date: today(),
+    type: "Advance Tax",
+    amount: "",
+    challanNo: "",
+    bsrCode: "",
+    bank: "",
+    note: "",
+    fy,
+  });
+
+  const types = [
+    "Advance Tax",
+    "TDS",
+    "Self-Assessment",
+    "TCS",
+    "Professional Tax",
+    "Regular Assessment",
+  ];
+
   return (
-    <Modal title="Record Tax Payment" onClose={onClose}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+    <Modal title="Record Tax Payment / TDS" onClose={onClose}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <Field label="Payment Date">
           <input
             className="form-input"
@@ -292,7 +368,7 @@ const AddTaxPaymentModal = ({ onClose, onSave, saving = false }: any) => {
             onChange={(e) => setF({ ...f, date: e.target.value })}
           />
         </Field>
-        <Field label="Type">
+        <Field label="Tax Payment Type">
           <select
             className="form-input"
             value={f.type}
@@ -305,732 +381,86 @@ const AddTaxPaymentModal = ({ onClose, onSave, saving = false }: any) => {
             ))}
           </select>
         </Field>
+        <Field label="Amount Paid (₹)">
+          <input
+            className="form-input"
+            type="number"
+            placeholder="e.g. 25000"
+            value={f.amount}
+            onChange={(e) => setF({ ...f, amount: e.target.value })}
+          />
+        </Field>
+        <Field label="Financial Year">
+          <input className="form-input" type="text" value={f.fy} disabled />
+        </Field>
+        <Field label="Challan / Acknowledgement No.">
+          <input
+            className="form-input"
+            type="text"
+            placeholder="e.g. ITNS 280 / 123456"
+            value={f.challanNo}
+            onChange={(e) => setF({ ...f, challanNo: e.target.value })}
+          />
+        </Field>
+        <Field label="BSR Code / Bank Name">
+          <input
+            className="form-input"
+            type="text"
+            placeholder="e.g. HDFC Bank (0510012)"
+            value={f.bank}
+            onChange={(e) => setF({ ...f, bank: e.target.value })}
+          />
+        </Field>
+        <div style={{ gridColumn: "1/-1" }}>
+          <Field label="Notes / Section / Deductor">
+            <input
+              className="form-input"
+              type="text"
+              placeholder="e.g. Q2 Advance Tax via NetBanking or Employer TDS"
+              value={f.note}
+              onChange={(e) => setF({ ...f, note: e.target.value })}
+            />
+          </Field>
+        </div>
       </div>
-      <Field label="Amount (₹)">
-        <input
-          className="form-input"
-          type="number"
-          placeholder="0"
-          value={f.amount}
-          onChange={(e) => setF({ ...f, amount: e.target.value })}
-        />
-      </Field>
-      <Field label="Note / Reference">
-        <input
-          className="form-input"
-          placeholder="e.g. Q2 Advance Tax, Salary TDS"
-          value={f.note}
-          onChange={(e) => setF({ ...f, note: e.target.value })}
-        />
-      </Field>
-      <ModalActions
-        onSave={() => {
-          if (!f.amount) return;
-          // This modal is the ONLY place a taxPayments record is ever
-          // created, and it never used to set `fy` — but TaxFilingHelperTab.
-          // tsx's advance-tax-paid total and TaxToolsTab.tsx's advance-tax
-          // tracker (3 separate places) both filter taxPayments by
-          // `t.fy === fy`, so every payment ever recorded here was silently
-          // invisible to both features (always compared against `undefined`).
-          // Derive fy from the payment date the same way getCurrentFY() does
-          // for "today" (Apr–Mar year), so a backdated entry lands in the
-          // correct FY too.
-          const d = new Date(f.date + "T00:00:00");
-          const fyStartYear = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
-          const fy = `${fyStartYear}-${String(fyStartYear + 1).slice(-2)}`;
-          onSave({ ...f, fy, id: uid() });
-        }}
-        onClose={onClose}
-        saveLabel="Record Payment"
-        disabled={saving}
-        loading={saving}
-      />
+      <ModalActions>
+        <Button variant="ghost" onClick={onClose} disabled={saving}>
+          Cancel
+        </Button>
+        <Button
+          variant="accent"
+          loading={saving}
+          disabled={!f.amount || Number(f.amount) <= 0}
+          onClick={() => {
+            onSave({
+              ...f,
+              amount: Number(f.amount) || 0,
+            });
+          }}
+        >
+          Save Tax Record
+        </Button>
+      </ModalActions>
     </Modal>
   );
 };
 
 /* ══════════════════════════════════════════════════════════════════
-   FORM 26AS RECONCILER
-   ══════════════════════════════════════════════════════════════════ */
-
-// Parses the handful of date formats a 26AS/TRACES export commonly uses
-// ("15-Jun-2025", "15-06-2025", "15/06/2025", "2025-06-15") into YYYY-MM-DD.
-// Returns null on anything else rather than guessing — dateOfPayment is
-// optional on a form26as record (entryFY() in TaxToolsTab.tsx falls back to
-// the explicit `fy` field when it's missing), so a row this can't parse still
-// saves correctly scoped to the right financial year, just without a display date.
-const MONTH_ABBR: Record<string, string> = {
-  jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
-  jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
-};
-const normalize26ASDate = (raw: string): string | null => {
-  if (!raw) return null;
-  const s = raw.trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const monMatch = s.match(/^(\d{1,2})[-\s]([A-Za-z]{3,})[-\s](\d{4})$/);
-  if (monMatch) {
-    const mon = MONTH_ABBR[monMatch[2].slice(0, 3).toLowerCase()];
-    if (mon) return `${monMatch[3]}-${mon}-${monMatch[1].padStart(2, "0")}`;
-  }
-  const numMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-  if (numMatch) return `${numMatch[3]}-${numMatch[2].padStart(2, "0")}-${numMatch[1].padStart(2, "0")}`;
-  return null;
-};
-
-const Reconciler26AS = ({
-  income,
-  taxPayments,
-  fy,
-  fyStartStr,
-  fyEndStr,
-  existingLedger,
-  addItem,
-  showToast,
-}: {
-  income: any[];
-  taxPayments: any[];
-  fy: string;
-  fyStartStr: string;
-  fyEndStr: string;
-  existingLedger?: any[];
-  addItem?: any;
-  showToast?: any;
-}) => {
-  const [rawText, setRawText] = useState("");
-  const [savingToLedger, setSavingToLedger] = useState(false);
-  // Rows saved this session (deductor+amount key), independent of the
-  // `existingLedger` prop. addItem() does update state.form26as
-  // optimistically before its network write, but that update has to
-  // round-trip back down through App.tsx -> TaxVaultTab -> this component as
-  // a fresh prop before existingForFY reflects it — a second Save click that
-  // lands before that round-trip completes (e.g. re-parsing the same paste
-  // right after saving it) must not re-add the same rows. This local set is
-  // authoritative the instant a save resolves, with no re-render to wait on.
-  const [savedRowKeys, setSavedRowKeys] = useState<Set<string>>(new Set());
-  const rowKey = (row: any) =>
-    `${(row.deductor || "").trim().toLowerCase()}|${Math.round(Number(row.tdsDeducted || 0))}`;
-  const [parsed26AS, setParsed26AS] = useState<any[]>([]);
-  const [parseError, setParseError] = useState("");
-
-  // Filter to current FY
-  const fyIncome = income.filter((i: any) => i.date && i.date >= fyStartStr && i.date <= fyEndStr);
-  const fyTDS = taxPayments.filter(
-    (p: any) => p.type === "TDS" && p.date && p.date >= fyStartStr && p.date <= fyEndStr
-  );
-
-  const parse26AS = () => {
-    setParseError("");
-    setParsed26AS([]);
-
-    if (!rawText.trim()) {
-      setParseError("Please paste the 26AS data first.");
-      return;
-    }
-
-    try {
-      const lines = rawText
-        .trim()
-        .split("\n")
-        .map((l) => l.trim())
-        .filter((l) => l && !l.startsWith("#"));
-
-      if (lines.length === 0) {
-        setParseError("No data rows found.");
-        return;
-      }
-
-      // Detect delimiter
-      const delimiter = lines[0].includes("\t") ? "\t" : ",";
-      const splitRow = (line: string) =>
-        line.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, ""));
-
-      // Check if first line is header
-      const firstLower = lines[0].toLowerCase();
-      const hasHeader =
-        firstLower.includes("tan") ||
-        firstLower.includes("deductor") ||
-        firstLower.includes("section") ||
-        firstLower.includes("amount");
-
-      const dataLines = hasHeader ? lines.slice(1) : lines;
-      const rows: any[] = [];
-
-      for (let i = 0; i < dataLines.length; i++) {
-        const cols = splitRow(dataLines[i]);
-        if (cols.length < 4) continue;
-
-        // Expected columns: TAN, Name of Deductor, Section, Transaction Date, Amount Paid, TDS Deducted
-        const tan = (cols[0] || "").trim();
-        const deductor = (cols[1] || "").trim();
-        const section = (cols[2] || "").trim();
-        const dateRaw = (cols[3] || "").trim();
-        const amountPaid = parseFloat((cols[4] || "0").replace(/,/g, "")) || 0;
-        const tdsDeducted = parseFloat((cols[5] || "0").replace(/,/g, "")) || 0;
-
-        if (!tan && !deductor) continue;
-
-        rows.push({
-          tan,
-          deductor,
-          section,
-          date: dateRaw,
-          amountPaid,
-          tdsDeducted,
-        });
-      }
-
-      if (rows.length === 0) {
-        setParseError(
-          "Could not parse any rows. Expected columns: TAN, Deductor Name, Section, Date, Amount Paid, TDS Deducted"
-        );
-        return;
-      }
-
-      setParsed26AS(rows);
-    } catch (e: any) {
-      setParseError("Parse error: " + e.message);
-    }
-  };
-
-  // Reconciliation logic
-  const reconciled = useMemo(() => {
-    if (parsed26AS.length === 0) return null;
-
-    const matched: any[] = [];
-    const unmatchedIn26AS: any[] = [];
-    const usedIncomeIds = new Set<string>();
-    const usedTDSIds = new Set<string>();
-
-    // Try to match each 26AS row against income entries and TDS payments
-    parsed26AS.forEach((row) => {
-      let foundIncome: any = null;
-      let foundTDS: any = null;
-
-      // Match by amount (within 5% tolerance) — income entries
-      for (const inc of fyIncome) {
-        if (usedIncomeIds.has(inc.id)) continue;
-        const incAmt = Number(inc.amount || 0);
-        if (incAmt > 0 && Math.abs(incAmt - row.amountPaid) / Math.max(incAmt, 1) < 0.05) {
-          foundIncome = inc;
-          break;
-        }
-      }
-
-      // Match TDS amount
-      for (const tds of fyTDS) {
-        if (usedTDSIds.has(tds.id)) continue;
-        const tdsAmt = Number(tds.amount || 0);
-        if (tdsAmt > 0 && Math.abs(tdsAmt - row.tdsDeducted) / Math.max(tdsAmt, 1) < 0.05) {
-          foundTDS = tds;
-          break;
-        }
-      }
-
-      if (foundIncome || foundTDS) {
-        if (foundIncome) usedIncomeIds.add(foundIncome.id);
-        if (foundTDS) usedTDSIds.add(foundTDS.id);
-        matched.push({ ...row, matchedIncome: foundIncome, matchedTDS: foundTDS });
-      } else {
-        unmatchedIn26AS.push(row);
-      }
-    });
-
-    // Find income/TDS entries missing from 26AS
-    const missingFrom26AS: any[] = [];
-    fyTDS.forEach((tds) => {
-      if (!usedTDSIds.has(tds.id)) {
-        missingFrom26AS.push({
-          type: "TDS",
-          item: tds,
-          amount: Number(tds.amount || 0),
-          note: tds.note || "",
-        });
-      }
-    });
-
-    return { matched, unmatchedIn26AS, missingFrom26AS };
-  }, [parsed26AS, fyIncome, fyTDS]);
-
-  // Persists this paste into the same state.form26as ledger TaxToolsTab's Form
-  // 26AS Reconciliation section reads/writes — the two used to be entirely
-  // separate: this reconciler was ephemeral (parsed26AS resets on navigation,
-  // never saved anywhere), while TaxTools required typing entries in one at a
-  // time. Now a paste-and-reconcile here also builds the persisted ledger
-  // TaxTools (and any future consumer) sees. Dedupes against entries already
-  // saved for this FY by deductor + amount (±₹1) so re-pasting the same
-  // export, or pasting after already having logged some rows manually in
-  // TaxTools, doesn't create duplicates.
-  const existingForFY = useMemo(
-    () => (existingLedger || []).filter((e: any) => e.fy === fy),
-    [existingLedger, fy]
-  );
-  const isAlreadyInLedger = (row: any) =>
-    savedRowKeys.has(rowKey(row)) ||
-    existingForFY.some(
-      (e: any) =>
-        (e.deductor || "").trim().toLowerCase() === (row.deductor || "").trim().toLowerCase() &&
-        Math.abs(Number(e.amount || 0) - Number(row.tdsDeducted || 0)) < 1
-    );
-  const saveToLedger = async () => {
-    if (!addItem || savingToLedger || parsed26AS.length === 0) return;
-    const toSave = parsed26AS.filter((row) => Number(row.tdsDeducted) > 0 && !isAlreadyInLedger(row));
-    if (toSave.length === 0) {
-      showToast?.("Nothing new to save — every parsed row is already in your 26AS ledger.", "info");
-      return;
-    }
-    setSavingToLedger(true);
-    try {
-      await Promise.all(
-        toSave.map((row) =>
-          addItem("form26as", {
-            deductor: row.deductor,
-            tan: row.tan || null,
-            amount: Number(row.tdsDeducted),
-            dateOfPayment: normalize26ASDate(row.date),
-            section: row.section || "Other",
-            fy,
-          })
-        )
-      );
-      setSavedRowKeys((prev) => {
-        const next = new Set(prev);
-        toSave.forEach((row) => next.add(rowKey(row)));
-        return next;
-      });
-      const skipped = parsed26AS.length - toSave.length;
-      showToast?.(
-        `Saved ${toSave.length} entr${toSave.length === 1 ? "y" : "ies"} to your 26AS ledger${
-          skipped > 0 ? ` (${skipped} already there)` : ""
-        } — also visible in Tax Tools → 26AS Reconciliation.`,
-        "success"
-      );
-    } catch (e: any) {
-      showToast?.(`Failed to save to 26AS ledger: ${e?.message || "Unknown error"}`, "error");
-    } finally {
-      setSavingToLedger(false);
-    }
-  };
-
-  const thStyle = {
-    padding: "8px 10px",
-    borderBottom: `1.5px solid ${THEME.line}`,
-    fontSize: 10,
-    fontWeight: 700,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.1em",
-    color: THEME.muted,
-    textAlign: "left" as const,
-    whiteSpace: "nowrap" as const,
-    background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
-  };
-  const tdStyle = {
-    padding: "10px 10px",
-    borderBottom: `1px solid ${THEME.line}`,
-    fontSize: 12,
-    verticalAlign: "middle" as const,
-  };
-
-  return (
-    <div>
-      {/* Instructions */}
-      <div
-        style={{
-          padding: "10px 16px",
-          borderRadius: 10,
-          background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
-          border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 8,
-          marginBottom: 20,
-          fontSize: 12,
-          color: THEME.muted,
-        }}
-      >
-        <Info size={15} color={THEME.accent} style={{ flexShrink: 0, marginTop: 1 }} />
-        <span>
-          <b style={{ color: THEME.ink }}>Form 26AS Reconciliation</b> — Download your 26AS from the
-          TRACES portal (incometax.gov.in), copy the TDS section data, and paste it below. The
-          reconciler will match entries against your recorded income and TDS payments for{" "}
-          <b>FY {fy}</b>.
-        </span>
-      </div>
-
-      {/* Paste area */}
-      <Card style={{ padding: 16, marginBottom: 20 }}>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: THEME.muted,
-            marginBottom: 8,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-          }}
-        >
-          Paste 26AS Data
-        </div>
-        <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 10, lineHeight: 1.5 }}>
-          Expected columns (comma or tab separated): TAN, Name of Deductor, Section, Transaction
-          Date, Amount Paid, TDS Deducted
-        </div>
-        <textarea
-          style={{
-            width: "100%",
-            height: 120,
-            background: "var(--t-paper)",
-            border: `1.5px solid ${THEME.line}`,
-            borderRadius: 10,
-            padding: "10px 14px",
-            color: THEME.ink,
-            fontSize: 12,
-            outline: "none",
-            fontFamily: "monospace",
-            resize: "vertical",
-            boxSizing: "border-box",
-          }}
-          value={rawText}
-          onChange={(e) => setRawText(e.target.value)}
-          placeholder={
-            "TAN, Deductor Name, Section, Date, Amount Paid, TDS Deducted\nABCD12345E, Acme Corp Ltd, 192, 15-Jun-2025, 500000, 50000"
-          }
-        />
-        <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
-          <Button size="sm" variant="accent" onClick={parse26AS}>
-            <RefreshCw size={13} style={{ marginRight: 4 }} />
-            Reconcile
-          </Button>
-        </div>
-      </Card>
-
-      {parseError && (
-        <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: 8,
-            background: `color-mix(in srgb, ${THEME.rust} 7%, transparent)`,
-            color: THEME.rust,
-            fontSize: 12,
-            marginBottom: 16,
-            display: "flex",
-            gap: 8,
-            alignItems: "flex-start",
-          }}
-        >
-          <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>{parseError}</span>
-        </div>
-      )}
-
-      {reconciled && (
-        <div>
-          {/* Summary cards */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              gap: 12,
-              marginBottom: 20,
-            }}
-          >
-            <Card style={{ padding: "12px 16px", borderLeft: `3px solid ${THEME.sage}` }}>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  lineHeight: 1.3,
-                  minHeight: 26,
-                }}
-              >
-                Matched
-              </div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: THEME.sage, marginTop: 4 }}>
-                {reconciled.matched.length}
-              </div>
-            </Card>
-            <Card style={{ padding: "12px 16px", borderLeft: `3px solid ${THEME.gold}` }}>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  lineHeight: 1.3,
-                  minHeight: 26,
-                }}
-              >
-                Unmatched in 26AS
-              </div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: THEME.gold, marginTop: 4 }}>
-                {reconciled.unmatchedIn26AS.length}
-              </div>
-            </Card>
-            <Card style={{ padding: "12px 16px", borderLeft: `3px solid ${THEME.rust}` }}>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: THEME.muted,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  lineHeight: 1.3,
-                  minHeight: 26,
-                }}
-              >
-                Missing from 26AS
-              </div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: THEME.rust, marginTop: 4 }}>
-                {reconciled.missingFrom26AS.length}
-              </div>
-            </Card>
-          </div>
-
-          {/* Save into the shared 26AS ledger (state.form26as) */}
-          {addItem && (
-            <Card
-              style={{
-                padding: "12px 16px",
-                marginBottom: 20,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                flexWrap: "wrap",
-                borderLeft: `3px solid ${THEME.accent}`,
-              }}
-            >
-              <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.5 }}>
-                {existingForFY.length > 0 ? (
-                  <>
-                    <b style={{ color: THEME.ink }}>{existingForFY.length}</b> entr
-                    {existingForFY.length === 1 ? "y" : "ies"} already saved to your 26AS ledger for
-                    FY {fy} (shared with Tax Tools → 26AS Reconciliation).
-                  </>
-                ) : (
-                  <>Save these rows to your 26AS ledger — same one Tax Tools' 26AS Reconciliation reads.</>
-                )}
-              </div>
-              <Button size="sm" variant="accent" loading={savingToLedger} onClick={saveToLedger}>
-                <Save size={13} style={{ marginRight: 4 }} />
-                Save to 26AS Ledger
-              </Button>
-            </Card>
-          )}
-
-          {/* Matched entries */}
-          {reconciled.matched.length > 0 && (
-            <Card style={{ padding: 0, marginBottom: 16, overflow: "hidden", borderRadius: 12 }}>
-              <div
-                style={{
-                  padding: "10px 16px",
-                  background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
-                  borderBottom: `1px solid ${THEME.line}`,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <CheckCircle2 size={14} color={THEME.sage} />
-                <span style={{ fontSize: 12, fontWeight: 800, color: THEME.sage }}>
-                  Matched ({reconciled.matched.length})
-                </span>
-              </div>
-              <div className="mobile-table-wrap">
-                <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      <th style={thStyle}>TAN</th>
-                      <th style={thStyle}>Deductor</th>
-                      <th style={thStyle}>Section</th>
-                      <th style={{ ...thStyle, textAlign: "right" }}>Amount</th>
-                      <th style={{ ...thStyle, textAlign: "right" }}>TDS</th>
-                      <th style={thStyle}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reconciled.matched.map((r: any, i: number) => (
-                      <tr key={i} className="table-row-hover">
-                        <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 11 }}>
-                          {r.tan}
-                        </td>
-                        <td style={tdStyle}>{r.deductor}</td>
-                        <td style={{ ...tdStyle, color: THEME.muted }}>{r.section}</td>
-                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
-                          <Money value={r.amountPaid} variant="exact" />
-                        </td>
-                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
-                          <Money value={r.tdsDeducted} variant="full" />
-                        </td>
-                        <td style={tdStyle}>
-                          <Badge variant="sage">Matched</Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
-
-          {/* Unmatched in 26AS */}
-          {reconciled.unmatchedIn26AS.length > 0 && (
-            <Card style={{ padding: 0, marginBottom: 16, overflow: "hidden", borderRadius: 12 }}>
-              <div
-                style={{
-                  padding: "10px 16px",
-                  background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
-                  borderBottom: `1px solid ${THEME.line}`,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <AlertTriangle size={14} color={THEME.gold} />
-                <span style={{ fontSize: 12, fontWeight: 800, color: THEME.gold }}>
-                  Unmatched in 26AS ({reconciled.unmatchedIn26AS.length})
-                </span>
-                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 400 }}>
-                  — Present in 26AS but no matching record found in your data
-                </span>
-              </div>
-              <div className="mobile-table-wrap">
-                <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      <th style={thStyle}>TAN</th>
-                      <th style={thStyle}>Deductor</th>
-                      <th style={thStyle}>Section</th>
-                      <th style={{ ...thStyle, textAlign: "right" }}>Amount</th>
-                      <th style={{ ...thStyle, textAlign: "right" }}>TDS</th>
-                      <th style={thStyle}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reconciled.unmatchedIn26AS.map((r: any, i: number) => (
-                      <tr key={i} className="table-row-hover">
-                        <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 11 }}>
-                          {r.tan}
-                        </td>
-                        <td style={tdStyle}>{r.deductor}</td>
-                        <td style={{ ...tdStyle, color: THEME.muted }}>{r.section}</td>
-                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
-                          <Money value={r.amountPaid} variant="exact" />
-                        </td>
-                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
-                          <Money value={r.tdsDeducted} variant="full" />
-                        </td>
-                        <td style={tdStyle}>
-                          <Badge variant="gold">Unmatched</Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
-
-          {/* Missing from 26AS */}
-          {reconciled.missingFrom26AS.length > 0 && (
-            <Card style={{ padding: 0, marginBottom: 16, overflow: "hidden", borderRadius: 12 }}>
-              <div
-                style={{
-                  padding: "10px 16px",
-                  background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
-                  borderBottom: `1px solid ${THEME.line}`,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <AlertTriangle size={14} color={THEME.rust} />
-                <span style={{ fontSize: 12, fontWeight: 800, color: THEME.rust }}>
-                  Missing from 26AS ({reconciled.missingFrom26AS.length})
-                </span>
-                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 400 }}>
-                  — TDS you recorded but not found in the pasted 26AS data
-                </span>
-              </div>
-              <div className="mobile-table-wrap">
-                <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      <th style={thStyle}>Type</th>
-                      <th style={thStyle}>Note</th>
-                      <th style={thStyle}>Date</th>
-                      <th style={{ ...thStyle, textAlign: "right" }}>Amount</th>
-                      <th style={thStyle}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reconciled.missingFrom26AS.map((r: any, i: number) => (
-                      <tr key={i} className="table-row-hover">
-                        <td style={{ ...tdStyle, fontWeight: 600 }}>{r.type}</td>
-                        <td style={tdStyle}>{r.note || "—"}</td>
-                        <td style={{ ...tdStyle, color: THEME.muted }}>{r.item.date || "—"}</td>
-                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
-                          <Money value={r.amount} variant="exact" />
-                        </td>
-                        <td style={tdStyle}>
-                          <Badge variant="rust">Missing</Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
-
-          {/* All clear message */}
-          {reconciled.unmatchedIn26AS.length === 0 &&
-            reconciled.missingFrom26AS.length === 0 &&
-            reconciled.matched.length > 0 && (
-              <div
-                style={{
-                  padding: "14px 16px",
-                  borderRadius: 10,
-                  background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: THEME.sage,
-                }}
-              >
-                <CheckCircle2 size={16} />
-                All {reconciled.matched.length} entries are perfectly reconciled. No discrepancies
-                found.
-              </div>
-            )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-/* ══════════════════════════════════════════════════════════════════
-   SLAB BREAKDOWN TABLE
+   SLAB BREAKDOWN TABLE COMPONENT
    ══════════════════════════════════════════════════════════════════ */
 
 const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "old" }) => {
   const accentColor = regime === "new" ? THEME.accent : THEME.gold;
   return (
-    <div>
-      {/* Income → Taxable */}
+    <div style={{ background: "var(--surface-0)", borderRadius: 14, padding: 18, border: `1px solid ${THEME.line}` }}>
+      {/* Income → Taxable Header */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "1fr auto",
-          gap: 4,
+          gap: 6,
           marginBottom: 16,
-          paddingBottom: 16,
+          paddingBottom: 14,
           borderBottom: `1px dashed ${THEME.line}`,
         }}
       >
@@ -1042,7 +472,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
         </span>
 
         <span style={{ fontSize: 13, fontWeight: 600, color: THEME.muted }}>
-          {`Standard Deduction${regime === "old" ? " (Sec 16(ia))" : ""}`}
+          {`Standard Deduction${regime === "old" ? " (Sec 16(ia))" : " (FA 2024)"}`}
         </span>
         <span style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, textAlign: "right" }}>
           - <Money value={result.stdDed} variant="full" />
@@ -1051,7 +481,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
         {regime === "old" && result.extraDeds > 0 && (
           <>
             <span style={{ fontSize: 13, fontWeight: 600, color: THEME.muted }}>
-              Other Deductions (80C, 80D, HRA…)
+              Chapter VI-A Deductions (80C, 80D, HRA, 24b…)
             </span>
             <span style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, textAlign: "right" }}>
               - <Money value={result.extraDeds} variant="full" />
@@ -1062,7 +492,15 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
         <div style={{ gridColumn: "1/-1", height: 1, background: THEME.line, margin: "4px 0" }} />
 
         <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>Taxable Income</span>
-        <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 900, color: accentColor, textAlign: "right" }}>
+        <span
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 15,
+            fontWeight: 900,
+            color: accentColor,
+            textAlign: "right",
+          }}
+        >
           <Money value={result.taxable} variant="full" />
         </span>
       </div>
@@ -1070,7 +508,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
       {/* Slab rows */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
         {result.slabs
-          .filter((s: any) => s.incomeInSlab > 0)
+          .filter((s: any) => s.incomeInSlab > 0 || s.rate === 0)
           .map((slab: any, i: number) => (
             <div
               key={i}
@@ -1079,7 +517,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
                 gridTemplateColumns: "1fr 110px 90px",
                 gap: 8,
                 alignItems: "center",
-                padding: "8px 10px",
+                padding: "8px 12px",
                 borderRadius: 8,
                 background:
                   slab.rate === 0
@@ -1125,15 +563,18 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
           display: "grid",
           gridTemplateColumns: "1fr auto",
           gap: 6,
-          padding: "12px 0",
+          paddingTop: 12,
           borderTop: `1px dashed ${THEME.line}`,
         }}
       >
         <span style={{ fontSize: 13, fontWeight: 600, color: THEME.muted }}>
-          Tax on Total Income
+          Tax on Slab Income
         </span>
         <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink, textAlign: "right" }}>
-          <Money value={result.tax + (result.rebateApplied ? result.rebateAmount : 0)} variant="full" />
+          <Money
+            value={result.tax + (result.rebateApplied ? result.rebateAmount : 0)}
+            variant="full"
+          />
         </span>
 
         {result.rebateApplied && (
@@ -1141,7 +582,9 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
             <span style={{ fontSize: 13, fontWeight: 600, color: THEME.sage }}>
               Section 87A Rebate
             </span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, textAlign: "right" }}>
+            <span
+              style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, textAlign: "right" }}
+            >
               - <Money value={result.rebateAmount} variant="full" />
             </span>
           </>
@@ -1150,7 +593,9 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
         {result.surcharge > 0 && (
           <>
             <span style={{ fontSize: 13, fontWeight: 600, color: THEME.muted }}>Surcharge</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, textAlign: "right" }}>
+            <span
+              style={{ fontSize: 13, fontWeight: 700, color: THEME.rust, textAlign: "right" }}
+            >
               + <Money value={result.surcharge} variant="full" />
             </span>
           </>
@@ -1169,7 +614,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
             height: 2,
             background: accentColor,
             borderRadius: 1,
-            margin: "4px 0",
+            margin: "6px 0",
           }}
         />
 
@@ -1177,7 +622,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
         <span
           style={{
             fontFamily: "var(--font-display)",
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: 900,
             color: result.total === 0 ? THEME.sage : THEME.rust,
             textAlign: "right",
@@ -1198,7 +643,7 @@ const SlabBreakdownTable = ({ result, regime }: { result: any; regime: "new" | "
 };
 
 /* ══════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
+   HRA CALCULATOR COMPONENT
    ══════════════════════════════════════════════════════════════════ */
 
 const HRACalculator = () => {
@@ -1221,7 +666,7 @@ const HRACalculator = () => {
   const taxable = Math.max(0, received - exempt);
 
   const inputStyle: React.CSSProperties = {
-    padding: "8px 10px",
+    padding: "8px 12px",
     borderRadius: "var(--radius-md)",
     border: `1.5px solid ${THEME.line}`,
     fontSize: 13,
@@ -1230,135 +675,703 @@ const HRACalculator = () => {
   };
 
   return (
-    <div style={{ marginBottom: 28 }}>
-      <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          <Calculator size={16} color={THEME.accent} />
-          <span style={{ fontSize: 14, fontWeight: 800 }}>HRA Exemption Calculator</span>
-          <span style={{ fontSize: 11, color: THEME.muted }}>Section 10(13A)</span>
+    <Card style={{ padding: 24, borderTop: `4px solid ${THEME.accent}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <Calculator size={18} color={THEME.accent} />
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 800 }}>HRA Exemption Calculator</div>
+          <div style={{ fontSize: 11, color: THEME.muted }}>Section 10(13A) · Rule 2A</div>
         </div>
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 14,
+          marginBottom: 18,
+        }}
+      >
+        <Field label="Annual Basic Salary (₹)">
+          <input
+            type="number"
+            style={inputStyle}
+            placeholder="e.g. 600000"
+            value={hraBasic}
+            onChange={(e) => setHraBasic(e.target.value)}
+          />
+        </Field>
+        <Field label="Annual DA (₹)">
+          <input
+            type="number"
+            style={inputStyle}
+            placeholder="0"
+            value={hraDa}
+            onChange={(e) => setHraDa(e.target.value)}
+          />
+        </Field>
+        <Field label="HRA Received (₹/yr)">
+          <input
+            type="number"
+            style={inputStyle}
+            placeholder="e.g. 240000"
+            value={hraReceived}
+            onChange={(e) => setHraReceived(e.target.value)}
+          />
+        </Field>
+        <Field label="Total Rent Paid (₹/yr)">
+          <input
+            type="number"
+            style={inputStyle}
+            placeholder="e.g. 300000"
+            value={hraRent}
+            onChange={(e) => setHraRent(e.target.value)}
+          />
+        </Field>
+        <Field label="City Category">
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button
+              size="sm"
+              variant={hraMetro ? "accent" : "ghost"}
+              onClick={() => setHraMetro(true)}
+              style={{ flex: 1, height: 36 }}
+            >
+              Metro (50%)
+            </Button>
+            <Button
+              size="sm"
+              variant={!hraMetro ? "accent" : "ghost"}
+              onClick={() => setHraMetro(false)}
+              style={{ flex: 1, height: 36 }}
+            >
+              Non-Metro (40%)
+            </Button>
+          </div>
+        </Field>
+      </div>
+      {salary > 0 && received > 0 ? (
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-            gap: 12,
-            marginBottom: 16,
+            background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+            borderRadius: 12,
+            padding: 18,
           }}
         >
-          <Field label="Basic Salary (Annual)">
-            <input
-              type="number"
-              style={inputStyle}
-              placeholder="e.g. 600000"
-              value={hraBasic}
-              onChange={(e) => setHraBasic(e.target.value)}
-            />
-          </Field>
-          <Field label="DA (Annual)">
-            <input
-              type="number"
-              style={inputStyle}
-              placeholder="0"
-              value={hraDa}
-              onChange={(e) => setHraDa(e.target.value)}
-            />
-          </Field>
-          <Field label="HRA Received (Annual)">
-            <input
-              type="number"
-              style={inputStyle}
-              placeholder="e.g. 240000"
-              value={hraReceived}
-              onChange={(e) => setHraReceived(e.target.value)}
-            />
-          </Field>
-          <Field label="Rent Paid (Annual)">
-            <input
-              type="number"
-              style={inputStyle}
-              placeholder="e.g. 300000"
-              value={hraRent}
-              onChange={(e) => setHraRent(e.target.value)}
-            />
-          </Field>
-          <Field label="City Type">
-            <div style={{ display: "flex", gap: 8 }}>
-              <Button
-                size="sm"
-                variant={hraMetro ? "accent" : "ghost"}
-                onClick={() => setHraMetro(true)}
-                style={{ flex: 1, height: 34 }}
-              >
-                Metro
-              </Button>
-              <Button
-                size="sm"
-                variant={!hraMetro ? "accent" : "ghost"}
-                onClick={() => setHraMetro(false)}
-                style={{ flex: 1, height: 34 }}
-              >
-                Non-Metro
-              </Button>
-            </div>
-          </Field>
-        </div>
-        {salary > 0 && received > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, fontSize: 13 }}>
+            <span style={{ color: THEME.muted }}>1. Actual HRA Received from Employer</span>
+            <span style={{ fontWeight: 700, textAlign: "right" }}>
+              <Money value={c1} variant="full" />
+            </span>
+            <span style={{ color: THEME.muted }}>2. Rent Paid − 10% of Basic Salary</span>
+            <span style={{ fontWeight: 700, textAlign: "right" }}>
+              <Money value={c2} variant="full" />
+            </span>
+            <span style={{ color: THEME.muted }}>
+              3. {hraMetro ? "50%" : "40%"} of Salary ({hraMetro ? "Mumbai, Delhi, Kolkata, Chennai" : "Other Cities"})
+            </span>
+            <span style={{ fontWeight: 700, textAlign: "right" }}>
+              <Money value={c3} variant="full" />
+            </span>
+          </div>
           <div
             style={{
-              background: `color-mix(in srgb, ${THEME.accent} 2%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
-              borderRadius: 12,
-              padding: 16,
+              borderTop: `1px solid ${THEME.line}`,
+              marginTop: 12,
+              paddingTop: 12,
+              display: "grid",
+              gridTemplateColumns: "1fr auto",
+              gap: 8,
+              alignItems: "center",
             }}
           >
-            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, fontSize: 13 }}>
-              <span style={{ color: THEME.muted }}>A. Actual HRA Received</span>
-              <span style={{ fontWeight: 600, textAlign: "right" }}><Money value={c1} variant="full" /></span>
-              <span style={{ color: THEME.muted }}>B. Rent Paid − 10% of Salary</span>
-              <span style={{ fontWeight: 600, textAlign: "right" }}><Money value={c2} variant="full" /></span>
-              <span style={{ color: THEME.muted }}>
-                C. {hraMetro ? "50%" : "40%"} of Salary ({hraMetro ? "Metro" : "Non-Metro"})
-              </span>
-              <span style={{ fontWeight: 600, textAlign: "right" }}><Money value={c3} variant="full" /></span>
-            </div>
-            <div
+            <span style={{ fontWeight: 800, color: THEME.sage, fontSize: 14 }}>
+              HRA Exempt u/s 10(13A) (Least of 1, 2, 3)
+            </span>
+            <span
               style={{
-                borderTop: `1px solid ${THEME.line}`,
-                marginTop: 10,
-                paddingTop: 10,
-                display: "grid",
-                gridTemplateColumns: "1fr auto",
-                gap: 8,
-                fontSize: 14,
+                fontFamily: "var(--font-display)",
+                fontWeight: 900,
+                fontSize: 20,
+                color: THEME.sage,
+                textAlign: "right",
               }}
             >
-              <span style={{ fontWeight: 800, color: THEME.sage }}>
-                HRA Exempt (Minimum of A, B, C)
-              </span>
-              <span
+              <Money value={exempt} variant="full" />
+            </span>
+            <span style={{ color: THEME.muted, fontSize: 12 }}>Taxable HRA Portion</span>
+            <span
+              style={{ fontWeight: 700, fontSize: 14, color: THEME.rust, textAlign: "right" }}
+            >
+              <Money value={taxable} variant="full" />
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: THEME.muted, textAlign: "center", padding: "12px 0" }}>
+          Enter Basic Salary and HRA Received to calculate your statutory exemption.
+        </div>
+      )}
+    </Card>
+  );
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   26AS RECONCILER COMPONENT
+   ══════════════════════════════════════════════════════════════════ */
+
+const Reconciler26AS = ({
+  income,
+  taxPayments,
+  fy,
+  fyStartStr,
+  fyEndStr,
+  existingLedger,
+  addItem,
+  showToast,
+}: {
+  income: any[];
+  taxPayments: any[];
+  fy: string;
+  fyStartStr: string;
+  fyEndStr: string;
+  existingLedger?: any[];
+  addItem?: any;
+  showToast?: any;
+}) => {
+  const [rawText, setRawText] = useState("");
+  const [savingToLedger, setSavingToLedger] = useState(false);
+  const [savedRowKeys, setSavedRowKeys] = useState<Set<string>>(new Set());
+  const rowKey = (row: any) =>
+    `${(row.deductor || "").trim().toLowerCase()}|${Math.round(Number(row.tdsDeducted || 0))}`;
+  const [parsed26AS, setParsed26AS] = useState<any[]>([]);
+  const [parseError, setParseError] = useState("");
+
+  const fyIncome = income.filter((i: any) => i.date && i.date >= fyStartStr && i.date <= fyEndStr);
+  const fyTDS = taxPayments.filter(
+    (p: any) => p.type === "TDS" && p.date && p.date >= fyStartStr && p.date <= fyEndStr
+  );
+
+  const parse26AS = () => {
+    setParseError("");
+    setParsed26AS([]);
+
+    if (!rawText.trim()) {
+      setParseError("Please paste the 26AS data first.");
+      return;
+    }
+
+    try {
+      const lines = rawText
+        .trim()
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l && !l.startsWith("#"));
+
+      if (lines.length === 0) {
+        setParseError("No data rows found.");
+        return;
+      }
+
+      const delimiter = lines[0].includes("\t") ? "\t" : ",";
+      const splitRow = (line: string) =>
+        line.split(delimiter).map((c) => c.trim().replace(/^"|"$/g, ""));
+
+      const firstLower = lines[0].toLowerCase();
+      const hasHeader =
+        firstLower.includes("tan") ||
+        firstLower.includes("deductor") ||
+        firstLower.includes("section") ||
+        firstLower.includes("amount");
+
+      const dataLines = hasHeader ? lines.slice(1) : lines;
+      const rows: any[] = [];
+
+      for (let i = 0; i < dataLines.length; i++) {
+        const cols = splitRow(dataLines[i]);
+        if (cols.length < 4) continue;
+
+        const tan = (cols[0] || "").trim();
+        const deductor = (cols[1] || "").trim();
+        const section = (cols[2] || "").trim();
+        const dateRaw = (cols[3] || "").trim();
+        const amountPaid = parseFloat((cols[4] || "0").replace(/,/g, "")) || 0;
+        const tdsDeducted = parseFloat((cols[5] || "0").replace(/,/g, "")) || 0;
+
+        if (!tan && !deductor) continue;
+
+        rows.push({
+          tan,
+          deductor,
+          section,
+          date: dateRaw,
+          amountPaid,
+          tdsDeducted,
+        });
+      }
+
+      if (rows.length === 0) {
+        setParseError(
+          "Could not parse any rows. Expected columns: TAN, Deductor Name, Section, Date, Amount Paid, TDS Deducted"
+        );
+        return;
+      }
+
+      setParsed26AS(rows);
+    } catch (e: any) {
+      setParseError("Parse error: " + e.message);
+    }
+  };
+
+  const reconciled = useMemo(() => {
+    if (parsed26AS.length === 0) return null;
+
+    const matched: any[] = [];
+    const unmatchedIn26AS: any[] = [];
+    const usedIncomeIds = new Set<string>();
+    const usedTDSIds = new Set<string>();
+
+    parsed26AS.forEach((row) => {
+      let foundIncome: any = null;
+      let foundTDS: any = null;
+
+      for (const inc of fyIncome) {
+        if (usedIncomeIds.has(inc.id)) continue;
+        const incAmt = Number(inc.amount || 0);
+        if (incAmt > 0 && Math.abs(incAmt - row.amountPaid) / Math.max(incAmt, 1) < 0.05) {
+          foundIncome = inc;
+          break;
+        }
+      }
+
+      for (const tds of fyTDS) {
+        if (usedTDSIds.has(tds.id)) continue;
+        const tdsAmt = Number(tds.amount || 0);
+        if (tdsAmt > 0 && Math.abs(tdsAmt - row.tdsDeducted) / Math.max(tdsAmt, 1) < 0.05) {
+          foundTDS = tds;
+          break;
+        }
+      }
+
+      if (foundIncome || foundTDS) {
+        if (foundIncome) usedIncomeIds.add(foundIncome.id);
+        if (foundTDS) usedTDSIds.add(foundTDS.id);
+        matched.push({ ...row, matchedIncome: foundIncome, matchedTDS: foundTDS });
+      } else {
+        unmatchedIn26AS.push(row);
+      }
+    });
+
+    const missingFrom26AS: any[] = [];
+    fyTDS.forEach((tds) => {
+      if (!usedTDSIds.has(tds.id)) {
+        missingFrom26AS.push({
+          type: "TDS",
+          item: tds,
+          amount: Number(tds.amount || 0),
+          note: tds.note || "",
+        });
+      }
+    });
+
+    return { matched, unmatchedIn26AS, missingFrom26AS };
+  }, [parsed26AS, fyIncome, fyTDS]);
+
+  const existingForFY = useMemo(
+    () => (existingLedger || []).filter((e: any) => e.fy === fy),
+    [existingLedger, fy]
+  );
+
+  const isAlreadyInLedger = (row: any) =>
+    savedRowKeys.has(rowKey(row)) ||
+    existingForFY.some(
+      (e: any) =>
+        (e.deductor || "").trim().toLowerCase() === (row.deductor || "").trim().toLowerCase() &&
+        Math.abs(Number(e.amount || 0) - Number(row.tdsDeducted || 0)) < 1
+    );
+
+  const saveToLedger = async () => {
+    if (!addItem || savingToLedger || parsed26AS.length === 0) return;
+    const toSave = parsed26AS.filter(
+      (row) => Number(row.tdsDeducted) > 0 && !isAlreadyInLedger(row)
+    );
+    if (toSave.length === 0) {
+      showToast?.("Nothing new to save — every parsed row is already in your 26AS ledger.", "info");
+      return;
+    }
+    setSavingToLedger(true);
+    try {
+      await Promise.all(
+        toSave.map((row) =>
+          addItem("form26as", {
+            deductor: row.deductor,
+            tan: row.tan || null,
+            amount: Number(row.tdsDeducted),
+            dateOfPayment: normalize26ASDate(row.date),
+            section: row.section || "Other",
+            fy,
+          })
+        )
+      );
+      setSavedRowKeys((prev) => {
+        const next = new Set(prev);
+        toSave.forEach((row) => next.add(rowKey(row)));
+        return next;
+      });
+      const skipped = parsed26AS.length - toSave.length;
+      showToast?.(
+        `Saved ${toSave.length} entr${toSave.length === 1 ? "y" : "ies"} to your 26AS ledger${
+          skipped > 0 ? ` (${skipped} already there)` : ""
+        } — visible in Tax Tools → 26AS Reconciliation.`,
+        "success"
+      );
+    } catch (e: any) {
+      showToast?.(`Failed to save to 26AS ledger: ${e?.message || "Unknown error"}`, "error");
+    } finally {
+      setSavingToLedger(false);
+    }
+  };
+
+  const thStyle = {
+    padding: "10px 14px",
+    borderBottom: `1.5px solid ${THEME.line}`,
+    fontSize: 11,
+    fontWeight: 800,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.08em",
+    color: THEME.muted,
+    textAlign: "left" as const,
+    whiteSpace: "nowrap" as const,
+    background: "rgba(128,128,128,0.03)",
+  };
+
+  const tdStyle = {
+    padding: "12px 14px",
+    borderBottom: `1px solid ${THEME.line}`,
+    fontSize: 13,
+    verticalAlign: "middle" as const,
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 20 }}>
+      {/* Information Banner */}
+      <div
+        style={{
+          padding: "14px 18px",
+          borderRadius: 12,
+          background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 12,
+        }}
+      >
+        <RefreshCw size={18} color={THEME.accent} style={{ flexShrink: 0, marginTop: 2 }} />
+        <div style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.6 }}>
+          <b>Smart TRACES 26AS & AIS Reconciler:</b> Download your Form 26AS text / CSV from the Income Tax portal (TRACES), paste it below, and click <b>Reconcile</b>. The engine matches deductors, sections, and TDS amounts against your recorded income and tax payments for <b>FY {fy}</b>.
+        </div>
+      </div>
+
+      {/* Paste Box */}
+      <Card style={{ padding: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: THEME.ink }}>
+            Paste Form 26AS / AIS Data
+          </div>
+          <span style={{ fontSize: 11, color: THEME.muted }}>
+            TAN, Deductor, Section, Date, Amount Paid, TDS Deducted
+          </span>
+        </div>
+        <textarea
+          style={{
+            width: "100%",
+            height: 120,
+            background: "var(--surface-0)",
+            border: `1.5px solid ${THEME.line}`,
+            borderRadius: 10,
+            padding: "12px 14px",
+            color: THEME.ink,
+            fontSize: 12,
+            outline: "none",
+            fontFamily: "monospace",
+            resize: "vertical",
+            boxSizing: "border-box",
+          }}
+          value={rawText}
+          onChange={(e) => setRawText(e.target.value)}
+          placeholder={`TAN, Name of Deductor, Section, Transaction Date, Amount Paid, TDS Deducted\nABCD12345E, ACME TECHNOLOGIES PVT LTD, 192, 30-Jun-2024, 600000, 60000\nMUMA00123F, HDFC BANK LTD, 194A, 31-Mar-2025, 45000, 4500`}
+        />
+        <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 11, color: THEME.muted }}>
+            Supports comma or tab-separated text directly copied from TRACES.
+          </div>
+          <Button size="sm" variant="accent" onClick={parse26AS} icon={<RefreshCw size={14} />}>
+            Reconcile Records
+          </Button>
+        </div>
+      </Card>
+
+      {parseError && (
+        <div
+          style={{
+            padding: "12px 16px",
+            borderRadius: 10,
+            background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
+            color: THEME.rust,
+            fontSize: 13,
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+          }}
+        >
+          <AlertTriangle size={16} />
+          <span>{parseError}</span>
+        </div>
+      )}
+
+      {reconciled && (
+        <div style={{ display: "grid", gap: 20 }}>
+          {/* Summary Stat Tiles */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 14,
+            }}
+          >
+            <Card style={{ padding: 18, borderLeft: `4px solid ${THEME.sage}` }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" }}>
+                Fully Matched Records
+              </div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: THEME.sage, marginTop: 4 }}>
+                {reconciled.matched.length}
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+                Present in 26AS & logged in app
+              </div>
+            </Card>
+            <Card style={{ padding: 18, borderLeft: `4px solid ${THEME.gold}` }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" }}>
+                Unmatched in 26AS
+              </div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: THEME.gold, marginTop: 4 }}>
+                {reconciled.unmatchedIn26AS.length}
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+                In 26AS but not logged in app
+              </div>
+            </Card>
+            <Card style={{ padding: 18, borderLeft: `4px solid ${THEME.rust}` }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" }}>
+                Missing from 26AS
+              </div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: THEME.rust, marginTop: 4 }}>
+                {reconciled.missingFrom26AS.length}
+              </div>
+              <div style={{ fontSize: 11, color: THEME.rust, marginTop: 4 }}>
+                Logged TDS missing on TRACES!
+              </div>
+            </Card>
+          </div>
+
+          {/* 1-Click Sync Card */}
+          {addItem && (
+            <Card
+              style={{
+                padding: "16px 20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+                flexWrap: "wrap",
+                border: `1.5px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+                background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                  Save to Persistent 26AS Ledger
+                </div>
+                <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                  {existingForFY.length > 0
+                    ? `${existingForFY.length} entries already saved for FY ${fy}. New entries will be deduplicated.`
+                    : "Save parsed entries to the shared ledger used by Tax Tools & Audit checks."}
+                </div>
+              </div>
+              <Button size="sm" variant="accent" loading={savingToLedger} onClick={saveToLedger} icon={<Save size={14} />}>
+                Save to 26AS Ledger
+              </Button>
+            </Card>
+          )}
+
+          {/* Matched Table */}
+          {reconciled.matched.length > 0 && (
+            <Card style={{ padding: 0, overflow: "hidden", borderRadius: 14 }}>
+              <div
                 style={{
-                  fontFamily: "var(--font-display)",
-                  fontWeight: 900,
-                  fontSize: 18,
-                  color: THEME.sage,
-                  textAlign: "right",
+                  padding: "12px 18px",
+                  background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+                  borderBottom: `1px solid ${THEME.line}`,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
                 }}
               >
-                <Money value={exempt} variant="full" />
-              </span>
-              <span style={{ color: THEME.muted, fontSize: 12 }}>Taxable HRA</span>
-              <span
-                style={{ fontWeight: 600, fontSize: 13, color: THEME.rust, textAlign: "right" }}
+                <CheckCircle2 size={16} color={THEME.sage} />
+                <span style={{ fontSize: 13, fontWeight: 800, color: THEME.sage }}>
+                  Matched TDS Records ({reconciled.matched.length})
+                </span>
+              </div>
+              <div className="mobile-table-wrap">
+                <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={thStyle}>TAN</th>
+                      <th style={thStyle}>Deductor</th>
+                      <th style={thStyle}>Section</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Gross Paid</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>TDS Deducted</th>
+                      <th style={thStyle}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reconciled.matched.map((r: any, i: number) => (
+                      <tr key={i} className="table-row-hover">
+                        <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 12 }}>{r.tan}</td>
+                        <td style={{ ...tdStyle, fontWeight: 700 }}>{r.deductor}</td>
+                        <td style={{ ...tdStyle, color: THEME.muted }}>Sec {r.section}</td>
+                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
+                          <Money value={r.amountPaid} variant="exact" />
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800, color: THEME.sage }}>
+                          <Money value={r.tdsDeducted} variant="full" />
+                        </td>
+                        <td style={tdStyle}>
+                          <Badge variant="sage">Matched ✓</Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {/* Unmatched in 26AS */}
+          {reconciled.unmatchedIn26AS.length > 0 && (
+            <Card style={{ padding: 0, overflow: "hidden", borderRadius: 14 }}>
+              <div
+                style={{
+                  padding: "12px 18px",
+                  background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
+                  borderBottom: `1px solid ${THEME.line}`,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
               >
-                <Money value={taxable} variant="full" />
-              </span>
-            </div>
-          </div>
-        )}
-      </Card>
+                <AlertTriangle size={16} color={THEME.gold} />
+                <span style={{ fontSize: 13, fontWeight: 800, color: THEME.gold }}>
+                  Unmatched in 26AS ({reconciled.unmatchedIn26AS.length})
+                </span>
+                <span style={{ fontSize: 11, color: THEME.muted }}>
+                  — TDS credited on TRACES but not logged in your app
+                </span>
+              </div>
+              <div className="mobile-table-wrap">
+                <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={thStyle}>TAN</th>
+                      <th style={thStyle}>Deductor</th>
+                      <th style={thStyle}>Section</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Gross Paid</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>TDS Deducted</th>
+                      <th style={thStyle}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reconciled.unmatchedIn26AS.map((r: any, i: number) => (
+                      <tr key={i} className="table-row-hover">
+                        <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 12 }}>{r.tan}</td>
+                        <td style={{ ...tdStyle, fontWeight: 700 }}>{r.deductor}</td>
+                        <td style={{ ...tdStyle, color: THEME.muted }}>Sec {r.section}</td>
+                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>
+                          <Money value={r.amountPaid} variant="exact" />
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800, color: THEME.gold }}>
+                          <Money value={r.tdsDeducted} variant="full" />
+                        </td>
+                        <td style={tdStyle}>
+                          <Badge variant="gold">Unmatched</Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {/* Missing from 26AS */}
+          {reconciled.missingFrom26AS.length > 0 && (
+            <Card style={{ padding: 0, overflow: "hidden", borderRadius: 14 }}>
+              <div
+                style={{
+                  padding: "12px 18px",
+                  background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
+                  borderBottom: `1px solid ${THEME.line}`,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <AlertTriangle size={16} color={THEME.rust} />
+                <span style={{ fontSize: 13, fontWeight: 800, color: THEME.rust }}>
+                  Missing from 26AS ({reconciled.missingFrom26AS.length})
+                </span>
+                <span style={{ fontSize: 11, color: THEME.muted }}>
+                  — TDS recorded in your app that did NOT appear in TRACES!
+                </span>
+              </div>
+              <div className="mobile-table-wrap">
+                <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={thStyle}>Payment Type</th>
+                      <th style={thStyle}>Date</th>
+                      <th style={thStyle}>Notes / Deductor</th>
+                      <th style={{ ...thStyle, textAlign: "right" }}>Amount</th>
+                      <th style={thStyle}>Audit Flag</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reconciled.missingFrom26AS.map((r: any, i: number) => (
+                      <tr key={i} className="table-row-hover">
+                        <td style={{ ...tdStyle, fontWeight: 700 }}>{r.type}</td>
+                        <td style={{ ...tdStyle, color: THEME.muted }}>{r.item.date || "—"}</td>
+                        <td style={tdStyle}>{r.note || "—"}</td>
+                        <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800, color: THEME.rust }}>
+                          <Money value={r.amount} variant="exact" />
+                        </td>
+                        <td style={tdStyle}>
+                          <Badge variant="rust">Missing on TRACES</Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 };
+
+/* ══════════════════════════════════════════════════════════════════
+   PROPS INTERFACE
+   ══════════════════════════════════════════════════════════════════ */
 
 interface TaxVaultTabProps {
   state: any;
@@ -1371,6 +1384,10 @@ interface TaxVaultTabProps {
   showToast?: any;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   MAIN COMPONENT: TAX VAULT TAB
+   ══════════════════════════════════════════════════════════════════ */
+
 export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
   state,
   metrics,
@@ -1380,25 +1397,42 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
   updateMasterData,
   showToast,
 }) => {
-  const [subTab, setSubTab] = useState<"income" | "capitalGains" | "reconciler">("income");
+  const [subTab, setSubTab] = useState<
+    "overview" | "heads" | "capitalGains" | "advanceTax" | "reconciler" | "toolkit"
+  >("overview");
   const [showModal, setShowModal] = useState(false);
   const [incomeOverride, setIncomeOverride] = useState<string>("");
   const [simulatedHarvestIds, setSimulatedHarvestIds] = useState<string[]>([]);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [expandedTipId, setExpandedTipId] = useState<string | null>(null);
   const [confirmDeletePayment, setConfirmDeletePayment] = useState<any>(null);
+  const [activeToolkitTab, setActiveToolkitTab] = useState<"hra" | "crossover" | "surcharge" | "checklist">("hra");
+  const [checklistCompleted, setChecklistCompleted] = useState<Record<string, boolean>>({});
+
   const { privacyMode } = usePrivacy();
 
   const { run: saveNewTaxPayment, loading: savingTaxPayment } = useAsyncAction(
-    async (data: any) => { await addItem("taxPayments", data); },
-    { onSuccess: () => setShowModal(false), onError: (e: any) => showToast?.(`Failed to save tax payment: ${e?.message || "Unknown error"}`, "error") }
-  );
-  const { run: deleteTaxPayment } = useAsyncAction(
-    async (id: string) => { await removeItem("taxPayments", id); },
-    { onError: (e: any) => showToast?.(`Failed to delete tax payment: ${e?.message || "Unknown error"}`, "error") }
+    async (data: any) => {
+      await addItem("taxPayments", data);
+    },
+    {
+      onSuccess: () => setShowModal(false),
+      onError: (e: any) =>
+        showToast?.(`Failed to save tax payment: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
 
-  /* ── FY selection (local — independent of global profile.fy) ── */
+  const { run: deleteTaxPayment } = useAsyncAction(
+    async (id: string) => {
+      await removeItem("taxPayments", id);
+    },
+    {
+      onError: (e: any) =>
+        showToast?.(`Failed to delete tax payment: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
+  /* ── FY Selection ────────────────────────────────────────── */
   const availableFYs = useMemo(() => {
     const fySet = new Set<number>();
     const addDate = (d: string) => {
@@ -1430,9 +1464,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
   const fyStartStr = `${fyStartYear}-04-01`;
   const fyEndStr = `${fyStartYear + 1}-03-31`;
 
-  // New regime introduced in FY 2020-21; before that only old regime existed
   const hasNewRegime = fyStartYear >= 2020;
-  // Default regime: new regime is default from FY 2023-24 onwards; old before
   const defaultRegime = fyStartYear >= 2023 ? "new" : "old";
   const [activeRegime, setActiveRegime] = useState<"new" | "old">(
     hasNewRegime ? state.profile?.regime || defaultRegime : "old"
@@ -1444,14 +1476,6 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     }
   }, [state.profile?.regime, hasNewRegime]);
 
-  // Bug fix: activeRegime is only set to "old" when hasNewRegime is false at
-  // mount. If the user later switches the FY selector to a pre-FY2020-21 year
-  // (when the new tax regime didn't exist) while "New Regime" was active, the
-  // component kept showing a "new regime" figure computed by calcTaxNewByFY
-  // for a year that never had one (that shared helper has no guard against
-  // being called with an out-of-range FY) — a materially wrong, misleading
-  // tax number. Force it back to "old" whenever the selected FY doesn't
-  // support the new regime.
   useEffect(() => {
     if (!hasNewRegime && activeRegime !== "old") {
       setActiveRegime("old");
@@ -1465,20 +1489,16 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     }
   };
 
-  /* ── Deductions state (pre-filled from portfolio data) ────────── */
+  /* ── Deductions State & Auto-Detection ─────────────────────── */
   const autoDetected = useMemo(() => {
     return getAutoDetectedDeductions(state, fy);
   }, [state, fy]);
 
-  // Load initial deductions state from masterData overrides or fall back to auto-detected
   const overrides = state.masterData?.taxDeductions?.[fy] || {};
 
   const [deductions, setDeductions] = useState(() => ({
     d80C: overrides.d80C !== undefined ? overrides.d80C : autoDetected.d80C,
     d80D: overrides.d80D !== undefined ? overrides.d80D : autoDetected.d80D,
-    // Sec 80D cap is ₹25K normally, ₹50K if the insured (self or parents) is a
-    // senior citizen — previously hardcoded to ₹25K everywhere, undercounting
-    // a common real-world deduction.
     d80DSenior: overrides.d80DSenior !== undefined ? !!overrides.d80DSenior : false,
     hra: overrides.hra !== undefined ? overrides.hra : autoDetected.hra,
     homeLoan: overrides.homeLoan !== undefined ? overrides.homeLoan : autoDetected.homeLoan,
@@ -1489,7 +1509,6 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     d80TTA: overrides.d80TTA !== undefined ? overrides.d80TTA : 0,
   }));
 
-  // Sync deductions state on external changes or FY change
   useEffect(() => {
     const ov = state.masterData?.taxDeductions?.[fy] || {};
     setDeductions({
@@ -1546,249 +1565,24 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     }
   };
 
-  /* ── Income ─────────────────────────────────────────────────── */
+  /* ── 5 Heads of Income Decomposition ────────────────────────── */
   const detectedIncome = metrics.annualIncome || (metrics.monthIncome || 0) * 12;
   const annualIncome = incomeOverride !== "" ? Number(incomeOverride) || 0 : detectedIncome;
 
-  /* ── Tax computation (FY-aware) ─────────────────────────────── */
-  const stdDedOld = getOldStdDed(fyStartYear);
-  // Sec 80D cap: ₹25K normally, ₹50K if the insured (self or parents) is a senior citizen.
-  const d80DCap = deductions.d80DSenior ? 50_000 : 25_000;
-  const totalOldDeductions =
-    stdDedOld +
-    Math.min(deductions.d80C, 150_000) +
-    Math.min(deductions.d80D, d80DCap) +
-    deductions.hra +
-    Math.min(deductions.homeLoan, 200_000) +
-    Math.min(deductions.nps, 50_000) +
-    (deductions.d80CCD2 || 0) +
-    (deductions.d80G || 0) +
-    (deductions.d80E || 0) +
-    Math.min(deductions.d80TTA || 0, 10_000);
-
-  const taxNewResult = useMemo(() => calcTaxNewByFY(annualIncome, fy), [annualIncome, fy]);
-  const taxOldResult = useMemo(
-    () => calcTaxOldByFY(annualIncome, totalOldDeductions, fy),
-    [annualIncome, totalOldDeductions, fy]
+  // Rental Income (House Property)
+  const rentalProperties = state.rentalProperties || [];
+  const grossRent = rentalProperties.reduce(
+    (sum: number, r: any) => sum + (Number(r.monthlyRent || 0) * 12),
+    0
   );
+  const housePropertyNet = Math.max(0, grossRent * 0.7 - Math.min(Number(deductions.homeLoan) || 0, 200_000));
 
-  // Attach extraDeds for slab breakdown display
-  const taxOldDisplay = { ...taxOldResult, extraDeds: totalOldDeductions - stdDedOld };
-
-  const currentTax = activeRegime === "new" ? taxNewResult.total : taxOldResult.total;
-  const currentResult = activeRegime === "new" ? taxNewResult : taxOldResult;
-
-  /* ── Payment tracking ────────────────────────────────────────── */
-  const taxPayments = state.taxPayments || [];
-  const totalTDS = taxPayments
-    .filter((p: any) => p.type === "TDS")
-    .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-  const totalAdvancePaid = taxPayments
-    .filter((p: any) => p.type === "Advance Tax")
-    .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-  const totalSelfAssessment = taxPayments
-    .filter((p: any) => p.type === "Self-Assessment")
-    .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
-  const totalPaidSoFar = totalTDS + totalAdvancePaid + totalSelfAssessment;
-  const netLiability = Math.max(0, currentTax - totalTDS);
-  const remainingAdvance = Math.max(0, netLiability - totalAdvancePaid - totalSelfAssessment);
-  const animatedRemainingAdvance = useAnimatedNumber(remainingAdvance);
-  const isAdvanceTaxApplicable = netLiability > 10_000;
-  const progressPct = currentTax > 0 ? Math.min(100, (totalPaidSoFar / currentTax) * 100) : 0;
-
-  /* ── Advance tax instalments ─────────────────────────────────── */
-  const installments = [
-    { q: "Q1", due: "15 Jun", pct: 15, amt: netLiability * 0.15 },
-    { q: "Q2", due: "15 Sep", pct: 45, amt: netLiability * 0.45 },
-    { q: "Q3", due: "15 Dec", pct: 75, amt: netLiability * 0.75 },
-    { q: "Q4", due: "15 Mar", pct: 100, amt: netLiability * 1.0 },
-  ];
-
-  /* ── Regime verdict ─────────────────────────────────────────── */
-  const regimeVerdict = useMemo(() => {
-    if (!hasNewRegime) return null;
-    const diff = taxOldResult.total - taxNewResult.total;
-    const better = diff > 0 ? "new" : diff < 0 ? "old" : "equal";
-    const saving = Math.abs(diff);
-    return { better, saving, newTotal: taxNewResult.total, oldTotal: taxOldResult.total };
-  }, [taxNewResult.total, taxOldResult.total, hasNewRegime]);
-
-  /* ── Tax Saving Tips ─────────────────────────────────────────── */
-  const taxSavingTips = useMemo(() => {
-    const tips: any[] = [];
-    const margRate = oldMarginalRate(taxOldResult.taxable);
-
-    // Only old-regime deduction tips make sense if old regime is better or user is on old
-    const showOldTips = !regimeVerdict || regimeVerdict.better === "old" || activeRegime === "old";
-
-    // 80C gap
-    const used80C = Math.min(Number(deductions.d80C) || 0, 150_000);
-    const gap80C = Math.max(0, 150_000 - used80C);
-    if (gap80C > 0 && showOldTips) {
-      const saving = Math.round(gap80C * margRate * 1.04);
-      tips.push({
-        id: "80c",
-        section: "Section 80C",
-        priority: "high",
-        icon: PiggyBank,
-        title: `Top up 80C — ${fmtL(gap80C)} room left`,
-        shortDesc: `Invest ${fmtINRFull(gap80C)} more in PPF, ELSS, or EPF to max the ₹1.5L limit.`,
-        fullDesc: `Section 80C allows deduction up to ₹1,50,000 per year on investments in PPF, ELSS Mutual Funds, EPF, LIC premiums, NSC, SCSS, tax-saving FDs (5yr), and tuition fees for 2 children. You've used ${fmtL(used80C)} of the ₹1.5L cap. Topping up can save approx. ${fmtINRFull(saving)} in taxes (at your ${(margRate * 100).toFixed(0)}% slab + 4% cess).`,
-        saving,
-        regime: "old",
-        maxBenefit: Math.round(150_000 * margRate * 1.04),
-        utilizedPct: (used80C / 150_000) * 100,
-      });
-    }
-
-    // 80D — health insurance (cap ₹25K, or ₹50K if self/parents senior citizen)
-    const used80D = Math.min(Number(deductions.d80D) || 0, d80DCap);
-    const gap80D = Math.max(0, d80DCap - used80D);
-    if (gap80D > 0 && showOldTips) {
-      const saving = Math.round(gap80D * margRate * 1.04);
-      tips.push({
-        id: "80d",
-        section: "Section 80D",
-        priority: "high",
-        icon: HeartPulse,
-        title: `Health Insurance premium deduction`,
-        shortDesc: `Claim up to ₹25K for self/family health insurance premiums + ₹25K extra for parents (₹50K if senior citizens).`,
-        fullDesc: `Section 80D allows deduction of health insurance premium paid for self, spouse, children (up to ₹25,000) and separately for parents (up to ₹25,000 or ₹50,000 if parents are senior citizens). Even preventive health check-up costs up to ₹5,000 within this limit are deductible. Not available in the new regime.`,
-        saving,
-        regime: "old",
-        maxBenefit: Math.round(d80DCap * margRate * 1.04),
-        utilizedPct: (used80D / d80DCap) * 100,
-      });
-    }
-
-    // NPS 80CCD(1B) — additional ₹50K over 80C ceiling
-    const usedNPS = Math.min(Number(deductions.nps) || 0, 50_000);
-    const gapNPS = Math.max(0, 50_000 - usedNPS);
-    if (gapNPS > 0 && showOldTips) {
-      const saving = Math.round(gapNPS * margRate * 1.04);
-      tips.push({
-        id: "nps",
-        section: "Section 80CCD(1B)",
-        priority: "medium",
-        icon: TrendingUp,
-        title: `NPS — additional ₹50K deduction beyond 80C`,
-        shortDesc: `Invest in NPS for an extra ₹50K deduction that's ABOVE the ₹1.5L 80C ceiling. Exclusively old-regime benefit.`,
-        fullDesc: `Section 80CCD(1B) allows an additional deduction of up to ₹50,000 in National Pension System (NPS) contributions, over and above the ₹1.5L ceiling under Section 80C. This is one of the most powerful and under-utilised deductions. For someone in the 30% slab, ₹50,000 in NPS saves ₹15,600 in tax (₹15,000 tax + ₹600 cess). Not available in the new tax regime.`,
-        saving,
-        regime: "old",
-        maxBenefit: Math.round(50_000 * margRate * 1.04),
-        utilizedPct: (usedNPS / 50_000) * 100,
-      });
-    }
-
-    // NPS Employer 80CCD(2) — available in BOTH regimes (14% for new, 10% for old)
-    const maxEmpNPS80CCD2 =
-      annualIncome > 0 ? annualIncome * (activeRegime === "new" ? 0.14 : 0.1) : 0;
-    const usedEmpNPS = Number(deductions.d80CCD2) || 0;
-    if (usedEmpNPS < maxEmpNPS80CCD2 && maxEmpNPS80CCD2 > 0) {
-      tips.push({
-        id: "ccd2",
-        section: "Section 80CCD(2)",
-        priority: "medium",
-        icon: Briefcase,
-        title: `NPS Employer Contribution — available in both regimes`,
-        shortDesc: `If your employer routes salary into NPS, deduct up to ${activeRegime === "new" ? "14%" : "10%"} of salary under 80CCD(2). This works in the new regime too.`,
-        fullDesc: `Section 80CCD(2) allows deduction on employer's contribution to your NPS account — up to 10% of basic salary + DA in the old regime, and up to 14% in the new regime (enhanced in Budget 2024). This is one of the few deductions available in the new regime. Ask your employer's payroll to route a portion of your CTC into NPS to benefit from this.`,
-        saving: null,
-        regime: "both",
-        maxBenefit: null,
-        utilizedPct: (usedEmpNPS / maxEmpNPS80CCD2) * 100,
-      });
-    }
-
-    // HRA
-    if (deductions.hra === 0 && showOldTips) {
-      tips.push({
-        id: "hra",
-        section: "HRA Exemption",
-        priority: "medium",
-        icon: Home,
-        title: `HRA Exemption — potentially large tax-free income`,
-        shortDesc: `If you receive HRA and pay rent, you can exempt a portion of HRA from tax. Calculate and claim this u/s 10(13A).`,
-        fullDesc: `HRA exemption under Section 10(13A) = Least of: (a) Actual HRA received, (b) 50% of basic salary if metro city / 40% if non-metro, (c) Actual rent paid minus 10% of basic salary. This can result in substantial tax savings. Maintain rent receipts and the landlord's PAN (if rent > ₹1L/year). Applicable only in the old regime.`,
-        saving: null,
-        regime: "old",
-        maxBenefit: null,
-        utilizedPct: 0,
-      });
-    }
-
-    // Home Loan Sec 24(b)
-    if (deductions.homeLoan === 0 && showOldTips) {
-      tips.push({
-        id: "homeloan",
-        section: "Section 24(b)",
-        priority: "medium",
-        icon: Building2,
-        title: `Home Loan Interest — up to ₹2L deduction`,
-        shortDesc: `Interest on home loan for self-occupied property is deductible up to ₹2 lakh per year under Sec 24(b).`,
-        fullDesc: `Section 24(b) allows deduction of interest paid on home loan — up to ₹2,00,000 per year for self-occupied property. For let-out property, the entire interest is deductible (subject to overall house property loss set-off of ₹2L). Principal repayment is also deductible under Section 80C. Keep Form 16 and interest certificate from the bank. Applicable only in the old tax regime.`,
-        saving: Math.round(200_000 * margRate * 1.04),
-        regime: "old",
-        maxBenefit: Math.round(200_000 * margRate * 1.04),
-        utilizedPct: 0,
-      });
-    }
-
-    // 80TTA — savings interest
-    if ((deductions.d80TTA || 0) === 0 && showOldTips) {
-      tips.push({
-        id: "80tta",
-        section: "Section 80TTA",
-        priority: "low",
-        icon: Landmark,
-        title: `Savings Account Interest — ₹10K deduction (80TTA)`,
-        shortDesc: `Interest earned on savings bank accounts (not FDs) is deductible up to ₹10,000 per year under Section 80TTA.`,
-        fullDesc: `Section 80TTA allows deduction of interest income from savings bank accounts with banks, post offices, and cooperative societies — up to ₹10,000 per year. Note: This does not cover FD or RD interest. Senior citizens get ₹50,000 deduction under 80TTB (covering savings, FDs, and RDs). Only in old regime.`,
-        saving: Math.round(10_000 * margRate * 1.04),
-        regime: "old",
-        maxBenefit: Math.round(10_000 * margRate * 1.04),
-        utilizedPct: 0,
-      });
-    }
-
-    // LTCG harvesting tip — if taxableNewLTCG approaching 1.25L
-    if (taxNewResult.effectiveRate > 0 && taxNewResult.total > 0) {
-      tips.push({
-        id: "ltcg",
-        section: "LTCG Strategy",
-        priority: "low",
-        icon: BarChart3,
-        title: `Book up to ₹1.25L LTCG tax-free every year`,
-        shortDesc: `Long-term capital gains from equity up to ₹1.25L per year are completely exempt. Book profits annually to reset cost basis.`,
-        fullDesc: `Under Section 112A, Long-Term Capital Gains from listed equity shares and equity MFs exceeding 12 months are exempt up to ₹1,25,000 per year. If your equity portfolio has unrealised gains, consider booking ₹1.25L of LTCG annually (before March 31) and immediately repurchasing — this "grandfathering" resets your cost basis upward without any tax. This strategy works in BOTH old and new regimes.`,
-        saving: Math.round(125_000 * 0.125),
-        regime: "both",
-        maxBenefit: Math.round(125_000 * 0.125),
-        utilizedPct: 0,
-      });
-    }
-
-    return tips.sort((a, b) => (b.saving || 0) - (a.saving || 0));
-  }, [
-    deductions,
-    annualIncome,
-    taxOldResult.taxable,
-    regimeVerdict,
-    activeRegime,
-    taxNewResult.effectiveRate,
-    taxNewResult.total,
-  ]);
-
-  /* ── Capital Gains computations (unchanged logic) ────────────── */
+  /* ── Capital Gains Realized Data ────────────────────────────── */
   const realizedGainsData = useMemo(() => {
     const inFYLocal = (d: string) => d && d >= fyStartStr && d <= fyEndStr;
     const fyStockSells = (state.stockSells || []).filter((s: any) => inFYLocal(s.sellDate));
     const fyMfSells = (state.mfSells || []).filter((m: any) => inFYLocal(m.sellDate));
     const allSells: any[] = [];
-
-    // Grandfathering: for listed equity bought before Feb 1, 2018, use higher of
-    // actual buy price or FMV on Jan 31, 2018 as cost basis (capped at sell price)
     const GRANDFATHER_DATE = "2018-02-01";
 
     fyStockSells.forEach((s: any) => {
@@ -1803,7 +1597,6 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
             )
           : 0;
       const isLtcg = days > 365;
-      // Apply grandfathering for LTCG on listed equity bought before Feb 2018
       const fmv = Number(s.fmvJan2018 || s.grandfatherPrice || 0);
       let buyPrice = rawBuyPrice;
       let grandfathered = false;
@@ -1845,12 +1638,6 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               Math.ceil((new Date(m.sellDate).getTime() - new Date(m.buyDate).getTime()) / 86400000)
             )
           : 0;
-      // Bug fix: this previously used the equity 12-month/365-day LTCG
-      // threshold for every MF sale regardless of asset class. A debt fund
-      // held e.g. 20 months was being misclassified as LTCG (exemption-
-      // eligible, 12.5%/10% rate) when it's actually STCG. classifyMFHolding
-      // applies the correct 36-month debt threshold and the Finance Act 2023
-      // always-slab-taxed rule for debt funds bought on/after 1 Apr 2023.
       const { isSlabTaxed, isLtcg } = classifyMFHolding(m, days);
       allSells.push({
         id: m.id,
@@ -1921,15 +1708,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         const days = m.buyDate
           ? Math.max(0, Math.ceil((Date.now() - new Date(m.buyDate).getTime()) / 86400000))
           : 0;
-        // Bug fix: `isDebt` previously matched only funds with "debt" literally
-        // in their category/type string, missing common debt categories like
-        // "Liquid", "Corporate Bond", "Gilt", "Money Market" (they'd fall
-        // through to the equity 12-month LTCG threshold below). classifyMFHolding
-        // uses the same positive equity-keyword match as realizedGainsData
-        // above, and applies the correct 36-month (not 12-month) LTCG
-        // threshold for debt funds bought before 1 Apr 2023.
         const { isSlabTaxed, isLtcg } = classifyMFHolding(m, days);
-
         candidates.push({
           id: m.id,
           name: m.name || m.symbol,
@@ -1950,12 +1729,86 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     return candidates.sort((a, b) => b.loss - a.loss);
   }, [state.stocks, state.mutualFunds]);
 
-  // Bug fix: this used to hardcode the new regime's FY2025-26 slab thresholds
-  // (₹4L/8L/12L/16L/20L/24L) regardless of which FY was actually selected —
-  // wrong for e.g. FY2024-25 (₹3L/7L/10L/12L/15L) or FY2023-24 (different
-  // thresholds again). Deriving it from `result.slabs` reuses the already
-  // FY-aware slab table computed by calcTaxNewByFY/calcTaxOldByFY (finance.ts)
-  // instead of duplicating — and going stale relative to — that logic here.
+  /* ── Tax Computations (FY-Aware) ────────────────────────────── */
+  const stdDedOld = getOldStdDed(fyStartYear);
+  const d80DCap = deductions.d80DSenior ? 50_000 : 25_000;
+  const totalOldDeductions =
+    stdDedOld +
+    Math.min(Number(deductions.d80C) || 0, 150_000) +
+    Math.min(Number(deductions.d80D) || 0, d80DCap) +
+    (Number(deductions.hra) || 0) +
+    Math.min(Number(deductions.homeLoan) || 0, 200_000) +
+    Math.min(Number(deductions.nps) || 0, 50_000) +
+    (Number(deductions.d80CCD2) || 0) +
+    (Number(deductions.d80G) || 0) +
+    (Number(deductions.d80E) || 0) +
+    Math.min(Number(deductions.d80TTA) || 0, 10_000);
+
+  const taxNewResult = useMemo(() => calcTaxNewByFY(annualIncome, fy), [annualIncome, fy]);
+  const taxOldResult = useMemo(
+    () => calcTaxOldByFY(annualIncome, totalOldDeductions, fy),
+    [annualIncome, totalOldDeductions, fy]
+  );
+
+  const taxOldDisplay = { ...taxOldResult, extraDeds: totalOldDeductions - stdDedOld };
+  const currentTax = activeRegime === "new" ? taxNewResult.total : taxOldResult.total;
+  const currentResult = activeRegime === "new" ? taxNewResult : taxOldResult;
+
+  /* ── Payment Tracking ────────────────────────────────────────── */
+  const taxPayments = state.taxPayments || [];
+  const totalTDS = taxPayments
+    .filter((p: any) => p.type === "TDS")
+    .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+  const totalAdvancePaid = taxPayments
+    .filter((p: any) => p.type === "Advance Tax")
+    .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+  const totalSelfAssessment = taxPayments
+    .filter((p: any) => p.type === "Self-Assessment")
+    .reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+  const totalPaidSoFar = totalTDS + totalAdvancePaid + totalSelfAssessment;
+  const netLiability = Math.max(0, currentTax - totalTDS);
+  const remainingAdvance = Math.max(0, netLiability - totalAdvancePaid - totalSelfAssessment);
+  const animatedRemainingAdvance = useAnimatedNumber(remainingAdvance);
+  const isAdvanceTaxApplicable = netLiability > 10_000;
+  const progressPct = currentTax > 0 ? Math.min(100, (totalPaidSoFar / currentTax) * 100) : 0;
+
+  /* ── Advance Tax Instalments ─────────────────────────────────── */
+  const installments = [
+    { q: "Q1", due: "15 Jun", pct: 15, amt: netLiability * 0.15 },
+    { q: "Q2", due: "15 Sep", pct: 45, amt: netLiability * 0.45 },
+    { q: "Q3", due: "15 Dec", pct: 75, amt: netLiability * 0.75 },
+    { q: "Q4", due: "15 Mar", pct: 100, amt: netLiability * 1.0 },
+  ];
+
+  /* ── Regime Verdict ─────────────────────────────────────────── */
+  const regimeVerdict = useMemo(() => {
+    if (!hasNewRegime) return null;
+    const diff = taxOldResult.total - taxNewResult.total;
+    const better = diff > 0 ? "new" : diff < 0 ? "old" : "equal";
+    const saving = Math.abs(diff);
+    return { better, saving, newTotal: taxNewResult.total, oldTotal: taxOldResult.total };
+  }, [taxNewResult.total, taxOldResult.total, hasNewRegime]);
+
+  /* ── Indifference / Crossover Curve Data ─────────────────────── */
+  const crossoverData = useMemo(() => {
+    if (annualIncome <= 0) return [];
+    const points: any[] = [];
+    const step = 50_000;
+    const maxDeds = 700_000;
+    for (let d = 0; d <= maxDeds; d += step) {
+      const oldRes = calcTaxOldByFY(annualIncome, stdDedOld + d, fy);
+      const newRes = calcTaxNewByFY(annualIncome, fy);
+      points.push({
+        deductions: d,
+        label: `₹${d / 1000}k`,
+        oldTax: oldRes.total,
+        newTax: newRes.total,
+      });
+    }
+    return points;
+  }, [annualIncome, stdDedOld, fy]);
+
+  /* ── Capital Gains Tax Calculations ─────────────────────────── */
   const marginalRate = useMemo(() => {
     const r = activeRegime === "new" ? taxNewResult : taxOldResult;
     const applicableSlabs = (r.slabs || []).filter((s: any) => s.incomeInSlab > 0);
@@ -1965,18 +1818,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
 
   const taxCalculations = useMemo(() => {
     const { allSells } = realizedGainsData;
-    // ₹1.25L exemption (up from ₹1L) applies to the whole of FY2024-25 onward, per
-    // CBDT guidance, even though the STCG/LTCG rate itself splits mid-year — see
-    // computeEquityCGTax for the per-transaction rate split.
     const ltcgExemption = fyStartYear >= 2024 ? 125_000 : 100_000;
-
     const actualCalc = computeEquityCGTax(allSells, ltcgExemption);
     const totalActualTax = actualCalc.taxSTCG + actualCalc.taxLTCG;
 
     let simulatedSTCLosses = 0,
       simulatedLTCLosses = 0;
-    // Harvested candidates are hypothetical sales made "now" (today), not in the
-    // browsed FY, so they always fall on/after the Budget 2024 rate-change date.
     const simulatedSells = [...allSells];
     harvestCandidates.forEach((c) => {
       if (simulatedHarvestIds.includes(c.id)) {
@@ -2007,65 +1854,174 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
       totalSaved: Math.max(0, totalActualTax - totalSimTax),
     };
   }, [realizedGainsData, harvestCandidates, simulatedHarvestIds, fyStartYear]);
+
   const animatedTotalSaved = useAnimatedNumber(taxCalculations.totalSaved);
 
-  /* ── Actions ─────────────────────────────────────────────────── */
+  /* ── CFO Tax Saving Tips ─────────────────────────────────────── */
+  const taxSavingTips = useMemo(() => {
+    const tips: any[] = [];
+    const margRate = oldMarginalRate(taxOldResult.taxable);
+    const showOldTips = !regimeVerdict || regimeVerdict.better === "old" || activeRegime === "old";
+
+    // 80C
+    const used80C = Math.min(Number(deductions.d80C) || 0, 150_000);
+    const gap80C = Math.max(0, 150_000 - used80C);
+    if (gap80C > 0 && showOldTips) {
+      const saving = Math.round(gap80C * margRate * 1.04);
+      tips.push({
+        id: "80c",
+        section: "Section 80C",
+        priority: "high",
+        icon: PiggyBank,
+        title: `Top up 80C — ${fmtL(gap80C)} headroom remaining`,
+        shortDesc: `Invest ${fmtINRFull(gap80C)} more in PPF, ELSS, or EPF to max out the ₹1.5L statutory limit.`,
+        fullDesc: `Section 80C allows deduction up to ₹1,50,000/yr on investments in PPF, ELSS, EPF, LIC premiums, NSC, SCSS, 5-year tax-saving FDs, and children tuition fees. You've utilized ${fmtL(used80C)}. Topping up can save approx. ${fmtINRFull(saving)} in taxes at your ${(margRate * 100).toFixed(0)}% slab.`,
+        saving,
+        regime: "old",
+        maxBenefit: Math.round(150_000 * margRate * 1.04),
+        utilizedPct: (used80C / 150_000) * 100,
+      });
+    }
+
+    // 80D
+    const used80D = Math.min(Number(deductions.d80D) || 0, d80DCap);
+    const gap80D = Math.max(0, d80DCap - used80D);
+    if (gap80D > 0 && showOldTips) {
+      const saving = Math.round(gap80D * margRate * 1.04);
+      tips.push({
+        id: "80d",
+        section: "Section 80D",
+        priority: "high",
+        icon: HeartPulse,
+        title: `Health Insurance Premium Deduction (80D)`,
+        shortDesc: `Claim up to ₹25K for self/family + ₹25K/₹50K extra for parents (up to ₹1L total for senior parents).`,
+        fullDesc: `Section 80D allows deduction of health insurance premium paid for self, spouse, children (up to ₹25,000) and parents (up to ₹25,000, or ₹50,000 for senior citizens). Preventive health checkups up to ₹5,000 are deductible within this limit.`,
+        saving,
+        regime: "old",
+        maxBenefit: Math.round(d80DCap * margRate * 1.04),
+        utilizedPct: (used80D / d80DCap) * 100,
+      });
+    }
+
+    // NPS 80CCD(1B)
+    const usedNPS = Math.min(Number(deductions.nps) || 0, 50_000);
+    const gapNPS = Math.max(0, 50_000 - usedNPS);
+    if (gapNPS > 0 && showOldTips) {
+      const saving = Math.round(gapNPS * margRate * 1.04);
+      tips.push({
+        id: "nps",
+        section: "Section 80CCD(1B)",
+        priority: "medium",
+        icon: TrendingUp,
+        title: `NPS Extra ₹50,000 Deduction Over 80C`,
+        shortDesc: `Invest in NPS Tier 1 for an additional ₹50K deduction that is completely ABOVE the ₹1.5L 80C ceiling.`,
+        fullDesc: `Section 80CCD(1B) allows an exclusive deduction of up to ₹50,000 in National Pension System contributions. In the 30% slab, ₹50,000 in NPS saves ₹15,600 in tax (₹15,000 tax + ₹600 cess).`,
+        saving,
+        regime: "old",
+        maxBenefit: Math.round(50_000 * margRate * 1.04),
+        utilizedPct: (usedNPS / 50_000) * 100,
+      });
+    }
+
+    // NPS Employer 80CCD(2)
+    const maxEmpNPS80CCD2 =
+      annualIncome > 0 ? annualIncome * (activeRegime === "new" ? 0.14 : 0.1) : 0;
+    const usedEmpNPS = Number(deductions.d80CCD2) || 0;
+    if (usedEmpNPS < maxEmpNPS80CCD2 && maxEmpNPS80CCD2 > 0) {
+      tips.push({
+        id: "ccd2",
+        section: "Section 80CCD(2)",
+        priority: "medium",
+        icon: Briefcase,
+        title: `NPS Employer Contribution (14% in New / 10% in Old)`,
+        shortDesc: `Route a portion of your CTC into NPS to claim corporate deduction in BOTH tax regimes.`,
+        fullDesc: `Section 80CCD(2) allows deduction on employer's contribution to your NPS account — enhanced to 14% of basic salary in the new regime by Budget 2024. Ask your employer's payroll to enable this corporate tax shield.`,
+        saving: null,
+        regime: "both",
+        maxBenefit: null,
+        utilizedPct: (usedEmpNPS / maxEmpNPS80CCD2) * 100,
+      });
+    }
+
+    // LTCG Harvesting
+    if (currentTax > 0) {
+      tips.push({
+        id: "ltcg",
+        section: "LTCG Tax-Loss Harvesting",
+        priority: "low",
+        icon: BarChart3,
+        title: `Harvest ₹1.25L LTCG Tax-Free Every Fiscal Year`,
+        shortDesc: `Long-term capital gains up to ₹1.25L on listed equity / equity MFs are exempt u/s 112A.`,
+        fullDesc: `Under Section 112A, LTCG is exempt up to ₹1,25,000 per financial year. Booking up to ₹1.25L in gains and re-investing resets your cost basis upwards completely tax-free.`,
+        saving: Math.round(125_000 * 0.125),
+        regime: "both",
+        maxBenefit: Math.round(125_000 * 0.125),
+        utilizedPct: 0,
+      });
+    }
+
+    return tips.sort((a, b) => (b.saving || 0) - (a.saving || 0));
+  }, [
+    deductions,
+    annualIncome,
+    taxOldResult.taxable,
+    regimeVerdict,
+    activeRegime,
+    currentTax,
+    d80DCap,
+  ]);
+
+  /* ── Export Actions ─────────────────────────────────────────── */
   const printTaxSummary = () => {
     const r = activeRegime === "new" ? taxNewResult : taxOldResult;
     const lines = [
-      `TAX SUMMARY — FY ${fy}`,
-      `Regime: ${activeRegime === "new" ? "New Tax Regime (Default)" : "Old Tax Regime"}`,
-      ``,
-      `INCOME`,
-      `  Gross Annual Income      : ${fmtINRFull(annualIncome)}`,
-      `  Standard Deduction       : ${fmtINRFull(r.stdDed)}`,
+      `=============================================================`,
+      `              ITR TAX COMPUTATION SUMMARY — FY ${fy}`,
+      `=============================================================`,
+      `Active Tax Regime   : ${activeRegime === "new" ? "New Tax Regime (Section 115BAC - Default)" : "Old Tax Regime (With Full Chapter VI-A)"}`,
+      `Gross Annual Income : ${fmtINRFull(annualIncome)}`,
+      `Standard Deduction  : - ${fmtINRFull(r.stdDed)}`,
       activeRegime === "old"
-        ? `  Other Deductions (80C/D…): ${fmtINRFull(totalOldDeductions - stdDedOld)}`
+        ? `Other Deductions    : - ${fmtINRFull(totalOldDeductions - stdDedOld)}`
         : "",
-      `  Taxable Income           : ${fmtINRFull(r.taxable)}`,
-      ``,
-      `TAX COMPUTATION`,
+      `-------------------------------------------------------------`,
+      `TAXABLE TOTAL INCOME: ${fmtINRFull(r.taxable)}`,
+      `-------------------------------------------------------------`,
+      `SLAB-WISE TAX BREAKDOWN:`,
       ...r.slabs
-        .filter((s: any) => s.incomeInSlab > 0)
+        .filter((s: any) => s.incomeInSlab > 0 || s.rate === 0)
         .map((s: any) => {
-          const pad = " ".repeat(Math.max(0, 30 - s.label.length));
-          return `  ${s.label} (${s.range})${pad}: ${fmtINRFull(s.taxInSlab)}`;
+          const pad = " ".repeat(Math.max(0, 26 - s.label.length));
+          return `  ${s.label}${pad}: ${fmtINRFull(s.taxInSlab)}`;
         }),
-      r.rebateApplied ? `  Section 87A Rebate        : - ${fmtINRExact(r.rebateAmount)}` : "",
-      r.surcharge > 0 ? `  Surcharge                 : ${fmtINRFull(r.surcharge)}` : "",
-      `  Health & Education Cess  : ${fmtINRFull(r.cess)}`,
-      `  NET TAX LIABILITY        : ${fmtINRFull(r.total)}`,
-      `  Effective Tax Rate       : ${r.effectiveRate.toFixed(2)}%`,
-      ``,
-      `PAYMENTS`,
-      `  TDS Deducted             : ${fmtINRFull(totalTDS)}`,
-      `  Advance Tax Paid         : ${fmtINRFull(totalAdvancePaid)}`,
-      `  Self-Assessment Paid     : ${fmtINRFull(totalSelfAssessment)}`,
-      `  Remaining Liability      : ${fmtINRFull(remainingAdvance)}`,
-      ``,
-      hasNewRegime ? `REGIME COMPARISON` : ``,
-      hasNewRegime ? `  New Regime Tax           : ${fmtINRFull(taxNewResult.total)}` : ``,
-      hasNewRegime ? `  Old Regime Tax           : ${fmtINRFull(taxOldResult.total)}` : ``,
-      hasNewRegime && regimeVerdict
-        ? `  Recommended              : ${regimeVerdict.better === "equal" ? "Both equal" : regimeVerdict.better === "new" ? "New Regime" : "Old Regime"} (saves ${fmtINRFull(regimeVerdict.saving)})`
-        : ``,
-      ``,
-      `ADVANCE TAX INSTALMENTS`,
-      ...installments.map((i) => `  ${i.q} by ${i.due} (${i.pct}%) : ${fmtINRExact(i.amt)}`),
-      ``,
-      `Generated by ArthaDrishti by Anand Mohta`,
+      `-------------------------------------------------------------`,
+      `Tax on Slab Income  : ${fmtINRFull(r.tax + (r.rebateApplied ? r.rebateAmount : 0))}`,
+      r.rebateApplied ? `Section 87A Rebate  : - ${fmtINRExact(r.rebateAmount)}` : "",
+      r.surcharge > 0 ? `Surcharge           : + ${fmtINRFull(r.surcharge)}` : "",
+      `Health & Edu. Cess  : + ${fmtINRFull(r.cess)} (4%)`,
+      `-------------------------------------------------------------`,
+      `NET TAX LIABILITY   : ${fmtINRFull(r.total)} (Eff. Rate: ${r.effectiveRate.toFixed(2)}%)`,
+      `-------------------------------------------------------------`,
+      `TAXES PAID & ADVANCE TAX:`,
+      `  TDS Deducted      : ${fmtINRFull(totalTDS)}`,
+      `  Advance Tax Paid  : ${fmtINRFull(totalAdvancePaid)}`,
+      `  Self-Assessment   : ${fmtINRFull(totalSelfAssessment)}`,
+      `  Total Paid to Date: ${fmtINRFull(totalPaidSoFar)}`,
+      `  NET BALANCE DUE   : ${fmtINRFull(remainingAdvance)}`,
+      `=============================================================`,
+      `Generated via ArthaDrishti by Anand Mohta · ${new Date().toLocaleDateString("en-IN")}`,
     ]
       .filter((l) => l !== "")
       .join("\n");
 
-    const w = window.open("", "_blank", "width=580,height=720");
+    const w = window.open("", "_blank", "width=650,height=750");
     if (w) {
       w.document.write(
         `<html><head><title>Tax Summary FY ${fy}</title>` +
-          `<style>body{font-family:'Courier New',monospace;padding:40px;background:#0f172a;color:#e2e8f0;font-size:13px;line-height:1.9}` +
-          `h2{color:#c5a152;margin-bottom:8px}pre{white-space:pre-wrap;margin:0}` +
+          `<style>body{font-family:'Courier New',monospace;padding:32px;background:#090d16;color:#e2e8f0;font-size:13px;line-height:1.7}` +
+          `h2{color:#d4af37;margin-bottom:8px}pre{white-space:pre-wrap;margin:0}` +
           `@media print{body{background:#fff;color:#000}}</style></head>` +
-          `<body><h2>Tax Summary — FY ${fy}</h2><pre>${lines}</pre>` +
+          `<body><h2>Income Tax Statement — FY ${fy}</h2><pre>${lines}</pre>` +
           `<script>setTimeout(()=>window.print(),300);</script></body></html>`
       );
       w.document.close();
@@ -2084,32 +2040,46 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `capital_gains_FY${fy}.csv`;
+    a.download = `capital_gains_schedule_FY${fy}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   /* ══════════════════════════════════════════════════════════════
-     RENDER
+     RENDER: EXECUTIVE HEADER & MASTER COCKPIT
      ══════════════════════════════════════════════════════════════ */
+
   return (
     <div className="tab-content-enter">
+      {/* ── Section Title & Global Toolbar ──────────────────────── */}
       <SectionTitle
         sub={
-          subTab === "income"
-            ? `FY ${fy} · ${hasNewRegime ? "Regime comparison, " : ""}advance tax tracking & ITR deadline`
-            : subTab === "capitalGains"
-              ? `FY ${fy} · Capital Gains (STCG/LTCG) & Loss Harvesting Simulator`
-              : `FY ${fy} · Reconcile Form 26AS with your income & TDS records`
+          subTab === "overview"
+            ? `FY ${fy} · Executive overview, New vs Old Regime optimizer & Advance Tax radar`
+            : subTab === "heads"
+              ? `FY ${fy} · 5 Heads of Income & Chapter VI-A statutory deductions hub`
+              : subTab === "capitalGains"
+                ? `FY ${fy} · Post-Budget 2024 Capital Gains (STCG/LTCG) & Tax-Loss Harvesting Lab`
+                : subTab === "advanceTax"
+                  ? `FY ${fy} · Advance tax instalments schedule, Section 234 penalty radar & payment ledger`
+                  : subTab === "reconciler"
+                    ? `FY ${fy} · Reconcile Form 26AS & AIS records with internal ledgers`
+                    : `FY ${fy} · Tax planning calculators & ITR filing readiness checklist`
         }
         rightElement={
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <select
               className="form-input"
               value={fy}
               onChange={(e) => setFy(e.target.value)}
               aria-label="Select financial year"
-              style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, minWidth: 130 }}
+              style={{
+                padding: "8px 14px",
+                fontSize: 13,
+                fontWeight: 700,
+                minWidth: 130,
+                borderRadius: "var(--radius-md)",
+              }}
             >
               {availableFYs.map((f) => (
                 <option key={f} value={f}>
@@ -2117,575 +2087,393 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 </option>
               ))}
             </select>
-            {subTab === "income" && hasNewRegime && (
-              <>
-                <Button
-                  size="sm"
-                  variant={activeRegime === "new" ? "accent" : "ghost"}
+
+            {hasNewRegime && (
+              <div
+                style={{
+                  display: "flex",
+                  background: "var(--surface-0)",
+                  padding: 3,
+                  borderRadius: "var(--radius-md)",
+                  border: `1.5px solid ${THEME.line}`,
+                }}
+              >
+                <button
+                  type="button"
                   onClick={() => handleRegimeChange("new")}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    border: "none",
+                    cursor: "pointer",
+                    background: activeRegime === "new" ? THEME.accent : "transparent",
+                    color: activeRegime === "new" ? "#fff" : THEME.muted,
+                    transition: "all 0.2s ease",
+                  }}
                 >
                   New Regime
-                </Button>
-                <Button
-                  size="sm"
-                  variant={activeRegime === "old" ? "accent" : "ghost"}
+                </button>
+                <button
+                  type="button"
                   onClick={() => handleRegimeChange("old")}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    border: "none",
+                    cursor: "pointer",
+                    background: activeRegime === "old" ? THEME.gold : "transparent",
+                    color: activeRegime === "old" ? "#fff" : THEME.muted,
+                    transition: "all 0.2s ease",
+                  }}
                 >
                   Old Regime
-                </Button>
-              </>
+                </button>
+              </div>
             )}
+
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<FileText size={14} />}
+              onClick={printTaxSummary}
+              title="Print Tax Computation Sheet"
+            >
+              ITR Sheet
+            </Button>
+
+            <Button
+              size="sm"
+              variant="accent"
+              icon={<Plus size={14} />}
+              onClick={() => setShowModal(true)}
+            >
+              Record Payment
+            </Button>
           </div>
         }
       >
         Tax Vault
       </SectionTitle>
 
-      {/* ── Context tile strip ─────────────────────────────────────── */}
-      {(() => {
-        const tiles = [
-          {
-            label: "Financial Year",
-            value: `FY ${fy}`,
-            sub: "Active fiscal year",
-            color: THEME.accent,
-            Icon: Calendar,
-          },
-          hasNewRegime
-            ? {
-                label: "Active Regime",
-                value: activeRegime === "new" ? "New Regime" : "Old Regime",
-                sub:
-                  activeRegime === "new"
-                    ? `₹${getNewStdDed(fyStartYear) / 1000}K std deduction`
-                    : "Full deductions allowed",
-                color: THEME.gold,
-                Icon: BookOpen,
-              }
-            : {
-                label: "Tax Regime",
-                value: "Old Regime",
-                sub: "Single regime (pre FY 2020-21)",
-                color: THEME.gold,
-                Icon: BookOpen,
-              },
-          {
-            label: "Gross Tax Liability",
-            value: fmtINRFull(currentTax),
-            numericValue: currentTax,
-            sub: `${activeRegime === "new" ? "New" : "Old"} regime · ${currentResult.effectiveRate.toFixed(1)}% eff. rate`,
-            color: THEME.rust,
-            Icon: Calculator,
-          },
-          {
-            label: "Paid So Far",
-            value: fmtINRFull(totalPaidSoFar),
-            numericValue: totalPaidSoFar,
-            sub: "TDS + Advance + Self-Assess",
-            color: THEME.sage,
-            Icon: CheckCircle2,
-          },
-          {
-            label: "Balance Due",
-            value: fmtINRFull(remainingAdvance),
-            numericValue: remainingAdvance,
-            sub: remainingAdvance <= 0 ? "Fully settled" : "Still to pay",
-            color: remainingAdvance > 0 ? THEME.gold : THEME.sage,
-            Icon: AlertTriangle,
-          },
-        ];
-        return (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-              gap: 14,
-              marginBottom: 28,
-            }}
-          >
-            {tiles.map(({ label, value, numericValue, sub, color, Icon }) => (
-              <StatCard
-                key={label}
-                label={label}
-                value={value}
-                numericValue={numericValue}
-                formatValue={typeof numericValue === "number" ? fmtINRFull : undefined}
-                icon={<Icon />}
-                color={color}
-                sub={sub}
-              />
-            ))}
-          </div>
-        );
-      })()}
+      {/* ── 5 Master Executive KPI StatCards ──────────────────────── */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+          gap: 14,
+          marginBottom: 24,
+        }}
+      >
+        <StatCard
+          label="Gross Income (5 Heads)"
+          value={fmtINRFull(annualIncome)}
+          numericValue={annualIncome}
+          formatValue={fmtINRFull}
+          icon={<Briefcase />}
+          color={THEME.accent}
+          sub={incomeOverride ? "Manual override active" : "Auto-computed from salary & rentals"}
+        />
+        <StatCard
+          label="Total Deductions & Exemptions"
+          value={fmtINRFull(activeRegime === "new" ? getNewStdDed(fyStartYear) : totalOldDeductions)}
+          numericValue={activeRegime === "new" ? getNewStdDed(fyStartYear) : totalOldDeductions}
+          formatValue={fmtINRFull}
+          icon={<Shield />}
+          color={THEME.gold}
+          sub={
+            activeRegime === "new"
+              ? `₹${getNewStdDed(fyStartYear) / 1000}K std deduction (New Regime)`
+              : `80C + 80D + HRA + NPS + Std Ded`
+          }
+        />
+        <StatCard
+          label="Net Tax Liability"
+          value={fmtINRFull(currentTax)}
+          numericValue={currentTax}
+          formatValue={fmtINRFull}
+          icon={<Calculator />}
+          color={currentTax === 0 ? THEME.sage : THEME.rust}
+          sub={`${currentResult.effectiveRate.toFixed(1)}% eff. rate · ${activeRegime === "new" ? "New" : "Old"} regime`}
+        />
+        <StatCard
+          label="TDS & Advance Paid"
+          value={fmtINRFull(totalPaidSoFar)}
+          numericValue={totalPaidSoFar}
+          formatValue={fmtINRFull}
+          icon={<CheckCircle2 />}
+          color={THEME.sage}
+          sub={`${progressPct.toFixed(0)}% paid · TDS: ${fmtINR(totalTDS)}`}
+        />
+        <StatCard
+          label={remainingAdvance <= 0 ? "Tax Position" : "Balance Due u/s 234"}
+          value={remainingAdvance <= 0 ? "Fully Settled ✓" : fmtINRFull(remainingAdvance)}
+          numericValue={remainingAdvance}
+          formatValue={typeof remainingAdvance === "number" ? fmtINRFull : undefined}
+          icon={<AlertTriangle />}
+          color={remainingAdvance > 0 ? THEME.rust : THEME.sage}
+          sub={remainingAdvance > 0 ? "Pay via Challan 280 / e-Pay" : "Zero pending liability"}
+        />
+      </div>
 
-      {/* ── Sub-tab nav ────────────────────────────────────────────── */}
-      <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 28 }}>
+      {/* ── Sub-Tab Navigation Bar ───────────────────────────────── */}
+      <div className="demat-portfolio-bar no-scrollbar" style={{ marginBottom: 24 }}>
         {[
-          { id: "income", label: "Income Tax & Planning", icon: Shield },
+          { id: "overview", label: "Overview & Regime Matrix", icon: Shield },
+          { id: "heads", label: "5-Heads & Deductions", icon: Layers },
           { id: "capitalGains", label: "Capital Gains & Harvesting", icon: TrendingUp },
-          { id: "reconciler", label: "26AS Reconciler", icon: RefreshCw },
+          { id: "advanceTax", label: "Advance Tax & Payments", icon: Calendar },
+          { id: "reconciler", label: "26AS & AIS Reconciler", icon: RefreshCw },
+          { id: "toolkit", label: "Tax Planning Toolkit", icon: Lightbulb },
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             className={`demat-portfolio-pill ${subTab === id ? "active" : ""}`}
             onClick={() => setSubTab(id as any)}
           >
-            <Icon size={16} />
-            <span style={{ fontSize: 13 }}>{label}</span>
+            <Icon size={15} />
+            <span style={{ fontSize: 13, fontWeight: 700 }}>{label}</span>
           </button>
         ))}
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
-          SUB-TAB 1 — INCOME TAX & PLANNING
+          VIEW 1: EXECUTIVE OVERVIEW & REGIME MATRIX
          ══════════════════════════════════════════════════════════════ */}
-      {subTab === "income" && (
-        <div className="tab-content-enter">
-          {/* ── 1. REGIME ADVISOR ──────────────────────────────────── */}
+      {subTab === "overview" && (
+        <div className="tab-content-enter" style={{ display: "grid", gap: 24 }}>
+          {/* 1. Regime Advisor Banner */}
           {hasNewRegime && regimeVerdict && annualIncome > 0 && (
-            <div style={{ marginBottom: 28 }}>
-              <Card
+            <Card
+              style={{
+                padding: 0,
+                overflow: "hidden",
+                borderRadius: 16,
+                border: `1.5px solid ${
+                  regimeVerdict.better === "new"
+                    ? `color-mix(in srgb, ${THEME.accent} 20%, transparent)`
+                    : `color-mix(in srgb, ${THEME.gold} 20%, transparent)`
+                }`,
+              }}
+            >
+              <div
                 style={{
-                  padding: 0,
-                  overflow: "hidden",
-                  borderRadius: 16,
-                  border: `1.5px solid ${
+                  height: 4,
+                  background:
                     regimeVerdict.better === "new"
-                      ? `color-mix(in srgb, ${THEME.accent} 13%, transparent)`
-                      : regimeVerdict.better === "old"
-                        ? `color-mix(in srgb, ${THEME.gold} 13%, transparent)`
-                        : THEME.line
-                  }`,
+                      ? `linear-gradient(90deg, ${THEME.accent}, ${THEME.sage})`
+                      : `linear-gradient(90deg, ${THEME.gold}, ${THEME.accent})`,
                 }}
-              >
-                <div
-                  style={{
-                    height: 3,
-                    background:
-                      regimeVerdict.better === "new"
-                        ? `linear-gradient(90deg, ${THEME.accent}, color-mix(in srgb, var(--t-accent) 65%, white))`
-                        : regimeVerdict.better === "old"
-                          ? `linear-gradient(90deg, ${THEME.gold}, color-mix(in srgb, var(--t-gold) 65%, white))`
-                          : THEME.line,
-                  }}
-                />
-                <div style={{ padding: "20px 24px" }}>
-                  {/* Header */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                    <div style={{ display: "flex", alignItems: "center" }}>
-                      <Award size={22} color={THEME.accent} />
-                    </div>
+              />
+              <div style={{ padding: "24px 28px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Award size={24} color={THEME.accent} />
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 900, color: THEME.ink }}>
-                        CFO Regime Advisor
+                      <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink }}>
+                        CFO Tax Regime Recommendation Engine
                       </div>
-                      <div style={{ fontSize: 11, color: THEME.muted }}>
-                        For FY {fy} · Based on your income & deduction profile
+                      <div style={{ fontSize: 12, color: THEME.muted }}>
+                        Statutory analysis for FY {fy} · Incorporates Finance Act 2024 slab adjustments
                       </div>
                     </div>
-                    {regimeVerdict.better !== "equal" && (
-                      <div
-                        style={{
-                          marginLeft: "auto",
-                          padding: "6px 14px",
-                          borderRadius: 99,
-                          background:
-                            regimeVerdict.better === "new"
-                              ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
-                              : `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
-                          color: regimeVerdict.better === "new" ? THEME.accent : THEME.gold,
-                          fontSize: 12,
-                          fontWeight: 800,
-                        }}
-                      >
-                        Recommended: {regimeVerdict.better === "new" ? "New Regime" : "Old Regime"}
+                  </div>
+                  {regimeVerdict.better !== "equal" && (
+                    <Badge
+                      variant={regimeVerdict.better === "new" ? "accent" : "gold"}
+                      style={{ fontSize: 13, padding: "6px 16px", fontWeight: 800 }}
+                    >
+                      ★ {regimeVerdict.better === "new" ? "New Regime" : "Old Regime"} Saves More
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Side-by-Side Regime Cards */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
+                  {/* New Regime Card */}
+                  <div
+                    style={{
+                      padding: 22,
+                      borderRadius: 14,
+                      background:
+                        regimeVerdict.better === "new"
+                          ? `color-mix(in srgb, ${THEME.accent} 6%, transparent)`
+                          : "var(--surface-0)",
+                      border: `1.5px solid ${
+                        regimeVerdict.better === "new"
+                          ? `color-mix(in srgb, ${THEME.accent} 25%, transparent)`
+                          : THEME.line
+                      }`,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.accent }}>
+                        New Tax Regime (Section 115BAC)
+                      </span>
+                      {regimeVerdict.better === "new" && <Badge variant="accent">Recommended</Badge>}
+                    </div>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 800, color: THEME.accent }}>
+                      <Money value={taxNewResult.total} variant="full" />
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 8, lineHeight: 1.6 }}>
+                      Standard Deduction: <Money value={getNewStdDed(fyStartYear)} variant="full" /> · Taxable Income: <Money value={taxNewResult.taxable} variant="full" />
+                      <br />
+                      Effective Tax Rate: <b>{taxNewResult.effectiveRate.toFixed(2)}%</b>
+                    </div>
+                    {taxNewResult.rebateApplied && (
+                      <div style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: THEME.sage }}>
+                        ✓ Full Section 87A rebate applied (₹0 net tax up to threshold)
                       </div>
                     )}
                   </div>
 
-                  {/* Side-by-side comparison — flex-wrap so the two panels stack
-                      on narrow phone widths instead of squeezing into a fixed
-                      3-column grid (was "1fr auto 1fr", unusable under ~380px) */}
+                  {/* Old Regime Card */}
                   <div
                     style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 16,
-                      alignItems: "center",
+                      padding: 22,
+                      borderRadius: 14,
+                      background:
+                        regimeVerdict.better === "old"
+                          ? `color-mix(in srgb, ${THEME.gold} 6%, transparent)`
+                          : "var(--surface-0)",
+                      border: `1.5px solid ${
+                        regimeVerdict.better === "old"
+                          ? `color-mix(in srgb, ${THEME.gold} 25%, transparent)`
+                          : THEME.line
+                      }`,
                     }}
                   >
-                    {/* New Regime */}
-                    <div
-                      style={{
-                        flex: "1 1 220px",
-                        minWidth: 0,
-                        padding: "16px 20px",
-                        borderRadius: 12,
-                        background:
-                          regimeVerdict.better === "new"
-                            ? `color-mix(in srgb, ${THEME.accent} 6%, transparent)`
-                            : "rgba(128,128,128,0.03)",
-                        border: `1.5px solid ${
-                          regimeVerdict.better === "new"
-                            ? `color-mix(in srgb, ${THEME.accent} 20%, transparent)`
-                            : THEME.line
-                        }`,
-                      }}
-                    >
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}
-                      >
-                        {regimeVerdict.better === "new" && (
-                          <CheckCircle2 size={14} color={THEME.accent} />
-                        )}
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 800,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.1em",
-                            color: regimeVerdict.better === "new" ? THEME.accent : THEME.muted,
-                          }}
-                        >
-                          New Regime
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: 28,
-                          fontWeight: 600,
-                          color: regimeVerdict.better === "new" ? THEME.accent : THEME.ink,
-                          letterSpacing: "-0.03em",
-                        }}
-                      >
-                        <Money value={taxNewResult.total} variant="full" />
-                      </div>
-                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
-                        <Money value={getNewStdDed(fyStartYear)} variant="full" /> std ded · No other
-                        deductions
-                        <br />
-                        Taxable: <Money value={taxNewResult.taxable} variant="full" /> ·{" "}
-                        {taxNewResult.effectiveRate.toFixed(1)}% eff. rate
-                      </div>
-                      {taxNewResult.rebateApplied && (
-                        <div
-                          style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: THEME.sage }}
-                        >
-                          ✓ 87A rebate applied
-                        </div>
-                      )}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: THEME.gold }}>
+                        Old Tax Regime (With Deductions)
+                      </span>
+                      {regimeVerdict.better === "old" && <Badge variant="gold">Recommended</Badge>}
                     </div>
-
-                    {/* VS divider */}
-                    <div
-                      style={{
-                        flex: "0 0 auto",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 4,
-                      }}
-                    >
-                      <div style={{ width: 1, height: 24, background: THEME.line }} />
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 800,
-                          color: THEME.muted,
-                          padding: "4px 8px",
-                          border: `1px solid ${THEME.line}`,
-                          borderRadius: 6,
-                        }}
-                      >
-                        VS
-                      </div>
-                      <div style={{ width: 1, height: 24, background: THEME.line }} />
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 800, color: THEME.gold }}>
+                      <Money value={taxOldResult.total} variant="full" />
                     </div>
-
-                    {/* Old Regime */}
-                    <div
-                      style={{
-                        flex: "1 1 220px",
-                        minWidth: 0,
-                        padding: "16px 20px",
-                        borderRadius: 12,
-                        background:
-                          regimeVerdict.better === "old"
-                            ? `color-mix(in srgb, ${THEME.gold} 6%, transparent)`
-                            : "rgba(128,128,128,0.03)",
-                        border: `1.5px solid ${
-                          regimeVerdict.better === "old"
-                            ? `color-mix(in srgb, ${THEME.gold} 20%, transparent)`
-                            : THEME.line
-                        }`,
-                      }}
-                    >
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}
-                      >
-                        {regimeVerdict.better === "old" && (
-                          <CheckCircle2 size={14} color={THEME.gold} />
-                        )}
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 800,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.1em",
-                            color: regimeVerdict.better === "old" ? THEME.gold : THEME.muted,
-                          }}
-                        >
-                          Old Regime
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: 28,
-                          fontWeight: 600,
-                          color: regimeVerdict.better === "old" ? THEME.gold : THEME.ink,
-                          letterSpacing: "-0.03em",
-                        }}
-                      >
-                        <Money value={taxOldResult.total} variant="full" />
-                      </div>
-                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
-                        Total deductions: <Money value={totalOldDeductions} variant="full" />
-                        <br />
-                        Taxable: <Money value={taxOldResult.taxable} variant="full" /> ·{" "}
-                        {taxOldResult.effectiveRate.toFixed(1)}% eff. rate
-                      </div>
-                      {taxOldResult.rebateApplied && (
-                        <div
-                          style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: THEME.sage }}
-                        >
-                          ✓ 87A rebate applied
-                        </div>
-                      )}
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 8, lineHeight: 1.6 }}>
+                      Total Deductions: <Money value={totalOldDeductions} variant="full" /> · Taxable Income: <Money value={taxOldResult.taxable} variant="full" />
+                      <br />
+                      Effective Tax Rate: <b>{taxOldResult.effectiveRate.toFixed(2)}%</b>
                     </div>
+                    {taxOldResult.rebateApplied && (
+                      <div style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: THEME.sage }}>
+                        ✓ Full Section 87A rebate applied
+                      </div>
+                    )}
                   </div>
+                </div>
 
-                  {/* Verdict banner */}
-                  {regimeVerdict.saving > 0 && (
-                    <div
-                      style={{
-                        marginTop: 16,
-                        padding: "12px 16px",
-                        borderRadius: 10,
-                        background:
-                          regimeVerdict.better === "new"
-                            ? `color-mix(in srgb, ${THEME.accent} 6%, transparent)`
-                            : `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
-                        border: `1px solid color-mix(in srgb, ${regimeVerdict.better === "new" ? THEME.accent : THEME.gold} 13%, transparent)`,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                      }}
-                    >
-                      <Zap
-                        size={16}
-                        color={regimeVerdict.better === "new" ? THEME.accent : THEME.gold}
-                      />
-                      <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                {/* Savings Callout */}
+                {regimeVerdict.saving > 0 && (
+                  <div
+                    style={{
+                      marginTop: 18,
+                      padding: "14px 18px",
+                      borderRadius: 12,
+                      background:
+                        regimeVerdict.better === "new"
+                          ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
+                          : `color-mix(in srgb, ${THEME.gold} 8%, transparent)`,
+                      border: `1px solid color-mix(in srgb, ${regimeVerdict.better === "new" ? THEME.accent : THEME.gold} 20%, transparent)`,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <Zap size={20} color={regimeVerdict.better === "new" ? THEME.accent : THEME.gold} />
+                      <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
                         {regimeVerdict.better === "new" ? "New Regime" : "Old Regime"} saves you{" "}
-                        <span
-                          style={{
-                            color: regimeVerdict.better === "new" ? THEME.accent : THEME.gold,
-                            fontWeight: 900,
-                          }}
-                        >
+                        <span style={{ color: regimeVerdict.better === "new" ? THEME.accent : THEME.gold }}>
                           <Money value={regimeVerdict.saving} variant="full" />
                         </span>{" "}
-                        in tax this year.
-                        {regimeVerdict.better === "old" && (
-                          <span style={{ fontWeight: 500, color: THEME.muted }}>
-                            {" "}
-                            Maximize 80C, 80D, and NPS deductions to stay ahead.
-                          </span>
-                        )}
-                        {regimeVerdict.better === "new" && (
-                          <span style={{ fontWeight: 500, color: THEME.muted }}>
-                            {" "}
-                            Simplified filing, no paperwork for deduction proofs needed.
-                          </span>
-                        )}
+                        in tax for FY {fy}.
                       </div>
-                      <button
+                    </div>
+                    {activeRegime !== regimeVerdict.better && (
+                      <Button
+                        size="sm"
+                        variant={regimeVerdict.better === "new" ? "accent" : "gold"}
                         onClick={() => handleRegimeChange(regimeVerdict.better as any)}
-                        style={{
-                          padding: "6px 12px",
-                          borderRadius: 8,
-                          background: regimeVerdict.better === "new" ? THEME.accent : THEME.gold,
-                          color: "#fff",
-                          border: "none",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          cursor: "pointer",
-                          whiteSpace: "nowrap",
-                        }}
                       >
-                        Switch to {regimeVerdict.better === "new" ? "New" : "Old"}
-                      </button>
-                    </div>
-                  )}
-                  {regimeVerdict.saving === 0 && (
-                    <div
-                      style={{
-                        marginTop: 16,
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
-                        border: `1px solid ${THEME.line}`,
-                        fontSize: 13,
-                        color: THEME.muted,
+                        Switch to {regimeVerdict.better === "new" ? "New Regime" : "Old Regime"}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* 2. Indifference & Crossover Curve Visualizer */}
+          {hasNewRegime && annualIncome > 0 && (
+            <Card style={{ padding: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink }}>
+                    Regime Crossover & Indifference Curve
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted }}>
+                    Shows how tax liability changes as you increase Chapter VI-A deductions (Old vs New Regime)
+                  </div>
+                </div>
+                <Badge variant="muted">Income: {fmtL(annualIncome)}</Badge>
+              </div>
+              <div style={{ height: 260, width: "100%" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={crossoverData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" />
+                    <XAxis dataKey="label" stroke={THEME.muted} fontSize={11} />
+                    <YAxis
+                      stroke={THEME.muted}
+                      fontSize={11}
+                      tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--surface-0)",
+                        borderColor: THEME.line,
+                        borderRadius: 8,
+                        fontSize: 12,
                       }}
-                    >
-                      Both regimes result in equal tax. You may choose either — new regime means
-                      simpler filing (no deduction paperwork).
-                    </div>
-                  )}
-                </div>
-              </Card>
-            </div>
+                      formatter={(val: any) => [fmtINRFull(Number(val)), "Tax Liability"]}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="newTax"
+                      name="New Regime Tax"
+                      stroke={THEME.accent}
+                      strokeWidth={2.5}
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="oldTax"
+                      name="Old Regime Tax"
+                      stroke={THEME.gold}
+                      strokeWidth={2.5}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
           )}
 
-          {/* ── 1b. DEDUCTION UTILISATION DASHBOARD ────────────────── */}
-          {activeRegime === "old" && annualIncome > 0 && (
-            <div style={{ marginBottom: 28 }}>
-              <Card style={{ padding: 24, borderTop: `4px solid ${THEME.gold}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                  <Target size={16} color={THEME.gold} />
-                  <span style={{ fontSize: 14, fontWeight: 800 }}>
-                    Deduction Utilisation — FY {fy}
-                  </span>
-                </div>
-                <div style={{ display: "grid", gap: 12 }}>
-                  {[
-                    {
-                      label: "Sec 80C",
-                      used: Math.min(Number(deductions.d80C) || 0, 150000),
-                      limit: 150000,
-                      desc: "ELSS, PPF, LIC, EPF, NSC",
-                    },
-                    {
-                      label: "Sec 80D",
-                      used: Math.min(Number(deductions.d80D) || 0, d80DCap),
-                      limit: d80DCap,
-                      desc: deductions.d80DSenior
-                        ? "Health Insurance Premium (senior citizen)"
-                        : "Health Insurance Premium",
-                    },
-                    {
-                      label: "HRA",
-                      used: Number(deductions.hra) || 0,
-                      limit: null,
-                      desc: "House Rent Allowance",
-                    },
-                    {
-                      label: "Sec 80CCD(1B)",
-                      used: Number(deductions.nps) || 0,
-                      limit: 50000,
-                      desc: "NPS Contribution",
-                    },
-                    {
-                      label: "Sec 80CCD(2)",
-                      used: Number(deductions.d80CCD2) || 0,
-                      limit: null,
-                      desc: "Employer NPS",
-                    },
-                    {
-                      label: "Sec 24(b)",
-                      used: Math.min(Number(deductions.homeLoan) || 0, 200000),
-                      limit: 200000,
-                      desc: "Home Loan Interest",
-                    },
-                    {
-                      label: "Sec 80G",
-                      used: Number(deductions.d80G) || 0,
-                      limit: null,
-                      desc: "Donations",
-                    },
-                    {
-                      label: "Sec 80E",
-                      used: Number(deductions.d80E) || 0,
-                      limit: null,
-                      desc: "Education Loan Interest",
-                    },
-                    {
-                      label: "Sec 80TTA",
-                      used: Math.min(Number(deductions.d80TTA) || 0, 10000),
-                      limit: 10000,
-                      desc: "Savings A/c Interest",
-                    },
-                  ]
-                    .filter((d) => d.used > 0 || (d.limit && d.limit > 0))
-                    .map((d) => {
-                      const pct = d.limit ? Math.min(100, (d.used / d.limit) * 100) : 100;
-                      const barColor = d.limit
-                        ? pct >= 100
-                          ? THEME.sage
-                          : pct >= 50
-                            ? THEME.gold
-                            : THEME.muted
-                        : THEME.accent;
-                      const remaining = d.limit ? Math.max(0, d.limit - d.used) : 0;
-                      return (
-                        <div key={d.label}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              marginBottom: 4,
-                            }}
-                          >
-                            <div>
-                              <span style={{ fontSize: 12, fontWeight: 700 }}>{d.label}</span>
-                              <span style={{ fontSize: 11, color: THEME.muted, marginLeft: 6 }}>
-                                {d.desc}
-                              </span>
-                            </div>
-                            <div style={{ fontSize: 12, fontWeight: 600 }}>
-                              <Money value={d.used} variant="full" />
-                              {d.limit ? (
-                                <>
-                                  {" / "}
-                                  <Money value={d.limit} variant="full" />
-                                </>
-                              ) : (
-                                ""
-                              )}
-                            </div>
-                          </div>
-                          <div className="progress-track">
-                            <div
-                              className="progress-fill"
-                              style={{ width: `${pct}%`, background: barColor }}
-                            />
-                          </div>
-                          {d.limit && remaining > 0 && (
-                            <div style={{ fontSize: 10, color: THEME.muted, marginTop: 2 }}>
-                              Room to invest: <Money value={remaining} variant="full" />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {/* ── 1c. HRA EXEMPTION CALCULATOR ───────────────────────── */}
-          {activeRegime === "old" && <HRACalculator />}
-
-          {/* ── 2. ADVANCE TAX SUMMARY ─────────────────────────────── */}
-          <div className="tv-hero-grid-2" style={{ marginBottom: 24 }}>
+          {/* 3. Hero Advance Tax Progress Radar */}
+          <div className="tv-hero-grid-2">
             <Card
               variant="base"
               style={{
-                padding: 32,
+                padding: 28,
                 background:
                   "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-accent) 5%), var(--surface-0))",
                 border: `1px solid ${THEME.line}`,
@@ -2707,59 +2495,31 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     marginBottom: 8,
                   }}
                 >
-                  Advance Tax Still to Pay
+                  Net Advance Tax Remaining
                 </div>
                 <div
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: "clamp(36px, 5vw, 56px)",
+                    fontSize: "clamp(36px, 4.5vw, 52px)",
                     fontWeight: 900,
-                    color: THEME.ink,
+                    color: remainingAdvance > 0 ? THEME.rust : THEME.sage,
                     marginBottom: 4,
                     letterSpacing: "-0.03em",
                     lineHeight: 1.05,
-                    fontVariantNumeric: "tabular-nums",
                   }}
                 >
                   <Money value={animatedRemainingAdvance} variant="full" />
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    color: THEME.muted,
-                    fontSize: 13,
-                    fontWeight: 600,
-                  }}
-                >
-                  <Shield size={14} color={THEME.accent} /> Total tax: <Money value={currentTax} variant="full" /> · TDS credited:{" "}
-                  <Money value={totalTDS} variant="full" />
+                <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Shield size={14} color={THEME.accent} /> Gross Tax: <Money value={currentTax} variant="full" /> · TDS Credited: <Money value={totalTDS} variant="full" />
                 </div>
               </div>
-              <div style={{ marginTop: 32 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: 11,
-                    color: THEME.muted,
-                    fontWeight: 800,
-                    textTransform: "uppercase",
-                    marginBottom: 10,
-                  }}
-                >
-                  <span>Progress Paid</span>
+              <div style={{ marginTop: 28 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, fontWeight: 800, textTransform: "uppercase", marginBottom: 8 }}>
+                  <span>Payment Fulfillment</span>
                   <span>{progressPct.toFixed(0)}%</span>
                 </div>
-                <div
-                  style={{
-                    height: 8,
-                    background: THEME.line,
-                    borderRadius: 10,
-                    overflow: "hidden",
-                  }}
-                >
+                <div style={{ height: 8, background: THEME.line, borderRadius: 10, overflow: "hidden" }}>
                   <div
                     style={{
                       height: "100%",
@@ -2772,14 +2532,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 </div>
                 <div style={{ display: "flex", gap: 16, marginTop: 16, flexWrap: "wrap" }}>
                   <div>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: THEME.muted,
-                        textTransform: "uppercase",
-                        fontWeight: 700,
-                      }}
-                    >
+                    <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700 }}>
                       TDS Deducted
                     </div>
                     <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: THEME.ink }}>
@@ -2788,14 +2541,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   </div>
                   <div style={{ width: 1, background: THEME.line }} />
                   <div>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: THEME.muted,
-                        textTransform: "uppercase",
-                        fontWeight: 700,
-                      }}
-                    >
+                    <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700 }}>
                       Advance Paid
                     </div>
                     <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: THEME.ink }}>
@@ -2806,14 +2552,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     <>
                       <div style={{ width: 1, background: THEME.line }} />
                       <div>
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: THEME.muted,
-                            textTransform: "uppercase",
-                            fontWeight: 700,
-                          }}
-                        >
+                        <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700 }}>
                           Self-Assessment
                         </div>
                         <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: THEME.ink }}>
@@ -2826,634 +2565,87 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               </div>
             </Card>
 
-            <Card style={{ padding: 24 }}>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: "0.15em",
-                  textTransform: "uppercase",
-                  color: THEME.muted,
-                  marginBottom: 20,
-                }}
-              >
-                Advance Tax Schedule
-              </div>
-              <div style={{ display: "grid", gap: 12 }}>
-                {installments.map((inst) => {
-                  const isPaid = totalAdvancePaid >= inst.amt;
-                  const isPartial = totalAdvancePaid > 0 && totalAdvancePaid < inst.amt;
-                  return (
-                    <div
-                      key={inst.q}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        padding: "14px 16px",
-                        borderRadius: 12,
-                        background: "rgba(128,128,128,0.03)",
-                        border: `1px solid ${THEME.line}`,
-                      }}
-                    >
+            {/* Advance Tax Schedule Timeline */}
+            <Card style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: THEME.muted, marginBottom: 16 }}>
+                  Advance Tax Statutory Schedule
+                </div>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {installments.map((inst) => {
+                    const isPaid = totalAdvancePaid >= inst.amt;
+                    const isPartial = totalAdvancePaid > 0 && totalAdvancePaid < inst.amt;
+                    return (
                       <div
+                        key={inst.q}
                         style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 10,
-                          background: isPaid
-                            ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
-                            : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {isPaid ? (
-                          <CheckCircle2 size={18} color={THEME.sage} />
-                        ) : (
-                          <Calendar size={18} color={THEME.gold} />
-                        )}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 800, fontSize: 14 }}>
-                          {inst.q} · <span style={{ color: THEME.muted }}>By {inst.due}</span>
-                        </div>
-                        <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                          Cumulative {inst.pct}% · <Money value={inst.amt} variant="full" />
-                        </div>
-                      </div>
-                      {isPaid && (
-                        <Badge variant="sage" style={{ fontSize: 9 }}>
-                          Paid
-                        </Badge>
-                      )}
-                      {!isPaid && isPartial && (
-                        <Badge variant="gold" style={{ fontSize: 9 }}>
-                          Shortfall
-                        </Badge>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {!isAdvanceTaxApplicable && (
-                <div
-                  style={{
-                    marginTop: 16,
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: THEME.sage,
-                  }}
-                >
-                  <Shield size={14} /> Advance Tax not applicable (Liability &lt; ₹10K)
-                </div>
-              )}
-            </Card>
-          </div>
-
-          {/* ── 3. ADVANCE TAX COUNTDOWN ───────────────────────────── */}
-          {isAdvanceTaxApplicable &&
-            (() => {
-              const fyEndYear = fyStartYear + 1;
-              const now = new Date();
-              const instDates = [
-                {
-                  q: "Q1",
-                  label: "1st Instalment",
-                  dueDate: new Date(fyStartYear, 5, 15),
-                  pct: 15,
-                  cumAmt: netLiability * 0.15,
-                },
-                {
-                  q: "Q2",
-                  label: "2nd Instalment",
-                  dueDate: new Date(fyStartYear, 8, 15),
-                  pct: 45,
-                  cumAmt: netLiability * 0.45,
-                },
-                {
-                  q: "Q3",
-                  label: "3rd Instalment",
-                  dueDate: new Date(fyStartYear, 11, 15),
-                  pct: 75,
-                  cumAmt: netLiability * 0.75,
-                },
-                {
-                  q: "Q4",
-                  label: "4th Instalment",
-                  dueDate: new Date(fyEndYear, 2, 15),
-                  pct: 100,
-                  cumAmt: netLiability * 1.0,
-                },
-              ];
-              const allPaid = instDates.every((i) => totalAdvancePaid >= i.cumAmt);
-              if (allPaid) {
-                return (
-                  <Card
-                    style={{
-                      padding: 20,
-                      marginBottom: 24,
-                      background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
-                      border: `1px solid color-mix(in srgb, ${THEME.sage} 20%, transparent)`,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 16,
-                    }}
-                  >
-                    <CheckCircle2 size={32} color={THEME.sage} />
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: THEME.sage }}>
-                        All advance tax payments on track!
-                      </div>
-                      <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
-                        FY {fy} — <Money value={totalAdvancePaid} variant="full" /> paid of{" "}
-                        <Money value={netLiability} variant="full" /> net liability
-                      </div>
-                    </div>
-                  </Card>
-                );
-              }
-              const upcoming = instDates.find(
-                (i) => totalAdvancePaid < i.cumAmt && i.dueDate >= now
-              );
-              const overdue = instDates.find((i) => totalAdvancePaid < i.cumAmt && i.dueDate < now);
-              const target = upcoming || overdue;
-              if (!target) return null;
-              const daysLeft = Math.ceil((target.dueDate.getTime() - now.getTime()) / 86400000);
-              const isOverdue = daysLeft < 0;
-              const isUrgent = daysLeft >= 0 && daysLeft <= 15;
-              const countColor = isOverdue ? THEME.rust : isUrgent ? THEME.gold : THEME.sage;
-              const dueDateStr = target.dueDate.toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              });
-              return (
-                <Card
-                  style={{
-                    padding: 24,
-                    marginBottom: 24,
-                    border: `1.5px solid color-mix(in srgb, ${countColor} 19%, transparent)`,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      marginBottom: 16,
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.15em",
-                          color: THEME.muted,
-                          marginBottom: 4,
-                        }}
-                      >
-                        Advance Tax Countdown
-                      </div>
-                      <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink }}>
-                        {target.label} — {target.q} · {target.pct}% cumulative
-                      </div>
-                      <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>
-                        Due by {dueDateStr}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: 48,
-                          fontWeight: 600,
-                          color: countColor,
-                          letterSpacing: "-0.01em",
-                          lineHeight: 1,
-                        }}
-                      >
-                        {Math.abs(daysLeft)}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: countColor,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                        }}
-                      >
-                        {isOverdue ? "days overdue" : "days left"}
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-                      gap: 12,
-                      marginBottom: 16,
-                    }}
-                  >
-                    {[
-                      {
-                        label: "Amount Due Now",
-                        value: <Money value={Math.max(0, target.cumAmt - totalAdvancePaid)} variant="full" />,
-                        color: countColor,
-                      },
-                      {
-                        label: "Already Paid",
-                        value: <Money value={totalAdvancePaid} variant="full" />,
-                        color: THEME.sage,
-                      },
-                      {
-                        label: "Net Liability",
-                        value: <Money value={netLiability} variant="full" />,
-                        color: THEME.ink,
-                      },
-                    ].map(({ label, value, color }) => (
-                      <div
-                        key={label}
-                        style={{
-                          textAlign: "center",
-                          padding: "12px 8px",
-                          background: "rgba(128,128,128,0.03)",
+                          gap: 12,
+                          padding: "10px 14px",
                           borderRadius: 10,
+                          background: "rgba(128,128,128,0.03)",
                           border: `1px solid ${THEME.line}`,
                         }}
                       >
                         <div
                           style={{
-                            fontSize: 10,
-                            color: THEME.muted,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.04em",
-                            lineHeight: 1.3,
-                            minHeight: 26,
-                            marginBottom: 6,
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            background: isPaid
+                              ? `color-mix(in srgb, ${THEME.sage} 12%, transparent)`
+                              : `color-mix(in srgb, ${THEME.gold} 12%, transparent)`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
                           }}
                         >
-                          {label}
+                          {isPaid ? (
+                            <CheckCircle2 size={16} color={THEME.sage} />
+                          ) : (
+                            <Calendar size={16} color={THEME.gold} />
+                          )}
                         </div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: 16,
-                            fontWeight: 900,
-                            color,
-                          }}
-                        >
-                          {value}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 800, fontSize: 13 }}>
+                            {inst.q} · <span style={{ color: THEME.muted }}>By {inst.due}</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
+                            Cumulative {inst.pct}% · <Money value={inst.amt} variant="full" />
+                          </div>
                         </div>
+                        {isPaid && <Badge variant="sage">Paid ✓</Badge>}
+                        {!isPaid && isPartial && <Badge variant="gold">Shortfall</Badge>}
                       </div>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {instDates.map((i) => {
-                      const paid = totalAdvancePaid >= i.cumAmt;
-                      const isCurrent = i.q === target.q;
-                      return (
-                        <div
-                          key={i.q}
-                          style={{
-                            flex: 1,
-                            height: 8,
-                            borderRadius: 4,
-                            background: paid ? THEME.sage : isCurrent ? countColor : THEME.line,
-                            transition: "background 0.3s",
-                          }}
-                          title={`${i.q}: ${i.pct}%`}
-                        />
-                      );
-                    })}
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginTop: 6,
-                      fontSize: 10,
-                      color: THEME.muted,
-                    }}
-                  >
-                    {instDates.map((i) => (
-                      <span key={i.q}>{i.q}</span>
-                    ))}
-                  </div>
-                  {isOverdue && (
-                    <div
-                      style={{
-                        marginTop: 14,
-                        padding: "10px 14px",
-                        borderRadius: 8,
-                        background: `color-mix(in srgb, ${THEME.rust} 6%, transparent)`,
-                        border: `1px solid color-mix(in srgb, ${THEME.rust} 15%, transparent)`,
-                        fontSize: 12,
-                        color: THEME.rust,
-                        fontWeight: 600,
-                      }}
-                    >
-                      <AlertTriangle
-                        size={13}
-                        style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }}
-                      />{" "}
-                      Overdue by {Math.abs(daysLeft)} days. Interest u/s 234B/234C may apply. Pay
-                      immediately via Challan 280.
-                    </div>
-                  )}
-                </Card>
-              );
-            })()}
-
-          {/* ── 3b. ADVANCE TAX PROJECTOR & PENALTY CALCULATOR ──────── */}
-          {netLiability >= 10000 && (
-            <Card style={{ padding: 24, marginBottom: 24, borderTop: `4px solid ${THEME.gold}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <Calculator size={16} color={THEME.gold} />
-                <span style={{ fontSize: 14, fontWeight: 800 }}>Advance Tax Projector</span>
+                    );
+                  })}
+                </div>
               </div>
-              {(() => {
-                const now = new Date();
-                const fyStart = new Date(fyStartYear, 3, 1);
-                const monthsElapsed = Math.max(
-                  1,
-                  Math.round((now.getTime() - fyStart.getTime()) / (30.44 * 86400000))
-                );
-                // Bug fix: this block referenced a module-level `quarters` variable
-                // that is actually a local const scoped inside calcSection234CPenalty
-                // (not exported, not in this closure) — every render of this section
-                // (i.e. whenever netLiability >= ₹10K, a very common case) threw an
-                // uncaught "quarters is not defined" ReferenceError and crashed the
-                // Advance Tax Projector. Defining it locally with the same statutory
-                // due dates fixes the crash.
-                const quarters = [
-                  { q: "Q1", due: new Date(fyStartYear, 5, 15), pct: 15 },
-                  { q: "Q2", due: new Date(fyStartYear, 8, 15), pct: 45 },
-                  { q: "Q3", due: new Date(fyStartYear, 11, 15), pct: 75 },
-                  { q: "Q4", due: new Date(fyStartYear + 1, 2, 15), pct: 100 },
-                ];
-                const incomeThisYear = (state.income || [])
-                  .filter((i: any) => i.date && i.date >= fyStartStr && i.date <= fyEndStr)
-                  .reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
-                const projectedAnnualIncome =
-                  monthsElapsed < 12
-                    ? Math.round((incomeThisYear / monthsElapsed) * 12)
-                    : incomeThisYear;
-                const projectedTaxResult =
-                  activeRegime === "new"
-                    ? calcTaxNewByFY(projectedAnnualIncome, fy)
-                    : calcTaxOldByFY(projectedAnnualIncome, totalOldDeductions, fy);
-                const projectedTax = projectedTaxResult.total || 0;
-
-                const totalPenalty234C = calcSection234CPenalty(
-                  fyStartYear,
-                  netLiability,
-                  totalAdvancePaid,
-                  now
-                );
-
-                return (
-                  <div style={{ display: "grid", gap: 16 }}>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                        gap: 12,
-                      }}
-                    >
-                      <div
-                        style={{
-                          padding: 14,
-                          borderRadius: 10,
-                          background: `color-mix(in srgb, ${THEME.accent} 3%, transparent)`,
-                          border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: THEME.muted,
-                            fontWeight: 600,
-                            lineHeight: 1.3,
-                            minHeight: 28,
-                          }}
-                        >
-                          Income Recorded ({monthsElapsed}m)
-                        </div>
-                        <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color: THEME.accent }}>
-                          <Money value={incomeThisYear} variant="full" />
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          padding: 14,
-                          borderRadius: 10,
-                          background: `color-mix(in srgb, ${THEME.sage} 3%, transparent)`,
-                          border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: THEME.muted,
-                            fontWeight: 600,
-                            lineHeight: 1.3,
-                            minHeight: 28,
-                          }}
-                        >
-                          Projected Annual Income
-                        </div>
-                        <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color: THEME.sage }}>
-                          <Money value={projectedAnnualIncome} variant="full" />
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          padding: 14,
-                          borderRadius: 10,
-                          background: `color-mix(in srgb, ${THEME.gold} 3%, transparent)`,
-                          border: `1px solid color-mix(in srgb, ${THEME.gold} 13%, transparent)`,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: THEME.muted,
-                            fontWeight: 600,
-                            lineHeight: 1.3,
-                            minHeight: 28,
-                          }}
-                        >
-                          Projected Tax ({activeRegime} regime)
-                        </div>
-                        <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color: THEME.gold }}>
-                          <Money value={projectedTax} variant="full" />
-                        </div>
-                      </div>
-                      {totalPenalty234C > 0 && (
-                        <div
-                          style={{
-                            padding: 14,
-                            borderRadius: 10,
-                            background: `color-mix(in srgb, ${THEME.rust} 3%, transparent)`,
-                            border: `1px solid color-mix(in srgb, ${THEME.rust} 13%, transparent)`,
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: THEME.muted,
-                              fontWeight: 600,
-                              lineHeight: 1.3,
-                              minHeight: 28,
-                            }}
-                          >
-                            Sec 234C Interest
-                          </div>
-                          <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800, color: THEME.rust }}>
-                            <Money value={totalPenalty234C} variant="full" />
-                          </div>
-                          <div style={{ fontSize: 10, color: THEME.muted }}>
-                            1% per month on quarterly shortfall
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        background: `color-mix(in srgb, ${THEME.muted} 2%, transparent)`,
-                        borderRadius: 10,
-                        padding: 14,
-                      }}
-                    >
-                      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
-                        Recommended Quarterly Payments
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))",
-                          gap: 8,
-                        }}
-                      >
-                        {quarters.map((q) => {
-                          const required = Math.round(projectedTax * (q.pct / 100));
-                          const isPast = now > q.due;
-                          return (
-                            <div
-                              key={q.q}
-                              style={{
-                                padding: "8px 10px",
-                                borderRadius: 8,
-                                background: "var(--surface-0)",
-                                border: `1px solid ${THEME.line}`,
-                                textAlign: "center",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  color: isPast ? THEME.muted : THEME.accent,
-                                }}
-                              >
-                                {q.q} —{" "}
-                                {q.due.toLocaleDateString("en-IN", {
-                                  day: "numeric",
-                                  month: "short",
-                                })}
-                              </div>
-                              <div style={{ fontSize: 14, fontWeight: 800, marginTop: 4 }}>
-                                <Money value={required} variant="full" />
-                              </div>
-                              <div style={{ fontSize: 10, color: THEME.muted }}>
-                                {q.pct}% cumulative
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
+              {!isAdvanceTaxApplicable && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+                    color: THEME.sage,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Shield size={14} /> Advance Tax not mandatory (Net Liability &lt; ₹10,000)
+                </div>
+              )}
             </Card>
-          )}
+          </div>
 
-          {/* ── 4. ITR FILING DEADLINE ─────────────────────────────── */}
-          {(() => {
-            const itrDeadline = new Date(fyStartYear + 1, 6, 31);
-            const now = new Date();
-            const daysToITR = Math.ceil((itrDeadline.getTime() - now.getTime()) / 86400000);
-            if (daysToITR < -30) return null;
-            const isOverdue = daysToITR < 0;
-            const isUrgent = daysToITR >= 0 && daysToITR <= 30;
-            const bannerColor = isOverdue ? THEME.rust : isUrgent ? THEME.gold : THEME.sage;
-            return (
-              <div
-                style={{
-                  padding: "14px 20px",
-                  borderRadius: 12,
-                  background: isOverdue
-                    ? `color-mix(in srgb, ${THEME.rust} 4%, transparent)`
-                    : isUrgent
-                      ? `color-mix(in srgb, ${THEME.gold} 4%, transparent)`
-                      : `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
-                  border: `1.5px solid color-mix(in srgb, ${bannerColor} 19%, transparent)`,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                  marginBottom: 28,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", color: bannerColor, flexShrink: 0 }}>
-                  <Calendar size={28} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-                    ITR Filing Deadline — AY {fyStartYear + 1}-{String(fyStartYear + 2).slice(-2)} ·
-                    31 July {fyStartYear + 1}
-                  </div>
-                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3, fontWeight: 600 }}>
-                    {isOverdue
-                      ? `Filing was due ${Math.abs(daysToITR)} days ago. File immediately — penalty u/s 234F up to ₹5,000 applies on belated filing.`
-                      : `${daysToITR} day${daysToITR === 1 ? "" : "s"} remaining. Keep Form 16, AIS, and capital gains statement ready. File on Income Tax portal (incometax.gov.in).`}
-                  </div>
-                </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 600, color: bannerColor, lineHeight: 1 }}>
-                    {Math.abs(daysToITR)}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: bannerColor,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {isOverdue ? "days late" : "days left"}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* ── 5. TAX COMPUTATION BREAKDOWN ───────────────────────── */}
-          <div style={{ marginBottom: 28 }}>
+          {/* 4. Tax Computation Line-by-Line Breakdown */}
+          <div>
             <div
               onClick={() => setShowBreakdown((b) => !b)}
               role="button"
@@ -3469,318 +2661,182 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 alignItems: "center",
                 justifyContent: "space-between",
                 cursor: "pointer",
-                marginBottom: showBreakdown ? 16 : 0,
+                padding: "16px 20px",
+                background: "var(--surface-0)",
+                borderRadius: 14,
+                border: `1px solid ${THEME.line}`,
               }}
             >
-              <h3
-                style={{
-                  fontSize: 16,
-                  fontWeight: 900,
-                  margin: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <Calculator size={18} color={THEME.accent} />
-                Tax Computation — Line by Line
-                <Badge variant="muted" style={{ fontSize: 10, fontWeight: 700, marginLeft: 4 }}>
-                  {activeRegime === "new" ? "New Regime" : "Old Regime"}
-                </Badge>
-              </h3>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  icon={<Calculator size={14} />}
-                  onClick={(e: any) => {
-                    e.stopPropagation();
-                    printTaxSummary();
-                  }}
-                >
-                  Tax Report
-                </Button>
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    border: `1px solid ${THEME.line}`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: THEME.muted,
-                  }}
-                >
-                  {showBreakdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </div>
+                <Calculator size={20} color={THEME.accent} />
+                <span style={{ fontSize: 15, fontWeight: 900, color: THEME.ink }}>
+                  Tax Computation Waterfall — Line by Line Breakdown
+                </span>
+                <Badge variant="muted">
+                  {activeRegime === "new" ? "New Regime Slabs" : "Old Regime Slabs"}
+                </Badge>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {showBreakdown ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </div>
             </div>
 
             {showBreakdown && (
-              <Card style={{ padding: 28 }}>
-                {annualIncome === 0 ? (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      color: THEME.muted,
-                      fontSize: 13,
-                      padding: "20px 0",
-                    }}
-                  >
-                    Enter your annual income in the deductions panel below to see the breakdown.
-                  </div>
-                ) : (
+              <div style={{ marginTop: 14 }}>
+                <Card style={{ padding: 24 }}>
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: hasNewRegime
-                        ? "repeat(auto-fit, minmax(280px, 1fr))"
-                        : "1fr",
-                      gap: 32,
+                      gridTemplateColumns: hasNewRegime ? "repeat(auto-fit, minmax(280px, 1fr))" : "1fr",
+                      gap: 24,
                     }}
                   >
-                    {/* New Regime breakdown */}
                     {hasNewRegime && (
                       <div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 800,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.1em",
-                            color: THEME.accent,
-                            marginBottom: 16,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: 2,
-                              background: THEME.accent,
-                            }}
-                          />
-                          New Regime · FY {fy}
+                        <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: 2, background: THEME.accent }} />
+                          New Tax Regime · FY {fy}
                         </div>
                         <SlabBreakdownTable result={taxNewResult} regime="new" />
                       </div>
                     )}
-
-                    {/* Old Regime breakdown */}
                     <div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 800,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                          color: THEME.gold,
-                          marginBottom: 16,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <div
-                          style={{ width: 8, height: 8, borderRadius: 2, background: THEME.gold }}
-                        />
-                        Old Regime · FY {fy}
+                      <div style={{ fontSize: 13, fontWeight: 800, color: THEME.gold, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 2, background: THEME.gold }} />
+                        Old Tax Regime · FY {fy}
                       </div>
                       <SlabBreakdownTable result={taxOldDisplay} regime="old" />
                     </div>
                   </div>
-                )}
-                {currentResult.surcharge === 0 && (
-                  <div
-                    style={{
-                      marginTop: 16,
-                      padding: "8px 12px",
-                      borderRadius: 8,
-                      background: `color-mix(in srgb, ${THEME.sage} 4%, transparent)`,
-                      border: `1px solid color-mix(in srgb, ${THEME.sage} 13%, transparent)`,
-                      fontSize: 11,
-                      color: THEME.muted,
-                    }}
-                  >
-                    <Info size={12} style={{ verticalAlign: -2, marginRight: 2, flexShrink: 0 }} />{" "}
-                    Surcharge ({activeRegime === "new" ? "10%–25%" : "10%–37%"}) applies only for
-                    income above ₹50 lakh
-                    {activeRegime === "new" ? " (capped at 25% in the new regime)" : ""}. Health &
-                    Education Cess @ 4% is mandatory on tax + surcharge.
-                  </div>
-                )}
-              </Card>
+                </Card>
+              </div>
             )}
           </div>
+        </div>
+      )}
 
-          {/* ── 6. DEDUCTIONS & INCOME PANEL ───────────────────────── */}
-          <div style={{ marginBottom: 16 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 900, margin: 0, letterSpacing: "-0.02em" }}>
-              {activeRegime === "old"
-                ? "Income & Deductions (Old Regime)"
-                : "Income & Deductions Reference"}
-            </h3>
-          </div>
-          <Card style={{ padding: 32, marginBottom: 28 }}>
-            {/* Income row */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                gap: 16,
-                marginBottom: 24,
-                paddingBottom: 24,
-                borderBottom: `1.5px solid ${THEME.line}`,
-              }}
-            >
-              <Field label="Annual Income (for tax computation)">
-                <input
-                  className="form-input"
-                  type="number"
-                  placeholder={
-                    detectedIncome > 0
-                      ? `Auto: ${privacyMode ? "••••" : fmtINRFull(Math.round(detectedIncome))}`
-                      : "Enter annual income"
-                  }
-                  value={incomeOverride}
-                  onChange={(e) => setIncomeOverride(e.target.value)}
-                />
-              </Field>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
-                  paddingBottom: 2,
-                }}
-              >
-                <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, lineHeight: 1.6 }}>
-                  {incomeOverride !== "" ? (
-                    <span style={{ color: THEME.gold, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <Zap size={12} /> Using manual override:{" "}
-                      <Money value={Number(incomeOverride) || 0} variant="full" />/yr
-                    </span>
-                  ) : detectedIncome > 0 ? (
-                    <span>
-                      Auto-detected:{" "}
-                      <b style={{ color: THEME.ink }}>
-                        <Money value={detectedIncome} variant="full" />/yr
-                      </b>
-                    </span>
-                  ) : (
-                    <span style={{ color: THEME.rust }}>
-                      No income detected — enter annual income manually
-                    </span>
-                  )}
-                  {incomeOverride !== "" && (
-                    <button
-                      onClick={() => setIncomeOverride("")}
-                      style={{
-                        marginLeft: 8,
-                        background: "none",
-                        border: "none",
-                        color: THEME.muted,
-                        cursor: "pointer",
-                        fontSize: 11,
-                        textDecoration: "underline",
-                      }}
-                    >
-                      Reset to auto
-                    </button>
-                  )}
+      {/* ══════════════════════════════════════════════════════════════
+          VIEW 2: 5-HEADS INCOME & CHAPTER VI-A DEDUCTIONS
+         ══════════════════════════════════════════════════════════════ */}
+      {subTab === "heads" && (
+        <div className="tab-content-enter" style={{ display: "grid", gap: 24 }}>
+          {/* Income Source Decomposition */}
+          <Card style={{ padding: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink }}>
+                  5 Heads of Income Decomposition
                 </div>
-                {annualIncome > 0 && (
-                  <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, color: THEME.sage }}>
-                    {activeRegime === "new" ? (
-                      taxNewResult.rebateApplied && taxNewResult.total === 0 ? (
-                        "✓ 87A rebate: ₹0 tax (income within threshold)"
-                      ) : (
-                        <>
-                          New regime taxable: <Money value={taxNewResult.taxable} variant="full" />
-                        </>
-                      )
-                    ) : taxOldResult.rebateApplied && taxOldResult.total === 0 ? (
-                      "✓ 87A rebate: ₹0 tax after deductions"
-                    ) : (
-                      <>
-                        Old regime taxable: <Money value={taxOldResult.taxable} variant="full" />
-                      </>
-                    )}
-                  </div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>
+                  Indian Income Tax statutory heads (Salary, House Property, Capital Gains, Business, Other)
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <Field label="Annual Income Override" style={{ marginBottom: 0 }}>
+                  <input
+                    className="form-input"
+                    type="number"
+                    placeholder={detectedIncome > 0 ? `Auto: ${fmtINR(detectedIncome)}` : "e.g. 1500000"}
+                    value={incomeOverride}
+                    onChange={(e) => setIncomeOverride(e.target.value)}
+                    style={{ padding: "6px 12px", width: 160 }}
+                  />
+                </Field>
+                {incomeOverride && (
+                  <Button size="sm" variant="ghost" onClick={() => setIncomeOverride("")}>
+                    Reset
+                  </Button>
                 )}
               </div>
             </div>
 
-            {/* Deductions grid */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 6,
-                marginBottom: 8,
-                alignItems: "center",
-                gridColumn: "1/-1",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  gridColumn: "1/-1",
-                  marginBottom: 10,
-                  paddingBottom: 12,
-                  borderBottom: `1px solid ${THEME.line}`,
-                }}
-              >
-                <Target size={16} color={activeRegime === "old" ? THEME.gold : THEME.muted} />
-                <span
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+              {[
+                {
+                  head: "1. Income from Salary",
+                  amt: annualIncome,
+                  sub: "Gross salary & perks",
+                  icon: Briefcase,
+                  color: THEME.accent,
+                },
+                {
+                  head: "2. House Property",
+                  amt: housePropertyNet,
+                  sub: "Net of 30% std ded & interest",
+                  icon: Home,
+                  color: THEME.gold,
+                },
+                {
+                  head: "3. Capital Gains",
+                  amt: realizedGainsData.stcgGains + realizedGainsData.ltcgGains,
+                  sub: `STCG: ${fmtINR(realizedGainsData.stcgGains)} · LTCG: ${fmtINR(realizedGainsData.ltcgGains)}`,
+                  icon: TrendingUp,
+                  color: THEME.sage,
+                },
+                {
+                  head: "4. Business / Profession",
+                  amt: 0,
+                  sub: "Presumptive 44AD/44ADA",
+                  icon: Building2,
+                  color: THEME.muted,
+                },
+                {
+                  head: "5. Other Sources",
+                  amt: Number(deductions.d80TTA) || 0,
+                  sub: "Savings interest & dividends",
+                  icon: Landmark,
+                  color: THEME.muted,
+                },
+              ].map((h) => (
+                <div
+                  key={h.head}
                   style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    color: activeRegime === "old" ? THEME.gold : THEME.muted,
+                    padding: 16,
+                    borderRadius: 12,
+                    background: "rgba(128,128,128,0.03)",
+                    border: `1px solid ${THEME.line}`,
                   }}
                 >
-                  Deductions — Old Regime Only
-                </span>
-                {activeRegime === "new" && (
-                  <span style={{ fontSize: 11, color: THEME.muted, marginLeft: 4 }}>
-                    (Reference only — deductions don't apply in new regime, except 80CCD(2))
-                  </span>
-                )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <h.icon size={16} color={h.color} />
+                    <span style={{ fontSize: 12, fontWeight: 800, color: THEME.ink }}>{h.head}</span>
+                  </div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 900, color: THEME.ink }}>
+                    <Money value={h.amt} variant="full" />
+                  </div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>{h.sub}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Chapter VI-A Deduction Tracker */}
+          <Card style={{ padding: 24, borderTop: `4px solid ${THEME.gold}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink }}>
+                  Chapter VI-A Statutory Deductions (Old Regime)
+                </div>
+                <div style={{ fontSize: 12, color: THEME.muted }}>
+                  Auto-detected from your portfolio holdings, insurance policies, loans & rent receipts
+                </div>
               </div>
+              <Badge variant={activeRegime === "old" ? "gold" : "muted"}>
+                {activeRegime === "old" ? "Active Tax Shield" : "Reference Only (New Regime Active)"}
+              </Badge>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                gap: 16,
-              }}
-            >
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 18 }}>
               {/* 80C */}
-              <div style={{ gridColumn: "1 / -1" }}>
-                <Field
-                  label="80C — ELSS, PPF, LIC, EPF, NSC (max ₹1.5L)"
-                  style={{ marginBottom: 0 }}
-                >
+              <div style={{ gridColumn: "1/-1" }}>
+                <Field label="Section 80C — EPF, PPF, ELSS, Life Insurance, SCSS (Max ₹1.50 Lakh)">
                   <input
                     className="form-input"
                     type="number"
                     value={deductions.d80C}
                     onChange={(e) => setDed("d80C", e.target.value)}
                     onBlur={(e) =>
-                      handleDeductionBlur(
-                        "d80C",
-                        Number(e.target.value) || 0,
-                        e.target.value === ""
-                      )
+                      handleDeductionBlur("d80C", Number(e.target.value) || 0, e.target.value === "")
                     }
                   />
                 </Field>
@@ -3788,23 +2844,13 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   const used = Math.min(Number(deductions.d80C) || 0, 150_000);
                   const pct = Math.min(100, (used / 150_000) * 100);
                   const remaining = Math.max(0, 150_000 - used);
-                  const barColor = pct >= 100 ? THEME.sage : pct >= 60 ? THEME.gold : THEME.rust;
                   return (
-                    <div style={{ marginTop: 8 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: 10,
-                          color: THEME.muted,
-                          fontWeight: 700,
-                          marginBottom: 4,
-                        }}
-                      >
-                        <span style={{ color: barColor }}>
-                          {pct.toFixed(0)}% utilized · <Money value={used} variant="full" /> of ₹1.5L
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
+                        <span style={{ color: pct >= 100 ? THEME.sage : THEME.gold }}>
+                          {pct.toFixed(0)}% utilized · <Money value={used} variant="full" /> of ₹1.50L
                         </span>
-                        <span>
+                        <span style={{ color: THEME.muted }}>
                           {remaining > 0 ? (
                             <>
                               <Money value={remaining} variant="full" /> room left
@@ -3814,26 +2860,18 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           )}
                         </span>
                       </div>
-                      <div className="progress-track" style={{ height: 5 }}>
+                      <div className="progress-track" style={{ height: 6 }}>
                         <div
                           className="progress-fill"
-                          style={{ width: `${pct}%`, background: barColor }}
+                          style={{
+                            width: `${pct}%`,
+                            background: pct >= 100 ? THEME.sage : THEME.gold,
+                          }}
                         />
                       </div>
                       {autoDetected.d80C_sources && (
-                        <div
-                          style={{
-                            marginTop: 6,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: THEME.accent,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          <Zap size={10} /> Auto-detected:{" "}
-                          {maskCurrencyInText(autoDetected.d80C_sources, privacyMode)}
+                        <div style={{ fontSize: 11, color: THEME.accent, fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                          <Zap size={11} /> Auto-detected: {maskCurrencyInText(autoDetected.d80C_sources, privacyMode)}
                         </div>
                       )}
                     </div>
@@ -3841,77 +2879,33 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                 })()}
               </div>
 
+              {/* 80D */}
               <div>
-                <Field
-                  label={`80D — Health Insurance (max ₹${d80DCap / 1000}K)`}
-                  style={{ marginBottom: 0 }}
-                >
+                <Field label={`Section 80D — Health Insurance (Max ₹${d80DCap / 1000}K)`}>
                   <input
                     className="form-input"
                     type="number"
                     value={deductions.d80D}
                     onChange={(e) => setDed("d80D", e.target.value)}
                     onBlur={(e) =>
-                      handleDeductionBlur(
-                        "d80D",
-                        Number(e.target.value) || 0,
-                        e.target.value === ""
-                      )
+                      handleDeductionBlur("d80D", Number(e.target.value) || 0, e.target.value === "")
                     }
                   />
                 </Field>
-                <label
-                  style={{
-                    marginTop: 6,
-                    fontSize: 10,
-                    color: THEME.muted,
-                    fontWeight: 700,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    cursor: "pointer",
-                  }}
-                >
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: THEME.muted, fontWeight: 700, cursor: "pointer", marginTop: 4 }}>
                   <input
                     type="checkbox"
                     checked={!!deductions.d80DSenior}
                     onChange={toggleD80DSenior}
-                    style={{ width: 13, height: 13, accentColor: "var(--t-accent)", cursor: "pointer" }}
+                    style={{ width: 14, height: 14, accentColor: THEME.accent }}
                   />
-                  Self or parents insured is a senior citizen (60+) — raises cap to ₹50K
+                  Self or parents is senior citizen (60+) — cap raised to ₹50K
                 </label>
-                {autoDetected.d80D_source ? (
-                  <div
-                    style={{
-                      marginTop: 5,
-                      fontSize: 10,
-                      color: THEME.sage,
-                      fontWeight: 600,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    <CheckCircle2 size={10} /> Auto-detected from {autoDetected.d80D_source}
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      marginTop: 5,
-                      fontSize: 10,
-                      color: THEME.muted,
-                      fontWeight: 600,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    <Pencil size={10} /> Enter manually or add policies in Health Insurance
-                  </div>
-                )}
               </div>
+
+              {/* HRA */}
               <div>
-                <Field label="HRA Exemption [u/s 10(13A)]" style={{ marginBottom: 0 }}>
+                <Field label="HRA Exemption u/s 10(13A)">
                   <input
                     className="form-input"
                     type="number"
@@ -3922,259 +2916,94 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     }
                   />
                 </Field>
-                {autoDetected.hra_source ? (
-                  <div
-                    style={{
-                      marginTop: 5,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: THEME.accent,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    <Zap size={10} /> Auto-detected: {autoDetected.hra_source} — verify actual HRA
-                    exemption
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      marginTop: 5,
-                      fontSize: 10,
-                      color: THEME.muted,
-                      fontWeight: 600,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    <Pencil size={10} /> Enter manually — add rent payments in Rental Details to
-                    auto-detect
+                {autoDetected.hra_source && (
+                  <div style={{ fontSize: 10, color: THEME.accent, fontWeight: 700, marginTop: 2 }}>
+                    <Zap size={10} style={{ verticalAlign: -1 }} /> Auto: {autoDetected.hra_source}
                   </div>
                 )}
               </div>
+
+              {/* Home Loan 24b */}
               <div>
-                <Field label="Home Loan Interest — Sec 24(b) (max ₹2L)" style={{ marginBottom: 0 }}>
+                <Field label="Section 24(b) — Home Loan Interest (Max ₹2.00L)">
                   <input
                     className="form-input"
                     type="number"
                     value={deductions.homeLoan}
                     onChange={(e) => setDed("homeLoan", e.target.value)}
                     onBlur={(e) =>
-                      handleDeductionBlur(
-                        "homeLoan",
-                        Number(e.target.value) || 0,
-                        e.target.value === ""
-                      )
+                      handleDeductionBlur("homeLoan", Number(e.target.value) || 0, e.target.value === "")
                     }
                   />
                 </Field>
-                {autoDetected.homeLoan_source ? (
-                  <div
-                    style={{
-                      marginTop: 5,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: THEME.accent,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    <Zap size={10} /> Auto-detected from: {autoDetected.homeLoan_source}
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      marginTop: 5,
-                      fontSize: 10,
-                      color: THEME.muted,
-                      fontWeight: 600,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    <Pencil size={10} /> Enter manually — add Home loan in Credit & Liabilities to
-                    auto-detect
+                {autoDetected.homeLoan_source && (
+                  <div style={{ fontSize: 10, color: THEME.accent, fontWeight: 700, marginTop: 2 }}>
+                    <Zap size={10} style={{ verticalAlign: -1 }} /> Auto: {autoDetected.homeLoan_source}
                   </div>
                 )}
               </div>
-              <Field label="NPS Self — 80CCD(1B) (max ₹50K, old only)" style={{ marginBottom: 0 }}>
-                <input
-                  className="form-input"
-                  type="number"
-                  value={deductions.nps}
-                  onChange={(e) => setDed("nps", e.target.value)}
-                  onBlur={(e) =>
-                    handleDeductionBlur("nps", Number(e.target.value) || 0, e.target.value === "")
-                  }
-                />
-              </Field>
-              <Field
-                label={`NPS Employer — 80CCD(2) (${activeRegime === "new" ? "14%" : "10%"} of salary · both regimes)`}
-                style={{ marginBottom: 0 }}
-              >
-                <input
-                  className="form-input"
-                  type="number"
-                  value={deductions.d80CCD2 || 0}
-                  onChange={(e) => setDed("d80CCD2", e.target.value)}
-                  onBlur={(e) =>
-                    handleDeductionBlur(
-                      "d80CCD2",
-                      Number(e.target.value) || 0,
-                      e.target.value === ""
-                    )
-                  }
-                />
-              </Field>
-              <Field label="80G — Donations to eligible institutions" style={{ marginBottom: 0 }}>
-                <input
-                  className="form-input"
-                  type="number"
-                  value={deductions.d80G || 0}
-                  onChange={(e) => setDed("d80G", e.target.value)}
-                  onBlur={(e) =>
-                    handleDeductionBlur("d80G", Number(e.target.value) || 0, e.target.value === "")
-                  }
-                />
-              </Field>
-              <Field label="80E — Education Loan Interest (no cap)" style={{ marginBottom: 0 }}>
-                <input
-                  className="form-input"
-                  type="number"
-                  value={deductions.d80E || 0}
-                  onChange={(e) => setDed("d80E", e.target.value)}
-                  onBlur={(e) =>
-                    handleDeductionBlur("d80E", Number(e.target.value) || 0, e.target.value === "")
-                  }
-                />
-              </Field>
-              <Field
-                label="80TTA — Savings Interest (max ₹10K; 80TTB ₹50K for seniors)"
-                style={{ marginBottom: 0 }}
-              >
-                <input
-                  className="form-input"
-                  type="number"
-                  value={deductions.d80TTA || 0}
-                  onChange={(e) => setDed("d80TTA", e.target.value)}
-                  onBlur={(e) =>
-                    handleDeductionBlur(
-                      "d80TTA",
-                      Number(e.target.value) || 0,
-                      e.target.value === ""
-                    )
-                  }
-                />
-              </Field>
-              <Field
-                label={`Standard Deduction (Old Regime — ${privacyMode ? "••••" : fmtINRFull(stdDedOld)})`}
-                style={{ marginBottom: 0 }}
-              >
-                <input className="form-input" type="number" value={stdDedOld} disabled />
-              </Field>
-            </div>
 
-            {/* Summary bar */}
-            <div
-              style={{
-                marginTop: 32,
-                paddingTop: 24,
-                borderTop: `2px solid ${THEME.line}`,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 16,
-              }}
-            >
+              {/* NPS 80CCD(1B) */}
               <div>
-                {hasNewRegime ? (
-                  <>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: THEME.muted,
-                        fontWeight: 800,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                        marginBottom: 4,
-                      }}
-                    >
-                      {regimeVerdict && regimeVerdict.saving > 0
-                        ? regimeVerdict.better === "old"
-                          ? "Old Regime Saves You"
-                          : "New Regime Saves You"
-                        : "Both Regimes — Same Tax"}
-                    </div>
-                    <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 600, color: THEME.sage }}>
-                      <Money value={regimeVerdict ? regimeVerdict.saving : 0} variant="full" />
-                    </div>
-                    <div
-                      style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginTop: 4 }}
-                    >
-                      New: <Money value={taxNewResult.total} variant="full" /> · Old:{" "}
-                      <Money value={taxOldResult.total} variant="full" />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: THEME.muted,
-                        fontWeight: 800,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                        marginBottom: 4,
-                      }}
-                    >
-                      Tax Liability (Old Regime)
-                    </div>
-                    <div style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 600, color: THEME.rust }}>
-                      <Money value={taxOldResult.total} variant="full" />
-                    </div>
-                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
-                      Effective rate: {taxOldResult.effectiveRate.toFixed(2)}%
-                    </div>
-                  </>
-                )}
+                <Field label="NPS Individual — 80CCD(1B) (Max ₹50,000)">
+                  <input
+                    className="form-input"
+                    type="number"
+                    value={deductions.nps}
+                    onChange={(e) => setDed("nps", e.target.value)}
+                    onBlur={(e) =>
+                      handleDeductionBlur("nps", Number(e.target.value) || 0, e.target.value === "")
+                    }
+                  />
+                </Field>
               </div>
-              <Button
-                variant="accent"
-                size="lg"
-                icon={<Calculator size={20} />}
-                style={{ padding: "12px 40px" }}
-                onClick={printTaxSummary}
-              >
-                Generate Tax Report
-              </Button>
+
+              {/* NPS Employer 80CCD(2) */}
+              <div>
+                <Field label={`NPS Employer — 80CCD(2) (${activeRegime === "new" ? "14%" : "10%"} of Basic)`}>
+                  <input
+                    className="form-input"
+                    type="number"
+                    value={deductions.d80CCD2 || 0}
+                    onChange={(e) => setDed("d80CCD2", e.target.value)}
+                    onBlur={(e) =>
+                      handleDeductionBlur("d80CCD2", Number(e.target.value) || 0, e.target.value === "")
+                    }
+                  />
+                </Field>
+                <div style={{ fontSize: 10, color: THEME.sage, fontWeight: 700, marginTop: 2 }}>
+                  ✓ Permissible in both New and Old regimes
+                </div>
+              </div>
+
+              {/* 80TTA */}
+              <div>
+                <Field label="Section 80TTA — Savings Bank Interest (Max ₹10,000)">
+                  <input
+                    className="form-input"
+                    type="number"
+                    value={deductions.d80TTA || 0}
+                    onChange={(e) => setDed("d80TTA", e.target.value)}
+                    onBlur={(e) =>
+                      handleDeductionBlur("d80TTA", Number(e.target.value) || 0, e.target.value === "")
+                    }
+                  />
+                </Field>
+              </div>
             </div>
           </Card>
 
-          {/* ── 7. TAX SAVING TIPS ─────────────────────────────────── */}
+          {/* CFO Tax Saving Tips Opportunities */}
           {taxSavingTips.length > 0 && (
-            <div style={{ marginBottom: 28 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                 <Lightbulb size={20} color={THEME.gold} />
-                <h3 style={{ fontSize: 18, fontWeight: 900, margin: 0, letterSpacing: "-0.02em" }}>
-                  CFO Tax Saving Tips
+                <h3 style={{ fontSize: 16, fontWeight: 900, margin: 0 }}>
+                  CFO Tax Optimization Opportunities ({taxSavingTips.length})
                 </h3>
-                <Badge variant="gold" style={{ fontSize: 10, fontWeight: 800 }}>
-                  {taxSavingTips.length} Opportunities
-                </Badge>
               </div>
               <div style={{ display: "grid", gap: 12 }}>
                 {taxSavingTips.map((tip) => {
-                  const priorityColor =
-                    tip.priority === "high"
-                      ? THEME.rust
-                      : tip.priority === "medium"
-                        ? THEME.gold
-                        : THEME.muted;
                   const isExpanded = expandedTipId === tip.id;
                   return (
                     <div
@@ -4182,21 +3011,12 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                       style={{
                         borderRadius: 14,
                         background: "var(--surface-0)",
-                        border: `1.5px solid color-mix(in srgb, ${isExpanded ? priorityColor : THEME.line} 13%, transparent)`,
+                        border: `1.5px solid ${isExpanded ? THEME.gold : THEME.line}`,
                         overflow: "hidden",
-                        transition: "border-color 0.2s",
                       }}
                     >
                       <div
                         onClick={() => setExpandedTipId(isExpanded ? null : tip.id)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setExpandedTipId(isExpanded ? null : tip.id);
-                          }
-                        }}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -4205,145 +3025,41 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                           cursor: "pointer",
                         }}
                       >
-                        <tip.icon size={22} style={{ flexShrink: 0 }} color={priorityColor} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                              flexWrap: "wrap",
-                              marginBottom: 4,
-                            }}
-                          >
+                        <tip.icon size={22} color={THEME.gold} style={{ flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
                             <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
-                              {maskCurrencyInText(tip.title, privacyMode)}
+                              {tip.title}
                             </span>
-                            <Badge
-                              variant={
-                                tip.priority === "high"
-                                  ? "rust"
-                                  : tip.priority === "medium"
-                                    ? "gold"
-                                    : "muted"
-                              }
-                              style={{ fontSize: 9 }}
-                            >
+                            <Badge variant={tip.priority === "high" ? "rust" : "gold"}>
                               {tip.priority} priority
                             </Badge>
-                            <Badge variant="muted" style={{ fontSize: 9 }}>
-                              {tip.regime === "both"
-                                ? "Both Regimes"
-                                : tip.regime === "old"
-                                  ? "Old Regime Only"
-                                  : "New Regime"}
+                            <Badge variant="muted">
+                              {tip.regime === "both" ? "Both Regimes" : tip.regime === "old" ? "Old Regime" : "New Regime"}
                             </Badge>
                           </div>
                           <div style={{ fontSize: 12, color: THEME.muted }}>
                             {maskCurrencyInText(tip.shortDesc, privacyMode)}
                           </div>
                         </div>
-                        <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          {tip.saving != null && tip.saving > 0 && (
-                            <div>
-                              <div
-                                style={{
-                                  fontSize: 10,
-                                  color: THEME.muted,
-                                  fontWeight: 700,
-                                  textTransform: "uppercase",
-                                  marginBottom: 2,
-                                }}
-                              >
-                                Potential Saving
-                              </div>
-                              <div
-                                style={{
-                                  fontFamily: "var(--font-display)",
-                                  fontSize: 16,
-                                  fontWeight: 900,
-                                  color: THEME.sage,
-                                }}
-                              >
-                                ~<Money value={tip.saving} variant="full" />
-                              </div>
+                        {tip.saving && (
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" }}>
+                              Potential Saving
                             </div>
-                          )}
-                          <div style={{ marginTop: 4, color: THEME.muted }}>
-                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 900, color: THEME.sage }}>
+                              ~<Money value={tip.saving} variant="full" />
+                            </div>
                           </div>
+                        )}
+                        <div style={{ color: THEME.muted }}>
+                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </div>
                       </div>
                       {isExpanded && (
-                        <div
-                          style={{ padding: "0 20px 20px", borderTop: `1px solid ${THEME.line}` }}
-                        >
-                          <div
-                            style={{
-                              marginTop: 12,
-                              padding: "14px 16px",
-                              borderRadius: 10,
-                              background: `color-mix(in srgb, ${priorityColor} 3%, transparent)`,
-                              border: `1px solid color-mix(in srgb, ${priorityColor} 9%, transparent)`,
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                color: priorityColor,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.08em",
-                                marginBottom: 8,
-                              }}
-                            >
-                              {tip.section}
-                            </div>
-                            <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.7 }}>
-                              {maskCurrencyInText(tip.fullDesc, privacyMode)}
-                            </div>
-                            {tip.maxBenefit != null && tip.maxBenefit > 0 && (
-                              <div
-                                style={{
-                                  marginTop: 12,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 6,
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  color: THEME.sage,
-                                }}
-                              >
-                                <Zap size={13} />
-                                Maximum annual tax saving: <Money value={tip.maxBenefit} variant="full" />
-                              </div>
-                            )}
-                            {tip.utilizedPct > 0 && (
-                              <div style={{ marginTop: 10 }}>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    fontSize: 10,
-                                    color: THEME.muted,
-                                    fontWeight: 700,
-                                    marginBottom: 4,
-                                  }}
-                                >
-                                  <span>Utilization</span>
-                                  <span>{tip.utilizedPct.toFixed(0)}%</span>
-                                </div>
-                                <div className="progress-track" style={{ height: 4 }}>
-                                  <div
-                                    className="progress-fill"
-                                    style={{
-                                      width: `${Math.min(100, tip.utilizedPct)}%`,
-                                      background: priorityColor,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            )}
+                        <div style={{ padding: "0 20px 18px", borderTop: `1px solid ${THEME.line}` }}>
+                          <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.7, marginTop: 12 }}>
+                            {tip.fullDesc}
                           </div>
                         </div>
                       )}
@@ -4353,137 +3069,38 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               </div>
             </div>
           )}
-
-          {/* ── 8. PAYMENT LOG ─────────────────────────────────────── */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
-            <h3 style={{ fontSize: 18, fontWeight: 900, margin: 0, letterSpacing: "-0.02em" }}>
-              Payment Log & TDS
-            </h3>
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<Plus size={14} />}
-              onClick={() => setShowModal(true)}
-            >
-              Record Payment
-            </Button>
-          </div>
-
-          {taxPayments.length === 0 ? (
-            <div style={{ marginBottom: 40 }}>
-              <EmptyState
-                icon={History}
-                title="No Tax Payments Recorded Yet"
-                description="Log advance tax installments and TDS credits here to track what you've paid against what you owe for the year."
-                buttonLabel="Record Payment"
-                onAdd={() => setShowModal(true)}
-              />
-            </div>
-          ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))",
-                gap: 14,
-                marginBottom: 40,
-              }}
-            >
-              {taxPayments.map((p: any) => (
-                <Card
-                  key={p.id}
-                  style={{
-                    padding: "16px 20px",
-                    borderTop: `4px solid ${p.type === "TDS" ? THEME.gold : THEME.sage}`,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-                      <History size={20} color={THEME.muted} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}
-                      >
-                        <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, color: THEME.ink }}>
-                          <Money value={p.amount} variant="exact" />
-                        </span>
-                        <Badge variant="muted" style={{ fontSize: 9 }}>
-                          {p.type}
-                        </Badge>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: THEME.muted,
-                          fontWeight: 600,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {p.date} · {p.note || "No note"}
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setConfirmDeletePayment(p)}
-                      style={{ padding: 6, color: THEME.rust }}
-                      title="Delete"
-                      aria-label="Delete tax payment"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
       {/* ══════════════════════════════════════════════════════════════
-          SUB-TAB 2 — CAPITAL GAINS & LOSS HARVESTING
+          VIEW 3: CAPITAL GAINS & TAX-LOSS HARVESTING LAB
          ══════════════════════════════════════════════════════════════ */}
       {subTab === "capitalGains" && (
-        <div className="tab-content-enter">
-          {/* Note on rates — post-Budget 2024 */}
+        <div className="tab-content-enter" style={{ display: "grid", gap: 24 }}>
+          {/* Post-Budget 2024 Notice */}
           <div
             style={{
-              padding: "10px 16px",
-              borderRadius: 10,
+              padding: "14px 18px",
+              borderRadius: 12,
               background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
               display: "flex",
               alignItems: "flex-start",
-              gap: 8,
-              marginBottom: 20,
-              fontSize: 12,
-              color: THEME.muted,
+              gap: 12,
             }}
           >
-            <Info size={15} color={THEME.accent} style={{ flexShrink: 0, marginTop: 1 }} />
-            <span>
-              <b style={{ color: THEME.ink }}>Post-Budget 2024 rates (effective 23 Jul 2024):</b>{" "}
-              STCG on listed equity / equity MF @ <b>20%</b> · LTCG @ <b>12.5%</b> with ₹1.25L
-              annual exemption. <b>Debt MF</b> (purchased after 1 Apr 2023) — gains are taxed at
-              slab rate regardless of holding period.
-            </span>
+            <Info size={18} color={THEME.accent} style={{ flexShrink: 0, marginTop: 2 }} />
+            <div style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.6 }}>
+              <b>Finance Act 2024 Capital Gains Rates (Effective 23-Jul-2024):</b> Listed equity STCG is taxed at <b>20%</b> (15% pre-23 Jul 2024). LTCG is taxed at <b>12.5%</b> (10% pre-23 Jul 2024) with an enhanced <b>₹1.25 Lakh annual exemption</b> u/s 112A. Debt mutual funds bought post-1 Apr 2023 are taxed at slab rates.
+            </div>
           </div>
 
-          {/* Simulated Dashboard */}
-          <div className="tv-hero-grid-2" style={{ marginBottom: 32 }}>
+          {/* Hero Simulation Cockpit */}
+          <div className="tv-hero-grid-2">
             <Card
               variant="base"
               style={{
-                padding: 32,
+                padding: 28,
                 background:
                   "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 95%, var(--t-sage) 5%), var(--surface-0))",
                 border: `1px solid ${THEME.line}`,
@@ -4508,64 +3125,35 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     marginBottom: 8,
                   }}
                 >
-                  <Sparkles size={13} color={THEME.sage} /> Simulated Tax Saved
+                  <Sparkles size={14} color={THEME.sage} /> Simulated Tax Saved via Harvesting
                 </div>
                 <div
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: "clamp(36px, 5vw, 56px)",
+                    fontSize: "clamp(36px, 4.5vw, 52px)",
                     fontWeight: 900,
                     color: THEME.sage,
                     marginBottom: 4,
                     letterSpacing: "-0.03em",
                     lineHeight: 1.05,
-                    fontVariantNumeric: "tabular-nums",
                   }}
                 >
                   <Money value={animatedTotalSaved} variant="full" />
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    color: THEME.muted,
-                    fontSize: 13,
-                    fontWeight: 600,
-                  }}
-                >
-                  <Percent size={14} color={THEME.accent} /> Actual:{" "}
-                  <Money value={taxCalculations.actual.totalTax} variant="full" /> · Simulated:{" "}
-                  <Money value={taxCalculations.simulated.totalTax} variant="full" />
+                <div style={{ fontSize: 13, color: THEME.muted, fontWeight: 600 }}>
+                  Actual Tax: <Money value={taxCalculations.actual.totalTax} variant="full" /> → Simulated: <Money value={taxCalculations.simulated.totalTax} variant="full" />
                 </div>
               </div>
-              <div style={{ marginTop: 32 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: 11,
-                    color: THEME.muted,
-                    fontWeight: 800,
-                    textTransform: "uppercase",
-                    marginBottom: 10,
-                  }}
-                >
-                  <span>Offset Achieved</span>
+              <div style={{ marginTop: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: THEME.muted, fontWeight: 800, textTransform: "uppercase", marginBottom: 8 }}>
+                  <span>Loss Offset Realized</span>
                   <span>
                     {taxCalculations.actual.totalTax > 0
                       ? `${Math.min(100, (taxCalculations.totalSaved / taxCalculations.actual.totalTax) * 100).toFixed(0)}%`
                       : "0%"}
                   </span>
                 </div>
-                <div
-                  style={{
-                    height: 8,
-                    background: THEME.line,
-                    borderRadius: 10,
-                    overflow: "hidden",
-                  }}
-                >
+                <div style={{ height: 8, background: THEME.line, borderRadius: 10, overflow: "hidden" }}>
                   <div
                     style={{
                       height: "100%",
@@ -4579,688 +3167,371 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     }}
                   />
                 </div>
-                <div style={{ display: "flex", gap: 24, marginTop: 16 }}>
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: THEME.muted,
-                        textTransform: "uppercase",
-                        fontWeight: 700,
-                      }}
-                    >
-                      Net STCG (Actual)
-                    </div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>
-                      <span style={{ fontFamily: "var(--font-display)" }}>
-                        <Money value={taxCalculations.actual.netSTCG} variant="full" />
-                      </span>{" "}
-                      <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                        (Tax: <Money value={taxCalculations.actual.taxSTCG} variant="full" />)
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ width: 1, background: THEME.line }} />
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: THEME.muted,
-                        textTransform: "uppercase",
-                        fontWeight: 700,
-                      }}
-                    >
-                      Net LTCG (Actual)
-                    </div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>
-                      <span style={{ fontFamily: "var(--font-display)" }}>
-                        <Money value={taxCalculations.actual.netLTCG} variant="full" />
-                      </span>{" "}
-                      <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                        (Tax: <Money value={taxCalculations.actual.taxLTCG} variant="full" />)
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </Card>
 
-            <Card
-              style={{
-                padding: 24,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-              }}
-            >
+            <Card style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 20,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      letterSpacing: "0.15em",
-                      textTransform: "uppercase",
-                      color: THEME.muted,
-                    }}
-                  >
-                    Simulation Status
-                  </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.muted }}>
+                    Simulation Summary
+                  </span>
                   {simulatedHarvestIds.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSimulatedHarvestIds([])}
-                      icon={<RefreshCw size={12} />}
-                      style={{
-                        fontSize: 11,
-                        padding: "2px 8px",
-                        color: THEME.rust,
-                        background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
-                      }}
-                    >
+                    <Button size="sm" variant="ghost" onClick={() => setSimulatedHarvestIds([])}>
                       Reset
                     </Button>
                   )}
                 </div>
-                <div style={{ display: "grid", gap: 14 }}>
-                  {[
-                    {
-                      label: "Securities Harvested",
-                      value: `${simulatedHarvestIds.length} Assets`,
-                    },
-                    {
-                      label: "Simulated STCL Applied",
-                      value: (
-                        <>
-                          -<Money value={taxCalculations.simulated.stcLossesAdded} variant="full" />
-                        </>
-                      ),
-                    },
-                    {
-                      label: "Simulated LTCL Applied",
-                      value: (
-                        <>
-                          -<Money value={taxCalculations.simulated.ltcLossesAdded} variant="full" />
-                        </>
-                      ),
-                    },
-                  ].map(({ label, value }) => (
-                    <div
-                      key={label}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        paddingBottom: 12,
-                        borderBottom: `1px solid ${THEME.line}`,
-                      }}
-                    >
-                      <span style={{ fontSize: 13, fontWeight: 600, color: THEME.muted }}>
-                        {label}
-                      </span>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
-                        {value}
-                      </span>
-                    </div>
-                  ))}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
-                      Simulated Net Tax
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <span style={{ color: THEME.muted }}>Securities Selected</span>
+                    <span style={{ fontWeight: 800 }}>{simulatedHarvestIds.length} Assets</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <span style={{ color: THEME.muted }}>Simulated STCL Applied</span>
+                    <span style={{ fontWeight: 800, color: THEME.rust }}>
+                      -<Money value={taxCalculations.simulated.stcLossesAdded} variant="full" />
                     </span>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: 16,
-                        fontWeight: 900,
-                        color: taxCalculations.simulated.totalTax > 0 ? THEME.gold : THEME.sage,
-                      }}
-                    >
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <span style={{ color: THEME.muted }}>Simulated LTCL Applied</span>
+                    <span style={{ fontWeight: 800, color: THEME.rust }}>
+                      -<Money value={taxCalculations.simulated.ltcLossesAdded} variant="full" />
+                    </span>
+                  </div>
+                  <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 10, display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 800 }}>
+                    <span>Simulated Net Tax</span>
+                    <span style={{ color: THEME.sage }}>
                       <Money value={taxCalculations.simulated.totalTax} variant="full" />
                     </span>
                   </div>
                 </div>
               </div>
-              {taxCalculations.actual.totalTax === 0 && (
-                <div
-                  style={{
-                    marginTop: 16,
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: THEME.accent,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  <Info size={14} style={{ float: "left", marginRight: 6, marginTop: 1 }} />
-                  No realized capital gains this FY. Simulated losses can be carried forward for up
-                  to 8 assessment years to offset future profits.
-                </div>
-              )}
             </Card>
           </div>
 
           {/* Loss Harvesting Candidates */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
-            <div>
-              <h3 style={{ fontSize: 18, fontWeight: 900, margin: 0, letterSpacing: "-0.02em" }}>
-                Tax Loss Harvesting Optimizer
-              </h3>
-              <p style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
-                Select holdings trading at unrealized loss to simulate selling and offsetting
-                realized gains.
-              </p>
-            </div>
-            <Badge variant="muted" style={{ fontWeight: 800 }}>
-              {harvestCandidates.length} Loss Candidates
-            </Badge>
-          </div>
-
-          {harvestCandidates.length === 0 ? (
-            <Card
-              style={{
-                padding: "40px 0",
-                textAlign: "center",
-                color: THEME.muted,
-                fontSize: 13,
-                marginBottom: 32,
-              }}
-            >
-              <PartyPopper size={20} style={{ marginBottom: 8, color: THEME.sage }} />
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <div>
-                None of your current holdings are trading at a loss. No harvesting offset needed
-                this FY!
+                <h3 style={{ fontSize: 16, fontWeight: 900, margin: 0 }}>
+                  Tax-Loss Harvesting Optimizer
+                </h3>
+                <div style={{ fontSize: 12, color: THEME.muted }}>
+                  Click on unrealized loss holdings to simulate selling and offsetting capital gains
+                </div>
               </div>
-            </Card>
-          ) : (
-            <div style={{ display: "grid", gap: 12, marginBottom: 32 }}>
-              {harvestCandidates.map((cand) => {
-                const isSelected = simulatedHarvestIds.includes(cand.id);
-                const taxSavedEst = cand.isSlabTaxed
-                  ? cand.loss * marginalRate
-                  : cand.isLtcg
-                    ? cand.loss * 0.125
-                    : cand.loss * 0.2;
-                return (
-                  <div
-                    key={cand.id}
-                    onClick={() =>
-                      setSimulatedHarvestIds((prev) =>
-                        prev.includes(cand.id)
-                          ? prev.filter((x) => x !== cand.id)
-                          : [...prev, cand.id]
-                      )
-                    }
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={isSelected}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
+              <Badge variant="muted">{harvestCandidates.length} Loss Candidates</Badge>
+            </div>
+
+            {harvestCandidates.length === 0 ? (
+              <Card style={{ padding: "36px 0", textAlign: "center", color: THEME.muted }}>
+                <PartyPopper size={28} style={{ marginBottom: 8, color: THEME.sage }} />
+                <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                  All portfolio holdings are profitable!
+                </div>
+                <div style={{ fontSize: 12, marginTop: 4 }}>
+                  No loss harvesting offset required for FY {fy}.
+                </div>
+              </Card>
+            ) : (
+              <div style={{ display: "grid", gap: 10 }}>
+                {harvestCandidates.map((cand) => {
+                  const isSelected = simulatedHarvestIds.includes(cand.id);
+                  const taxSavedEst = cand.isSlabTaxed
+                    ? cand.loss * marginalRate
+                    : cand.isLtcg
+                      ? cand.loss * 0.125
+                      : cand.loss * 0.2;
+                  return (
+                    <div
+                      key={cand.id}
+                      onClick={() =>
                         setSimulatedHarvestIds((prev) =>
                           prev.includes(cand.id)
                             ? prev.filter((x) => x !== cand.id)
                             : [...prev, cand.id]
-                        );
+                        )
                       }
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 16,
-                      padding: "16px 20px",
-                      borderRadius: 14,
-                      background: isSelected
-                        ? `color-mix(in srgb, ${THEME.sage} 4%, transparent)`
-                        : "var(--surface-0)",
-                      border: `1.5px solid ${isSelected ? THEME.sage : THEME.line}`,
-                      cursor: "pointer",
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => {}}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isSelected}
                       style={{
-                        width: 18,
-                        height: 18,
-                        accentColor: "var(--t-sage)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 16,
+                        padding: "14px 18px",
+                        borderRadius: 12,
+                        background: isSelected
+                          ? `color-mix(in srgb, ${THEME.sage} 6%, transparent)`
+                          : "var(--surface-0)",
+                        border: `1.5px solid ${isSelected ? THEME.sage : THEME.line}`,
                         cursor: "pointer",
                       }}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
-                      >
-                        <span style={{ fontWeight: 800, fontSize: 15, color: THEME.ink }}>
-                          {cand.name}
-                        </span>
-                        <Badge variant="muted" style={{ fontSize: 9 }}>
-                          {cand.type}
-                        </Badge>
-                        <Badge variant={cand.isLtcg ? "muted" : "gold"} style={{ fontSize: 9 }}>
-                          {cand.isLtcg ? "LTCG (Long-Term)" : "STCG (Short-Term)"}
-                        </Badge>
-                      </div>
-                      <div
-                        style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, marginTop: 4 }}
-                      >
-                        Bought: {cand.buyDate || "—"} · Qty: {cand.qty.toFixed(2)} · Cost:{" "}
-                        <Money value={cand.invested} variant="full" /> · Market Val:{" "}
-                        <Money value={cand.currentVal} variant="full" />
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: THEME.muted,
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.03em",
-                        }}
-                      >
-                        Unrealized Loss
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: 16,
-                          fontWeight: 900,
-                          color: THEME.rust,
-                          marginTop: 2,
-                        }}
-                      >
-                        <Money value={cand.loss} variant="full" />
-                      </div>
-                      <div
-                        style={{ fontSize: 10, color: THEME.sage, fontWeight: 700, marginTop: 2 }}
-                      >
-                        Offsets ~<Money value={taxSavedEst} variant="full" /> tax
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Statutory Advisory */}
-          <div style={{ marginBottom: 16 }}>
-            <h3
-              style={{
-                fontSize: 18,
-                fontWeight: 900,
-                margin: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <BookOpen size={20} color={THEME.accent} /> CFO Statutory Compliance Vault
-            </h3>
-          </div>
-          <Card
-            style={{
-              padding: 24,
-              background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
-              border: `1.5px solid color-mix(in srgb, ${THEME.accent} 13%, transparent)`,
-              marginBottom: 24,
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: 24,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: THEME.accent,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    marginBottom: 8,
-                  }}
-                >
-                  Indian Statutory Netting Rules
-                </div>
-                <ul
-                  style={{
-                    fontSize: 12,
-                    color: THEME.muted,
-                    margin: 0,
-                    paddingLeft: 16,
-                    lineHeight: 1.7,
-                  }}
-                >
-                  <li>
-                    <b>STCL</b> can offset both Short-Term and Long-Term Capital Gains (Sec 70).
-                  </li>
-                  <li style={{ marginTop: 4 }}>
-                    <b>LTCL</b> can only offset Long-Term Capital Gains — cannot touch STCG (Sec
-                    70).
-                  </li>
-                  <li style={{ marginTop: 4 }}>
-                    <b>Carry Forward:</b> Unabsorbed CG losses can be carried forward for up to{" "}
-                    <b>8 assessment years</b> (ITR must be filed before due date to preserve
-                    carry-forward).
-                  </li>
-                  <li style={{ marginTop: 4 }}>
-                    <b>LTCG exemption:</b> First ₹1.25L of LTCG on equity / equity MF per year is
-                    exempt u/s 112A.
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: THEME.gold,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    marginBottom: 8,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <AlertTriangle size={13} /> CFO Advisory — Avoid Wash-Sales
-                </div>
-                <p style={{ fontSize: 12, color: THEME.muted, margin: 0, lineHeight: 1.7 }}>
-                  Selling purely to book tax losses and repurchasing the same asset the same day can
-                  invite audit scrutiny under GAAR (General Anti-Avoidance Rule, Sec 96-102). To
-                  avoid tax evasion flags: wait at least 2-3 business days before re-entering, or
-                  reinvest in a highly correlated alternative (different ETF / similar sector MF) to
-                  lock in the tax saving safely.
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Realized Transactions Ledger */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
-            <h3 style={{ fontSize: 18, fontWeight: 900, margin: 0, letterSpacing: "-0.02em" }}>
-              Realized Transactions Ledger
-            </h3>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Badge variant="muted" style={{ fontWeight: 800 }}>
-                {realizedGainsData.allSells.length} Transactions
-              </Badge>
-              {realizedGainsData.allSells.length > 0 && (
-                <>
-                  <button
-                    onClick={downloadCGCsv}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "6px 14px",
-                      borderRadius: 8,
-                      border: `1px solid color-mix(in srgb, ${THEME.sage} 33%, transparent)`,
-                      background: "transparent",
-                      color: THEME.sage,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <Download size={13} /> Export CSV
-                  </button>
-                  <button
-                    onClick={() => {
-                      const { allSells, stcgLosses, ltcgLosses } = realizedGainsData;
-                      const ltcgExempt = fyStartYear >= 2024 ? 125000 : 100000;
-                      // Rate split at 23-Jul-2024 (Budget 2024) is applied per transaction,
-                      // not FY-wide — see computeEquityCGTax.
-                      const { netSTCG, netLTCG, taxSTCG, taxLTCG } = computeEquityCGTax(
-                        allSells,
-                        ltcgExempt
-                      );
-                      const straddlesRateChange = fyStartYear === 2024;
-                      const rateNote = straddlesRateChange
-                        ? `STCG 15% (before 23-Jul-2024) / 20% (on/after) · LTCG 10%/12.5% — Budget 2024 rate change fell mid-year`
-                        : `STCG rate ${(fyStartYear >= 2024 ? 20 : 15).toFixed(0)}%, LTCG rate ${(fyStartYear >= 2024 ? 12.5 : 10).toFixed(1)}%`;
-                      const stcgRows = allSells.filter((s: any) => !s.isLtcg);
-                      const ltcgRows = allSells.filter((s: any) => s.isLtcg);
-                      const rowHtml = (items: any[], label: string) =>
-                        items
-                          .map(
-                            (s: any) =>
-                              `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.type)}</td><td>${s.buyDate || "-"}</td><td>${s.sellDate || "-"}</td><td>${s.days}d</td><td style="text-align:right">${fmtINRFull(s.buyPrice * s.qty)}</td><td style="text-align:right">${fmtINRFull(s.sellPrice * s.qty)}</td><td style="text-align:right;color:${s.profit >= 0 ? "#22c55e" : "#ef4444"}">${fmtINRFull(s.profit)}</td>${s.grandfathered ? '<td style="font-size:10px;color:#f59e0b">GF</td>' : "<td></td>"}</tr>`
-                          )
-                          .join("");
-                      const html = `<html><head><title>Capital Gains Report - FY ${fy}</title>
-                        <style>body{font-family:Inter,sans-serif;padding:40px;max-width:1000px;margin:auto;font-size:13px}
-                        h1{font-size:22px}h2{font-size:16px;margin-top:28px;border-bottom:2px solid #e5e7eb;padding-bottom:6px}
-                        table{width:100%;border-collapse:collapse;margin:12px 0}
-                        th,td{padding:8px 10px;border:1px solid #e5e7eb;text-align:left;font-size:12px}
-                        th{background:#f3f4f6;font-weight:700}.summary{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
-                        .box{padding:16px;border-radius:10px;border:1px solid #e5e7eb}.label{font-size:11px;color:#6b7280}
-                        .value{font-size:20px;font-weight:800}@media print{body{padding:20px}}</style></head><body>
-                        <h1>ITR Capital Gains Report — FY ${fy}</h1>
-                        <p style="color:#6b7280">Generated: ${new Date().toLocaleDateString("en-IN")} | Schedule CG Summary</p>
-                        <div class="summary">
-                          <div class="box"><div class="label">Net Short-Term CG</div><div class="value">${fmtINRFull(netSTCG)}</div><div class="label">Tax: ${fmtINRFull(taxSTCG)}</div></div>
-                          <div class="box"><div class="label">Net Long-Term CG</div><div class="value">${fmtINRFull(netLTCG)}</div><div class="label">Exempt: ${fmtINRFull(ltcgExempt)} | Tax: ${fmtINRFull(taxLTCG)}</div></div>
-                          <div class="box"><div class="label">Total CG Tax Liability</div><div class="value" style="color:#ef4444">${fmtINRFull(taxSTCG + taxLTCG)}</div><div class="label">+ 4% Health & Education Cess</div></div>
-                          <div class="box"><div class="label">Loss Set-off</div><div class="value">${fmtINRFull(stcgLosses + ltcgLosses)}</div><div class="label">STCL: ${fmtINRFull(stcgLosses)} | LTCL: ${fmtINRFull(ltcgLosses)}</div></div>
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}}
+                        style={{ width: 16, height: 16, accentColor: THEME.sage }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
+                            {cand.name}
+                          </span>
+                          <Badge variant="muted">{cand.type}</Badge>
+                          <Badge variant={cand.isLtcg ? "muted" : "gold"}>
+                            {cand.isLtcg ? "LTCG" : "STCG"}
+                          </Badge>
                         </div>
-                        ${
-                          stcgRows.length > 0
-                            ? `<h2>Schedule CG — Part A: Short-Term Capital Gains (${stcgRows.length} transactions)</h2>
-                        <table><tr><th>Security</th><th>Type</th><th>Buy Date</th><th>Sell Date</th><th>Holding</th><th>Cost</th><th>Sale Value</th><th>Gain/Loss</th><th>GF</th></tr>${rowHtml(stcgRows, "STCG")}</table>`
-                            : ""
-                        }
-                        ${
-                          ltcgRows.length > 0
-                            ? `<h2>Schedule CG — Part B: Long-Term Capital Gains (${ltcgRows.length} transactions)</h2>
-                        <table><tr><th>Security</th><th>Type</th><th>Buy Date</th><th>Sell Date</th><th>Holding</th><th>Cost</th><th>Sale Value</th><th>Gain/Loss</th><th>GF</th></tr>${rowHtml(ltcgRows, "LTCG")}</table>`
-                            : ""
-                        }
-                        <h2>Notes</h2><ul>
-                        <li>GF = Grandfathering applied (equity bought before 01-Feb-2018, FMV used as cost basis)</li>
-                        <li>STCG: Listed equity sold within 12 months; LTCG: Listed equity sold after 12 months</li>
-                        <li>FY ${fy}: ${rateNote} (above ₹${(ltcgExempt / 100000).toFixed(2)}L LTCG exemption)</li>
-                        </ul></body></html>`;
-                      const w = window.open("", "_blank");
-                      if (w) {
-                        w.document.write(html);
-                        w.document.close();
-                      }
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "6px 14px",
-                      borderRadius: 8,
-                      border: `1px solid color-mix(in srgb, ${THEME.accent} 33%, transparent)`,
-                      background: "transparent",
-                      color: THEME.accent,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <Download size={13} /> ITR Report
-                  </button>
-                </>
-              )}
-            </div>
+                        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                          Invested: <Money value={cand.invested} variant="full" /> · Current Value:{" "}
+                          <Money value={cand.currentVal} variant="full" />
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 10, color: THEME.muted, textTransform: "uppercase", fontWeight: 700 }}>
+                          Unrealized Loss
+                        </div>
+                        <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 900, color: THEME.rust }}>
+                          <Money value={cand.loss} variant="full" />
+                        </div>
+                        <div style={{ fontSize: 10, color: THEME.sage, fontWeight: 700 }}>
+                          Saves ~<Money value={taxSavedEst} variant="full" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {realizedGainsData.allSells.length === 0 ? (
-            <div style={{ marginBottom: 40 }}>
+          {/* Realized Ledger Table */}
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 900, margin: 0 }}>
+                  Realized Capital Gains Ledger
+                </h3>
+                <div style={{ fontSize: 12, color: THEME.muted }}>
+                  {realizedGainsData.allSells.length} sell transactions recorded for FY {fy}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button size="sm" variant="secondary" icon={<Download size={14} />} onClick={downloadCGCsv}>
+                  Export CSV
+                </Button>
+              </div>
+            </div>
+
+            {realizedGainsData.allSells.length === 0 ? (
               <EmptyState
                 icon={BarChart3}
                 title={`No Realized Gains in FY ${fy}`}
-                description="Sell transactions logged in the Demat or Mutual Fund trackers will show up here automatically, classified into STCG/LTCG with tax computed."
+                description="Sell transactions from Demat and Mutual Funds will appear here automatically."
               />
-            </div>
-          ) : (
-            <div
-              style={{
-                background: "var(--surface-0)",
-                borderRadius: 14,
-                border: `1px solid ${THEME.line}`,
-                overflow: "hidden",
-                marginBottom: 40,
-              }}
-            >
-              <div className="mobile-table-wrap">
-              <table
-                style={{
-                  width: "100%",
-                  minWidth: 640,
-                  borderCollapse: "collapse",
-                  fontSize: 13,
-                  textAlign: "left",
-                }}
-              >
-                <thead>
-                  <tr
-                    style={{
-                      background: "rgba(128,128,128,0.03)",
-                      borderBottom: `1px solid ${THEME.line}`,
-                    }}
-                  >
-                    {[
-                      "Asset Name",
-                      "Type",
-                      "Holding Days",
-                      "Buy Price",
-                      "Sell Price",
-                      "Gain / Loss",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: "14px 20px",
-                          fontWeight: 800,
-                          color: THEME.muted,
-                          textAlign: [
-                            "Holding Days",
-                            "Buy Price",
-                            "Sell Price",
-                            "Gain / Loss",
-                          ].includes(h)
-                            ? "right"
-                            : "left",
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {realizedGainsData.allSells.map((sell, idx) => {
-                    const isProfit = sell.profit >= 0;
-                    return (
-                      <tr
-                        key={sell.id || idx}
-                        style={{
-                          borderBottom:
-                            idx < realizedGainsData.allSells.length - 1
-                              ? `1px solid ${THEME.line}`
-                              : "none",
-                        }}
-                        className="table-row-hover"
-                      >
-                        <td style={{ padding: "14px 20px", fontWeight: 800 }}>
-                          <div>{sell.name}</div>
-                          <div
-                            style={{
-                              fontSize: 10,
-                              color: THEME.muted,
-                              fontWeight: 500,
-                              marginTop: 4,
-                            }}
-                          >
-                            Sold {sell.sellDate} · Qty: {sell.qty}
-                          </div>
-                        </td>
-                        <td style={{ padding: "14px 20px" }}>
-                          <Badge variant={sell.isLtcg ? "muted" : "gold"}>
-                            {sell.isLtcg ? "LTCG" : "STCG"}
-                          </Badge>
-                        </td>
-                        <td
-                          style={{
-                            padding: "14px 20px",
-                            textAlign: "right",
-                            fontWeight: 600,
-                            color: THEME.muted,
-                          }}
-                        >
-                          {sell.days} Days
-                        </td>
-                        <td style={{ padding: "14px 20px", textAlign: "right", fontWeight: 600 }}>
-                          <Money value={sell.buyPrice} variant="full" />
-                        </td>
-                        <td style={{ padding: "14px 20px", textAlign: "right", fontWeight: 600 }}>
-                          <Money value={sell.sellPrice} variant="full" />
-                        </td>
-                        <td
-                          style={{
-                            padding: "14px 20px",
-                            textAlign: "right",
-                            fontWeight: 800,
-                            color: isProfit ? THEME.sage : THEME.rust,
-                          }}
-                        >
-                          {isProfit ? "+" : ""}
-                          <Money value={sell.profit} variant="full" />
-                        </td>
+            ) : (
+              <Card style={{ padding: 0, overflow: "hidden", borderRadius: 14 }}>
+                <div className="mobile-table-wrap">
+                  <table style={{ width: "100%", minWidth: 640, borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ background: "rgba(128,128,128,0.03)", borderBottom: `1px solid ${THEME.line}` }}>
+                        <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 800, color: THEME.muted }}>Asset Name</th>
+                        <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 800, color: THEME.muted }}>Classification</th>
+                        <th style={{ padding: "12px 16px", textAlign: "right", fontSize: 11, fontWeight: 800, color: THEME.muted }}>Holding Days</th>
+                        <th style={{ padding: "12px 16px", textAlign: "right", fontSize: 11, fontWeight: 800, color: THEME.muted }}>Buy Cost</th>
+                        <th style={{ padding: "12px 16px", textAlign: "right", fontSize: 11, fontWeight: 800, color: THEME.muted }}>Sale Value</th>
+                        <th style={{ padding: "12px 16px", textAlign: "right", fontSize: 11, fontWeight: 800, color: THEME.muted }}>Gain / Loss</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              </div>
-            </div>
-          )}
+                    </thead>
+                    <tbody>
+                      {realizedGainsData.allSells.map((s: any, idx: number) => {
+                        const isProfit = s.profit >= 0;
+                        return (
+                          <tr key={s.id || idx} className="table-row-hover" style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                            <td style={{ padding: "12px 16px", fontWeight: 800 }}>
+                              <div>{s.name}</div>
+                              <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>
+                                Sold {s.sellDate} · Qty: {s.qty}
+                              </div>
+                            </td>
+                            <td style={{ padding: "12px 16px" }}>
+                              <Badge variant={s.isLtcg ? "muted" : "gold"}>
+                                {s.isLtcg ? "LTCG" : "STCG"}
+                              </Badge>
+                            </td>
+                            <td style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontWeight: 600 }}>
+                              {s.days}d
+                            </td>
+                            <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600 }}>
+                              <Money value={s.buyPrice * s.qty} variant="full" />
+                            </td>
+                            <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600 }}>
+                              <Money value={s.sellPrice * s.qty} variant="full" />
+                            </td>
+                            <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 800, color: isProfit ? THEME.sage : THEME.rust }}>
+                              {isProfit ? "+" : ""}
+                              <Money value={s.profit} variant="full" />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+          </div>
         </div>
       )}
 
       {/* ══════════════════════════════════════════════════════════════
-          SUB-TAB 3 — FORM 26AS RECONCILER
+          VIEW 4: ADVANCE TAX & PAYMENTS LEDGER
+         ══════════════════════════════════════════════════════════════ */}
+      {subTab === "advanceTax" && (
+        <div className="tab-content-enter" style={{ display: "grid", gap: 24 }}>
+          {/* Section 234 Penalty Projector */}
+          {netLiability >= 10000 && (
+            <Card style={{ padding: 24, borderTop: `4px solid ${THEME.gold}` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Scale size={20} color={THEME.gold} />
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 900 }}>
+                      Section 234A / 234B / 234C Statutory Penalty Radar
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.muted }}>
+                      Statutory interest calculated for FY {fy} quarterly advance tax shortfalls
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {(() => {
+                const now = new Date();
+                const totalPenalty234C = calcSection234CPenalty(
+                  fyStartYear,
+                  netLiability,
+                  totalAdvancePaid,
+                  now
+                );
+                return (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+                    <div style={{ padding: 16, borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" }}>
+                        Net Tax Liability
+                      </div>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 900, color: THEME.ink, marginTop: 4 }}>
+                        <Money value={netLiability} variant="full" />
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                        Gross tax minus TDS
+                      </div>
+                    </div>
+
+                    <div style={{ padding: 16, borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" }}>
+                        Advance Tax Paid
+                      </div>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 900, color: THEME.sage, marginTop: 4 }}>
+                        <Money value={totalAdvancePaid} variant="full" />
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                        Credited against liability
+                      </div>
+                    </div>
+
+                    <div style={{ padding: 16, borderRadius: 12, background: "rgba(128,128,128,0.03)", border: `1px solid ${THEME.line}` }}>
+                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase" }}>
+                        Section 234C Penalty
+                      </div>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 900, color: totalPenalty234C > 0 ? THEME.rust : THEME.sage, marginTop: 4 }}>
+                        <Money value={totalPenalty234C} variant="full" />
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                        {totalPenalty234C > 0 ? "1% per month on shortfall" : "Zero penalty (on track)"}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </Card>
+          )}
+
+          {/* Payment Log Ledger */}
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 900, margin: 0 }}>
+                  Tax Payments & TDS History
+                </h3>
+                <div style={{ fontSize: 12, color: THEME.muted }}>
+                  {taxPayments.length} tax payments recorded for FY {fy}
+                </div>
+              </div>
+              <Button size="sm" variant="accent" icon={<Plus size={14} />} onClick={() => setShowModal(true)}>
+                Record Payment
+              </Button>
+            </div>
+
+            {taxPayments.length === 0 ? (
+              <EmptyState
+                icon={History}
+                title="No Tax Payments Logged Yet"
+                description="Record your quarterly advance tax challans and TDS deductions here."
+                buttonLabel="Record First Payment"
+                onAdd={() => setShowModal(true)}
+              />
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))", gap: 14 }}>
+                {taxPayments.map((p: any) => (
+                  <Card
+                    key={p.id}
+                    style={{
+                      padding: "16px 20px",
+                      borderLeft: `4px solid ${p.type === "TDS" ? THEME.gold : THEME.sage}`,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                          <span style={{ fontFamily: "var(--font-display)", fontWeight: 900, fontSize: 17, color: THEME.ink }}>
+                            <Money value={p.amount} variant="exact" />
+                          </span>
+                          <Badge variant={p.type === "TDS" ? "gold" : "sage"}>
+                            {p.type}
+                          </Badge>
+                        </div>
+                        <div style={{ fontSize: 12, color: THEME.muted }}>
+                          {p.date} · {p.note || p.bank || "Recorded Payment"}
+                        </div>
+                        {p.challanNo && (
+                          <div style={{ fontSize: 11, color: THEME.accent, marginTop: 2 }}>
+                            Challan: {p.challanNo}
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConfirmDeletePayment(p)}
+                        style={{ color: THEME.rust, padding: 6 }}
+                        title="Delete record"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          VIEW 5: 26AS & AIS RECONCILER
          ══════════════════════════════════════════════════════════════ */}
       {subTab === "reconciler" && (
         <div className="tab-content-enter">
@@ -5277,16 +3548,135 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
         </div>
       )}
 
+      {/* ══════════════════════════════════════════════════════════════
+          VIEW 6: TAX PLANNING TOOLKIT & ITR READINESS VAULT
+         ══════════════════════════════════════════════════════════════ */}
+      {subTab === "toolkit" && (
+        <div className="tab-content-enter" style={{ display: "grid", gap: 24 }}>
+          {/* Toolkit Tabs */}
+          <div style={{ display: "flex", gap: 10, borderBottom: `1px solid ${THEME.line}`, paddingBottom: 12, flexWrap: "wrap" }}>
+            {[
+              { id: "hra", label: "HRA Calculator u/s 10(13A)", icon: Home },
+              { id: "checklist", label: "ITR Filing Document Checklist", icon: FileCheck },
+              { id: "surcharge", label: "Surcharge & Marginal Relief", icon: Scale },
+            ].map(({ id, label, icon: Icon }) => (
+              <Button
+                key={id}
+                size="sm"
+                variant={activeToolkitTab === id ? "accent" : "ghost"}
+                icon={<Icon size={14} />}
+                onClick={() => setActiveToolkitTab(id as any)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+
+          {activeToolkitTab === "hra" && <HRACalculator />}
+
+          {activeToolkitTab === "checklist" && (
+            <Card style={{ padding: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink }}>
+                    ITR Filing Document Vault & Readiness Checklist
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted }}>
+                    Ensure you have all statutory certificates before filing your income tax return
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: 10 }}>
+                {[
+                  { id: "f16", title: "Form 16 (Part A & Part B)", desc: "Issued by employer showing total TDS deducted and salary breakup" },
+                  { id: "ais", title: "AIS / TIS Statement", desc: "Annual Information Statement downloaded from the Income Tax portal" },
+                  { id: "26as", title: "Form 26AS Tax Credit Statement", desc: "TRACES tax credit ledger showing all TDS, TCS, and Advance Tax paid" },
+                  { id: "cg", title: "Capital Gains Statement", desc: "Realized P&L statement from Zerodha, Groww, CAMS, or KFintech" },
+                  { id: "80d", title: "Health Insurance 80D Tax Certificate", desc: "Premium paid receipts for self, family, and senior citizen parents" },
+                  { id: "hl", title: "Home Loan Provisional / Final Certificate", desc: "Principal (80C) and Interest (24b) breakup from the lending bank" },
+                  { id: "rent", title: "Rent Receipts & Landlord PAN", desc: "Required for HRA claims exceeding ₹1.00 Lakh per annum" },
+                  { id: "80g", title: "Form 10BE Donation Receipts (80G)", desc: "Certificates for eligible charitable donations made during the fiscal year" },
+                ].map((item) => {
+                  const isDone = !!checklistCompleted[item.id];
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() =>
+                        setChecklistCompleted((prev) => ({
+                          ...prev,
+                          [item.id]: !prev[item.id],
+                        }))
+                      }
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 14,
+                        padding: "12px 16px",
+                        borderRadius: 10,
+                        background: isDone
+                          ? `color-mix(in srgb, ${THEME.sage} 6%, transparent)`
+                          : "rgba(128,128,128,0.03)",
+                        border: `1px solid ${isDone ? THEME.sage : THEME.line}`,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {isDone ? (
+                        <CheckSquare size={18} color={THEME.sage} />
+                      ) : (
+                        <Square size={18} color={THEME.muted} />
+                      )}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>
+                          {item.title}
+                        </div>
+                        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                          {item.desc}
+                        </div>
+                      </div>
+                      <Badge variant={isDone ? "sage" : "muted"}>
+                        {isDone ? "Ready ✓" : "Pending"}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
+          {activeToolkitTab === "surcharge" && (
+            <Card style={{ padding: 24 }}>
+              <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 12 }}>
+                High Net Worth Surcharge & Marginal Relief Rules
+              </div>
+              <div style={{ fontSize: 13, color: THEME.muted, lineHeight: 1.7 }}>
+                Under the Indian Income Tax Act, surcharges apply to individuals with high taxable income:
+                <ul style={{ marginTop: 8, paddingLeft: 20 }}>
+                  <li><b>₹50 Lakh to ₹1 Crore:</b> 10% surcharge on basic tax</li>
+                  <li><b>₹1 Crore to ₹2 Crore:</b> 15% surcharge on basic tax</li>
+                  <li><b>₹2 Crore to ₹5 Crore:</b> 25% surcharge on basic tax</li>
+                  <li><b>Above ₹5 Crore:</b> 37% in Old Regime, capped at <b>25%</b> in New Regime (Finance Act 2023)</li>
+                </ul>
+                <b>Marginal Relief:</b> Tax + Surcharge cannot exceed the total tax payable on ₹50L/₹1Cr/₹2Cr plus the incremental income above the threshold.
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── Modals & Dialogs ─────────────────────────────────────── */}
       {showModal && (
         <AddTaxPaymentModal
           onClose={() => setShowModal(false)}
           onSave={saveNewTaxPayment}
           saving={savingTaxPayment}
+          fy={fy}
         />
       )}
+
       {confirmDeletePayment && (
         <ConfirmDialog
-          message={`Delete this tax payment dated ${confirmDeletePayment.date}? This cannot be undone.`}
+          message={`Delete tax payment of ${fmtINRFull(confirmDeletePayment.amount)} dated ${confirmDeletePayment.date}?`}
           onConfirm={() => {
             deleteTaxPayment(confirmDeletePayment.id);
             setConfirmDeletePayment(null);
