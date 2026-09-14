@@ -15,8 +15,8 @@ export const INDEX_BENCHMARKS = {
 };
 
 export const OTHER_BENCHMARKS = {
-  fdRate: { label: "FD Rate (SBI)", "1Y": 7.1, "3Y": 6.5, "5Y": 6.8 },
-  inflation: { label: "Inflation (CPI)", "1Y": 5.5, "3Y": 5.8, "5Y": 5.5 },
-  gold: { label: "Gold", "1Y": 18, "3Y": 13, "5Y": 12 },
-  ppf: { label: "PPF Rate", "1Y": 7.1, "3Y": 7.1, "5Y": 7.6 },
+  fdRate: { label: "FD Rate (SBI)", "1Y": 7.1, "3Y": 6.5, "5Y": 6.8, "10Y": 6.6 },
+  inflation: { label: "Inflation (CPI)", "1Y": 5.5, "3Y": 5.8, "5Y": 5.5, "10Y": 5.6 },
+  gold: { label: "Gold", "1Y": 18, "3Y": 13, "5Y": 12, "10Y": 11.8 },
+  ppf: { label: "PPF Rate", "1Y": 7.1, "3Y": 7.1, "5Y": 7.6, "10Y": 7.9 },
 };

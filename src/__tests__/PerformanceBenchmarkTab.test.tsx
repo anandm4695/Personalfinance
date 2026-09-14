@@ -49,7 +49,7 @@ describe("PerformanceBenchmarkTab Premium UI Statically", () => {
     bankAccounts: [{ id: "a1", balance: 50000, name: "Savings Account" }],
   };
 
-  it("should render overall returns, total invested stats, benchmarks comparison charts, and health radars", () => {
+  it("should render overall returns, total invested stats, benchmarks comparison charts, and navigation tabs", () => {
     const html = renderToString(
       <PrivacyProvider>
         <PerformanceBenchmarkTab
@@ -66,15 +66,19 @@ describe("PerformanceBenchmarkTab Premium UI Statically", () => {
       </PrivacyProvider>
     );
 
-    // Verify key titles and card details render correctly
+    // Verify key titles, hero stats, and sub-view navigation tabs render correctly
     expect(html).toContain("Performance Benchmark");
     expect(html).toContain("Overall Return");
+    expect(html).toContain("Active Alpha (vs Nifty 50)");
+    expect(html).toContain("Real Return (vs Inflation)");
     expect(html).toContain("Total Invested");
     expect(html).toContain("Financial Health");
     expect(html).toContain("Your Returns vs Benchmarks");
-    expect(html).toContain("Asset Class Performance");
+    expect(html).toContain("Multi-Horizon Benchmark Matrix");
+    expect(html).toContain("Asset Class Attribution");
     expect(html).toContain("Financial Health Radar");
-    expect(html).toContain("Score Breakdown");
+    expect(html).toContain("Wealth Growth Simulator");
+    expect(html).toContain("Custom Target Benchmark");
   });
 
   it("applies the purity discount to physical gold value, matching the calc used in GoldSGBTab/RebalancingTab/useMetrics", () => {
@@ -118,5 +122,41 @@ describe("PerformanceBenchmarkTab Premium UI Statically", () => {
     // Buggy: goldValue = 100 * 7200 = 720000 → return = 44.0%
     expect(html).toContain("32.0%");
     expect(html).not.toContain("44.0%");
+  });
+
+  it("renders an EmptyState when no assets exist in state", () => {
+    const emptyState = {
+      stocks: [],
+      mutualFunds: [],
+      fixedDeposits: [],
+      recurringDeposits: [],
+      bonds: [],
+      ppf: [],
+      nps: [],
+      epf: [],
+      lic: [],
+      investmentPlans: [],
+      bankAccounts: [],
+      goldHoldings: [],
+    };
+
+    const html = renderToString(
+      <PrivacyProvider>
+        <PerformanceBenchmarkTab
+          state={emptyState}
+          metrics={{
+            monthIncome: 0,
+            monthExpense: 0,
+            debtToAssetRatio: 0,
+            overallGoalPct: 0,
+            emergencyFund: { monthsCovered: 0 },
+          }}
+          marketData={{}}
+        />
+      </PrivacyProvider>
+    );
+
+    expect(html).toContain("No Portfolio Data Yet");
+    expect(html).toContain("Add stocks, mutual funds, FDs, PPF or gold holdings");
   });
 });
