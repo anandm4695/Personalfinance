@@ -42,6 +42,27 @@ export const fmtINRExact = (n: number | string | null | undefined) => {
   return `₹${num.toLocaleString("en-IN", { minimumFractionDigits: hasPaisa ? 2 : 0, maximumFractionDigits: 2 })}`;
 };
 
+export const fmtDate = (d?: string | null): string => {
+  if (!d) return "—";
+  try {
+    const parts = d.split("-");
+    if (parts.length === 3) {
+      const year = parts[0];
+      const monthIdx = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      if (monthIdx >= 0 && monthIdx < 12) {
+        return `${day} ${months[monthIdx]} ${year}`;
+      }
+    }
+    const date = new Date(d);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    }
+  } catch {}
+  return String(d);
+};
+
 // Some strings (audit log descriptions, reminder subtitles) are pre-built free
 // text with a rupee amount embedded — e.g. "Added Transaction: Groceries — ₹5,240"
 // — so they can't be wrapped field-by-field with <Prv>/<Money>. Mask the ₹

@@ -1,51 +1,27 @@
-import React, { useState } from "react";
-import {
-  Shield,
-  Heart,
-  Wallet,
-  Zap,
-  Plus,
-  Trash2,
-  Pencil,
-  Sparkles,
-  Download,
-  TrendingUp,
-  AlertCircle,
-  Clock,
-  User,
-  ExternalLink,
-} from "lucide-react";
+import React, { useState, useMemo } from "react";
 import { THEME } from "../../utils/constants";
-import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { fmtINRFull, fmtINRExact, uid } from "../../utils/finance";
-import { Modal, ModalActions } from "../ui/Modal";
-import { Field } from "../ui/Form";
-import { Card } from "../ui/Card";
-import { Button } from "../ui/Button";
-import { SectionTitle } from "../ui/SectionTitle";
-import { EmptyState } from "../ui/EmptyState";
-import { Badge } from "../ui/Badge";
-import { StatCard } from "../ui/StatCard";
-import { usePrivacy } from "../../context/PrivacyContext";
-import { Money } from "../ui/Money";
-import { ConfirmDialog } from "../ui/Feedback";
+import { fmtINRFull, uid } from "../../utils/finance";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
+import { ConfirmDialog } from "../ui/Feedback";
+import { EmptyState } from "../ui/EmptyState";
+import { Shield, Plus } from "lucide-react";
+import { Button } from "../ui/Button";
 
-// Add `years` to `date` without JS's Date.setFullYear() month-overflow bug: a Feb-29
-// commencement date rolled forward by a whole number of years can land on a non-leap
-// target year, where Feb 29 doesn't exist — the native setFullYear() silently rolls
-// that over into March 1 instead of clamping to Feb 28. Used by all 3 auto-fill
-// maturity/expiry handlers below (LIC, Term, Investment plans).
-const addYearsClamped = (date: Date, years: number): Date => {
-  const targetYear = date.getFullYear() + years;
-  const month = date.getMonth();
-  const lastDayOfMonth = new Date(targetYear, month + 1, 0).getDate();
-  const result = new Date(date);
-  result.setFullYear(targetYear, month, Math.min(date.getDate(), lastDayOfMonth));
-  return result;
-};
+// Sub-components
+import {
+  InsuranceSubTab,
+  UnifiedInsurancePolicy,
+  getNextPremiumDueDate,
+} from "../insurance/InsuranceTypes";
+import { InsuranceHeader } from "../insurance/InsuranceHeader";
+import { InsuranceStatCards } from "../insurance/InsuranceStatCards";
+import { InsurancePolicyCard } from "../insurance/InsurancePolicyCard";
+import { InsuranceTableView } from "../insurance/InsuranceTableView";
+import { InsurancePremiumCalendar } from "../insurance/InsurancePremiumCalendar";
+import { InsuranceProtectionAnalyzer } from "../insurance/InsuranceProtectionAnalyzer";
+import { AddEditPolicyModal, PolicyLedgerDrawerModal } from "../insurance/InsuranceModals";
 
+// Re-exports for backwards compatibility
 import {
   InsurerLogo,
   LicLogo,
@@ -58,1610 +34,256 @@ export const INSURER_LOGOS: Record<string, string> = Object.fromEntries(
   Object.entries(CANONICAL_BRANDS).map(([k, v]) => [k, v.domain])
 );
 
-/* ══════════════════════════════════════════════════════════════════════
-   HELPERS & MODALS
-   ══════════════════════════════════════════════════════════════════════ */
+export function InsuranceSummaryTab({
+  state,
+  metrics,
+  addItem,
+  removeItem,
+  updateItem,
+  showToast,
+}: any) {
+  // Navigation & Filter States
+  const [activeSubTab, setActiveSubTab] = useState<InsuranceSubTab>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedOwner, setSelectedOwner] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "due" | "active" | "paid" | "matured">("all");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
-const OwnerBadge = ({ owner }: { owner?: string }) => {
-  const { familyProfiles } = useMasterData();
-  if (!owner) return null;
-  const p = familyProfiles.find((x) => x.id === owner || x.name === owner);
-  const name = p ? p.name : owner === "self" ? "Self" : owner;
-  if (!name) return null;
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        padding: "2px 8px",
-        borderRadius: 12,
-        fontSize: 10.5,
-        fontWeight: 700,
-        background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
-        border: "1px solid color-mix(in srgb, var(--t-accent) 25%, transparent)",
-        color: "var(--t-accent)",
-      }}
-    >
-      <User size={10} />
-      {name}
-    </span>
+  // Modal States
+  const [addModalType, setAddModalType] = useState<null | "lic" | "term" | "invest">(null);
+  const [editPolicy, setEditPolicy] = useState<any | null>(null);
+  const [ledgerPolicy, setLedgerPolicy] = useState<UnifiedInsurancePolicy | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    collectionKey: string;
+    id: string;
+    name: string;
+  } | null>(null);
+
+  // Raw policy arrays from state
+  const licList: any[] = state?.lic || [];
+  const termList: any[] = state?.termPlans || [];
+  const investList: any[] = state?.investmentPlans || [];
+
+  // Async actions
+  const { run: handleSavePolicy, loading: isSaving } = useAsyncAction(
+    async (collectionKey: string, data: any, isEdit: boolean) => {
+      if (isEdit) {
+        await updateItem(collectionKey, data.id, data);
+        showToast?.("Policy updated successfully.", "success");
+      } else {
+        const { id: _ignored, ...itemWithoutId } = data;
+        await addItem(collectionKey, itemWithoutId);
+        showToast?.("Policy added successfully.", "success");
+      }
+      setAddModalType(null);
+      setEditPolicy(null);
+    },
+    {
+      onError: (e: any) =>
+        showToast?.(`Failed to save policy: ${e?.message || "Unknown error"}`, "error"),
+    }
   );
-};
 
-const AddInsuranceModal = ({ sub, policy, onClose, onSave, saving = false, showToast }: any) => {
-  const { familyProfiles } = useMasterData();
-  const todayStr = (() => {
-    const d = new Date();
-    const yStr = d.getFullYear();
-    const mStr = String(d.getMonth() + 1).padStart(2, "0");
-    const dayStr = String(d.getDate()).padStart(2, "0");
-    return `${yStr}-${mStr}-${dayStr}`;
-  })();
-
-  const futureStr20 = (() => {
-    const d = new Date();
-    const yStr = d.getFullYear() + 20;
-    const mStr = String(d.getMonth() + 1).padStart(2, "0");
-    const dayStr = String(d.getDate()).padStart(2, "0");
-    return `${yStr}-${mStr}-${dayStr}`;
-  })();
-
-  const [lic, setLic] = useState<any>(() => {
-    if (policy) {
-      return {
-        id: policy.id,
-        owner: policy.owner || "self",
-        planName: policy.planName || "",
-        policyNumber: policy.policyNumber || "",
-        sumAssured: policy.sumAssured || "",
-        annualPremium: policy.annualPremium || "",
-        premiumPaid: policy.premiumPaid || "",
-        commencementDate: policy.commencementDate || "",
-        maturityDate: policy.maturityDate || "",
-        policyTerm: policy.policyTerm || "",
-        premiumPayingTerm: policy.premiumPayingTerm || "",
-        transactions: policy.transactions || [],
-      };
+  const { run: handleDeletePolicy, loading: isDeleting } = useAsyncAction(
+    async (collectionKey: string, id: string) => {
+      await removeItem(collectionKey, id);
+      showToast?.("Policy removed from portfolio.", "info");
+      setConfirmDelete(null);
+    },
+    {
+      onError: (e: any) =>
+        showToast?.(`Failed to delete policy: ${e?.message || "Unknown error"}`, "error"),
     }
-    return {
-      owner: "self",
-      planName: "",
-      policyNumber: "",
-      sumAssured: "",
-      annualPremium: "",
-      premiumPaid: "",
-      commencementDate: todayStr,
-      maturityDate: futureStr20,
-      policyTerm: "20",
-      premiumPayingTerm: "",
-      transactions: [],
-    };
-  });
-
-  const handleFieldChange = (field: string, val: any) => {
-    setFormError("");
-    setLic((prev: any) => {
-      const nextLic = { ...prev, [field]: val };
-      if (
-        (field === "commencementDate" || field === "policyTerm") &&
-        nextLic.commencementDate &&
-        nextLic.policyTerm
-      ) {
-        const commDate = new Date(nextLic.commencementDate);
-        const termYears = parseInt(nextLic.policyTerm, 10);
-        if (!isNaN(commDate.getTime()) && !isNaN(termYears) && termYears > 0) {
-          const matDate = addYearsClamped(commDate, termYears);
-          const yStr = matDate.getFullYear();
-          const mStr = String(matDate.getMonth() + 1).padStart(2, "0");
-          const dStr = String(matDate.getDate()).padStart(2, "0");
-          nextLic.maturityDate = `${yStr}-${mStr}-${dStr}`;
-        }
-      }
-      return nextLic;
-    });
-  };
-
-  const handleTermFieldChange = (field: string, val: any) => {
-    setFormError("");
-    setTerm((prev: any) => {
-      const nextTerm = { ...prev, [field]: val };
-      if ((field === "startDate" || field === "term") && nextTerm.startDate && nextTerm.term) {
-        const commDate = new Date(nextTerm.startDate);
-        const termYears = parseInt(nextTerm.term, 10);
-        if (!isNaN(commDate.getTime()) && !isNaN(termYears) && termYears > 0) {
-          const expDate = addYearsClamped(commDate, termYears);
-          const yStr = expDate.getFullYear();
-          const mStr = String(expDate.getMonth() + 1).padStart(2, "0");
-          const dStr = String(expDate.getDate()).padStart(2, "0");
-          nextTerm.expiryDate = `${yStr}-${mStr}-${dStr}`;
-        }
-      }
-      return nextTerm;
-    });
-  };
-
-  const handleInvestFieldChange = (field: string, val: any) => {
-    setFormError("");
-    setInvest((prev: any) => {
-      const nextInvest = { ...prev, [field]: val };
-      if (
-        (field === "commencementDate" || field === "policyTerm") &&
-        nextInvest.commencementDate &&
-        nextInvest.policyTerm
-      ) {
-        const commDate = new Date(nextInvest.commencementDate);
-        const termYears = parseInt(nextInvest.policyTerm, 10);
-        if (!isNaN(commDate.getTime()) && !isNaN(termYears) && termYears > 0) {
-          const matDate = addYearsClamped(commDate, termYears);
-          const yStr = matDate.getFullYear();
-          const mStr = String(matDate.getMonth() + 1).padStart(2, "0");
-          const dStr = String(matDate.getDate()).padStart(2, "0");
-          nextInvest.maturityDate = `${yStr}-${mStr}-${dStr}`;
-        }
-      }
-      return nextInvest;
-    });
-  };
-
-  const [term, setTerm] = useState<any>(() => {
-    if (policy) {
-      return {
-        id: policy.id,
-        owner: policy.owner || "self",
-        insurer: policy.insurer || "",
-        planName: policy.planName || "",
-        coverAmount: policy.coverAmount || "",
-        annualPremium: policy.annualPremium || "",
-        expiryDate: policy.expiryDate || "",
-        startDate: policy.startDate || "",
-        term: policy.term || "",
-        premiumPayingTerm: policy.premiumPayingTerm || "",
-        transactions: policy.transactions || [],
-      };
-    }
-    return {
-      owner: "self",
-      insurer: "",
-      planName: "",
-      coverAmount: "",
-      annualPremium: "",
-      expiryDate: futureStr20,
-      startDate: todayStr,
-      term: "20",
-      premiumPayingTerm: "20",
-      transactions: [],
-    };
-  });
-
-  const [invest, setInvest] = useState<any>(() => {
-    if (policy) {
-      return {
-        id: policy.id,
-        owner: policy.owner || "self",
-        insurer: policy.insurer || "",
-        planName: policy.planName || "",
-        policyNumber: policy.policyNumber || "",
-        sumAssured: policy.sumAssured || "",
-        annualPremium: policy.annualPremium || "",
-        premiumPaid: policy.premiumPaid || "",
-        policyTerm: policy.policyTerm || "",
-        premiumPayingTerm: policy.premiumPayingTerm || "",
-        commencementDate: policy.commencementDate || "",
-        maturityDate: policy.maturityDate || "",
-        expectedMaturityAmount: policy.expectedMaturityAmount || "",
-        transactions: policy.transactions || [],
-      };
-    }
-    return {
-      owner: "self",
-      insurer: "",
-      planName: "",
-      policyNumber: "",
-      sumAssured: "",
-      annualPremium: "",
-      premiumPaid: "",
-      policyTerm: "20",
-      premiumPayingTerm: "10",
-      commencementDate: todayStr,
-      maturityDate: futureStr20,
-      expectedMaturityAmount: "",
-      transactions: [],
-    };
-  });
-
-  const [newTxDate, setNewTxDate] = useState(todayStr);
-  const [newTxAmount, setNewTxAmount] = useState("");
-  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(
-    null
   );
-  // Previously the Save button's validation guard (`if (!x) return;`) failed
-  // silently — an incomplete form just did nothing with zero feedback, leaving
-  // the user unsure whether the click registered at all. Surface the specific
-  // missing/invalid field instead.
-  const [formError, setFormError] = useState("");
 
-  const inp = "form-input";
+  // Unified normalization of all insurance policies
+  const unifiedPolicies = useMemo<UnifiedInsurancePolicy[]>(() => {
+    const list: UnifiedInsurancePolicy[] = [];
 
-  const handleAddTransaction = () => {
-    if (!newTxDate || !newTxAmount) return;
-    const newTx = {
-      id: uid(),
-      date: newTxDate,
-      amount: Number(newTxAmount),
-    };
-    if (sub === "lic") {
-      const updatedTxns = [...(lic.transactions || []), newTx].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-      setLic({ ...lic, transactions: updatedTxns });
-    } else if (sub === "invest") {
-      const updatedTxns = [...(invest.transactions || []), newTx].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-      setInvest({ ...invest, transactions: updatedTxns });
-    } else {
-      const updatedTxns = [...(term.transactions || []), newTx].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-      setTerm({ ...term, transactions: updatedTxns });
-    }
-    setNewTxDate("");
-    setNewTxAmount("");
-  };
+    // 1. LIC Policies
+    licList.forEach((l: any) => {
+      const termYears = parseInt(String(l.policyTerm || 20), 10);
+      const payingYears = l.premiumPayingTerm ? parseInt(String(l.premiumPayingTerm), 10) : termYears;
+      const annualPrem = Number(l.annualPremium || 0);
+      const expectedTotal = annualPrem * (payingYears || 20);
 
-  const handleRemoveTransaction = (txId: string) => {
-    if (sub === "lic") {
-      const updatedTxns = (lic.transactions || []).filter((t: any) => t.id !== txId);
-      setLic({ ...lic, transactions: updatedTxns });
-    } else if (sub === "invest") {
-      const updatedTxns = (invest.transactions || []).filter((t: any) => t.id !== txId);
-      setInvest({ ...invest, transactions: updatedTxns });
-    } else {
-      const updatedTxns = (term.transactions || []).filter((t: any) => t.id !== txId);
-      setTerm({ ...term, transactions: updatedTxns });
-    }
-  };
-
-  const handleAutoGenerateTransactions = () => {
-    if (!lic.commencementDate || !lic.annualPremium) {
-      showToast?.("Please select a Commencement Date and enter an Annual Premium first.", "warn");
-      return;
-    }
-    const existingCount = (lic.transactions || []).length;
-    if (existingCount > 0) {
-      setConfirmAction({
-        message: `This will replace ${existingCount} manually-entered transaction(s) with an auto-generated schedule. Continue?`,
-        onConfirm: doGenerateLicTransactions,
-      });
-      return;
-    }
-    doGenerateLicTransactions();
-  };
-
-  const doGenerateLicTransactions = () => {
-    const commDate = new Date(lic.commencementDate);
-    const premium = Number(lic.annualPremium);
-    const payTerm = lic.premiumPayingTerm ? parseInt(lic.premiumPayingTerm, 10) : null;
-    const todayDate = new Date();
-    const generated: any[] = [];
-
-    let current = new Date(commDate);
-    let count = 0;
-    while (current <= todayDate) {
-      if (payTerm !== null && !isNaN(payTerm) && count >= payTerm) {
-        break;
-      }
-      const yearStr = current.getFullYear();
-      const monthStr = String(current.getMonth() + 1).padStart(2, "0");
-      const dayStr = String(current.getDate()).padStart(2, "0");
-      const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
-
-      generated.push({
-        id: uid(),
-        date: dateStr,
-        amount: premium,
-      });
-
-      count++;
-      // Re-anchor to the original commencement date each iteration (instead of
-      // mutating `current` in place) so a Feb-29 commencement re-lands on Feb 29
-      // every leap year instead of permanently drifting to Mar 1 after the first
-      // non-leap year rollover — see addYearsClamped.
-      current = addYearsClamped(commDate, count);
-    }
-
-    setLic({ ...lic, transactions: generated });
-  };
-
-  const handleTermAutoGenerateTransactions = () => {
-    if (!term.startDate || !term.annualPremium) {
-      showToast?.("Please select a Commencement Date and enter an Annual Premium first.", "warn");
-      return;
-    }
-    const existingCount = (term.transactions || []).length;
-    if (existingCount > 0) {
-      setConfirmAction({
-        message: `This will replace ${existingCount} manually-entered transaction(s) with an auto-generated schedule. Continue?`,
-        onConfirm: doGenerateTermTransactions,
-      });
-      return;
-    }
-    doGenerateTermTransactions();
-  };
-
-  const doGenerateTermTransactions = () => {
-    const commDate = new Date(term.startDate);
-    const premium = Number(term.annualPremium);
-    const payTerm = term.premiumPayingTerm ? parseInt(term.premiumPayingTerm, 10) : null;
-    const todayDate = new Date();
-    const generated: any[] = [];
-
-    let current = new Date(commDate);
-    let count = 0;
-    while (current <= todayDate) {
-      if (payTerm !== null && !isNaN(payTerm) && count >= payTerm) {
-        break;
-      }
-      const yearStr = current.getFullYear();
-      const monthStr = String(current.getMonth() + 1).padStart(2, "0");
-      const dayStr = String(current.getDate()).padStart(2, "0");
-      const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
-
-      generated.push({
-        id: uid(),
-        date: dateStr,
-        amount: premium,
-      });
-
-      count++;
-      // Re-anchor to the original commencement date each iteration (instead of
-      // mutating `current` in place) so a Feb-29 commencement re-lands on Feb 29
-      // every leap year instead of permanently drifting to Mar 1 after the first
-      // non-leap year rollover — see addYearsClamped.
-      current = addYearsClamped(commDate, count);
-    }
-
-    setTerm({ ...term, transactions: generated });
-  };
-
-  const handleInvestAutoGenerateTransactions = () => {
-    if (!invest.commencementDate || !invest.annualPremium) {
-      showToast?.("Please select a Commencement Date and enter an Annual Premium first.", "warn");
-      return;
-    }
-    const existingCount = (invest.transactions || []).length;
-    if (existingCount > 0) {
-      setConfirmAction({
-        message: `This will replace ${existingCount} manually-entered transaction(s) with an auto-generated schedule. Continue?`,
-        onConfirm: doGenerateInvestTransactions,
-      });
-      return;
-    }
-    doGenerateInvestTransactions();
-  };
-
-  const doGenerateInvestTransactions = () => {
-    const commDate = new Date(invest.commencementDate);
-    const premium = Number(invest.annualPremium);
-    const payTerm = invest.premiumPayingTerm ? parseInt(invest.premiumPayingTerm, 10) : null;
-    const todayDate = new Date();
-    const generated: any[] = [];
-
-    let current = new Date(commDate);
-    let count = 0;
-    while (current <= todayDate) {
-      if (payTerm !== null && !isNaN(payTerm) && count >= payTerm) {
-        break;
-      }
-      const yearStr = current.getFullYear();
-      const monthStr = String(current.getMonth() + 1).padStart(2, "0");
-      const dayStr = String(current.getDate()).padStart(2, "0");
-      const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
-
-      generated.push({
-        id: uid(),
-        date: dateStr,
-        amount: premium,
-      });
-
-      count++;
-      // Re-anchor to the original commencement date each iteration (instead of
-      // mutating `current` in place) so a Feb-29 commencement re-lands on Feb 29
-      // every leap year instead of permanently drifting to Mar 1 after the first
-      // non-leap year rollover — see addYearsClamped.
-      current = addYearsClamped(commDate, count);
-    }
-
-    setInvest({ ...invest, transactions: generated });
-  };
-
-  const handleSave = () => {
-    if (sub === "lic") {
-      if (!lic.planName.trim()) {
-        setFormError("Plan Name is required.");
-        return;
-      }
-      if (!(Number(lic.sumAssured) > 0)) {
-        setFormError("Sum Assured must be a number greater than 0.");
-        return;
-      }
-      setFormError("");
-      const calculatedPremiumPaid = (lic.transactions || []).reduce(
+      const calculatedPaid = (l.transactions || []).reduce(
         (sum: number, t: any) => sum + Number(t.amount || 0),
         0
       );
-      onSave("lic", { ...lic, premiumPaid: calculatedPremiumPaid, id: lic.id || uid() }, !!policy);
-    } else if (sub === "invest") {
-      if (!invest.insurer.trim()) {
-        setFormError("Insurer / Company is required.");
-        return;
-      }
-      if (!invest.planName.trim()) {
-        setFormError("Plan Name is required.");
-        return;
-      }
-      if (!(Number(invest.expectedMaturityAmount) > 0)) {
-        setFormError("Expected Maturity Amount must be a number greater than 0.");
-        return;
-      }
-      setFormError("");
-      const calculatedPremiumPaid = (invest.transactions || []).reduce(
-        (sum: number, t: any) => sum + Number(t.amount || 0),
-        0
-      );
-      onSave(
-        "investmentPlans",
-        { ...invest, premiumPaid: calculatedPremiumPaid, id: invest.id || uid() },
-        !!policy
-      );
-    } else {
-      if (!term.insurer.trim()) {
-        setFormError("Insurer / Company is required.");
-        return;
-      }
-      if (!(Number(term.coverAmount) > 0)) {
-        setFormError("Cover Amount must be a number greater than 0.");
-        return;
-      }
-      setFormError("");
-      const calculatedPremiumPaid = (term.transactions || []).reduce(
-        (sum: number, t: any) => sum + Number(t.amount || 0),
-        0
-      );
-      onSave(
-        "termPlans",
-        { ...term, premiumPaid: calculatedPremiumPaid, id: term.id || uid() },
-        !!policy
-      );
-    }
-  };
+      const totalPaid = calculatedPaid || Number(l.premiumPaid || 0);
+      const balanceToPay = Math.max(0, expectedTotal - totalPaid);
+      const isFullyPaid = expectedTotal > 0 && balanceToPay <= 0;
 
-  const isEdit = !!policy;
+      const isMatured = (() => {
+        if (!l.maturityDate) return false;
+        const mat = new Date(l.maturityDate);
+        return !isNaN(mat.getTime()) && mat < new Date();
+      })();
 
-  return (
-    <>
-    <Modal
-      title={`${isEdit ? "Edit" : "Add"} ${sub === "lic" ? "LIC Policy" : sub === "invest" ? "Investment Plan" : "Term Plan"}`}
-      onClose={onClose}
-    >
-      {formError && (
-        <div
-          role="alert"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 12px",
-            borderRadius: 8,
-            background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${THEME.rust} 25%, transparent)`,
-            color: THEME.rust,
-            fontSize: 12,
-            fontWeight: 700,
-            marginBottom: 14,
-          }}
-        >
-          <AlertCircle size={14} style={{ flexShrink: 0 }} />
-          {formError}
-        </div>
-      )}
-      {sub === "lic" ? (
-        <>
-          <Field label="Owner / Profile">
-            <select
-              className={inp}
-              value={lic.owner || "self"}
-              onChange={(e) => handleFieldChange("owner", e.target.value)}
-            >
-              {familyProfiles.map((p: any) => (
-                <option key={p.id} value={p.id}>
-                  {formatProfileOption(p)}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Plan Name">
-            <input
-              className={inp}
-              value={lic.planName}
-              onChange={(e) => handleFieldChange("planName", e.target.value)}
-              placeholder="e.g. LIC Jeevan Anand, Money Back"
-            />
-          </Field>
-          <Field label="Policy Number">
-            <input
-              className={inp}
-              value={lic.policyNumber}
-              onChange={(e) => handleFieldChange("policyNumber", e.target.value)}
-              placeholder="Policy number"
-            />
-          </Field>
-          <div className="ins-form-row-2">
-            <Field label="Sum Assured (₹)">
-              <input
-                className={inp}
-                type="number"
-                value={lic.sumAssured}
-                onChange={(e) => handleFieldChange("sumAssured", e.target.value)}
-                placeholder="1000000"
-              />
-            </Field>
-            <Field label="Annual Premium (₹)">
-              <input
-                className={inp}
-                type="number"
-                value={lic.annualPremium}
-                onChange={(e) => handleFieldChange("annualPremium", e.target.value)}
-                placeholder="30000"
-              />
-            </Field>
-          </div>
+      const dueInfo = getNextPremiumDueDate(l.commencementDate, l.maturityDate);
 
-          <div className="ins-form-row-3">
-            <Field label="Policy Term (Years)">
-              <input
-                className={inp}
-                type="number"
-                placeholder="20"
-                value={lic.policyTerm}
-                onChange={(e) => handleFieldChange("policyTerm", e.target.value)}
-              />
-            </Field>
-            <Field label="Commencement Date">
-              <input
-                className={inp}
-                type="date"
-                value={lic.commencementDate}
-                onChange={(e) => handleFieldChange("commencementDate", e.target.value)}
-              />
-            </Field>
-            <Field label="Maturity Date">
-              <input
-                className={inp}
-                type="date"
-                value={lic.maturityDate}
-                onChange={(e) => handleFieldChange("maturityDate", e.target.value)}
-              />
-            </Field>
-          </div>
-
-          {/* Premium Payments Ledger */}
-          <div style={{ marginTop: 18, borderTop: `1px solid ${THEME.line}`, paddingTop: 18 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
-              }}
-            >
-              <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-                Premium Payments Ledger
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleAutoGenerateTransactions}
-                style={{ fontSize: 11, padding: "4px 8px", color: THEME.accent }}
-              >
-                <Sparkles
-                  size={12}
-                  style={{ marginRight: 4, display: "inline-block", verticalAlign: "middle" }}
-                />{" "}
-                Auto-Generate
-              </Button>
-            </div>
-
-            {/* List of Payments */}
-            <div
-              style={{
-                maxHeight: 150,
-                overflowY: "auto",
-                border: `1px solid ${THEME.line}`,
-                borderRadius: 8,
-                padding: "8px 12px",
-                background: "rgba(128,128,128,0.02)",
-                marginBottom: 12,
-              }}
-            >
-              {(lic.transactions || []).length === 0 ? (
-                <div
-                  style={{
-                    textAlign: "center",
-                    fontSize: 11,
-                    color: THEME.muted,
-                    padding: "16px 0",
-                  }}
-                >
-                  No transaction history entered. Use the auto-generator or add below.
-                </div>
-              ) : (
-                <div style={{ display: "grid", gap: 8 }}>
-                  {(lic.transactions || []).map((t: any) => (
-                    <div
-                      key={t.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        fontSize: 12,
-                        paddingBottom: 6,
-                        borderBottom: `1px solid color-mix(in srgb, ${THEME.line} 25%, transparent)`,
-                      }}
-                    >
-                      <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontWeight: 800, color: THEME.sage }}>
-                          <Money value={t.amount} variant="exact" />
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveTransaction(t.id)}
-                          aria-label={`Remove transaction dated ${t.date}`}
-                          title="Remove transaction"
-                          style={{ padding: 6, color: THEME.rust }}
-                        >
-                          <Trash2 size={11} />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Add New Payment Entry Form */}
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                alignItems: "flex-end",
-                background: "rgba(128,128,128,0.04)",
-                padding: 10,
-                borderRadius: 8,
-              }}
-            >
-              <div style={{ flex: 1.2 }}>
-                <label
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    display: "block",
-                    marginBottom: 4,
-                  }}
-                >
-                  Payment Date
-                </label>
-                <input
-                  className={inp}
-                  type="date"
-                  value={newTxDate}
-                  onChange={(e) => setNewTxDate(e.target.value)}
-                  style={{ padding: "6px 8px", fontSize: 12 }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    display: "block",
-                    marginBottom: 4,
-                  }}
-                >
-                  Amount (₹)
-                </label>
-                <input
-                  className={inp}
-                  type="number"
-                  placeholder="30000"
-                  value={newTxAmount}
-                  onChange={(e) => setNewTxAmount(e.target.value)}
-                  style={{ padding: "6px 8px", fontSize: 12 }}
-                />
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleAddTransaction}
-                style={{ padding: "6px 12px", height: 32, fontSize: 12 }}
-              >
-                Add Row
-              </Button>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: 12,
-                fontWeight: 700,
-                color: THEME.muted,
-                marginTop: 10,
-                flexWrap: "wrap",
-                gap: 10,
-              }}
-            >
-              <span>
-                Expected Total:{" "}
-                <span style={{ color: THEME.ink, fontWeight: 800 }}>
-                  {lic.annualPremium && lic.policyTerm ? (
-                    <Money
-                      value={Number(lic.annualPremium) * parseInt(lic.policyTerm, 10)}
-                      variant="exact"
-                    />
-                  ) : (
-                    "—"
-                  )}
-                </span>
-              </span>
-              <span>
-                Calculated Paid:{" "}
-                <span style={{ color: THEME.sage, fontWeight: 800 }}>
-                  <Money
-                    value={(lic.transactions || []).reduce(
-                      (sum: number, t: any) => sum + Number(t.amount || 0),
-                      0
-                    )}
-                    variant="full"
-                  />
-                </span>
-              </span>
-              <span>
-                Balance to Pay:{" "}
-                <span
-                  style={{
-                    color:
-                      lic.annualPremium &&
-                      lic.policyTerm &&
-                      Number(lic.annualPremium) * parseInt(lic.policyTerm, 10) -
-                        (lic.transactions || []).reduce(
-                          (sum: number, t: any) => sum + Number(t.amount || 0),
-                          0
-                        ) <=
-                        0
-                        ? THEME.sage
-                        : THEME.gold,
-                    fontWeight: 800,
-                  }}
-                >
-                  {lic.annualPremium && lic.policyTerm
-                    ? (() => {
-                        const bal =
-                          Number(lic.annualPremium) * parseInt(lic.policyTerm, 10) -
-                          (lic.transactions || []).reduce(
-                            (sum: number, t: any) => sum + Number(t.amount || 0),
-                            0
-                          );
-                        return bal <= 0 ? "Fully Paid" : <Money value={bal} variant="full" />;
-                      })()
-                    : "—"}
-                </span>
-              </span>
-            </div>
-          </div>
-        </>
-      ) : sub === "invest" ? (
-        <>
-          <Field label="Owner / Profile">
-            <select
-              className={inp}
-              value={invest.owner || "self"}
-              onChange={(e) => handleInvestFieldChange("owner", e.target.value)}
-            >
-              {familyProfiles.map((p: any) => (
-                <option key={p.id} value={p.id}>
-                  {formatProfileOption(p)}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <div className="ins-form-row-2">
-            <Field label="Insurer / Company">
-              <input
-                className={inp}
-                value={invest.insurer}
-                onChange={(e) => handleInvestFieldChange("insurer", e.target.value)}
-                placeholder="e.g. HDFC Life, ICICI Pru, SBI Life"
-              />
-            </Field>
-            <Field label="Plan Name">
-              <input
-                className={inp}
-                value={invest.planName}
-                onChange={(e) => handleInvestFieldChange("planName", e.target.value)}
-                placeholder="e.g. Guaranteed Income Plan, Sanchay Plus"
-              />
-            </Field>
-          </div>
-          <div className="ins-form-row-2">
-            <Field label="Policy Number">
-              <input
-                className={inp}
-                value={invest.policyNumber}
-                onChange={(e) => handleInvestFieldChange("policyNumber", e.target.value)}
-                placeholder="Policy number"
-              />
-            </Field>
-            <Field label="Sum Assured (₹) (Optional)">
-              <input
-                className={inp}
-                type="number"
-                value={invest.sumAssured}
-                onChange={(e) => handleInvestFieldChange("sumAssured", e.target.value)}
-                placeholder="500000"
-              />
-            </Field>
-          </div>
-          <div className="ins-form-row-2">
-            <Field label="Annual Premium (₹)">
-              <input
-                className={inp}
-                type="number"
-                value={invest.annualPremium}
-                onChange={(e) => handleInvestFieldChange("annualPremium", e.target.value)}
-                placeholder="50000"
-              />
-            </Field>
-            <Field label="Expected Maturity Amount (₹)">
-              <input
-                className={inp}
-                type="number"
-                value={invest.expectedMaturityAmount}
-                onChange={(e) => handleInvestFieldChange("expectedMaturityAmount", e.target.value)}
-                placeholder="1200000"
-              />
-            </Field>
-          </div>
-
-          <div className="ins-form-row-4">
-            <Field label="Policy Term (Yrs)">
-              <input
-                className={inp}
-                type="number"
-                placeholder="20"
-                value={invest.policyTerm}
-                onChange={(e) => handleInvestFieldChange("policyTerm", e.target.value)}
-              />
-            </Field>
-            <Field label="Paying Term (Yrs)">
-              <input
-                className={inp}
-                type="number"
-                placeholder="10"
-                value={invest.premiumPayingTerm}
-                onChange={(e) => handleInvestFieldChange("premiumPayingTerm", e.target.value)}
-              />
-            </Field>
-            <Field label="Commencement">
-              <input
-                className={inp}
-                type="date"
-                value={invest.commencementDate}
-                onChange={(e) => handleInvestFieldChange("commencementDate", e.target.value)}
-              />
-            </Field>
-            <Field label="Maturity Date">
-              <input
-                className={inp}
-                type="date"
-                value={invest.maturityDate}
-                onChange={(e) => handleInvestFieldChange("maturityDate", e.target.value)}
-              />
-            </Field>
-          </div>
-
-          {/* Premium Payments Ledger */}
-          <div style={{ marginTop: 18, borderTop: `1px solid ${THEME.line}`, paddingTop: 18 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
-              }}
-            >
-              <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-                Premium Payments Ledger
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleInvestAutoGenerateTransactions}
-                style={{ fontSize: 11, padding: "4px 8px", color: THEME.accent }}
-              >
-                <Sparkles
-                  size={12}
-                  style={{ marginRight: 4, display: "inline-block", verticalAlign: "middle" }}
-                />{" "}
-                Auto-Generate
-              </Button>
-            </div>
-
-            {/* List of Payments */}
-            <div
-              style={{
-                maxHeight: 150,
-                overflowY: "auto",
-                border: `1px solid ${THEME.line}`,
-                borderRadius: 8,
-                padding: "8px 12px",
-                background: "rgba(128,128,128,0.02)",
-                marginBottom: 12,
-              }}
-            >
-              {(invest.transactions || []).length === 0 ? (
-                <div
-                  style={{
-                    textAlign: "center",
-                    fontSize: 11,
-                    color: THEME.muted,
-                    padding: "16px 0",
-                  }}
-                >
-                  No transaction history entered. Use the auto-generator or add below.
-                </div>
-              ) : (
-                <div style={{ display: "grid", gap: 8 }}>
-                  {(invest.transactions || []).map((t: any) => (
-                    <div
-                      key={t.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        fontSize: 12,
-                        paddingBottom: 6,
-                        borderBottom: `1px solid color-mix(in srgb, ${THEME.line} 25%, transparent)`,
-                      }}
-                    >
-                      <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontWeight: 800, color: THEME.sage }}>
-                          <Money value={t.amount} variant="exact" />
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveTransaction(t.id)}
-                          aria-label={`Remove transaction dated ${t.date}`}
-                          title="Remove transaction"
-                          style={{ padding: 6, color: THEME.rust }}
-                        >
-                          <Trash2 size={11} />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Add New Payment Entry Form */}
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                alignItems: "flex-end",
-                background: "rgba(128,128,128,0.04)",
-                padding: 10,
-                borderRadius: 8,
-              }}
-            >
-              <div style={{ flex: 1.2 }}>
-                <label
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    display: "block",
-                    marginBottom: 4,
-                  }}
-                >
-                  Payment Date
-                </label>
-                <input
-                  className={inp}
-                  type="date"
-                  value={newTxDate}
-                  onChange={(e) => setNewTxDate(e.target.value)}
-                  style={{ padding: "6px 8px", fontSize: 12 }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    display: "block",
-                    marginBottom: 4,
-                  }}
-                >
-                  Amount (₹)
-                </label>
-                <input
-                  className={inp}
-                  type="number"
-                  placeholder="50000"
-                  value={newTxAmount}
-                  onChange={(e) => setNewTxAmount(e.target.value)}
-                  style={{ padding: "6px 8px", fontSize: 12 }}
-                />
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleAddTransaction}
-                style={{ padding: "6px 12px", height: 32, fontSize: 12 }}
-              >
-                Add Row
-              </Button>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: 12,
-                fontWeight: 700,
-                color: THEME.muted,
-                marginTop: 10,
-                flexWrap: "wrap",
-                gap: 10,
-              }}
-            >
-              <span>
-                Expected Total:{" "}
-                <span style={{ color: THEME.ink, fontWeight: 800 }}>
-                  {invest.annualPremium && (invest.premiumPayingTerm || invest.policyTerm) ? (
-                    <Money
-                      value={
-                        Number(invest.annualPremium) *
-                        parseInt(invest.premiumPayingTerm || invest.policyTerm, 10)
-                      }
-                      variant="full"
-                    />
-                  ) : (
-                    "—"
-                  )}
-                </span>
-              </span>
-              <span>
-                Calculated Paid:{" "}
-                <span style={{ color: THEME.sage, fontWeight: 800 }}>
-                  <Money
-                    value={(invest.transactions || []).reduce(
-                      (sum: number, t: any) => sum + Number(t.amount || 0),
-                      0
-                    )}
-                    variant="full"
-                  />
-                </span>
-              </span>
-              <span>
-                Balance to Pay:{" "}
-                <span
-                  style={{
-                    color:
-                      invest.annualPremium &&
-                      (invest.premiumPayingTerm || invest.policyTerm) &&
-                      Number(invest.annualPremium) *
-                        parseInt(invest.premiumPayingTerm || invest.policyTerm, 10) -
-                        (invest.transactions || []).reduce(
-                          (sum: number, t: any) => sum + Number(t.amount || 0),
-                          0
-                        ) <=
-                        0
-                        ? THEME.sage
-                        : THEME.gold,
-                    fontWeight: 800,
-                  }}
-                >
-                  {invest.annualPremium && (invest.premiumPayingTerm || invest.policyTerm)
-                    ? (() => {
-                        const bal =
-                          Number(invest.annualPremium) *
-                            parseInt(invest.premiumPayingTerm || invest.policyTerm, 10) -
-                          (invest.transactions || []).reduce(
-                            (sum: number, t: any) => sum + Number(t.amount || 0),
-                            0
-                          );
-                        return bal <= 0 ? "Fully Paid" : <Money value={bal} variant="full" />;
-                      })()
-                    : "—"}
-                </span>
-              </span>
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          <Field label="Owner / Profile">
-            <select
-              className={inp}
-              value={term.owner || "self"}
-              onChange={(e) => handleTermFieldChange("owner", e.target.value)}
-            >
-              {familyProfiles.map((p: any) => (
-                <option key={p.id} value={p.id}>
-                  {formatProfileOption(p)}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Insurer / Company">
-            <input
-              className={inp}
-              value={term.insurer}
-              onChange={(e) => handleTermFieldChange("insurer", e.target.value)}
-              placeholder="e.g. HDFC Ergo, Max Life, ICICI Pru"
-            />
-          </Field>
-          <Field label="Plan Name">
-            <input
-              className={inp}
-              value={term.planName}
-              onChange={(e) => handleTermFieldChange("planName", e.target.value)}
-              placeholder="e.g. Click 2 Protect, iProtect Smart"
-            />
-          </Field>
-          <div className="ins-form-row-2">
-            <Field label="Cover Amount (₹)">
-              <input
-                className={inp}
-                type="number"
-                value={term.coverAmount}
-                onChange={(e) => handleTermFieldChange("coverAmount", e.target.value)}
-                placeholder="10000000"
-              />
-            </Field>
-            <Field label="Annual Premium (₹)">
-              <input
-                className={inp}
-                type="number"
-                value={term.annualPremium}
-                onChange={(e) => handleTermFieldChange("annualPremium", e.target.value)}
-                placeholder="12000"
-              />
-            </Field>
-          </div>
-          <div className="ins-form-row-4">
-            <Field label="Plan Cover (Yrs)">
-              <input
-                className={inp}
-                type="number"
-                placeholder="20"
-                value={term.term}
-                onChange={(e) => handleTermFieldChange("term", e.target.value)}
-              />
-            </Field>
-            <Field label="Payable (Yrs)">
-              <input
-                className={inp}
-                type="number"
-                placeholder="20"
-                value={term.premiumPayingTerm}
-                onChange={(e) => handleTermFieldChange("premiumPayingTerm", e.target.value)}
-              />
-            </Field>
-            <Field label="Commencement">
-              <input
-                className={inp}
-                type="date"
-                value={term.startDate}
-                onChange={(e) => handleTermFieldChange("startDate", e.target.value)}
-              />
-            </Field>
-            <Field label="Expiry Date">
-              <input
-                className={inp}
-                type="date"
-                value={term.expiryDate}
-                onChange={(e) => handleTermFieldChange("expiryDate", e.target.value)}
-              />
-            </Field>
-          </div>
-
-          {/* Premium Payments Ledger */}
-          <div style={{ marginTop: 18, borderTop: `1px solid ${THEME.line}`, paddingTop: 18 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
-              }}
-            >
-              <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
-                Premium Payments Ledger
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleTermAutoGenerateTransactions}
-                style={{ fontSize: 11, padding: "4px 8px", color: THEME.accent }}
-              >
-                <Sparkles
-                  size={12}
-                  style={{ marginRight: 4, display: "inline-block", verticalAlign: "middle" }}
-                />{" "}
-                Auto-Generate
-              </Button>
-            </div>
-
-            {/* List of Payments */}
-            <div
-              style={{
-                maxHeight: 150,
-                overflowY: "auto",
-                border: `1px solid ${THEME.line}`,
-                borderRadius: 8,
-                padding: "8px 12px",
-                background: "rgba(128,128,128,0.02)",
-                marginBottom: 12,
-              }}
-            >
-              {(term.transactions || []).length === 0 ? (
-                <div
-                  style={{
-                    textAlign: "center",
-                    fontSize: 11,
-                    color: THEME.muted,
-                    padding: "16px 0",
-                  }}
-                >
-                  No transaction history entered. Use the auto-generator or add below.
-                </div>
-              ) : (
-                <div style={{ display: "grid", gap: 8 }}>
-                  {(term.transactions || []).map((t: any) => (
-                    <div
-                      key={t.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        fontSize: 12,
-                        paddingBottom: 6,
-                        borderBottom: `1px solid color-mix(in srgb, ${THEME.line} 25%, transparent)`,
-                      }}
-                    >
-                      <span style={{ fontWeight: 600, color: THEME.ink }}>{t.date}</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontWeight: 800, color: THEME.sage }}>
-                          <Money value={t.amount} variant="exact" />
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveTransaction(t.id)}
-                          aria-label={`Remove transaction dated ${t.date}`}
-                          title="Remove transaction"
-                          style={{ padding: 6, color: THEME.rust }}
-                        >
-                          <Trash2 size={11} />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Add New Payment Entry Form */}
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                alignItems: "flex-end",
-                background: "rgba(128,128,128,0.04)",
-                padding: 10,
-                borderRadius: 8,
-              }}
-            >
-              <div style={{ flex: 1.2 }}>
-                <label
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    display: "block",
-                    marginBottom: 4,
-                  }}
-                >
-                  Payment Date
-                </label>
-                <input
-                  className={inp}
-                  type="date"
-                  value={newTxDate}
-                  onChange={(e) => setNewTxDate(e.target.value)}
-                  style={{ padding: "6px 8px", fontSize: 12 }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: THEME.muted,
-                    display: "block",
-                    marginBottom: 4,
-                  }}
-                >
-                  Amount (₹)
-                </label>
-                <input
-                  className={inp}
-                  type="number"
-                  placeholder="12000"
-                  value={newTxAmount}
-                  onChange={(e) => setNewTxAmount(e.target.value)}
-                  style={{ padding: "6px 8px", fontSize: 12 }}
-                />
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleAddTransaction}
-                style={{ padding: "6px 12px", height: 32, fontSize: 12 }}
-              >
-                Add Row
-              </Button>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: 12,
-                fontWeight: 700,
-                color: THEME.muted,
-                marginTop: 10,
-                flexWrap: "wrap",
-                gap: 10,
-              }}
-            >
-              <span>
-                Expected Total:{" "}
-                <span style={{ color: THEME.ink, fontWeight: 800 }}>
-                  {term.annualPremium && (term.premiumPayingTerm || term.term) ? (
-                    <Money
-                      value={
-                        Number(term.annualPremium) *
-                        parseInt(term.premiumPayingTerm || term.term, 10)
-                      }
-                      variant="full"
-                    />
-                  ) : (
-                    "—"
-                  )}
-                </span>
-              </span>
-              <span>
-                Calculated Paid:{" "}
-                <span style={{ color: THEME.sage, fontWeight: 800 }}>
-                  <Money
-                    value={(term.transactions || []).reduce(
-                      (sum: number, t: any) => sum + Number(t.amount || 0),
-                      0
-                    )}
-                    variant="full"
-                  />
-                </span>
-              </span>
-              <span>
-                Balance to Pay:{" "}
-                <span
-                  style={{
-                    color:
-                      term.annualPremium &&
-                      (term.premiumPayingTerm || term.term) &&
-                      Number(term.annualPremium) *
-                        parseInt(term.premiumPayingTerm || term.term, 10) -
-                        (term.transactions || []).reduce(
-                          (sum: number, t: any) => sum + Number(t.amount || 0),
-                          0
-                        ) <=
-                        0
-                        ? THEME.sage
-                        : THEME.gold,
-                    fontWeight: 800,
-                  }}
-                >
-                  {term.annualPremium && (term.premiumPayingTerm || term.term)
-                    ? (() => {
-                        const bal =
-                          Number(term.annualPremium) *
-                            parseInt(term.premiumPayingTerm || term.term, 10) -
-                          (term.transactions || []).reduce(
-                            (sum: number, t: any) => sum + Number(t.amount || 0),
-                            0
-                          );
-                        return bal <= 0 ? "Fully Paid" : <Money value={bal} variant="full" />;
-                      })()
-                    : "—"}
-                </span>
-              </span>
-            </div>
-          </div>
-        </>
-      )}
-      <ModalActions
-        onSave={handleSave}
-        onClose={onClose}
-        saveLabel={isEdit ? "Save Changes" : "Add Policy"}
-        disabled={saving}
-        loading={saving}
-      />
-    </Modal>
-    {confirmAction && (
-      <ConfirmDialog
-        message={confirmAction.message}
-        confirmLabel="Yes, replace"
-        onConfirm={() => {
-          confirmAction.onConfirm();
-          setConfirmAction(null);
-        }}
-        onCancel={() => setConfirmAction(null)}
-      />
-    )}
-    </>
-  );
-};
-
-/* ══════════════════════════════════════════════════════════════════════
-   POLICY HELPERS
-   ══════════════════════════════════════════════════════════════════════ */
-
-const getPolicyStatus = (expiryOrMaturityDate: string) => {
-  if (!expiryOrMaturityDate) return { label: "Active", color: THEME.sage };
-  // Compare local midnight to local midnight — `new Date(dateStr)` parses as
-  // UTC while Date.now() is the actual instant, so in IST (UTC+5:30) a policy
-  // expiring "today" would flip to "Expired" hours before local midnight.
-  const todayMidnight = new Date();
-  todayMidnight.setHours(0, 0, 0, 0);
-  const expiry = new Date(expiryOrMaturityDate + "T00:00:00");
-  const days = Math.round((expiry.getTime() - todayMidnight.getTime()) / 86400000);
-  if (days < 0) return { label: "Matured / Expired", color: THEME.muted };
-  if (days <= 180) {
-    const m = Math.floor(days / 30);
-    return { label: m <= 0 ? `Expires in ${days}d` : `Expires in ${m}m`, color: THEME.rust };
-  }
-  const yrs = Math.floor(days / 365);
-  const mos = Math.floor((days % 365) / 30);
-  return { label: yrs > 0 ? `${yrs}y ${mos}m left` : `${mos}m left`, color: THEME.sage };
-};
-
-const getNextPremiumDue = (startDateStr: string, expiryDateStr?: string) => {
-  if (!startDateStr) return null;
-  const today = new Date();
-  // Parse expiryDateStr the same way as start (local midnight) — mixing this
-  // with a bare `new Date(expiryDateStr)` (parsed as UTC) against `today`
-  // (actual instant) caused an already-expired policy to be treated as still
-  // active, or vice versa, depending on time of day in IST.
-  if (expiryDateStr && new Date(expiryDateStr + "T00:00:00") < today) return null;
-  const start = new Date(startDateStr + "T00:00:00");
-  const startMonth = start.getMonth();
-  const startDay = start.getDate();
-  // A Feb-29 commencement rolled into a non-leap year via setFullYear() overflows
-  // (Date auto-normalizes Feb 29 -> Mar 1), which threw off both the "is this year's
-  // anniversary already past" check and the displayed date. Clamp to the target
-  // year's actual last day of that month instead (Feb 29 -> Feb 28).
-  const setAnniversaryYear = (d: Date, year: number) => {
-    const lastDayOfMonth = new Date(year, startMonth + 1, 0).getDate();
-    d.setFullYear(year, startMonth, Math.min(startDay, lastDayOfMonth));
-  };
-  const next = new Date(start);
-  setAnniversaryYear(next, today.getFullYear());
-  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  if (next <= todayMidnight) setAnniversaryYear(next, today.getFullYear() + 1);
-  const days = Math.round((next.getTime() - todayMidnight.getTime()) / 86400000);
-  const yStr = next.getFullYear();
-  const mStr = String(next.getMonth() + 1).padStart(2, "0");
-  const dStr = String(next.getDate()).padStart(2, "0");
-  return { date: `${yStr}-${mStr}-${dStr}`, days };
-};
-
-const estimateLICSurrenderValue = (premiumPaid: number, commencementDate: string) => {
-  if (!commencementDate || !premiumPaid) return 0;
-  const years = Math.floor(
-    (Date.now() - new Date(commencementDate).getTime()) / (365.25 * 86400000)
-  );
-  if (years < 3) return 0;
-  const pct = years >= 15 ? 0.7 : years >= 10 ? 0.6 : years >= 5 ? 0.5 : 0.3;
-  return premiumPaid * pct;
-};
-
-/* ══════════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
-   ══════════════════════════════════════════════════════════════════════ */
-
-const fmtDate = (dateStr: string) => {
-  if (!dateStr) return "—";
-  try {
-    return new Date(dateStr + "T00:00:00").toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
+      list.push({
+        id: l.id || uid(),
+        type: "lic",
+        typeLabel: "LIC",
+        typeColor: THEME.rust,
+        owner: l.owner || "self",
+        insurer: "Life Insurance Corporation",
+        planName: l.planName || "LIC Policy",
+        policyNumber: l.policyNumber || "",
+        coverAmount: Number(l.sumAssured || 0),
+        annualPremium: annualPrem,
+        totalPaid,
+        expectedTotal,
+        balanceToPay,
+        progressPct: expectedTotal > 0 ? (totalPaid / expectedTotal) * 100 : 0,
+        startDate: l.commencementDate || "",
+        endDate: l.maturityDate || "",
+        policyTerm: termYears,
+        payingTerm: payingYears,
+        isFullyPaid,
+        isMatured,
+        nextDueDate: dueInfo ? dueInfo.dateStr : null,
+        daysUntilDue: dueInfo ? dueInfo.days : null,
+        raw: l,
+      });
     });
-  } catch {
-    return dateStr;
-  }
-};
 
-export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updateItem, showToast }: any) {
-  const { privacyMode } = usePrivacy();
-  const [modal, setModal] = useState<null | "lic" | "term" | "invest">(null);
-  const [editPolicy, setEditPolicy] = useState<any>(null);
+    // 2. Term Plans
+    termList.forEach((t: any) => {
+      const termYears = parseInt(String(t.term || 20), 10);
+      const payingYears = t.premiumPayingTerm ? parseInt(String(t.premiumPayingTerm), 10) : termYears;
+      const annualPrem = Number(t.annualPremium || 0);
+      const expectedTotal = annualPrem * (payingYears || 20);
 
-  const licList: any[] = state.lic || [];
-  const termList: any[] = state.termPlans || [];
-  const investList: any[] = state.investmentPlans || [];
+      const calculatedPaid = (t.transactions || []).reduce(
+        (sum: number, tx: any) => sum + Number(tx.amount || 0),
+        0
+      );
+      const totalPaid = calculatedPaid || Number(t.premiumPaid || 0);
+      const balanceToPay = Math.max(0, expectedTotal - totalPaid);
+      const isFullyPaid = expectedTotal > 0 && balanceToPay <= 0;
 
-  const totalLICAssured = licList.reduce((s: number, l: any) => s + Number(l.sumAssured || 0), 0);
-  const totalTermCover = termList.reduce(
-    (s: number, t: any) => s + Number(t.coverAmount || 0),
-    0
-  );
+      const isMatured = (() => {
+        if (!t.expiryDate) return false;
+        const exp = new Date(t.expiryDate);
+        return !isNaN(exp.getTime()) && exp < new Date();
+      })();
+
+      const dueInfo = getNextPremiumDueDate(t.startDate, t.expiryDate);
+
+      list.push({
+        id: t.id || uid(),
+        type: "term",
+        typeLabel: "Term Cover",
+        typeColor: THEME.accent,
+        owner: t.owner || "self",
+        insurer: t.insurer || "Term Insurer",
+        planName: t.planName || "Term Plan",
+        policyNumber: t.policyNumber || "",
+        coverAmount: Number(t.coverAmount || 0),
+        annualPremium: annualPrem,
+        totalPaid,
+        expectedTotal,
+        balanceToPay,
+        progressPct: expectedTotal > 0 ? (totalPaid / expectedTotal) * 100 : 0,
+        startDate: t.startDate || "",
+        endDate: t.expiryDate || "",
+        policyTerm: termYears,
+        payingTerm: payingYears,
+        isFullyPaid,
+        isMatured,
+        nextDueDate: dueInfo ? dueInfo.dateStr : null,
+        daysUntilDue: dueInfo ? dueInfo.days : null,
+        raw: t,
+      });
+    });
+
+    // 3. Investment / Endowment Plans
+    investList.forEach((ip: any) => {
+      const termYears = parseInt(String(ip.policyTerm || 15), 10);
+      const payingYears = ip.premiumPayingTerm ? parseInt(String(ip.premiumPayingTerm), 10) : termYears;
+      const annualPrem = Number(ip.annualPremium || 0);
+      const expectedTotal = annualPrem * (payingYears || 10);
+
+      const calculatedPaid = (ip.transactions || []).reduce(
+        (sum: number, tx: any) => sum + Number(tx.amount || 0),
+        0
+      );
+      const totalPaid = calculatedPaid || Number(ip.premiumPaid || 0);
+      const balanceToPay = Math.max(0, expectedTotal - totalPaid);
+      const isFullyPaid = expectedTotal > 0 && balanceToPay <= 0;
+
+      const isMatured = (() => {
+        if (!ip.maturityDate) return false;
+        const mat = new Date(ip.maturityDate);
+        return !isNaN(mat.getTime()) && mat < new Date();
+      })();
+
+      const dueInfo = getNextPremiumDueDate(ip.commencementDate, ip.maturityDate);
+
+      list.push({
+        id: ip.id || uid(),
+        type: "invest",
+        typeLabel: "Endowment / ULIP",
+        typeColor: THEME.sage,
+        owner: ip.owner || "self",
+        insurer: ip.insurer || "Life Insurer",
+        planName: ip.planName || "Investment Plan",
+        policyNumber: ip.policyNumber || "",
+        coverAmount: Number(ip.expectedMaturityAmount || ip.sumAssured || 0),
+        annualPremium: annualPrem,
+        totalPaid,
+        expectedTotal,
+        balanceToPay,
+        progressPct: expectedTotal > 0 ? (totalPaid / expectedTotal) * 100 : 0,
+        startDate: ip.commencementDate || "",
+        endDate: ip.maturityDate || "",
+        policyTerm: termYears,
+        payingTerm: payingYears,
+        isFullyPaid,
+        isMatured,
+        nextDueDate: dueInfo ? dueInfo.dateStr : null,
+        daysUntilDue: dueInfo ? dueInfo.days : null,
+        raw: ip,
+      });
+    });
+
+    return list;
+  }, [licList, termList, investList]);
+
+  // Aggregate Metrics
+  const totalLICAssured = licList.reduce((s, l) => s + Number(l.sumAssured || 0), 0);
+  const totalTermCover = termList.reduce((s, t) => s + Number(t.coverAmount || 0), 0);
   const totalInvestMaturity = investList.reduce(
-    (s: number, ip: any) => s + Number(ip.expectedMaturityAmount || 0),
+    (s, ip) => s + Number(ip.expectedMaturityAmount || 0),
     0
   );
-  const licAnnualPremium = licList.reduce(
-    (s: number, l: any) => s + Number(l.annualPremium || 0),
-    0
-  );
-  const termAnnualPremium = termList.reduce(
-    (s: number, t: any) => s + Number(t.annualPremium || 0),
-    0
-  );
+  const licAnnualPremium = licList.reduce((s, l) => s + Number(l.annualPremium || 0), 0);
+  const termAnnualPremium = termList.reduce((s, t) => s + Number(t.annualPremium || 0), 0);
   const investAnnualPremium = investList.reduce(
-    (s: number, ip: any) => s + Number(ip.annualPremium || 0),
+    (s, ip) => s + Number(ip.annualPremium || 0),
     0
   );
   const totalAnnualPremium = licAnnualPremium + termAnnualPremium + investAnnualPremium;
 
-  const annualIncome = metrics?.annualIncome || 0;
+  const annualIncome = Number(metrics?.annualIncome || 0);
   const totalLifeCover = totalLICAssured + totalTermCover;
   const premiumBurdenPct = annualIncome > 0 ? (totalAnnualPremium / annualIncome) * 100 : 0;
 
   const coverRatio = annualIncome > 0 ? totalTermCover / annualIncome : 0;
-  const adequacyLevel =
+  const adequacyLevel: "excellent" | "adequate" | "low" | "critical" | "none" =
     annualIncome > 0
       ? coverRatio >= 15
         ? "excellent"
         : coverRatio >= 10
-          ? "adequate"
-          : coverRatio >= 5
-            ? "low"
-            : "critical"
+        ? "adequate"
+        : coverRatio >= 5
+        ? "low"
+        : "critical"
       : "none";
+
   const adequacyColor = {
     excellent: THEME.sage,
     adequate: THEME.gold,
@@ -1669,6 +291,7 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
     critical: THEME.rust,
     none: THEME.muted,
   }[adequacyLevel];
+
   const adequacyLabel = {
     excellent: "Excellent Protection (≥15×)",
     adequate: "Adequate Protection (10–15×)",
@@ -1677,1651 +300,270 @@ export function InsuranceSummaryTab({ state, metrics, addItem, removeItem, updat
     none: "No income data to calculate adequacy",
   }[adequacyLevel];
 
-  const { run: handleSave, loading: savingPolicy } = useAsyncAction(
-    async (key: string, data: any, isEdit: boolean = false) => {
-      if (isEdit) {
-        await updateItem(key, data.id, data);
-      } else {
-        const { id: _ignored, ...itemWithoutId } = data;
-        await addItem(key, itemWithoutId);
+  // Counts for tabs
+  const upcomingDueCount = unifiedPolicies.filter(
+    (p) => p.daysUntilDue !== null && p.daysUntilDue <= 30 && !p.isFullyPaid && !p.isMatured
+  ).length;
+
+  const counts = {
+    all: unifiedPolicies.length,
+    term: termList.length,
+    lic: licList.length,
+    invest: investList.length,
+    upcomingCount: upcomingDueCount,
+  };
+
+  // Filtered policies list based on active tab, search, owner, and status
+  const filteredPolicies = useMemo(() => {
+    return unifiedPolicies.filter((p) => {
+      // Sub-tab filter
+      if (activeSubTab === "term" && p.type !== "term") return false;
+      if (activeSubTab === "lic" && p.type !== "lic") return false;
+      if (activeSubTab === "invest" && p.type !== "invest") return false;
+
+      // Owner filter
+      if (selectedOwner !== "all" && p.owner !== selectedOwner) return false;
+
+      // Status filter
+      if (statusFilter === "due") {
+        if (p.isFullyPaid || p.isMatured) return false;
+        if (p.daysUntilDue === null || p.daysUntilDue > 30) return false;
+      } else if (statusFilter === "active") {
+        if (p.isFullyPaid || p.isMatured) return false;
+      } else if (statusFilter === "paid") {
+        if (!p.isFullyPaid) return false;
+      } else if (statusFilter === "matured") {
+        if (!p.isMatured) return false;
       }
-    },
-    {
-      onSuccess: () => { setModal(null); setEditPolicy(null); },
-      onError: (e: any) => showToast?.(`Failed to save policy: ${e?.message || "Unknown error"}`, "error"),
-    }
-  );
 
-  const { run: deletePolicy, loading: deletingPolicy } = useAsyncAction(
-    async (key: string, id: string) => { await removeItem(key, id); },
-    { onError: (e: any) => showToast?.(`Failed to delete policy: ${e?.message || "Unknown error"}`, "error") }
-  );
-  const [confirmDeletePolicy, setConfirmDeletePolicy] = useState<{
-    message: string;
-    key: string;
-    id: string;
-  } | null>(null);
+      // Search Query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesPlan = (p.planName || "").toLowerCase().includes(q);
+        const matchesInsurer = (p.insurer || "").toLowerCase().includes(q);
+        const matchesPolicyNum = (p.policyNumber || "").toLowerCase().includes(q);
+        const matchesOwner = (p.owner || "").toLowerCase().includes(q);
+        if (!matchesPlan && !matchesInsurer && !matchesPolicyNum && !matchesOwner) {
+          return false;
+        }
+      }
 
-  const downloadCSV = () => {
+      return true;
+    });
+  }, [unifiedPolicies, activeSubTab, selectedOwner, statusFilter, searchQuery]);
+
+  // Export CSV
+  const handleExportCSV = () => {
     const q = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = [
-      "Type,Plan Name,Insurer,Cover/Assured (₹),Annual Premium (₹),Total Paid (₹),Maturity/Expiry Date,Owner",
+      "Type,Plan Name,Insurer,Policy Number,Cover / Maturity (₹),Annual Premium (₹),Total Paid (₹),Start Date,End Date,Owner",
     ];
-    licList.forEach((l: any) => {
-      const paid =
-        (l.transactions || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0) ||
-        Number(l.premiumPaid || 0);
+
+    unifiedPolicies.forEach((p) => {
       rows.push(
         [
-          q("LIC"),
-          q(l.planName),
-          q("LIC"),
-          q(l.sumAssured),
-          q(l.annualPremium),
-          q(paid),
-          q(l.maturityDate || ""),
-          q(l.owner),
+          q(p.typeLabel),
+          q(p.planName),
+          q(p.insurer),
+          q(p.policyNumber),
+          q(p.coverAmount),
+          q(p.annualPremium),
+          q(p.totalPaid),
+          q(p.startDate),
+          q(p.endDate),
+          q(p.owner),
         ].join(",")
       );
     });
-    termList.forEach((t: any) => {
-      const paid =
-        (t.transactions || []).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0) ||
-        Number(t.premiumPaid || 0);
-      rows.push(
-        [
-          q("Term Plan"),
-          q(t.planName),
-          q(t.insurer),
-          q(t.coverAmount),
-          q(t.annualPremium),
-          q(paid),
-          q(t.expiryDate || ""),
-          q(t.owner),
-        ].join(",")
-      );
-    });
-    investList.forEach((ip: any) => {
-      const paid =
-        (ip.transactions || []).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0) ||
-        Number(ip.premiumPaid || 0);
-      rows.push(
-        [
-          q("Investment Plan"),
-          q(ip.planName),
-          q(ip.insurer),
-          q(ip.expectedMaturityAmount),
-          q(ip.annualPremium),
-          q(paid),
-          q(ip.maturityDate || ""),
-          q(ip.owner),
-        ].join(",")
-      );
-    });
-    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `insurance_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `insurance_portfolio_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    showToast?.("Insurance portfolio CSV exported successfully.", "success");
   };
 
-  const hasPolicies =
-    licList.length > 0 || termList.length > 0 || investList.length > 0;
-
-  const premiumData = [
-    { name: "LIC Premiums", value: licAnnualPremium, color: THEME.rust },
-    { name: "Term Premiums", value: termAnnualPremium, color: THEME.accent },
-    { name: "Investment Premiums", value: investAnnualPremium, color: THEME.sage },
-  ].filter((d) => d.value > 0);
-
-  const coverageData = [
-    { name: "LIC Cover", value: totalLICAssured, color: THEME.rust },
-    { name: "Term Cover", value: totalTermCover, color: THEME.accent },
-    { name: "Investment Maturity", value: totalInvestMaturity, color: THEME.sage },
-  ].filter((d) => d.value > 0);
-
-  // Consolidated "what's due soon" view across all three policy types — previously
-  // a next-premium-due reminder only surfaced buried inside each individual policy
-  // card, so with more than a couple of policies there was no single place to see
-  // what's coming up next. The paid/expectedTotal/isPaid math here intentionally
-  // mirrors the identical per-card calc further below for each policy type (LIC,
-  // Term, Investment) so this list never disagrees with what the card itself shows.
-  const upcomingPremiums = [
-    ...licList.map((l: any) => {
-      const paid =
-        (l.transactions || []).reduce((s: number, t: any) => s + Number(t.amount || 0), 0) ||
-        Number(l.premiumPaid || 0);
-      const expectedTotal =
-        l.annualPremium && l.policyTerm ? Number(l.annualPremium) * parseInt(l.policyTerm, 10) : 0;
-      return {
-        id: l.id,
-        name: l.planName || "LIC Policy",
-        typeLabel: "LIC",
-        typeColor: THEME.rust,
-        owner: l.owner,
-        premium: l.annualPremium,
-        isPaid: Math.max(0, expectedTotal - paid) <= 0,
-        nextDue: getNextPremiumDue(l.commencementDate, l.maturityDate),
-      };
-    }),
-    ...termList.map((t: any) => {
-      const paid =
-        (t.transactions || []).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0) ||
-        Number(t.premiumPaid || 0);
-      const expectedTotal =
-        t.annualPremium && (t.premiumPayingTerm || t.term)
-          ? Number(t.annualPremium) * parseInt(t.premiumPayingTerm || t.term, 10)
-          : 0;
-      return {
-        id: t.id,
-        name: t.planName || "Term Plan",
-        typeLabel: "Term",
-        typeColor: THEME.accent,
-        owner: t.owner,
-        premium: t.annualPremium,
-        isPaid: Math.max(0, expectedTotal - paid) <= 0,
-        nextDue: getNextPremiumDue(t.startDate, t.expiryDate),
-      };
-    }),
-    ...(state.investmentPlans || []).map((ip: any) => {
-      const paid =
-        (ip.transactions || []).reduce((s: number, tx: any) => s + Number(tx.amount || 0), 0) ||
-        Number(ip.premiumPaid || 0);
-      const expectedTotal =
-        Number(ip.annualPremium || 0) * Number(ip.premiumPayingTerm || ip.policyTerm || 0);
-      return {
-        id: ip.id,
-        name: ip.planName || "Investment Plan",
-        typeLabel: "Invest",
-        typeColor: THEME.sage,
-        owner: ip.owner,
-        premium: ip.annualPremium,
-        isPaid: Math.max(0, expectedTotal - paid) <= 0,
-        nextDue: getNextPremiumDue(ip.commencementDate, ip.maturityDate),
-      };
-    }),
-  ]
-    .filter((p) => p.nextDue && !p.isPaid && p.nextDue.days <= 90)
-    .sort((a, b) => a.nextDue.days - b.nextDue.days);
+  const hasPolicies = unifiedPolicies.length > 0;
 
   return (
-    <div className="tab-content-enter">
-      <SectionTitle
-        sub="Manage your life insurance, term protection cover, and endowment/investment schemes in one place"
-        rightElement={
-          <div className="ins-header-actions">
-            {hasPolicies && (
-              <Button
-                onClick={downloadCSV}
-                size="sm"
-                variant="secondary"
-                icon={<Download size={14} />}
-              >
-                Export CSV
-              </Button>
-            )}
-            <Button
-              onClick={() => setModal("lic")}
-              size="sm"
-              variant="accent"
-              icon={<Plus size={14} />}
-            >
-              Add LIC
-            </Button>
-            <Button
-              onClick={() => setModal("term")}
-              size="sm"
-              variant="accent"
-              icon={<Plus size={14} />}
-            >
-              Add Term Plan
-            </Button>
-            <Button
-              onClick={() => setModal("invest")}
-              size="sm"
-              variant="accent"
-              icon={<Plus size={14} />}
-            >
-              Add Investment Plan
-            </Button>
-          </div>
-        }
-      >
-        Insurance Portfolio
-      </SectionTitle>
+    <div className="tab-content-enter" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Header & Controls */}
+      <InsuranceHeader
+        activeSubTab={activeSubTab}
+        onSubTabChange={setActiveSubTab}
+        counts={counts}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        selectedOwner={selectedOwner}
+        onOwnerChange={setSelectedOwner}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onAddPolicy={(type) => setAddModalType(type)}
+        onExportCSV={handleExportCSV}
+        hasPolicies={hasPolicies}
+      />
 
-      <div className="ins-stats-grid">
-        <StatCard
-          label="LIC Sum Assured"
-          value={fmtINRFull(totalLICAssured)}
-          numericValue={totalLICAssured}
-          formatValue={fmtINRFull}
-          sub="Life Insurance Corp policies"
-          icon={<Shield />}
-          color={THEME.rust}
+      {/* KPI Stat Cards (Shown on main policy tabs) */}
+      {["all", "term", "lic", "invest"].includes(activeSubTab) && (
+        <InsuranceStatCards
+          totalLifeCover={totalLifeCover}
+          totalTermCover={totalTermCover}
+          totalLICAssured={totalLICAssured}
+          totalInvestMaturity={totalInvestMaturity}
+          totalAnnualPremium={totalAnnualPremium}
+          annualIncome={annualIncome}
+          premiumBurdenPct={premiumBurdenPct}
+          coverRatio={coverRatio}
+          adequacyLevel={adequacyLevel}
+          adequacyLabel={adequacyLabel}
+          adequacyColor={adequacyColor}
+          activePoliciesCount={unifiedPolicies.filter((p) => !p.isFullyPaid && !p.isMatured).length}
+          upcomingDueCount={upcomingDueCount}
         />
-        <StatCard
-          label="Term Cover"
-          value={fmtINRFull(totalTermCover)}
-          numericValue={totalTermCover}
-          formatValue={fmtINRFull}
-          sub="Pure protection cover"
-          icon={<Zap />}
-          color={THEME.accent}
-        />
-        <StatCard
-          label="Total Life Cover"
-          value={fmtINRFull(totalLifeCover)}
-          numericValue={totalLifeCover}
-          formatValue={fmtINRFull}
-          sub="LIC + Term combined"
-          icon={<Heart />}
-          color={THEME.accent}
-        />
-        <StatCard
-          label="Annual Premium"
-          value={fmtINRFull(totalAnnualPremium)}
-          numericValue={totalAnnualPremium}
-          formatValue={fmtINRFull}
-          sub={
-            annualIncome > 0
-              ? `${premiumBurdenPct.toFixed(1)}% of income`
-              : "Combined insurance cost"
-          }
-          icon={<Wallet />}
-          color={THEME.gold}
-        />
-        <StatCard
-          label="Investment Maturity"
-          value={fmtINRFull(totalInvestMaturity)}
-          numericValue={totalInvestMaturity}
-          formatValue={fmtINRFull}
-          sub="Endowment & ULIP receivables"
-          icon={<TrendingUp />}
-          color={THEME.sage}
-        />
-        <StatCard
-          label="Cover Adequacy"
-          value={annualIncome > 0 ? coverRatio.toFixed(1) + "×" : "—"}
-          numericValue={annualIncome > 0 ? coverRatio : undefined}
-          formatValue={(n: number) => n.toFixed(1) + "×"}
-          sub={adequacyLabel}
-          icon={<AlertCircle />}
-          color={adequacyColor}
-        />
-      </div>
-
-      {upcomingPremiums.length > 0 && (
-        <Card style={{ marginBottom: 24, padding: "18px 22px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 14,
-              fontSize: 11,
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              color: THEME.muted,
-              fontWeight: 800,
-            }}
-          >
-            <Clock size={13} />
-            Upcoming Premiums · Next 90 Days
-          </div>
-          <div style={{ display: "grid", gap: 8 }}>
-            {upcomingPremiums.map((p) => {
-              const isOverdue = p.nextDue.days <= 0;
-              const urgencyColor = isOverdue
-                ? THEME.rust
-                : p.nextDue.days <= 30
-                  ? THEME.rust
-                  : p.nextDue.days <= 60
-                    ? THEME.gold
-                    : THEME.muted;
-              return (
-                <div
-                  key={`${p.typeLabel}-${p.id}`}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    flexWrap: "wrap",
-                    gap: 10,
-                    padding: "9px 12px",
-                    borderRadius: 8,
-                    background: "var(--surface-0)",
-                    border: `1px solid ${THEME.line}`,
-                    borderLeft: `3px solid ${urgencyColor}`,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 800,
-                        padding: "2px 6px",
-                        borderRadius: 6,
-                        background: `color-mix(in srgb, ${p.typeColor} 12%, transparent)`,
-                        color: p.typeColor,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {p.typeLabel}
-                    </span>
-                    <span
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 12.5,
-                        color: THEME.ink,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {p.name}
-                    </span>
-                    <OwnerBadge owner={p.owner} />
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span style={{ color: THEME.muted }}>
-                      <Money value={p.premium} variant="exact" />
-                    </span>
-                    <span style={{ color: urgencyColor }}>
-                      {isOverdue
-                        ? `Overdue ${Math.abs(p.nextDue.days)}d`
-                        : `Due in ${p.nextDue.days}d`}{" "}
-                      · {fmtDate(p.nextDue.date)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
       )}
 
-      {hasPolicies && (
-        <Card style={{ marginBottom: 24, padding: 24 }}>
-          <div
-            style={{
-              fontSize: 11,
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              color: THEME.muted,
-              marginBottom: 20,
-              fontWeight: 800,
-            }}
-          >
-            Portfolio Visual Analytics
-          </div>
-          <div className="bento-grid">
-            <div className="bento-col-6">
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: THEME.ink,
-                  marginBottom: 12,
-                  textAlign: "center",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                Premium Cost Allocation
-              </div>
-              <div
-                style={{
-                  height: 200,
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <PieChart>
-                    <Pie
-                      data={premiumData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={70}
-                      paddingAngle={4}
-                      dataKey="value"
-                    >
-                      {premiumData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(v))}
-                      contentStyle={{
-                        background: "var(--surface-0)",
-                        border: `1px solid ${THEME.line}`,
-                        borderRadius: 8,
-                        color: THEME.ink,
-                      }}
-                      labelStyle={{ color: THEME.ink }}
-                      itemStyle={{ color: THEME.ink }}
-                    />
-                    <Legend verticalAlign="bottom" height={36} />
-                  </PieChart>
-                </ResponsiveContainer></div>
-              </div>
-            </div>
-            <div className="bento-col-6">
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: THEME.ink,
-                  marginBottom: 12,
-                  textAlign: "center",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                Protection Coverage Mix
-              </div>
-              <div
-                style={{
-                  height: 200,
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ width: "100%", height: "100%", position: "relative" }}><ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <PieChart>
-                    <Pie
-                      data={coverageData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={70}
-                      paddingAngle={4}
-                      dataKey="value"
-                    >
-                      {coverageData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(v: any) => (privacyMode ? "••••" : fmtINRFull(v))}
-                      contentStyle={{
-                        background: "var(--surface-0)",
-                        border: `1px solid ${THEME.line}`,
-                        borderRadius: 8,
-                        color: THEME.ink,
-                      }}
-                      labelStyle={{ color: THEME.ink }}
-                      itemStyle={{ color: THEME.ink }}
-                    />
-                    <Legend verticalAlign="bottom" height={36} />
-                  </PieChart>
-                </ResponsiveContainer></div>
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* LIC SECTION */}
-      <div style={{ marginBottom: 32 }}>
-        <div className="ins-section-header">
-          <div className="ins-section-title">Life Insurance (LIC)</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <a
-              href="https://licindia.in/en/web/guest/home"
-              target="_blank"
-              rel="noopener noreferrer"
+      {/* Main Tab Content */}
+      {activeSubTab === "calendar" ? (
+        <InsurancePremiumCalendar
+          policies={unifiedPolicies}
+          onOpenLedger={(p) => setLedgerPolicy(p)}
+        />
+      ) : activeSubTab === "analyzer" ? (
+        <InsuranceProtectionAnalyzer
+          policies={unifiedPolicies}
+          annualIncome={annualIncome}
+          totalLifeCover={totalLifeCover}
+          totalLICAssured={totalLICAssured}
+          totalTermCover={totalTermCover}
+          totalInvestMaturity={totalInvestMaturity}
+          totalAnnualPremium={totalAnnualPremium}
+          licAnnualPremium={licAnnualPremium}
+          termAnnualPremium={termAnnualPremium}
+          investAnnualPremium={investAnnualPremium}
+          totalLiabilities={state?.liabilities?.reduce((s: number, l: any) => s + Number(l.amount || 0), 0) || 0}
+        />
+      ) : (
+        /* Policies List: Grid View vs Table View */
+        <div>
+          {filteredPolicies.length === 0 ? (
+            <EmptyState
+              icon={Shield}
+              title="No insurance policies found"
+              description={
+                searchQuery || selectedOwner !== "all" || statusFilter !== "all"
+                  ? "Try clearing your filters or search query."
+                  : "Add your Term Insurance, LIC traditional policies, and investment schemes to track coverage and premiums."
+              }
+              buttonLabel="+ Add Term Plan"
+              onAdd={() => setAddModalType("term")}
+            />
+          ) : viewMode === "grid" ? (
+            <div
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                padding: "6px 12px",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                color: THEME.ink,
-                textDecoration: "none",
-                border: `1px solid ${THEME.line}`,
-                background: "var(--surface-0)",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+                gap: 18,
               }}
             >
-              <ExternalLink size={13} color={THEME.muted} />
-              LIC Portal
-            </a>
-            <Button
-              onClick={() => setModal("lic")}
-              size="sm"
-              variant="secondary"
-              icon={<Plus size={14} />}
-            >
-              Add Policy
-            </Button>
-          </div>
-        </div>
-        {licList.length === 0 ? (
-          <EmptyState
-            icon={Shield}
-            dotColor={THEME.gold}
-            title="No LIC Policies Added Yet"
-            description="Track all your LIC policies — plan name, sum assured, annual premium, maturity date, and total premium paid."
-            pills={["Sum Assured", "Annual Premium", "Maturity Date", "Premium Paid"]}
-            buttonLabel="Add Policy"
-            onAdd={() => setModal("lic")}
-          />
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))",
-              gap: 16,
-            }}
-          >
-            {licList.map((l: any) => {
-              const paid =
-                (l.transactions || []).reduce(
-                  (sum: number, t: any) => sum + Number(t.amount || 0),
-                  0
-                ) || Number(l.premiumPaid || 0);
-              const expectedTotal =
-                l.annualPremium && l.policyTerm
-                  ? Number(l.annualPremium) * parseInt(l.policyTerm, 10)
-                  : 0;
-              const balance = Math.max(0, expectedTotal - paid);
-              const isPaid = balance <= 0;
-              const status = getPolicyStatus(l.maturityDate);
-              const nextDue = getNextPremiumDue(l.commencementDate, l.maturityDate);
-              const surrenderVal = estimateLICSurrenderValue(paid, l.commencementDate);
-              const progressPct =
-                expectedTotal > 0 ? Math.min(100, (paid / expectedTotal) * 100) : 0;
-              const monthlyPremium = Number(l.annualPremium || 0) / 12;
-              const isUrgent = nextDue && nextDue.days <= 60 && !isPaid;
-              const alertColor = nextDue && nextDue.days <= 30 ? THEME.rust : THEME.gold;
-              return (
-                <Card
-                  key={l.id}
-                  style={{
-                    padding: "18px 20px",
-                    borderTop: `3px solid ${isPaid ? THEME.sage : status.color}`,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 14,
+              {filteredPolicies.map((policy) => (
+                <InsurancePolicyCard
+                  key={`${policy.type}-${policy.id}`}
+                  policy={policy}
+                  onEdit={(p) => {
+                    setEditPolicy(p.raw);
+                    setAddModalType(p.type);
                   }}
-                >
-                  {/* Header */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <LicLogo size={40} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          flexWrap: "wrap",
-                          marginBottom: 3,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontWeight: 900,
-                            fontSize: 16,
-                            color: THEME.ink,
-                            letterSpacing: "-0.02em",
-                          }}
-                        >
-                          {l.planName}
-                        </span>
-                        <OwnerBadge owner={l.owner} />
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            padding: "2px 7px",
-                            borderRadius: 10,
-                            background: `color-mix(in srgb, ${status.color} 9%, transparent)`,
-                            color: status.color,
-                          }}
-                        >
-                          {status.label}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                        <span style={{ color: THEME.rust }}>
-                          <Money value={l.sumAssured} variant="full" /> assured
-                        </span>
-                        {l.policyNumber && (
-                          <>
-                            <span style={{ margin: "0 5px", opacity: 0.4 }}>·</span>
-                            <span>#{l.policyNumber}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: 16,
-                          fontWeight: 900,
-                          color: THEME.ink,
-                          letterSpacing: "-0.01em",
-                        }}
-                      >
-                        <Money value={l.annualPremium} variant="exact" />
-                        <span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
-                          /yr
-                        </span>
-                      </div>
-                      {monthlyPremium > 0 && (
-                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                          <Money value={Math.round(monthlyPremium)} variant="full" />/mo
-                        </div>
-                      )}
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 4,
-                          justifyContent: "flex-end",
-                          marginTop: 4,
-                        }}
-                      >
-                        <button
-                          onClick={() => setEditPolicy(l)}
-                          aria-label={`Edit ${l.planName} policy`}
-                          title="Edit policy"
-                          className="icon-btn"
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 6,
-                            display: "flex",
-                            alignItems: "center",
-                            color: THEME.accent,
-                          }}
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setConfirmDeletePolicy({
-                              message: `Delete "${l.planName}" policy? This cannot be undone.`,
-                              key: "lic",
-                              id: l.id,
-                            })
-                          }
-                          aria-label={`Delete ${l.planName} policy`}
-                          title="Delete policy"
-                          className="icon-btn danger"
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 6,
-                            display: "flex",
-                            alignItems: "center",
-                            color: THEME.rust,
-                          }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Alert band for urgent premium */}
-                  {isUrgent && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "6px 10px",
-                        borderRadius: 8,
-                        background: `color-mix(in srgb, ${alertColor} 6%, transparent)`,
-                        border: `1px solid color-mix(in srgb, ${alertColor} 21%, transparent)`,
-                        color: alertColor,
-                        fontSize: 11,
-                        fontWeight: 700,
-                      }}
-                    >
-                      <AlertCircle size={12} />
-                      {nextDue.days <= 0
-                        ? `Premium overdue by ${Math.abs(nextDue.days)}d`
-                        : `Premium due in ${nextDue.days} days`}{" "}
-                      — {fmtDate(nextDue.date)}
-                    </div>
-                  )}
-
-                  {/* Info tiles */}
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {[
-                      {
-                        label: "Policy Term",
-                        value: l.policyTerm ? `${l.policyTerm} Yrs` : "—",
-                        color: THEME.muted,
-                      },
-                      { label: "Started", value: fmtDate(l.commencementDate), color: THEME.muted },
-                      { label: "Matures", value: fmtDate(l.maturityDate), color: THEME.gold },
-                    ].map(({ label, value, color }) => (
-                      <div
-                        key={label}
-                        style={{
-                          flex: "1 1 80px",
-                          background: "var(--surface-0)",
-                          border: `1px solid ${THEME.line}`,
-                          borderLeft: `2.5px solid ${color}`,
-                          borderRadius: 8,
-                          padding: "7px 10px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 9,
-                            color: THEME.muted,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            marginBottom: 2,
-                          }}
-                        >
-                          {label}
-                        </div>
-                        <div style={{ fontWeight: 700, color: THEME.ink, fontSize: 12 }}>
-                          {value}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Premium progress bar */}
-                  {expectedTotal > 0 && (
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: 10,
-                          color: THEME.muted,
-                          fontWeight: 600,
-                          marginBottom: 4,
-                        }}
-                      >
-                        <span>PREMIUM PROGRESS · {progressPct.toFixed(0)}% paid</span>
-                        <span>
-                          {isPaid ? "Fully Paid" : `${privacyMode ? "••••" : fmtINRFull(balance)} left`}
-                        </span>
-                      </div>
-                      <div className="progress-track">
-                        <div
-                          className="progress-fill"
-                          style={{
-                            width: `${progressPct}%`,
-                            background: isPaid ? THEME.sage : THEME.gold,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bottom row */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: 8,
-                      paddingTop: 8,
-                      borderTop: `1px solid ${THEME.line}`,
-                    }}
-                  >
-                    <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
-                      Paid:{" "}
-                      <span style={{ color: THEME.sage, fontWeight: 800 }}>
-                        <Money value={paid} variant="full" />
-                      </span>
-                      {surrenderVal > 0 && (
-                        <>
-                          <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>Surrender est:{" "}
-                          <span style={{ color: THEME.accent, fontWeight: 800 }}>
-                            <Money value={surrenderVal} variant="full" />
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    {nextDue && !isUrgent && (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 5,
-                          fontSize: 11,
-                          background: `color-mix(in srgb, ${THEME.muted} 6%, transparent)`,
-                          border: `1px solid color-mix(in srgb, ${THEME.muted} 13%, transparent)`,
-                          borderRadius: "var(--radius-xs)",
-                          padding: "3px 9px",
-                          color: THEME.muted,
-                          fontWeight: 700,
-                        }}
-                      >
-                        <Clock size={11} />
-                        Next: {fmtDate(nextDue.date)}
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* TERM PLANS SECTION */}
-      <div style={{ marginBottom: 32 }}>
-        <div className="ins-section-header">
-          <div className="ins-section-title">Term Insurance Plans</div>
-          <Button
-            onClick={() => setModal("term")}
-            size="sm"
-            variant="secondary"
-            icon={<Plus size={14} />}
-          >
-            Add Plan
-          </Button>
+                  onDelete={(p) =>
+                    setConfirmDelete({
+                      collectionKey:
+                        p.type === "lic"
+                          ? "lic"
+                          : p.type === "term"
+                          ? "termPlans"
+                          : "investmentPlans",
+                      id: p.id,
+                      name: p.planName,
+                    })
+                  }
+                  onOpenLedger={(p) => setLedgerPolicy(p)}
+                />
+              ))}
+            </div>
+          ) : (
+            <InsuranceTableView
+              policies={filteredPolicies}
+              onEdit={(p) => {
+                setEditPolicy(p.raw);
+                setAddModalType(p.type);
+              }}
+              onDelete={(p) =>
+                setConfirmDelete({
+                  collectionKey:
+                    p.type === "lic"
+                      ? "lic"
+                      : p.type === "term"
+                      ? "termPlans"
+                      : "investmentPlans",
+                  id: p.id,
+                  name: p.planName,
+                })
+              }
+              onOpenLedger={(p) => setLedgerPolicy(p)}
+            />
+          )}
         </div>
-        {termList.length === 0 ? (
-          <EmptyState
-            icon={Heart}
-            dotColor={THEME.pink}
-            title="No Term Plans Tracked"
-            description="Add your pure protection term plans to track cover amounts, insurers, and expiry dates."
-            pills={["High Cover", "Low Premium", "Policy Duration", "Adequacy Ratio"]}
-            buttonLabel="Add Term Plan"
-            onAdd={() => setModal("term")}
-          />
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))",
-              gap: 16,
-            }}
-          >
-            {termList.map((t: any) => {
-              const paid =
-                (t.transactions || []).reduce(
-                  (sum: number, tx: any) => sum + Number(tx.amount || 0),
-                  0
-                ) || Number(t.premiumPaid || 0);
-              const expectedTotal =
-                t.annualPremium && (t.premiumPayingTerm || t.term)
-                  ? Number(t.annualPremium) * parseInt(t.premiumPayingTerm || t.term, 10)
-                  : 0;
-              const balance = Math.max(0, expectedTotal - paid);
-              const isPaid = balance <= 0;
-              const status = getPolicyStatus(t.expiryDate);
-              const nextDue = getNextPremiumDue(t.startDate, t.expiryDate);
-              const progressPct =
-                expectedTotal > 0 ? Math.min(100, (paid / expectedTotal) * 100) : 0;
-              const monthlyPremium = Number(t.annualPremium || 0) / 12;
-              const isUrgent = nextDue && nextDue.days <= 60 && !isPaid;
-              const alertColor = nextDue && nextDue.days <= 30 ? THEME.rust : THEME.gold;
-              return (
-                <Card
-                  key={t.id}
-                  style={{
-                    padding: "18px 20px",
-                    borderTop: `3px solid ${isPaid ? THEME.sage : status.color}`,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 14,
-                  }}
-                >
-                  {/* Header */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <InsurerLogo name={t.insurer} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          flexWrap: "wrap",
-                          marginBottom: 3,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontWeight: 900,
-                            fontSize: 16,
-                            color: THEME.ink,
-                            letterSpacing: "-0.02em",
-                          }}
-                        >
-                          {t.planName || "Term Plan"}
-                        </span>
-                        <OwnerBadge owner={t.owner} />
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            padding: "2px 7px",
-                            borderRadius: 10,
-                            background: `color-mix(in srgb, ${status.color} 9%, transparent)`,
-                            color: status.color,
-                          }}
-                        >
-                          {status.label}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                        <span style={{ color: THEME.accent }}>
-                          <Money value={t.coverAmount} variant="full" /> cover
-                        </span>
-                        {t.insurer && (
-                          <>
-                            <span style={{ margin: "0 5px", opacity: 0.4 }}>·</span>
-                            <span>{t.insurer}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: 16,
-                          fontWeight: 900,
-                          color: THEME.ink,
-                          letterSpacing: "-0.01em",
-                        }}
-                      >
-                        <Money value={t.annualPremium} variant="exact" />
-                        <span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
-                          /yr
-                        </span>
-                      </div>
-                      {monthlyPremium > 0 && (
-                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                          <Money value={Math.round(monthlyPremium)} variant="full" />/mo
-                        </div>
-                      )}
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 4,
-                          justifyContent: "flex-end",
-                          marginTop: 4,
-                        }}
-                      >
-                        <button
-                          onClick={() => setEditPolicy(t)}
-                          aria-label={`Edit ${t.planName || "Term Plan"}`}
-                          title="Edit policy"
-                          className="icon-btn"
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 6,
-                            display: "flex",
-                            alignItems: "center",
-                            color: THEME.accent,
-                          }}
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setConfirmDeletePolicy({
-                              message: `Delete "${t.planName || "Term Plan"}"? This cannot be undone.`,
-                              key: "termPlans",
-                              id: t.id,
-                            })
-                          }
-                          aria-label={`Delete ${t.planName || "Term Plan"}`}
-                          title="Delete policy"
-                          className="icon-btn danger"
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 6,
-                            display: "flex",
-                            alignItems: "center",
-                            color: THEME.rust,
-                          }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+      )}
 
-                  {/* Alert band for urgent premium */}
-                  {isUrgent && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "6px 10px",
-                        borderRadius: 8,
-                        background: `color-mix(in srgb, ${alertColor} 6%, transparent)`,
-                        border: `1px solid color-mix(in srgb, ${alertColor} 21%, transparent)`,
-                        color: alertColor,
-                        fontSize: 11,
-                        fontWeight: 700,
-                      }}
-                    >
-                      <AlertCircle size={12} />
-                      {nextDue.days <= 0
-                        ? `Premium overdue by ${Math.abs(nextDue.days)}d`
-                        : `Premium due in ${nextDue.days} days`}{" "}
-                      — {fmtDate(nextDue.date)}
-                    </div>
-                  )}
-
-                  {/* Info tiles */}
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {[
-                      {
-                        label: "Plan Cover",
-                        value: t.term ? `${t.term} Yrs` : "—",
-                        color: THEME.muted,
-                      },
-                      {
-                        label: "Payable For",
-                        value: t.premiumPayingTerm ? `${t.premiumPayingTerm} Yrs` : "—",
-                        color: THEME.muted,
-                      },
-                      { label: "Started", value: fmtDate(t.startDate), color: THEME.muted },
-                      { label: "Expires", value: fmtDate(t.expiryDate), color: THEME.rust },
-                    ].map(({ label, value, color }) => (
-                      <div
-                        key={label}
-                        style={{
-                          flex: "1 1 70px",
-                          background: "var(--surface-0)",
-                          border: `1px solid ${THEME.line}`,
-                          borderLeft: `2.5px solid ${color}`,
-                          borderRadius: 8,
-                          padding: "7px 10px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 9,
-                            color: THEME.muted,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            marginBottom: 2,
-                          }}
-                        >
-                          {label}
-                        </div>
-                        <div style={{ fontWeight: 700, color: THEME.ink, fontSize: 12 }}>
-                          {value}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Premium progress bar */}
-                  {expectedTotal > 0 && (
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: 10,
-                          color: THEME.muted,
-                          fontWeight: 600,
-                          marginBottom: 4,
-                        }}
-                      >
-                        <span>PREMIUM PROGRESS · {progressPct.toFixed(0)}% paid</span>
-                        <span>
-                          {isPaid ? "Fully Paid" : `${privacyMode ? "••••" : fmtINRFull(balance)} left`}
-                        </span>
-                      </div>
-                      <div className="progress-track">
-                        <div
-                          className="progress-fill"
-                          style={{
-                            width: `${progressPct}%`,
-                            background: isPaid ? THEME.sage : THEME.accent,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bottom row */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: 8,
-                      paddingTop: 8,
-                      borderTop: `1px solid ${THEME.line}`,
-                    }}
-                  >
-                    <div style={{ fontSize: 12, fontWeight: 700, color: THEME.muted }}>
-                      Paid:{" "}
-                      <span style={{ color: THEME.sage, fontWeight: 800 }}>
-                        <Money value={paid} variant="full" />
-                      </span>
-                      {expectedTotal > 0 && (
-                        <>
-                          <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>Balance:{" "}
-                          <span
-                            style={{ color: isPaid ? THEME.sage : THEME.gold, fontWeight: 800 }}
-                          >
-                            {isPaid ? "Fully Paid" : <Money value={balance} variant="full" />}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    {nextDue && !isUrgent && (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 5,
-                          fontSize: 11,
-                          background: `color-mix(in srgb, ${THEME.muted} 6%, transparent)`,
-                          border: `1px solid color-mix(in srgb, ${THEME.muted} 13%, transparent)`,
-                          borderRadius: "var(--radius-xs)",
-                          padding: "3px 9px",
-                          color: THEME.muted,
-                          fontWeight: 700,
-                        }}
-                      >
-                        <Clock size={11} />
-                        Next: {fmtDate(nextDue.date)}
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* INVESTMENT PLANS SECTION */}
-      <div style={{ marginBottom: 32 }}>
-        <div className="ins-section-header">
-          <div className="ins-section-title">Investment Plans (Endowment / ULIP)</div>
-          <Button
-            onClick={() => setModal("invest")}
-            size="sm"
-            variant="secondary"
-            icon={<Plus size={14} />}
-          >
-            Add Plan
-          </Button>
-        </div>
-        {!state.investmentPlans || state.investmentPlans.length === 0 ? (
-          <EmptyState
-            icon={Sparkles}
-            dotColor={THEME.sage}
-            title="No Investment Plans Added"
-            description="Track your Endowment, ULIPs, and Guaranteed Income plans here. Monitor premium payments, expected maturity amounts, and calculate cash-flows."
-            pills={["Premium Term", "Maturity Amount", "Paid So Far", "Balance Due"]}
-            buttonLabel="Add Plan"
-            onAdd={() => setModal("invest")}
-          />
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))",
-              gap: 16,
-            }}
-          >
-            {state.investmentPlans.map((ip: any) => {
-              const paid =
-                (ip.transactions || []).reduce(
-                  (sum: number, tx: any) => sum + Number(tx.amount || 0),
-                  0
-                ) || Number(ip.premiumPaid || 0);
-              const expectedTotal =
-                Number(ip.annualPremium || 0) * Number(ip.premiumPayingTerm || ip.policyTerm || 0);
-              const balance = Math.max(0, expectedTotal - paid);
-              const isPaid = balance <= 0;
-              const status = getPolicyStatus(ip.maturityDate);
-              const nextDue = getNextPremiumDue(ip.commencementDate, ip.maturityDate);
-              const progressPct =
-                expectedTotal > 0 ? Math.min(100, (paid / expectedTotal) * 100) : 0;
-              const maturityGain = Number(ip.expectedMaturityAmount || 0) - expectedTotal;
-              const monthlyPremium = Number(ip.annualPremium || 0) / 12;
-              const isUrgent = nextDue && nextDue.days <= 60 && !isPaid;
-              const alertColor = nextDue && nextDue.days <= 30 ? THEME.rust : THEME.gold;
-              return (
-                <Card
-                  key={ip.id}
-                  style={{
-                    padding: "18px 20px",
-                    borderTop: `3px solid ${isPaid ? THEME.sage : status.color}`,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 14,
-                  }}
-                >
-                  {/* Header */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <InsurerLogo name={ip.insurer} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          flexWrap: "wrap",
-                          marginBottom: 3,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontWeight: 900,
-                            fontSize: 16,
-                            color: THEME.ink,
-                            letterSpacing: "-0.02em",
-                          }}
-                        >
-                          {ip.planName || "Investment Plan"}
-                        </span>
-                        <OwnerBadge owner={ip.owner} />
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            padding: "2px 7px",
-                            borderRadius: 10,
-                            background: `color-mix(in srgb, ${status.color} 9%, transparent)`,
-                            color: status.color,
-                          }}
-                        >
-                          {status.label}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                        <span style={{ color: THEME.sage }}>
-                          <Money value={ip.expectedMaturityAmount} variant="full" /> maturity
-                        </span>
-                        {ip.insurer && (
-                          <>
-                            <span style={{ margin: "0 5px", opacity: 0.4 }}>·</span>
-                            <span>{ip.insurer}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: 16,
-                          fontWeight: 900,
-                          color: THEME.ink,
-                          letterSpacing: "-0.01em",
-                        }}
-                      >
-                        <Money value={ip.annualPremium} variant="exact" />
-                        <span style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
-                          /yr
-                        </span>
-                      </div>
-                      {monthlyPremium > 0 && (
-                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                          <Money value={Math.round(monthlyPremium)} variant="full" />/mo
-                        </div>
-                      )}
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 4,
-                          justifyContent: "flex-end",
-                          marginTop: 4,
-                        }}
-                      >
-                        <button
-                          onClick={() => setEditPolicy(ip)}
-                          aria-label={`Edit ${ip.planName || "Investment Plan"}`}
-                          title="Edit policy"
-                          className="icon-btn"
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 6,
-                            display: "flex",
-                            alignItems: "center",
-                            color: THEME.accent,
-                          }}
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setConfirmDeletePolicy({
-                              message: `Delete "${ip.planName || "Investment Plan"}"? This cannot be undone.`,
-                              key: "investmentPlans",
-                              id: ip.id,
-                            })
-                          }
-                          aria-label={`Delete ${ip.planName || "Investment Plan"}`}
-                          title="Delete policy"
-                          className="icon-btn danger"
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 6,
-                            display: "flex",
-                            alignItems: "center",
-                            color: THEME.rust,
-                          }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Alert band for urgent premium */}
-                  {isUrgent && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "6px 10px",
-                        borderRadius: 8,
-                        background: `color-mix(in srgb, ${alertColor} 6%, transparent)`,
-                        border: `1px solid color-mix(in srgb, ${alertColor} 21%, transparent)`,
-                        color: alertColor,
-                        fontSize: 11,
-                        fontWeight: 700,
-                      }}
-                    >
-                      <AlertCircle size={12} />
-                      {nextDue.days <= 0
-                        ? `Premium overdue by ${Math.abs(nextDue.days)}d`
-                        : `Premium due in ${nextDue.days} days`}{" "}
-                      — {fmtDate(nextDue.date)}
-                    </div>
-                  )}
-
-                  {/* Info tiles */}
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {[
-                      {
-                        label: "Policy Term",
-                        value: ip.policyTerm ? `${ip.policyTerm} Yrs` : "—",
-                        color: THEME.muted,
-                      },
-                      {
-                        label: "Paying Term",
-                        value: ip.premiumPayingTerm ? `${ip.premiumPayingTerm} Yrs` : "—",
-                        color: THEME.muted,
-                      },
-                      { label: "Started", value: fmtDate(ip.commencementDate), color: THEME.muted },
-                      { label: "Matures", value: fmtDate(ip.maturityDate), color: THEME.sage },
-                    ].map(({ label, value, color }) => (
-                      <div
-                        key={label}
-                        style={{
-                          flex: "1 1 70px",
-                          background: "var(--surface-0)",
-                          border: `1px solid ${THEME.line}`,
-                          borderLeft: `2.5px solid ${color}`,
-                          borderRadius: 8,
-                          padding: "7px 10px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 9,
-                            color: THEME.muted,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            marginBottom: 2,
-                          }}
-                        >
-                          {label}
-                        </div>
-                        <div style={{ fontWeight: 700, color: THEME.ink, fontSize: 12 }}>
-                          {value}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* 3 corpus tinted tiles: Invested / Balance / At Maturity */}
-                  {(expectedTotal > 0 || ip.expectedMaturityAmount) && (
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <div
-                        style={{
-                          flex: "1 1 80px",
-                          background: "var(--surface-0)",
-                          border: `1px solid ${THEME.line}`,
-                          borderLeft: `2.5px solid ${THEME.muted}`,
-                          borderRadius: 8,
-                          padding: "8px 10px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 9,
-                            color: THEME.muted,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            marginBottom: 2,
-                          }}
-                        >
-                          Invested
-                        </div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontWeight: 800,
-                            color: THEME.ink,
-                            fontSize: 13,
-                          }}
-                        >
-                          <Money value={paid} variant="full" />
-                        </div>
-                      </div>
-                      {expectedTotal > 0 && (
-                        <div
-                          style={{
-                            flex: "1 1 80px",
-                            background: "var(--surface-0)",
-                            border: `1px solid ${THEME.line}`,
-                            borderLeft: `2.5px solid ${THEME.gold}`,
-                            borderRadius: 8,
-                            padding: "8px 10px",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 9,
-                              color: THEME.muted,
-                              fontWeight: 700,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.05em",
-                              marginBottom: 2,
-                            }}
-                          >
-                            Balance Due
-                          </div>
-                          <div
-                            style={{
-                              fontFamily: "var(--font-display)",
-                              fontWeight: 800,
-                              color: isPaid ? THEME.sage : THEME.gold,
-                              fontSize: 13,
-                            }}
-                          >
-                            {isPaid ? "Fully Paid" : <Money value={balance} variant="full" />}
-                          </div>
-                        </div>
-                      )}
-                      {ip.expectedMaturityAmount && (
-                        <div
-                          style={{
-                            flex: "1 1 80px",
-                            background: "var(--surface-0)",
-                            border: `1px solid ${THEME.line}`,
-                            borderLeft: `2.5px solid ${THEME.sage}`,
-                            borderRadius: 8,
-                            padding: "8px 10px",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 9,
-                              color: THEME.muted,
-                              fontWeight: 700,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.05em",
-                              marginBottom: 2,
-                            }}
-                          >
-                            At Maturity
-                          </div>
-                          <div
-                            style={{
-                              fontFamily: "var(--font-display)",
-                              fontWeight: 800,
-                              color: THEME.sage,
-                              fontSize: 13,
-                            }}
-                          >
-                            <Money value={ip.expectedMaturityAmount} variant="full" />
-                          </div>
-                          {maturityGain > 0 && expectedTotal > 0 && (
-                            <div style={{ fontSize: 9, color: THEME.sage, fontWeight: 700 }}>
-                              +{((maturityGain / expectedTotal) * 100).toFixed(0)}% return
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Premium progress bar */}
-                  {expectedTotal > 0 && (
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: 10,
-                          color: THEME.muted,
-                          fontWeight: 600,
-                          marginBottom: 4,
-                        }}
-                      >
-                        <span>PREMIUM PROGRESS · {progressPct.toFixed(0)}% paid</span>
-                      </div>
-                      <div className="progress-track">
-                        <div
-                          className="progress-fill"
-                          style={{ width: `${progressPct}%`, background: THEME.sage }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bottom row: next due pill (non-urgent only) */}
-                  {nextDue && !isUrgent && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        paddingTop: 6,
-                        borderTop: `1px solid ${THEME.line}`,
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 5,
-                          fontSize: 11,
-                          background: `color-mix(in srgb, ${THEME.muted} 6%, transparent)`,
-                          border: `1px solid color-mix(in srgb, ${THEME.muted} 13%, transparent)`,
-                          borderRadius: "var(--radius-xs)",
-                          padding: "3px 9px",
-                          color: THEME.muted,
-                          fontWeight: 700,
-                        }}
-                      >
-                        <Clock size={11} />
-                        Next: {fmtDate(nextDue.date)}
-                      </div>
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {(modal || editPolicy) && (
-        <AddInsuranceModal
-          sub={
-            modal ||
-            (licList.some((l: any) => l.id === editPolicy?.id)
-              ? "lic"
-              : termList.some((t: any) => t.id === editPolicy?.id)
-                ? "term"
-                : "invest")
-          }
+      {/* Add / Edit Policy Modal */}
+      {addModalType && (
+        <AddEditPolicyModal
+          type={addModalType}
           policy={editPolicy}
           onClose={() => {
-            setModal(null);
+            setAddModalType(null);
             setEditPolicy(null);
           }}
-          onSave={handleSave}
-          saving={savingPolicy}
+          onSave={handleSavePolicy}
+          saving={isSaving}
+          showToast={showToast}
         />
       )}
-      {confirmDeletePolicy && (
-        <ConfirmDialog
-          message={confirmDeletePolicy.message}
-          onConfirm={() => {
-            deletePolicy(confirmDeletePolicy.key, confirmDeletePolicy.id);
-            setConfirmDeletePolicy(null);
+
+      {/* Policy Payment History & Auto-Generator Drawer Modal */}
+      {ledgerPolicy && (
+        <PolicyLedgerDrawerModal
+          policy={ledgerPolicy}
+          onClose={() => setLedgerPolicy(null)}
+          onUpdatePolicy={async (updatedPolicy) => {
+            const collectionKey =
+              updatedPolicy.type === "lic"
+                ? "lic"
+                : updatedPolicy.type === "term"
+                ? "termPlans"
+                : "investmentPlans";
+            await updateItem(collectionKey, updatedPolicy.id, updatedPolicy.raw);
           }}
-          onCancel={() => setConfirmDeletePolicy(null)}
+          showToast={showToast}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`Are you sure you want to delete policy "${confirmDelete.name}"? This action cannot be undone.`}
+          onConfirm={() =>
+            handleDeletePolicy(confirmDelete.collectionKey, confirmDelete.id)
+          }
+          onCancel={() => setConfirmDelete(null)}
         />
       )}
     </div>
   );
 }
+
+export default InsuranceSummaryTab;
