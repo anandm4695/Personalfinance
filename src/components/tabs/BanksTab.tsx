@@ -322,7 +322,7 @@ export function BanksTab({
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [activeRange, setActiveRange] = useState<string | null>("thisMonth");
+  const [activeRange, setActiveRange] = useState<string | null>("all");
   const [copiedAccId, setCopiedAccId] = useState<string | null>(null);
 
   // Inline Editing
@@ -339,14 +339,6 @@ export function BanksTab({
   const [txnPage, setTxnPage] = useState(1);
 
   const { transactionCategories: txnCats } = useMasterData();
-
-  // Initialize date range on mount to thisMonth
-  useEffect(() => {
-    const now = new Date();
-    const nowLocal = getLocalDateString(now);
-    setDateFrom(nowLocal.slice(0, 7) + "-01");
-    setDateTo(nowLocal);
-  }, []);
 
   // Copy helper
   const handleCopy = (text: string, id: string) => {
@@ -1359,6 +1351,9 @@ export function BanksTab({
                     style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
                     onClick={() => {
                       setFilterAcc(w.id);
+                      setDateFrom("");
+                      setDateTo("");
+                      setActiveRange("all");
                       setActiveTab("ledger");
                     }}
                     title="Click to inspect account ledger"
@@ -1700,6 +1695,9 @@ export function BanksTab({
                           style={{ flex: 1, fontSize: 11 }}
                           onClick={() => {
                             setFilterAcc(a.id);
+                            setDateFrom("");
+                            setDateTo("");
+                            setActiveRange("all");
                             setActiveTab("ledger");
                           }}
                         >
