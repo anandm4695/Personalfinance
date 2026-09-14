@@ -4300,7 +4300,14 @@ function FinanceDashboard() {
                   updateMasterData={updateMasterData}
                 />
               )}
-              {tab === "smartalerts" && <SmartAlertsTab state={filteredState} metrics={metrics} />}
+              {tab === "smartalerts" && (
+                <SmartAlertsTab
+                  state={filteredState}
+                  metrics={metrics}
+                  setTab={setTab}
+                  showToast={showToast}
+                />
+              )}
               {tab === "expenseforecast" && (
                 <ExpenseForecastTab state={filteredState} metrics={metrics} setTab={setTab} />
               )}

@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { SmartAlertsTab } from "../components/tabs/SmartAlertsTab";
 
-describe("SmartAlertsTab day-count math", () => {
+describe("SmartAlertsTab UI & Intelligence", () => {
   const originalTZ = process.env.TZ;
 
   beforeEach(() => {
@@ -18,11 +18,6 @@ describe("SmartAlertsTab day-count math", () => {
   });
 
   it("counts a goal deadline exactly tomorrow as '1 days' away, not '2 days', when checked in the early morning", () => {
-    // Bug: `days = Math.ceil((new Date(targetDate).getTime() - now.getTime()) / 86400000)` mixed
-    // targetDate's UTC-midnight parse (≈5:30am local in IST) with the real current instant `now`
-    // (which carries today's actual time-of-day). Checked at 2am IST, a deadline that is
-    // literally tomorrow calendar-wise landed 27.5 real hours away, which Math.ceil rounds up to
-    // "2 days" instead of the correct "1 days".
     vi.setSystemTime(new Date(2026, 6, 13, 2, 0, 0)); // 13 Jul 2026, 02:00 local (IST)
 
     const state = {
@@ -44,7 +39,91 @@ describe("SmartAlertsTab day-count math", () => {
       />
     );
 
-    expect(html).toContain('deadline in 1 days');
-    expect(html).not.toContain('deadline in 2 days');
+    expect(html).toContain("deadline in 1 days");
+    expect(html).not.toContain("deadline in 2 days");
+  });
+
+  it("calculates Health Index and displays AI Diagnostic Briefing", () => {
+    vi.setSystemTime(new Date(2026, 6, 13, 10, 0, 0));
+
+    const state = {
+      transactions: [],
+      goals: [],
+      subscriptions: [],
+      bonds: [],
+    };
+
+    const html = renderToString(
+      <SmartAlertsTab
+        state={state}
+        metrics={{ monthExpense: 0 }}
+      />
+    );
+
+    expect(html).toContain("Health Index");
+    expect(html).toContain("100");
+    expect(html).toContain("Optimal Health");
+    expect(html).toContain("AI Diagnostic Briefing");
+  });
+
+  it("flags low emergency runway when liquid cash is below safety threshold", () => {
+    vi.setSystemTime(new Date(2026, 6, 13, 10, 0, 0));
+
+    const state = {
+      bankAccounts: [{ id: "b1", balance: 25000 }],
+      transactions: [],
+    };
+
+    const html = renderToString(
+      <SmartAlertsTab
+        state={state}
+        metrics={{ monthExpense: 50000 }}
+      />
+    );
+
+    expect(html).toContain("Low Emergency Runway");
+    expect(html).toContain("0.5 Months");
+    expect(html).toContain("Take Action");
+  });
+
+  it("detects potential duplicate charges on the same day", () => {
+    vi.setSystemTime(new Date(2026, 6, 13, 10, 0, 0));
+
+    const state = {
+      transactions: [
+        { id: "t1", type: "debit", date: "2026-07-10", amount: 2500, category: "Dining" },
+        { id: "t2", type: "debit", date: "2026-07-10", amount: 2500, category: "Dining" },
+      ],
+    };
+
+    const html = renderToString(
+      <SmartAlertsTab
+        state={state}
+        metrics={{ monthExpense: 10000 }}
+      />
+    );
+
+    expect(html).toContain("Potential duplicate charge");
+    expect(html).toContain("2x ₹2500");
+  });
+
+  it("flags high credit card utilization", () => {
+    vi.setSystemTime(new Date(2026, 6, 13, 10, 0, 0));
+
+    const state = {
+      creditCards: [
+        { id: "c1", issuer: "HDFC Regalia", outstanding: 180000, limit: 200000 },
+      ],
+    };
+
+    const html = renderToString(
+      <SmartAlertsTab
+        state={state}
+        metrics={{ monthExpense: 30000 }}
+      />
+    );
+
+    expect(html).toContain("High credit utilization on HDFC Regalia");
+    expect(html).toContain("90%");
   });
 });
