@@ -4,13 +4,8 @@ import { renderToString } from "react-dom/server";
 import { describe, it, expect } from "vitest";
 import { FinancialCalendarTab } from "../components/tabs/FinancialCalendarTab";
 
-describe("FinancialCalendarTab date bucketing", () => {
+describe("FinancialCalendarTab", () => {
   it("shows a credit card annual fee due exactly today as 'Today', not pushed a year forward", () => {
-    // Bug: the fee-due-date comparison built `now` from a plain "YYYY-MM-DD" string (parsed as
-    // UTC midnight) but `feeDate` from the multi-arg Date constructor (LOCAL midnight). In a
-    // positive-UTC-offset timezone (IST, +5:30) UTC midnight is ~5:30am local — LATER than
-    // feeDate's local 00:00 — so a fee due exactly today looked "already past" and got bumped a
-    // full year ahead, silently vanishing from the (default 6-month) forecast window.
     const originalTZ = process.env.TZ;
     process.env.TZ = "Asia/Kolkata";
     try {
@@ -38,5 +33,56 @@ describe("FinancialCalendarTab date bucketing", () => {
     } finally {
       process.env.TZ = originalTZ;
     }
+  });
+
+  it("renders empty state gracefully when no events exist in state", () => {
+    const state = {
+      fixedDeposits: [],
+      recurringDeposits: [],
+      bonds: [],
+      lic: [],
+      termPlans: [],
+      healthInsurance: [],
+      creditCards: [],
+      subscriptions: [],
+      vehicles: [],
+    };
+    const html = renderToString(<FinancialCalendarTab state={state} metrics={{}} />);
+    expect(html).toContain("No Upcoming Financial Events");
+  });
+
+  it("renders multiple financial event types (FD, Insurance, Subscriptions) with Inflows & Outflows stats", () => {
+    const now = new Date();
+    const futureDate = new Date(now.getFullYear(), now.getMonth() + 2, 15).toISOString().slice(0, 10);
+    const state = {
+      fixedDeposits: [
+        {
+          id: "fd1",
+          bank: "HDFC Bank FD",
+          principal: 200000,
+          rate: 7.5,
+          maturityDate: futureDate,
+        },
+      ],
+      subscriptions: [
+        {
+          id: "sub1",
+          name: "Netflix Premium",
+          amount: 649,
+          cycle: "quarterly",
+          renewalDate: futureDate,
+        },
+      ],
+    };
+
+    const html = renderToString(<FinancialCalendarTab state={state} metrics={{}} />);
+    expect(html).toContain("HDFC Bank FD");
+    expect(html).toContain("Netflix Premium");
+    expect(html).toContain("Expected Inflows");
+    expect(html).toContain("Expected Outflows");
+    expect(html).toContain("Net Cash Trajectory");
+    expect(html).toContain("Agenda Timeline");
+    expect(html).toContain("Calendar Grid");
+    expect(html).toContain("Cashflow Radar");
   });
 });
