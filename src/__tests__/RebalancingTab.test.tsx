@@ -36,16 +36,26 @@ describe("RebalancingTab Premium UI Statically", () => {
         buyNav: 50,
         currentNav: 55,
       },
+      {
+        id: "m2",
+        schemeName: "Nippon Gold ETF",
+        category: "Gold ETF",
+        units: 50,
+        buyNav: 50,
+        currentNav: 60,
+      },
     ],
-    fixedDeposits: [],
+    fixedDeposits: [{ id: "fd1", principal: 100000, rate: 7.5 }],
     recurringDeposits: [],
     bonds: [],
-    ppf: [],
-    nps: [],
-    epf: [],
+    ppf: [{ id: "ppf1", balance: 50000 }],
+    nps: [{ id: "nps1", balance: 75000 }],
+    epf: [{ id: "epf1", employeeShare: 50000, employerShare: 50000, pensionShare: 20000 }],
     lic: [],
     investmentPlans: [],
+    goldHoldings: [{ id: "g1", type: "physical", grams: 10, purity: "24K" }],
     bankAccounts: [{ id: "a1", balance: 50000, name: "Savings Account" }],
+    prepaidCards: [],
   };
 
   it("should render alignment score, presets selectors, comparison donuts, suggestion lists, and detailed break lists", () => {
@@ -60,5 +70,30 @@ describe("RebalancingTab Premium UI Statically", () => {
     expect(html).toContain("Target Allocation");
     expect(html).toContain("Actionable Suggestions");
     expect(html).toContain("Detailed Breakdown");
+    expect(html).toContain("Deploy New Money");
+    expect(html).toContain("SIP Rebalancing");
+    expect(html).toContain("Liquid vs Locked");
+    expect(html).toContain("5/25 Rebalancing Rule");
+  });
+
+  it("should render empty state when portfolio has no investments", () => {
+    const emptyState = {
+      stocks: [],
+      mutualFunds: [],
+      fixedDeposits: [],
+      recurringDeposits: [],
+      bonds: [],
+      ppf: [],
+      nps: [],
+      epf: [],
+      lic: [],
+      investmentPlans: [],
+      goldHoldings: [],
+      bankAccounts: [],
+      prepaidCards: [],
+    };
+    const html = renderToString(<RebalancingTab state={emptyState} metrics={{}} marketData={{}} />);
+    expect(html).toContain("No Portfolio Data");
+    expect(html).toContain("Add investments to see rebalancing suggestions");
   });
 });
