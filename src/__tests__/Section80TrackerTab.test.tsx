@@ -77,7 +77,27 @@ describe("Section80TrackerTab — Comprehensive Test Suite", () => {
         <Section80TrackerTab state={state} metrics={{}} />
       </PrivacyProvider>
     );
-    expect(html).toContain("Section 80C / 80D &amp; Tax Deductions Tracker");
-    expect(html).toContain("Total Eligible Deductions");
+    expect(html).toContain("80C / 80D Deductions &amp; Regime Crossover Lab");
+    expect(html).toContain("Auto-Detected Deductions (Sim)");
+  });
+
+  it("renders New Tax Regime Crossover Radar and Breakeven Target when in New Regime", () => {
+    const state = {
+      profile: { regime: "new" },
+      mutualFunds: [
+        { category: "ELSS Tax Saver", invested: 150000, buyDate: `${fyStartYear}-05-10` },
+      ],
+      nps: [
+        { thisYearContribution: 50000, employerContribution: 80000 },
+      ],
+    };
+    const html = renderToString(
+      <PrivacyProvider>
+        <Section80TrackerTab state={state} metrics={{ annualIncome: 1800000 }} />
+      </PrivacyProvider>
+    );
+    expect(html).toContain("New Tax Regime Active — Old vs New Crossover Radar");
+    expect(html).toContain("Breakeven Deduction Target");
+    expect(html).toContain("Dual-Regime Tax Shield");
   });
 });

@@ -51,6 +51,8 @@ import {
   loanOutstanding,
   getEffectiveRent,
   annualizePremium,
+  calcTaxNewByFY,
+  calcTaxOldByFY,
 } from "../../utils/finance";
 import { useMasterData, isSeniorCitizen } from "../../utils/masterData";
 import { getCurrentFY, getCurrentFYStartYear } from "../../utils/appConstants";
@@ -64,6 +66,7 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Modal, ModalActions } from "../ui/Modal";
 import { ConfirmDialog } from "../ui/Feedback";
+import { TaxSuiteHeader } from "../tax/TaxSuiteHeader";
 
 /* ══════════════════════════════════════════════════════════════════
    CONSTANTS, TYPES & COLOR TOKENS
@@ -338,9 +341,16 @@ const CustomProgressBar: React.FC<{
 interface Section80TrackerTabProps {
   state: any;
   metrics?: any;
+  setTab?: (tab: string) => void;
+  updateProfile?: (profile: any) => void;
 }
 
-export const Section80TrackerTab: React.FC<Section80TrackerTabProps> = ({ state }) => {
+export const Section80TrackerTab: React.FC<Section80TrackerTabProps> = ({
+  state,
+  metrics: _metrics,
+  setTab,
+  updateProfile,
+}) => {
   const { familyProfiles } = useMasterData();
 
   // Active Fiscal Year
@@ -356,6 +366,30 @@ export const Section80TrackerTab: React.FC<Section80TrackerTabProps> = ({ state 
       `${currentStart - 2}-${String(currentStart - 1).slice(2)}`,
     ];
   }, []);
+
+  // Active Tax Regime Mode (synced with state.profile?.regime, with interactive toggle & save)
+  const defaultProfileRegime = state?.profile?.regime === "old" ? "old" : "new";
+  const [activeRegime, setActiveRegime] = useState<"new" | "old">(defaultProfileRegime);
+
+  useEffect(() => {
+    if (state?.profile?.regime) {
+      setActiveRegime(state.profile.regime === "old" ? "old" : "new");
+    }
+  }, [state?.profile?.regime]);
+
+  const handleRegimeChange = (regime: "new" | "old") => {
+    setActiveRegime(regime);
+    if (updateProfile) {
+      updateProfile({ regime });
+    }
+  };
+
+  // Gross Annual Income estimation
+  const detectedIncome = _metrics?.annualIncome || (_metrics?.monthIncome || 0) * 12 || 0;
+  const stateIncomeSum = (state?.income || []).reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
+  const baseIncome = detectedIncome > 0 ? detectedIncome : stateIncomeSum > 0 ? stateIncomeSum : 1500000;
+  const [grossIncomeOverride, setGrossIncomeOverride] = useState<string>("");
+  const grossIncome = grossIncomeOverride !== "" ? Number(grossIncomeOverride) || 0 : baseIncome;
 
   // Sub-Navigation Active Tab
   const [activeTab, setActiveTab] = useState<
@@ -902,6 +936,64 @@ export const Section80TrackerTab: React.FC<Section80TrackerTabProps> = ({ state 
     ].filter((d) => d.value > 0);
   }, [data]);
 
+  // Crossover & Breakeven Engine: Compares New vs Old Regime with current deductions
+  const crossoverAnalysis = useMemo(() => {
+    const fyParts = selectedFY.split("-");
+    const fyStart = Number(fyParts[0]) || getCurrentFYStartYear();
+
+    const stdDedNew = fyStart >= 2024 ? 75000 : fyStart >= 2023 ? 50000 : 0;
+    const employerNpsDeduction = data.sec80CCD2.total; // Section 80CCD(2) allowed in BOTH regimes!
+
+    const taxNewResult = calcTaxNewByFY(grossIncome, selectedFY);
+
+    const stdDedOld = fyStart >= 2020 ? 50000 : 40000;
+    const totalOldDeductions = data.totalDeductions;
+    const totalDeductionsWithStd = totalOldDeductions + stdDedOld;
+    const taxOldResult = calcTaxOldByFY(grossIncome, totalDeductionsWithStd, selectedFY);
+
+    const diff = Math.abs(taxNewResult.total - taxOldResult.total);
+    const betterRegime: "new" | "old" | "equal" =
+      taxOldResult.total < taxNewResult.total - 1
+        ? "old"
+        : taxNewResult.total < taxOldResult.total - 1
+        ? "new"
+        : "equal";
+
+    // Breakeven Deduction Solver: Find total Old Regime deductions (excl std ded) such that TaxOld <= TaxNew
+    let low = 0;
+    let high = Math.min(grossIncome, 3000000);
+    let breakevenDeduction = 0;
+    for (let iter = 0; iter < 35; iter++) {
+      const mid = (low + high) / 2;
+      const testTax = calcTaxOldByFY(grossIncome, mid + stdDedOld, selectedFY).total;
+      if (testTax <= taxNewResult.total) {
+        breakevenDeduction = mid;
+        high = mid;
+      } else {
+        low = mid;
+      }
+    }
+    breakevenDeduction = Math.round(breakevenDeduction);
+
+    const deductionGap = Math.max(0, breakevenDeduction - totalOldDeductions);
+    const deductionSurplus = Math.max(0, totalOldDeductions - breakevenDeduction);
+
+    return {
+      grossIncome,
+      stdDedNew,
+      stdDedOld,
+      employerNpsDeduction,
+      taxNew: taxNewResult,
+      taxOld: taxOldResult,
+      diff,
+      betterRegime,
+      breakevenDeduction,
+      deductionGap,
+      deductionSurplus,
+      totalOldDeductions,
+    };
+  }, [grossIncome, selectedFY, data.totalDeductions, data.sec80CCD2.total]);
+
   // Handle Add/Edit Custom Deduction
   const handleSaveCustomDeduction = () => {
     const amt = parseFloat(modalForm.amount);
@@ -991,7 +1083,7 @@ export const Section80TrackerTab: React.FC<Section80TrackerTabProps> = ({ state 
     const text = `
 TAX DEDUCTION DECLARATION / SUMMARY (CHAPTER VI-A & SEC 24)
 Financial Year: ${selectedFY}
-Tax Regime: Old Tax Regime
+Tax Regime: ${activeRegime === "old" ? "Old Tax Regime" : "New Tax Regime (Simulation Mode)"}
 
 1. SECTION 80C INVESTMENTS:
    - EPF (Employee Contribution): ${fmtINRFull(data.sec80C.items.find((i) => i.id === "epf")?.amount || 0)}
@@ -1046,6 +1138,9 @@ Generated via Personal Finance by Anand Mohta on ${new Date().toLocaleDateString
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+      {/* ── Unified Tax Suite Header ─────────────────────────────── */}
+      <TaxSuiteHeader activeTab="sec80" setTab={setTab} />
+
       {/* ══════════════════════════════════════════════════════════════
           1. HEADER & INTERACTIVE CONTROLS BAR
           ══════════════════════════════════════════════════════════════ */}
@@ -1059,12 +1154,12 @@ Generated via Personal Finance by Anand Mohta on ${new Date().toLocaleDateString
         }}
       >
         <div>
-          <SectionTitle sub="Comprehensive Chapter VI-A & Section 24 deduction tracker with auto-detection, manual gap filling, and tax savings optimizer">
-            Section 80C / 80D &amp; Tax Deductions Tracker
+          <SectionTitle sub="Comprehensive Chapter VI-A & Section 24 deduction tracker, Old vs New regime crossover optimizer, and statutory tax shield">
+            80C / 80D Deductions &amp; Regime Crossover Lab
           </SectionTitle>
         </div>
 
-        {/* Global Controls: FY Selector & Quick Actions */}
+        {/* Global Controls: Regime Toggle, FY Selector, Slab & Quick Actions */}
         <div
           style={{
             display: "flex",
@@ -1073,6 +1168,60 @@ Generated via Personal Finance by Anand Mohta on ${new Date().toLocaleDateString
             flexWrap: "wrap",
           }}
         >
+          {/* Regime Switcher Pill */}
+          <div
+            style={{
+              display: "flex",
+              background: "var(--surface-0)",
+              padding: 3,
+              borderRadius: "var(--radius-md)",
+              border: `1.5px solid ${THEME.line}`,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => handleRegimeChange("new")}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 700,
+                border: "none",
+                cursor: "pointer",
+                background: activeRegime === "new" ? THEME.accent : "transparent",
+                color: activeRegime === "new" ? "#fff" : THEME.muted,
+                transition: "all 0.2s ease",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              <Sparkles size={12} />
+              New Regime
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRegimeChange("old")}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 700,
+                border: "none",
+                cursor: "pointer",
+                background: activeRegime === "old" ? THEME.gold : "transparent",
+                color: activeRegime === "old" ? "#fff" : THEME.muted,
+                transition: "all 0.2s ease",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              <Shield size={12} />
+              Old Regime
+            </button>
+          </div>
+
           {/* FY Selector */}
           <div
             style={{
@@ -1195,50 +1344,198 @@ Generated via Personal Finance by Anand Mohta on ${new Date().toLocaleDateString
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
-          2. TAX DEADLINE & REGIME ADVISORY BANNER
+          2. DYNAMIC REGIME ADVISORY & CROSSOVER RADAR CARD
           ══════════════════════════════════════════════════════════════ */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 12,
-          padding: "12px 18px",
-          borderRadius: 12,
-          background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.gold} 10%, transparent) 0%, color-mix(in srgb, ${THEME.accent} 8%, transparent) 100%)`,
-          border: `1px solid color-mix(in srgb, ${THEME.gold} 25%, transparent)`,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1 }}>
-          <AlertTriangle size={17} color={THEME.gold} style={{ flexShrink: 0, marginTop: 2 }} />
-          <div style={{ fontSize: 12.5, color: THEME.text, lineHeight: 1.5 }}>
-            <strong>Old Tax Regime Optimization:</strong> Most Chapter VI-A deductions (80C, 80D,
-            80CCD(1B), 80TTA, Sec 24) are eligible <em>only under the Old Regime</em>. Section 80CCD(2)
-            Employer NPS is allowed in <strong>both Old and New Regimes</strong>.
-          </div>
-        </div>
+      {activeRegime === "new" ? (
+        <Card
+          style={{
+            padding: 20,
+            borderRadius: 16,
+            background: "linear-gradient(135deg, color-mix(in srgb, var(--surface-0) 92%, var(--t-accent) 8%), var(--surface-0))",
+            border: `1.5px solid color-mix(in srgb, ${THEME.accent} 30%, transparent)`,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    background: `linear-gradient(135deg, ${THEME.accent}, ${THEME.sage})`,
+                    color: "#fff",
+                  }}
+                >
+                  <Sparkles size={16} />
+                </span>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                    New Tax Regime Active — Old vs New Crossover Radar
+                  </div>
+                  <div style={{ fontSize: 12, color: THEME.muted }}>
+                    Evaluating if Chapter VI-A deductions (80C, 80D, 24b) make switching to Old Regime profitable
+                  </div>
+                </div>
+              </div>
 
-        {selectedFY === currentFY && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              background: `color-mix(in srgb, ${daysLeftInFY <= 45 ? THEME.rust || "#ef4444" : THEME.gold} 15%, transparent)`,
-              color: daysLeftInFY <= 45 ? THEME.rust || "#ef4444" : THEME.gold,
-              padding: "4px 10px",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              whiteSpace: "nowrap",
-            }}
-          >
-            <Clock size={13} />
-            {daysLeftInFY > 0 ? `${daysLeftInFY} days until March 31 Tax Deadline` : "FY Closed (March 31)"}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Badge variant={crossoverAnalysis.betterRegime === "old" ? "gold" : "accent"}>
+                  {crossoverAnalysis.betterRegime === "old"
+                    ? `Old Regime Saves ${fmtINRFull(crossoverAnalysis.diff)} More!`
+                    : `New Regime is ${fmtINRFull(crossoverAnalysis.diff)} Cheaper`}
+                </Badge>
+                {crossoverAnalysis.betterRegime === "old" && updateProfile && (
+                  <Button
+                    size="sm"
+                    variant="accent"
+                    icon={<Shield size={13} />}
+                    onClick={() => handleRegimeChange("old")}
+                  >
+                    Switch Profile to Old Regime
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* 3-Column Comparative Metrics Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  background: "color-mix(in srgb, var(--surface-1) 80%, transparent)",
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" }}>
+                  New Regime Tax (Default)
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: THEME.accent, marginTop: 4 }}>
+                  {fmtINRFull(crossoverAnalysis.taxNew.total)}
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                  Incl. ₹{fmtINR(crossoverAnalysis.stdDedNew)} Std Ded + ₹{fmtINR(data.sec80CCD2.total)} Employer NPS
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  background: "color-mix(in srgb, var(--surface-1) 80%, transparent)",
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" }}>
+                  Old Regime Tax (With Deductions)
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: THEME.gold, marginTop: 4 }}>
+                  {fmtINRFull(crossoverAnalysis.taxOld.total)}
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                  With ₹{fmtINR(data.totalDeductions)} eligible deductions + ₹50k Std Ded
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  background: "color-mix(in srgb, var(--surface-1) 80%, transparent)",
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" }}>
+                  Breakeven Deduction Target
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginTop: 4 }}>
+                  {fmtINRFull(crossoverAnalysis.breakevenDeduction)}
+                </div>
+                <div style={{ fontSize: 11, color: crossoverAnalysis.deductionGap > 0 ? THEME.gold : THEME.sage, marginTop: 2 }}>
+                  {crossoverAnalysis.deductionGap > 0
+                    ? `Shortfall of ₹${fmtINR(crossoverAnalysis.deductionGap)} to beat New Regime`
+                    : `Surplus of ₹${fmtINR(crossoverAnalysis.deductionSurplus)} above breakeven!`}
+                </div>
+              </div>
+            </div>
+
+            {/* Dual Regime Benefit Banner for 80CCD(2) Employer NPS */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 8,
+                padding: "10px 14px",
+                borderRadius: 8,
+                background: `color-mix(in srgb, ${THEME.sage} 10%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Zap size={15} color={THEME.sage} />
+                <div style={{ fontSize: 12, color: THEME.ink }}>
+                  <strong>Dual-Regime Tax Shield:</strong> Section 80CCD(2) Employer NPS is 100% tax-deductible in <strong>both New and Old Regimes</strong> (up to 14% of Basic salary).
+                  {data.sec80CCD2.total > 0
+                    ? ` Your current ₹${fmtINR(data.sec80CCD2.total)} contribution reduces New Regime tax directly!`
+                    : ` You currently have ₹0 logged — ask your employer to route up to 14% of basic via NPS.`}
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+        </Card>
+      ) : (
+        /* Old Regime Active Advisory Banner */
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            padding: "14px 18px",
+            borderRadius: 14,
+            background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.gold} 12%, transparent) 0%, color-mix(in srgb, ${THEME.accent} 8%, transparent) 100%)`,
+            border: `1.5px solid color-mix(in srgb, ${THEME.gold} 30%, transparent)`,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1 }}>
+            <Shield size={18} color={THEME.gold} style={{ flexShrink: 0, marginTop: 2 }} />
+            <div style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.5 }}>
+              <strong>Old Tax Regime Active:</strong> Your <strong>{fmtINRFull(data.totalDeductions)}</strong> in eligible Chapter VI-A deductions are actively shielding your income, saving an estimated <strong>{fmtINRFull(data.taxSaved)}</strong> in taxes.
+              <div style={{ fontSize: 12, color: THEME.muted, marginTop: 3 }}>
+                Compare: New Regime Tax would be {fmtINRFull(crossoverAnalysis.taxNew.total)} vs Old Regime {fmtINRFull(crossoverAnalysis.taxOld.total)} ({crossoverAnalysis.betterRegime === "old" ? `Old saves ${fmtINRFull(crossoverAnalysis.diff)}` : `New saves ${fmtINRFull(crossoverAnalysis.diff)}`}).
+              </div>
+            </div>
+          </div>
+
+          {selectedFY === currentFY && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: `color-mix(in srgb, ${daysLeftInFY <= 45 ? THEME.rust || "#ef4444" : THEME.gold} 15%, transparent)`,
+                color: daysLeftInFY <= 45 ? THEME.rust || "#ef4444" : THEME.gold,
+                padding: "6px 12px",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Clock size={14} />
+              {daysLeftInFY > 0 ? `${daysLeftInFY} days until March 31 Tax Deadline` : "FY Closed (March 31)"}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════
           3. EXECUTIVE KPI CARDS RIBBON
@@ -1251,17 +1548,17 @@ Generated via Personal Finance by Anand Mohta on ${new Date().toLocaleDateString
         }}
       >
         <StatCard
-          label="Total Eligible Deductions"
+          label={activeRegime === "new" ? "Auto-Detected Deductions (Sim)" : "Total Eligible Deductions"}
           value={fmtINRFull(data.totalDeductions)}
           numericValue={data.totalDeductions}
           formatValue={fmtINRFull}
           icon={<CheckCircle2 />}
           color={THEME.sage}
-          sub={`Includes Chapter VI-A & Sec 24`}
+          sub={activeRegime === "new" ? "Chapter VI-A (Old Regime Sim)" : "Includes Chapter VI-A & Sec 24"}
         />
 
         <StatCard
-          label="Estimated Tax Saved"
+          label={activeRegime === "new" ? "Potential Old Regime Tax Saved" : "Estimated Tax Saved"}
           value={fmtINRFull(data.taxSaved)}
           numericValue={data.taxSaved}
           formatValue={fmtINRFull}
@@ -1295,13 +1592,13 @@ Generated via Personal Finance by Anand Mohta on ${new Date().toLocaleDateString
         />
 
         <StatCard
-          label="NPS & Sec 24 Additional"
-          value={fmtINRFull(data.sec80CCD1B.used + data.sec80CCD2.total + data.sec24.total)}
-          numericValue={data.sec80CCD1B.used + data.sec80CCD2.total + data.sec24.total}
+          label="80CCD(2) Employer NPS"
+          value={fmtINRFull(data.sec80CCD2.total)}
+          numericValue={data.sec80CCD2.total}
           formatValue={fmtINRFull}
           icon={<Building2 />}
           color={THEME.violet}
-          sub={`NPS 1B + NPS 2 + Home Loan Int.`}
+          sub="Allowed in BOTH New & Old Regimes!"
         />
       </div>
 

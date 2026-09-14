@@ -4024,6 +4024,7 @@ function FinanceDashboard() {
                   updateProfile={updateProfile}
                   updateMasterData={updateMasterData}
                   showToast={showToast}
+                  setTab={setTab}
                 />
               )}
               {tab === "rental" && (
@@ -4198,7 +4199,7 @@ function FinanceDashboard() {
                 />
               )}
               {tab === "capitalgains" && (
-                <CapitalGainsTab state={filteredState} updateItem={updateItem} showToast={showToast} />
+                <CapitalGainsTab state={filteredState} updateItem={updateItem} showToast={showToast} setTab={setTab} />
               )}
               {tab === "taxtools" && (
                 <TaxToolsTab
@@ -4209,6 +4210,7 @@ function FinanceDashboard() {
                   removeItem={removeItem}
                   updateItem={updateItem}
                   showToast={showToast}
+                  setTab={setTab}
                 />
               )}
               {tab === "annualreport" && (
@@ -4298,6 +4300,7 @@ function FinanceDashboard() {
                   state={filteredState}
                   metrics={metrics}
                   updateMasterData={updateMasterData}
+                  setTab={setTab}
                 />
               )}
               {tab === "smartalerts" && (
@@ -4329,7 +4332,14 @@ function FinanceDashboard() {
                   activeProfile={activeProfile}
                 />
               )}
-              {tab === "sec80" && <Section80TrackerTab state={filteredState} metrics={metrics} />}
+              {tab === "sec80" && (
+                <Section80TrackerTab
+                  state={filteredState}
+                  metrics={metrics}
+                  setTab={setTab}
+                  updateProfile={updateProfile}
+                />
+              )}
               {tab === "gold" && (
                 <GoldSGBTab
                   state={filteredState}

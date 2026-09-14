@@ -92,6 +92,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { ConfirmDialog } from "../ui/Feedback";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
+import { TaxSuiteHeader } from "../tax/TaxSuiteHeader";
 
 /* ══════════════════════════════════════════════════════════════════
    SECURITY & STRING HELPERS
@@ -1382,6 +1383,7 @@ interface TaxVaultTabProps {
   updateProfile?: any;
   updateMasterData?: any;
   showToast?: any;
+  setTab?: (tab: string) => void;
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1396,6 +1398,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
   updateProfile,
   updateMasterData,
   showToast,
+  setTab,
 }) => {
   const [subTab, setSubTab] = useState<
     "overview" | "heads" | "capitalGains" | "advanceTax" | "reconciler" | "toolkit"
@@ -2051,6 +2054,9 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
 
   return (
     <div className="tab-content-enter">
+      {/* ── Unified Tax Suite Navigation Header ─────────────────── */}
+      <TaxSuiteHeader activeTab="tax" setTab={setTab} />
+
       {/* ── Section Title & Global Toolbar ──────────────────────── */}
       <SectionTitle
         sub={
@@ -2812,7 +2818,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
 
           {/* Chapter VI-A Deduction Tracker */}
           <Card style={{ padding: 24, borderTop: `4px solid ${THEME.gold}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink }}>
                   Chapter VI-A Statutory Deductions (Old Regime)
@@ -2821,9 +2827,21 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                   Auto-detected from your portfolio holdings, insurance policies, loans & rent receipts
                 </div>
               </div>
-              <Badge variant={activeRegime === "old" ? "gold" : "muted"}>
-                {activeRegime === "old" ? "Active Tax Shield" : "Reference Only (New Regime Active)"}
-              </Badge>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {setTab && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={<Award size={14} />}
+                    onClick={() => setTab("sec80")}
+                  >
+                    Open 80C / 80D Tracker →
+                  </Button>
+                )}
+                <Badge variant={activeRegime === "old" ? "gold" : "muted"}>
+                  {activeRegime === "old" ? "Active Tax Shield" : "Reference Only (New Regime Active)"}
+                </Badge>
+              </div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 18 }}>
@@ -3085,14 +3103,28 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
               background: `color-mix(in srgb, ${THEME.accent} 4%, transparent)`,
               border: `1px solid color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
               display: "flex",
-              alignItems: "flex-start",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
               gap: 12,
             }}
           >
-            <Info size={18} color={THEME.accent} style={{ flexShrink: 0, marginTop: 2 }} />
-            <div style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.6 }}>
-              <b>Finance Act 2024 Capital Gains Rates (Effective 23-Jul-2024):</b> Listed equity STCG is taxed at <b>20%</b> (15% pre-23 Jul 2024). LTCG is taxed at <b>12.5%</b> (10% pre-23 Jul 2024) with an enhanced <b>₹1.25 Lakh annual exemption</b> u/s 112A. Debt mutual funds bought post-1 Apr 2023 are taxed at slab rates.
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1 }}>
+              <Info size={18} color={THEME.accent} style={{ flexShrink: 0, marginTop: 2 }} />
+              <div style={{ fontSize: 13, color: THEME.ink, lineHeight: 1.6 }}>
+                <b>Finance Act 2024 Capital Gains Rates (Effective 23-Jul-2024):</b> Listed equity STCG is taxed at <b>20%</b> (15% pre-23 Jul 2024). LTCG is taxed at <b>12.5%</b> (10% pre-23 Jul 2024) with an enhanced <b>₹1.25 Lakh annual exemption</b> u/s 112A. Debt mutual funds bought post-1 Apr 2023 are taxed at slab rates.
+              </div>
             </div>
+            {setTab && (
+              <Button
+                size="sm"
+                variant="accent"
+                icon={<TrendingUp size={14} />}
+                onClick={() => setTab("capitalgains")}
+              >
+                Launch Capital Gains Hub →
+              </Button>
+            )}
           </div>
 
           {/* Hero Simulation Cockpit */}
@@ -3576,7 +3608,7 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
 
           {activeToolkitTab === "checklist" && (
             <Card style={{ padding: 24 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink }}>
                     ITR Filing Document Vault & Readiness Checklist
@@ -3585,6 +3617,16 @@ export const TaxVaultTab: React.FC<TaxVaultTabProps> = ({
                     Ensure you have all statutory certificates before filing your income tax return
                   </div>
                 </div>
+                {setTab && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={<FileCheck size={14} />}
+                    onClick={() => setTab("taxfiling")}
+                  >
+                    Open Full ITR Filing Helper →
+                  </Button>
+                )}
               </div>
 
               <div style={{ display: "grid", gap: 10 }}>

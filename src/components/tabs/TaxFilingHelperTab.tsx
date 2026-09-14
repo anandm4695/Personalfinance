@@ -55,6 +55,7 @@ import { Badge } from "../ui/Badge";
 import { Money } from "../ui/Money";
 import { Modal, ModalActions } from "../ui/Modal";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
+import { TaxSuiteHeader } from "../tax/TaxSuiteHeader";
 
 /* ══════════════════════════════════════════════════════════════════
    CONSTANTS & CHECKLIST CONFIGURATION
@@ -264,10 +265,12 @@ export const TaxFilingHelperTab = ({
   state,
   metrics: _metrics,
   updateMasterData,
+  setTab,
 }: {
   state: any;
   metrics?: any;
   updateMasterData?: (key: string, val: any) => void;
+  setTab?: (tab: string) => void;
 }) => {
   const { familyProfiles } = useMasterData();
 
@@ -921,6 +924,8 @@ export const TaxFilingHelperTab = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* ── Unified Tax Suite Header ─────────────────────────────── */}
+      <TaxSuiteHeader activeTab="taxfiling" setTab={setTab} />
       {/* Toast Notification */}
       {toastMessage && (
         <div

@@ -75,6 +75,7 @@ import { Money } from "../ui/Money";
 import { ConfirmDialog } from "../ui/Feedback";
 import { Modal, ModalActions } from "../ui/Modal";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
+import { TaxSuiteHeader } from "../tax/TaxSuiteHeader";
 
 // Escapes user-controlled free-text before HTML interpolation
 function escapeHtml(value: unknown): string {
@@ -3101,6 +3102,7 @@ interface TaxToolsTabProps {
   removeItem?: any;
   updateItem?: any;
   showToast?: (msg: string, type?: string) => void;
+  setTab?: (tab: string) => void;
 }
 
 export const TaxToolsTab: React.FC<TaxToolsTabProps> = ({
@@ -3110,6 +3112,7 @@ export const TaxToolsTab: React.FC<TaxToolsTabProps> = ({
   addItem,
   removeItem,
   showToast,
+  setTab,
 }) => {
   const [activeSection, setActiveSection] = useState(subTab || "advance");
 
@@ -3132,6 +3135,9 @@ export const TaxToolsTab: React.FC<TaxToolsTabProps> = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* ── Unified Tax Suite Header ─────────────────────────────── */}
+      <TaxSuiteHeader activeTab="taxtools" setTab={setTab} />
+
       <SectionTitle sub="Advance tax engine, Section 10(13A) HRA optimizer, 26AS smart reconciler, GST/TDS matrix, and regime sandbox">
         Tax Tools & Compliance Hub
       </SectionTitle>

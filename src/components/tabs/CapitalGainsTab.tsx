@@ -58,6 +58,7 @@ import { Money } from "../ui/Money";
 import { Modal, ModalActions } from "../ui/Modal";
 import { EmptyState } from "../ui/EmptyState";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
+import { TaxSuiteHeader } from "../tax/TaxSuiteHeader";
 
 /* ══════════════════════════════════════════════════════════════════
    CONSTANTS & HELPERS
@@ -682,10 +683,12 @@ export const CapitalGainsTab = ({
   state,
   updateItem,
   showToast,
+  setTab,
 }: {
   state: any;
   updateItem?: (key: string, id: string, patch: any) => Promise<any>;
   showToast?: (msg: string, type?: string) => void;
+  setTab?: (tab: string) => void;
 }) => {
   const { privacyMode } = usePrivacy();
 
@@ -1235,6 +1238,7 @@ export const CapitalGainsTab = ({
   if (!hasSells && !hasHoldings) {
     return (
       <div style={{ padding: "0 0 40px" }}>
+        <TaxSuiteHeader activeTab="capitalgains" setTab={setTab} />
         <SectionTitle sub="Capital gains workstation for Schedule CG ITR filing, tax optimization & harvesting">
           Capital Gains & Tax Studio
         </SectionTitle>
@@ -1276,6 +1280,9 @@ export const CapitalGainsTab = ({
      ══════════════════════════════════════════════════════════════════ */
   return (
     <div style={{ padding: "0 0 40px", display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* ── Unified Tax Suite Header ─────────────────────────────── */}
+      <TaxSuiteHeader activeTab="capitalgains" setTab={setTab} />
+
       {/* ── Header & Action Bar ───────────────────────────────────── */}
       <SectionTitle
         sub={`${fyLabel} · Schedule CG ITR studio with Budget 2024 compliance, quarterly advance-tax accrual & loss harvesting`}
