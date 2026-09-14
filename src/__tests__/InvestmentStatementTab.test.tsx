@@ -56,6 +56,9 @@ describe("InvestmentStatementTab Premium UI Statically", () => {
     epf: [],
     lic: [],
     investmentPlans: [],
+    goldHoldings: [],
+    govtSchemes: [],
+    realEstateProperties: [],
   };
 
   it("should render summary tables, stocks details list, mutual fund details list, FDs lists, and asset allocations", () => {
@@ -72,12 +75,57 @@ describe("InvestmentStatementTab Premium UI Statically", () => {
     expect(html).toContain("Asset Allocation");
   });
 
+  it("renders executive KPI hero and metric cards", () => {
+    const html = renderToString(
+      <InvestmentStatementTab state={mockState} metrics={{ netWorth: 120000 }} marketData={{}} />
+    );
+
+    expect(html).toContain("Total Portfolio Value");
+    expect(html).toContain("Total Unrealized Gain");
+    expect(html).toContain("Guaranteed");
+    expect(html).toContain("Dominant Asset Class");
+    expect(html).toContain("Liquid Growth Assets");
+  });
+
+  it("renders view mode tabs and action buttons", () => {
+    const html = renderToString(
+      <InvestmentStatementTab state={mockState} metrics={{ netWorth: 120000 }} marketData={{}} />
+    );
+
+    expect(html).toContain("Consolidated Statement");
+    expect(html).toContain("Asset Allocation");
+    expect(html).toContain("Maturity Radar");
+    expect(html).toContain("All Holdings");
+    expect(html).toContain("Summary CSV");
+    expect(html).toContain("Holdings CSV");
+    expect(html).toContain("Print");
+  });
+
+  it("renders empty state when no holdings are present", () => {
+    const emptyState = {
+      stocks: [],
+      mutualFunds: [],
+      fixedDeposits: [],
+      recurringDeposits: [],
+      bonds: [],
+      ppf: [],
+      nps: [],
+      epf: [],
+      lic: [],
+      investmentPlans: [],
+      goldHoldings: [],
+      govtSchemes: [],
+      realEstateProperties: [],
+    };
+
+    const html = renderToString(
+      <InvestmentStatementTab state={emptyState} metrics={{ netWorth: 0 }} marketData={{}} />
+    );
+
+    expect(html).toContain("No Investments Yet");
+  });
+
   it("computes Days to Maturity as an exact calendar-day count, independent of current time-of-day", () => {
-    // Bug: `new Date(matDate).getTime() - Date.now()` compared a UTC-midnight timestamp
-    // against the current instant (with time-of-day), so the displayed day count could
-    // be off by one depending on what time of day the page was viewed (and for IST,
-    // matDate's UTC-midnight parse itself doesn't line up with local midnight either).
-    // Both sides must now be parsed at local midnight so the diff is an exact day count.
     const d = new Date();
     d.setDate(d.getDate() + 10);
     const maturityDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
