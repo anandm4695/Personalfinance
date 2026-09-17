@@ -1455,11 +1455,6 @@ option {
   font-variant-numeric: tabular-nums !important;
 }
 
-/* ── Demo banner animation ─────────────────────────────────────── */
-.demo-banner {
-  animation: slideDown 0.3s var(--ease-out) both;
-}
-
 /* ── Table improvements ────────────────────────────────────────── */
 th {
   font-size: 12px;

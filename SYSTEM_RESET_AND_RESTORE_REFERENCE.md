@@ -19,7 +19,7 @@ Before resetting the Mac operating system, a complete system and project audit w
 | :--- | :--- | :--- |
 | **Git Repository** | `main` branch clean, 0 pending commits | Synced with GitHub remote `origin/main` |
 | **Branch `ui-refresh-2026`** | Merged / in sync | Code is safe on GitHub |
-| **Environment Keys (`.env`)** | Supabase URLs, anon keys, demo credentials | Backed up into `.env.backup` in project root |
+| **Environment Keys (`.env`)** | Supabase URL, anon key | Backed up into `.env.backup` in project root |
 | **Personal Data Folder** | `/Users/anandmohta/Anand Mac book/Personal/` | User copying folder to external drive/cloud |
 | **Node.js Environment** | `v24.15.0`, npm `11.12.1` | Target runtime documented for reinstallation |
 | **Restoration Automation** | Created & Dry-run tested | `restore.sh` verified: 0 TS errors, clean Vite build |
@@ -31,7 +31,7 @@ Before resetting the Mac operating system, a complete system and project audit w
 1. **`restore.sh`**:
    - Automated bash script that detects Node/npm, restores `.env` from `.env.backup`, runs `npm install`, verifies TypeScript types (`npx tsc --noEmit`), and builds production bundle (`npm run build`).
 2. **`.env.backup`**:
-   - Exact copy of local `.env` containing sensitive credentials (Supabase URL, Anon Key, Demo credentials).
+   - Exact copy of local `.env` containing sensitive credentials (Supabase URL, Anon Key).
 3. **`RESTORATION_GUIDE.md`**:
    - Quick reference guide for post-reset setup.
 4. **`SYSTEM_RESET_AND_RESTORE_REFERENCE.md`** *(This file)*:

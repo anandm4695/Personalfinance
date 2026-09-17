@@ -7,10 +7,9 @@ import Auth from "../Auth";
 describe("Auth Component UI & Rendering", () => {
   it("renders the redesigned executive layout with brand headline and portfolio preview", () => {
     const onLogin = vi.fn();
-    const onOffline = vi.fn();
 
     const html = renderToString(
-      <Auth onLogin={onLogin} onOffline={onOffline} />
+      <Auth onLogin={onLogin} />
     );
 
     // Brand Panel & Live Preview
@@ -34,8 +33,6 @@ describe("Auth Component UI & Rendering", () => {
     expect(html).toContain("Password");
     expect(html).toContain("Remember my email");
     expect(html).toContain("Forgot password?");
-    expect(html).toContain("Open Interactive Sandbox Demo");
-    expect(html).toContain("Pre-loaded with sample assets, portfolios &amp; live charts");
     expect(html).toContain("256-bit Encryption • Zero-Telemetry Privacy • End-to-End Secure");
   });
 });

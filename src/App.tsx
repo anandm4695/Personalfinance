@@ -25,11 +25,7 @@ import {
 } from "lucide-react";
 import {
   supabase,
-  setDemoMode,
-  getIsDemoMode,
-  isDemoDbReady,
-  signInToDemo,
-  signOutOfDemo,
+  isSupabaseReady,
   capturedUrlHash,
 } from "./supabaseClient";
 import Auth from "./Auth";
@@ -249,13 +245,7 @@ const DEFAULT_STATE = {
 
 // ================== MAIN APP ==================
 function FinanceDashboard() {
-  const [session, setSession] = useState<any>(() => {
-    try {
-      const saved = sessionStorage.getItem("demo_session");
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return null;
-  });
+  const [session, setSession] = useState<any>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   // A Supabase password-recovery link establishes a real session before React renders.
   // We must not let that truthy session skip straight into the dashboard — force the
@@ -612,14 +602,10 @@ function FinanceDashboard() {
         .getSession()
         .then(({ data: { session: supaSession }, error }: any) => {
           if (!error && supaSession) {
-            // Real Supabase session — clear any stale demo session and use real one
-            sessionStorage.removeItem("demo_session");
             setSession(supaSession);
-          } else if (!sessionStorage.getItem("demo_session")) {
-            // No demo session saved — truly logged out
+          } else {
             setSession(null);
           }
-          // else: demo session already restored via useState initializer — keep it
           setIsAuthChecking(false);
         })
         .catch(() => {
@@ -628,12 +614,7 @@ function FinanceDashboard() {
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event: any, supaSession: any) => {
-        if (supaSession) {
-          sessionStorage.removeItem("demo_session");
-          setSession(supaSession);
-        } else if (!sessionStorage.getItem("demo_session")) {
-          setSession(null);
-        }
+        setSession(supaSession || null);
       });
       return () => subscription.unsubscribe();
     } catch (e) {
@@ -3340,16 +3321,8 @@ function FinanceDashboard() {
     setLastBackupTs(exportedAt);
     logActivity("EXPORT", `Exported full backup — finance-backup-${today()}.json`);
   };
-  // Moved out of the header's inline onClick during the WorkspaceHeader extraction
-  // (Aug 2026) — same demo-vs-real-session branching as before, just named.
   const handleSignOut = async () => {
-    sessionStorage.removeItem("demo_session");
-    if (getIsDemoMode()) {
-      await signOutOfDemo().catch(() => {});
-    } else {
-      await supabase.auth.signOut().catch(() => {});
-    }
-    setDemoMode(false);
+    await supabase.auth.signOut().catch(() => {});
     setSession(null);
     lastFetchedUserIdRef.current = null;
     // Clear all financial data back to defaults, but keep the user's theme/appearance
@@ -3758,40 +3731,10 @@ function FinanceDashboard() {
         </div>
       );
     }
-    const isDemoSite =
-      window.location.hostname.includes("personalfinancedemo") ||
-      window.location.hostname === "localhost";
     return (
       <Auth
         onLogin={setSession}
         onRecoveryComplete={() => setRecoveryMode(false)}
-        onOffline={
-          isDemoSite
-            ? async () => {
-                const demoEmail = import.meta.env.VITE_DEMO_USER_EMAIL;
-                const demoPass = import.meta.env.VITE_DEMO_USER_PASSWORD;
-                if (demoEmail && demoPass) {
-                  try {
-                    setDemoMode(true);
-                    const { data, error } = await signInToDemo(demoEmail, demoPass);
-                    if (!error && data.session) {
-                      setSession(data.session);
-                      return;
-                    }
-                    setDemoMode(false);
-                  } catch {
-                    setDemoMode(false);
-                  }
-                }
-                const demoSession = {
-                  user: { id: "offline-user", email: "demo@personalfinance.app" },
-                  access_token: "offline",
-                };
-                sessionStorage.setItem("demo_session", JSON.stringify(demoSession));
-                setSession(demoSession);
-              }
-            : undefined
-        }
       />
     );
   }

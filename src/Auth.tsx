@@ -19,7 +19,6 @@ import {
   Check,
   X,
   ArrowLeft,
-  PlayCircle,
   Users,
   ChevronRight,
   Cpu,
@@ -109,11 +108,9 @@ const MODE_ORDER = { login: 0, signup: 1, forgot: 2, reset: 3 } as const;
 
 export default function Auth({
   onLogin,
-  onOffline,
   onRecoveryComplete,
 }: {
   onLogin: (session: any) => void;
-  onOffline?: () => void;
   onRecoveryComplete?: () => void;
 }) {
   // Detect password-recovery link in the URL hash
@@ -1048,33 +1045,6 @@ export default function Auth({
               )}
             </motion.div>
           </AnimatePresence>
-
-          {/* High-Converting Sandbox Demo Exploration Card */}
-          {onOffline && (
-            <div className="af-demo-section">
-              <div className="af-divider">
-                <span>OR EXPLORE INSTANTLY</span>
-              </div>
-              <button
-                onClick={onOffline}
-                className="af-demo-card-btn"
-                type="button"
-                aria-label="Open Interactive Sandbox Demo"
-              >
-                <div className="af-demo-icon-glow">
-                  <PlayCircle size={20} className="af-demo-play-icon" />
-                </div>
-                <div className="af-demo-body">
-                  <div className="af-demo-title-row">
-                    <span className="af-demo-text">Open Interactive Sandbox Demo</span>
-                    <span className="af-demo-badge">No Login Needed</span>
-                  </div>
-                  <span className="af-demo-sub">Pre-loaded with sample assets, portfolios &amp; live charts</span>
-                </div>
-                <ChevronRight size={16} className="af-demo-arrow" />
-              </button>
-            </div>
-          )}
 
           {/* Privacy & Trust micro-footer */}
           <div className="af-form-footer">
@@ -2049,129 +2019,6 @@ const AF_STYLES = `
   transform: none;
 }
 
-/* High-Converting Sandbox Demo Card */
-.af-demo-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 4px;
-}
-
-.af-divider {
-  display: flex;
-  align-items: center;
-  text-align: center;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: #64748B;
-}
-
-.af-divider::before,
-.af-divider::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.af-divider span {
-  padding: 0 12px;
-}
-
-.af-demo-card-btn {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 13px 16px;
-  background: rgba(16, 24, 42, 0.85);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  color: #FFFFFF;
-  font-family: inherit;
-  text-align: left;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
-}
-
-.af-demo-card-btn:hover {
-  background: rgba(22, 33, 58, 0.95);
-  border-color: #D4AF37;
-  transform: translateY(-1.5px);
-  box-shadow: 
-    0 10px 25px -5px rgba(0, 0, 0, 0.5),
-    0 0 20px rgba(212, 175, 55, 0.2);
-}
-
-.af-demo-icon-glow {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: rgba(212, 175, 55, 0.16);
-  border: 1px solid rgba(212, 175, 55, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 0 12px rgba(212, 175, 55, 0.2);
-}
-
-.af-demo-play-icon {
-  color: #F5E5C9;
-}
-
-.af-demo-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.af-demo-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.af-demo-text {
-  font-size: 13.5px;
-  font-weight: 650;
-  color: #FFFFFF;
-}
-
-.af-demo-badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 6px;
-  background: rgba(16, 185, 129, 0.16);
-  color: #34D399;
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  flex-shrink: 0;
-}
-
-.af-demo-sub {
-  font-size: 11.5px;
-  color: #94A3B8;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.af-demo-arrow {
-  color: #64748B;
-  flex-shrink: 0;
-  transition: transform 0.2s ease, color 0.2s ease;
-}
-
-.af-demo-card-btn:hover .af-demo-arrow {
-  transform: translateX(3px);
-  color: #D4AF37;
-}
-
 /* Footer info */
 .af-form-footer {
   display: flex;
@@ -2279,9 +2126,6 @@ const AF_STYLES = `
   }
   .af-card-title {
     font-size: 23px;
-  }
-  .af-demo-sub {
-    display: none;
   }
 }
 `;

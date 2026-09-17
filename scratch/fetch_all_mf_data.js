@@ -255,7 +255,6 @@ async function testDatabase(name, url, key) {
 
 async function main() {
   await testDatabase("LIVE DB", env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY);
-  await testDatabase("DEMO DB", env.VITE_SUPABASE_DEMO_URL, env.VITE_SUPABASE_DEMO_ANON_KEY);
 }
 
 main();

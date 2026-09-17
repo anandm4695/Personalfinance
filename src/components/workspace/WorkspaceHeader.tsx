@@ -21,7 +21,6 @@ import { THEME } from "../../utils/constants";
 import { formatProfileOption } from "../../utils/masterData";
 import { alertDismissKey } from "../../utils/finance";
 import { getNavBreadcrumb } from "../../utils/appConstants";
-import { getIsDemoMode } from "../../supabaseClient";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { BrandMark } from "../ui/BrandMark";
 
@@ -127,29 +126,6 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               WebkitBackdropFilter: "blur(16px) saturate(180%)",
             }}
           >
-            {/* Demo mode indicator — sample data in an isolated sandbox, not the user's real account */}
-            {getIsDemoMode() && (
-              <div
-                className="demo-banner"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 7,
-                  padding: "6px 16px",
-                  background: `color-mix(in srgb, var(--t-gold) 12%, transparent)`,
-                  borderBottom: `1px solid color-mix(in srgb, var(--t-gold) 30%, transparent)`,
-                  color: THEME.gold,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  letterSpacing: "0.01em",
-                  textAlign: "center",
-                }}
-              >
-                <Sparkles size={12} style={{ flexShrink: 0 }} />
-                Demo Mode — exploring with sample data in an isolated sandbox
-              </div>
-            )}
             <div
               className="app-header-bar"
               style={{

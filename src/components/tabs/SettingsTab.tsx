@@ -1857,7 +1857,7 @@ function SecuritySection({
     try {
       if (session?.user?.id === "offline-user") {
         await new Promise((r) => setTimeout(r, 600));
-        setPassSuccess("Demo password updated for current session.");
+        setPassSuccess("Local session password updated successfully.");
         showToast?.("Password updated successfully.", "success");
         setNewPassword("");
         setConfirmPassword("");
@@ -1876,9 +1876,9 @@ function SecuritySection({
     }
   };
 
-  const isDemoUser = session?.user?.id === "offline-user" || !session?.user?.id;
+  const isLocalUser = session?.user?.id === "offline-user" || !session?.user?.id;
   const userEmail =
-    session?.user?.email || (isDemoUser ? "demo@arthadrishti.local" : "Account user");
+    session?.user?.email || (isLocalUser ? "user@arthadrishti.local" : "Account user");
   const createdAt = session?.user?.created_at
     ? new Date(session.user.created_at).toLocaleDateString("en-IN", {
         day: "numeric",
@@ -1906,7 +1906,7 @@ function SecuritySection({
   let securityScore = 75;
   if (privacyMode) securityScore += 10;
   if (isBackupRecent) securityScore += 10;
-  if (!isDemoUser) securityScore += 5;
+  if (!isLocalUser) securityScore += 5;
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
@@ -2046,10 +2046,10 @@ function SecuritySection({
               }}
             >
               <CheckCircle2 size={15} color={THEME.sage} />{" "}
-              {isDemoUser ? "Sandbox Demo Session" : "Supabase Cloud Vault"}
+              {isLocalUser ? "Local Browser Session" : "Supabase Cloud Vault"}
             </div>
             <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 3 }}>
-              {isDemoUser ? "Local browser session" : "Encrypted token authorization"}
+              {isLocalUser ? "Local storage session" : "Encrypted token authorization"}
             </div>
           </div>
 
@@ -2473,7 +2473,7 @@ function SecuritySection({
               {userEmail}
             </div>
             <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-              Account UID: {session?.user?.id?.slice(0, 12) || "local-demo"}...
+              Account UID: {session?.user?.id?.slice(0, 12) || "local-user"}...
             </div>
           </div>
 
