@@ -1,22 +1,15 @@
-// Stock logo resolution — tries sources in priority order:
-// 1. Local high-coverage curated STOCK_DOMAINS mapping for popular Indian stocks
-// 2. Twelve Data (if TWELVE_DATA_KEY env var set)
-// 3. EODHD public CDN (direct URL — client handles 404 via onError)
-// 4. Yahoo Finance website → Google favicon (sz=256 for crispness)
-
-const { default: YahooFinance } = require("yahoo-finance2");
-const { rateLimit } = require("./_lib/rateLimit");
-const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
-
-// Neither yahoo-finance2 nor a raw fetch() has a timeout by default — a hung
-// upstream response can otherwise block until Vercel's maxDuration kills the
-// whole function. Follows the same 8s-timeout philosophy as the mfapi.in
-// calls in api/mf-nav.js / api/cron-update-prices.js.
-const YF_TIMEOUT_MS = 8000;
-const yfFetchOptions = () => ({ fetchOptions: { signal: AbortSignal.timeout(YF_TIMEOUT_MS) } });
-
 // High-density domain mapping covering ~450+ top NSE/BSE stocks
-const STOCK_DOMAINS = {
+// Enables instant synchronous client-side and server-side logo resolution
+
+export const GROWW_SYMBOL_OVERRIDES: Record<string, string> = {
+  ZOMATO: "ETERNAL",
+  "M&M": "M&M",
+  M_M: "M&M",
+  "BAJAJ-AUTO": "BAJAJ-AUTO",
+  "L&TFH": "L&TFH",
+};
+
+export const STOCK_DOMAINS: Record<string, string> = {
   // ── Nifty 50 / Large Caps ──────────────────────────────────────────────────
   RELIANCE: "ril.com",
   TCS: "tcs.com",
@@ -100,7 +93,7 @@ const STOCK_DOMAINS = {
   GLOBUSSP: "globusspirits.com",
   SH: "sostofinance.com",
   PATANJALI: "patanjaliayurved.org",
-  ZOMATO: "zomato.com", // brand domain still zomato.com; NSE symbol is now ETERNAL (handled in StockLogo)
+  ZOMATO: "zomato.com",
   ETERNAL: "zomato.com",
   SWIGGY: "swiggy.com",
   PAYTM: "paytm.com",
@@ -306,7 +299,6 @@ const STOCK_DOMAINS = {
   RVNL: "rvnl.org",
   IRCON: "ircon.org",
   RITES: "rites.com",
-  // IRFC intentionally omitted — irfc.nic.in is government-hosted and not indexed by Clearbit; EODHD CDN handles it client-side
   RAILVIKAS: "rvnl.org",
   NCC: "ncclimited.com",
   PNCINFRA: "pncinfratech.com",
@@ -571,95 +563,25 @@ const STOCK_DOMAINS = {
   GULFOILLUB: "gulfoil.in",
 };
 
-async function resolveWithTwelveData(base, exchange, apiKey) {
-  const exch = /BO/i.test(exchange) ? "BSE" : "NSE";
-  const url = `https://api.twelvedata.com/logo?symbol=${encodeURIComponent(base)}&exchange=${exch}&apikey=${apiKey}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(YF_TIMEOUT_MS) });
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data?.url || null;
+/** Normalizes a raw symbol string into base ticker without exchange suffixes */
+export function normalizeStockBase(rawSymbol?: string | null): string {
+  if (!rawSymbol) return "";
+  return String(rawSymbol)
+    .trim()
+    .toUpperCase()
+    .replace(/\.(NS|BO)$/i, "");
 }
 
-function resolveWithEODHD(base, isBSE) {
-  // Return the CDN URL directly — the client-side <img onError> handles missing logos.
-  // Skipping the HEAD check removes a server-side round-trip and avoids false negatives
-  // caused by content-length thresholds rejecting legitimate small logos.
-  const exch = isBSE ? "BSE" : "NSE";
-  return `https://eodhd.com/img/logos/${exch}/${base}.png`;
+/** Resolves the curated web domain for a stock ticker if known */
+export function resolveStockDomain(rawSymbol?: string | null): string | null {
+  const base = normalizeStockBase(rawSymbol);
+  if (!base) return null;
+  return STOCK_DOMAINS[base] || null;
 }
 
-async function resolveWithYahoo(symbol) {
-  try {
-    const summary = await yf.quoteSummary(
-      symbol,
-      { modules: ["assetProfile"] },
-      { validateResult: false, ...yfFetchOptions() }
-    );
-    const website = summary?.assetProfile?.website;
-    if (website) {
-      const domain = new URL(website).hostname.replace(/^www\./, "");
-      return `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
-    }
-  } catch (err) {
-    console.error(`[stock-logo] Yahoo lookup failed for ${symbol}:`, err?.message || err);
-  }
-  return null;
+/** Resolves the high-res Groww CDN asset symbol name */
+export function resolveGrowwSymbol(rawSymbol?: string | null): string {
+  const base = normalizeStockBase(rawSymbol);
+  if (!base) return "";
+  return GROWW_SYMBOL_OVERRIDES[base] || base;
 }
-
-module.exports = async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (!rateLimit(req, res, { max: 30, windowMs: 60_000 })) return;
-
-  const { symbol } = req.query;
-  if (!symbol) return res.status(400).json({ error: "symbol required" });
-  if (!/^[A-Z0-9.\-&]+$/i.test(String(symbol)))
-    return res.status(400).json({ error: "invalid symbol" });
-
-  const sym = String(symbol);
-  const base = sym.replace(/\.(NS|BO)$/i, "");
-  const isBSE = /\.BO$/i.test(sym);
-  const exchange = isBSE ? "BSE" : "NSE";
-
-  let logoUrl = null;
-  let faviconUrl = null;
-
-  // Priority 1: High-coverage local mapping
-  // logoUrl  = Hunter.io logos — good coverage, returns clean 404 so client fallback chain works
-  // faviconUrl = Google Favicon — always returns something, used as secondary fallback
-  const baseUpper = base.toUpperCase();
-  if (STOCK_DOMAINS[baseUpper]) {
-    const domain = STOCK_DOMAINS[baseUpper];
-    logoUrl = `https://logos.hunter.io/${domain}`;
-    faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
-  }
-
-  // Priority 2: Twelve Data (if API key configured)
-  if (!logoUrl) {
-    const tdKey = process.env.TWELVE_DATA_KEY;
-    if (tdKey) {
-      try {
-        logoUrl = await resolveWithTwelveData(base, exchange, tdKey);
-      } catch (err) {
-        // Timeout (AbortSignal) or network failure — fall through to EODHD (Priority 3)
-        // instead of crashing the whole logo lookup.
-        console.error(`[stock-logo] Twelve Data lookup failed for ${sym}:`, err?.message || err);
-      }
-    }
-  }
-
-  // Priority 3: EODHD public CDN (direct URL, no HEAD check)
-  if (!logoUrl) {
-    logoUrl = resolveWithEODHD(base, isBSE);
-  }
-
-  // Priority 4: Yahoo Finance website domain favicon fallback
-  if (!faviconUrl) {
-    const canonicalYfSym = `${base}.${isBSE ? "BO" : "NS"}`;
-    faviconUrl = (await resolveWithYahoo(canonicalYfSym)) || (await resolveWithYahoo(sym));
-  }
-
-  res.setHeader("Cache-Control", "s-maxage=86400, stale-while-revalidate=604800");
-  return res.status(200).json({ logoUrl, faviconUrl });
-};

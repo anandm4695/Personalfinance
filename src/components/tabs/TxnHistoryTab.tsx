@@ -30,8 +30,7 @@ import { ConfirmDialog } from "../ui/Feedback";
 import { Prv } from "../../context/PrivacyContext";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { DataTable } from "../design-system/DataTable";
-import { StockLogo } from "./DematTab";
-import { MFLogo, BankLogo } from "../ui/BrandLogos";
+import { StockLogo, MFLogo, BankLogo } from "../ui/BrandLogos";
 
 const cashTxnAccountLabel = (a: any): string => {
   if (!a) return "";
@@ -194,7 +193,7 @@ const SoldTable = ({
             accessor: (s: any) => (
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 {type === "stock" ? (
-                  <StockLogo yfSym={s.symbol} size={28} />
+                  <StockLogo yfSym={s.symbol} symbol={s.symbol} exchange={s.exchange} size={28} />
                 ) : (
                   <MFLogo fundName={s.scheme} size={28} />
                 )}
@@ -1264,7 +1263,12 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                   accessor: (row: any) => (
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       {row.assetClass === "stock" ? (
-                        <StockLogo yfSym={row.sourceItem?.symbol} size={28} />
+                        <StockLogo
+                          yfSym={row.sourceItem?.symbol || row.title}
+                          symbol={row.sourceItem?.symbol || row.title}
+                          exchange={row.sourceItem?.exchange || "NSE"}
+                          size={28}
+                        />
                       ) : row.assetClass === "mf" ? (
                         <MFLogo fundName={row.title} size={28} />
                       ) : (
@@ -1479,7 +1483,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                   header: "Company",
                   accessor: (s: any) => (
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <StockLogo yfSym={s.symbol} size={28} />
+                      <StockLogo yfSym={s.symbol} symbol={s.symbol} exchange={s.exchange} size={28} />
                       <div>
                         <span style={{ fontWeight: 700, color: THEME.ink }}>
                           {s.symbol?.replace(/\.(NS|BO)$/i, "")}
@@ -2584,7 +2588,7 @@ export function TxnHistoryTab({ state, removeItem, marketData = {}, showToast }:
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
-                  <StockLogo yfSym={s.symbol} size={44} />
+                  <StockLogo yfSym={s.symbol} symbol={s.symbol} exchange={s.exchange} size={44} />
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: THEME.ink }}>
                   {s.symbol?.replace(/\.(NS|BO)$/i, "")}

@@ -1,6 +1,6 @@
-/* eslint-disable */
 import React, { useState, useEffect } from "react";
 import { THEME } from "../../utils/constants";
+import { normalizeStockBase, resolveStockDomain, resolveGrowwSymbol } from "../../utils/stockDomains";
 
 export interface BrandInfo {
   domain: string;
@@ -900,4 +900,192 @@ export const VehicleLogo = ({
 export const VehicleMakeLogo = VehicleLogo;
 
 export const bankInitialsColor = brandInitialsColor;
+
+const _stockLogoCache: Record<string, { logoUrl: string | null; faviconUrl: string | null } | null> = {};
+
+export interface StockLogoProps {
+  yfSym?: string;
+  symbol?: string;
+  name?: string;
+  exchange?: string;
+  size?: number;
+  borderRadius?: number;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+/**
+ * Universal StockLogo Component
+ * Multi-tier high-reliability resolution pipeline:
+ * 1. Groww 256×256 WebP vector CDN asset
+ * 2. Synchronously resolved official website via STOCK_DOMAINS / CANONICAL_BRANDS:
+ *    - DuckDuckGo Fast Favicon CDN
+ *    - Google Favicon 128px / 256px CDN
+ *    - Hunter.io Logo CDN
+ * 3. Dynamic /api/stock-logo server endpoint (with Yahoo Finance asset profile & Twelve Data)
+ * 4. EODHD direct CDN fallback
+ * 5. High-contrast, deterministic initials gradient badge
+ */
+export const StockLogo: React.FC<StockLogoProps> = ({
+  yfSym,
+  symbol,
+  name,
+  exchange,
+  size = 36,
+  borderRadius,
+  className,
+  style,
+}) => {
+  const raw = String(symbol || yfSym || name || "").trim();
+  const base = normalizeStockBase(raw);
+  const isBSE =
+    (exchange && String(exchange).toUpperCase() === "BSE") ||
+    /\.BO$/i.test(raw) ||
+    /\.BO$/i.test(String(yfSym || ""));
+  const exch = isBSE ? "BSE" : "NSE";
+  const canonicalYfSym = base ? `${base}.${isBSE ? "BO" : "NS"}` : "";
+
+  // Synchronous domain and brand lookup
+  const stockDomain = resolveStockDomain(base);
+  const brandResolved = resolveBrand(name || base);
+  const targetDomain = stockDomain || brandResolved?.domain || "";
+
+  // Groww high-res WebP vector asset
+  const growwSym = resolveGrowwSymbol(base);
+  const growwUrl =
+    !isBSE && growwSym
+      ? `https://assets-netstorage.groww.in/stock-assets/logos2/${encodeURIComponent(growwSym)}.webp`
+      : null;
+
+  // EODHD fallback URL
+  const eodhdUrl = base ? `https://eodhd.com/img/logos/${exch}/${base}.png` : null;
+
+  const [apiLogoUrl, setApiLogoUrl] = useState<string | null>(null);
+  const [apiFaviconUrl, setApiFaviconUrl] = useState<string | null>(null);
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setFailedUrls(new Set());
+    if (!canonicalYfSym) return;
+
+    if (canonicalYfSym in _stockLogoCache) {
+      const c = _stockLogoCache[canonicalYfSym];
+      setApiLogoUrl(c?.logoUrl ?? null);
+      setApiFaviconUrl(c?.faviconUrl ?? null);
+      return;
+    }
+
+    let cancelled = false;
+    fetch(`/api/stock-logo?symbol=${encodeURIComponent(canonicalYfSym)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        _stockLogoCache[canonicalYfSym] = d;
+        if (!cancelled) {
+          setApiLogoUrl(d?.logoUrl ?? null);
+          setApiFaviconUrl(d?.faviconUrl ?? null);
+        }
+      })
+      .catch(() => {
+        _stockLogoCache[canonicalYfSym] = null;
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canonicalYfSym]);
+
+  const candidates = React.useMemo(() => {
+    const list: string[] = [];
+    if (growwUrl) list.push(growwUrl);
+    if (targetDomain) {
+      list.push(`https://icons.duckduckgo.com/ip3/${targetDomain}.ico`);
+      list.push(`https://www.google.com/s2/favicons?domain=${targetDomain}&sz=128`);
+      list.push(`https://www.google.com/s2/favicons?domain=${targetDomain}&sz=256`);
+      list.push(`https://logos.hunter.io/${targetDomain}`);
+    }
+    if (apiLogoUrl && !list.includes(apiLogoUrl)) list.push(apiLogoUrl);
+    if (eodhdUrl && !list.includes(eodhdUrl)) list.push(eodhdUrl);
+    if (apiFaviconUrl && !list.includes(apiFaviconUrl)) list.push(apiFaviconUrl);
+    return list;
+  }, [growwUrl, targetDomain, apiLogoUrl, eodhdUrl, apiFaviconUrl]);
+
+  const activeSrc = candidates.find((u) => !failedUrls.has(u));
+  const markFailed = (url: string) => setFailedUrls((prev) => new Set([...prev, url]));
+
+  const br = borderRadius ?? Math.max(4, Math.round(size * 0.28));
+  const pad = Math.max(2, Math.round(size * 0.08));
+
+  if (activeSrc) {
+    return (
+      <div
+        className={className}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: br,
+          background: "#ffffff",
+          border: `1px solid ${THEME.line}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          flexShrink: 0,
+          padding: pad,
+          boxSizing: "border-box",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+          ...style,
+        }}
+      >
+        <img
+          src={activeSrc}
+          alt={base || "Stock"}
+          onError={() => markFailed(activeSrc)}
+          loading="lazy"
+          decoding="async"
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            imageRendering: "-webkit-optimize-contrast",
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Fallback Initials Avatar Badge with deterministic gradient
+  const hue =
+    Array.from(base || "?").reduce((h: number, c: string) => (h * 31 + c.charCodeAt(0)) & 0xffff, 0) % 360;
+  const initials = (base || "?").slice(0, 2);
+
+  return (
+    <div
+      className={className}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: br,
+        background: `linear-gradient(135deg, hsl(${hue}, 55%, 42%) 0%, hsl(${hue}, 70%, 58%) 100%)`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+        ...style,
+      }}
+    >
+      <span
+        style={{
+          fontSize: Math.max(9, Math.round(size * 0.32)),
+          fontWeight: 900,
+          color: "#ffffff",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {initials}
+      </span>
+    </div>
+  );
+};
+
 

@@ -210,4 +210,74 @@ describe("TxnHistoryTab Premium UI Statically", () => {
     expect(html).toContain("INFY");
     expect(html).toContain("HDFC Bank Dividend");
   });
+
+  it("renders stock logos properly for raw tickers, exchange suffixes, and fallback badges without throwing", () => {
+    const state = {
+      stocks: [
+        {
+          id: "s-rel",
+          symbol: "RELIANCE", // raw ticker without .NS
+          buyDate: "2026-06-10",
+          avgPrice: 2800,
+          qty: 15,
+          exchange: "NSE",
+        },
+        {
+          id: "s-tcs",
+          symbol: "TCS.NS", // with .NS
+          buyDate: "2026-06-12",
+          avgPrice: 3800,
+          qty: 5,
+          exchange: "NSE",
+        },
+        {
+          id: "s-bse",
+          symbol: "INFY.BO", // BSE stock
+          buyDate: "2026-06-14",
+          avgPrice: 1500,
+          qty: 10,
+          exchange: "BSE",
+        },
+        {
+          id: "s-unknown",
+          symbol: "CUSTOMSCRIP", // unlisted ticker for gradient fallback
+          buyDate: "2026-06-15",
+          avgPrice: 100,
+          qty: 50,
+          exchange: "NSE",
+        },
+      ],
+      stockSells: [
+        {
+          id: "ss-1",
+          symbol: "TATAMOTORS",
+          buyDate: "2026-06-01",
+          sellDate: "2026-06-20",
+          buyPrice: 800,
+          sellPrice: 950,
+          qty: 25,
+          profit: 3750,
+          exchange: "NSE",
+        },
+      ],
+      mutualFunds: [],
+      mfSells: [],
+      transactions: [],
+      demat: [{ id: "d1", broker: "Groww" }],
+    };
+
+    const html = renderToString(<TxnHistoryTab state={state} removeItem={vi.fn()} />);
+
+    // Assert that all stock items rendered their image or logo containers
+    expect(html).toContain("RELIANCE");
+    expect(html).toContain("TCS");
+    expect(html).toContain("INFY");
+    expect(html).toContain("CUSTOMSCRIP");
+    expect(html).toContain("TATAMOTORS");
+    // Assert logo image elements are present with correct alt text or attributes
+    expect(html).toContain('alt="RELIANCE"');
+    expect(html).toContain('alt="TCS"');
+    expect(html).toContain('alt="TATAMOTORS"');
+  });
 });
+
