@@ -2211,6 +2211,10 @@ function FinanceDashboard() {
           delete finalItem.lender;
           delete finalItem.date;
         }
+        if (key === "taxPayments") {
+          if (finalItem.tax_type && !finalItem.type) finalItem.type = finalItem.tax_type;
+          if (finalItem.notes && !finalItem.note) finalItem.note = finalItem.notes;
+        }
 
         const cleanItem = { ...finalItem, id: newId, user_id: userId };
         for (const k in cleanItem) {
@@ -3075,6 +3079,10 @@ function FinanceDashboard() {
           finalPatch.given_date = patch.date || null;
           delete finalPatch.date;
         }
+        if (key === "taxPayments") {
+          if (patch.taxType !== undefined && patch.type === undefined) finalPatch.type = patch.taxType;
+          if (patch.notes !== undefined && patch.note === undefined) finalPatch.note = patch.notes;
+        }
         if (key === "ppf" && patch.institution !== undefined) {
           finalPatch.bank = patch.institution || "";
           delete finalPatch.institution;
@@ -3393,7 +3401,11 @@ function FinanceDashboard() {
       ...push("fixed_deposits", data.fixedDeposits),
       ...push("recurring_deposits", data.recurringDeposits),
       ...push("bonds", data.bonds),
-      ...push("ppf_nps", data.ppf, () => ({ type: "PPF" })),
+      ...push("ppf_nps", data.ppf, (item) => ({
+        type: "PPF",
+        bank: item.institution || item.bank || "",
+        open_date: item.openDate || item.openingDate || item.startDate || null,
+      })),
       ...push("ppf_nps", data.nps, () => ({ type: "NPS" })),
       ...push("ppf_nps", data.epf, () => ({ type: "EPF" })),
       ...push("credit_cards", data.creditCards, (item) => ({
@@ -3442,7 +3454,10 @@ function FinanceDashboard() {
       ...push("stock_sells", data.stockSells),
       ...push("mf_sells", data.mfSells),
       ...push("corporate_actions", data.corporateActions),
-      ...push("tax_payments", data.taxPayments),
+      ...push("tax_payments", data.taxPayments, (item) => ({
+        type: item.type || item.taxType || "Advance Tax",
+        note: item.note || item.notes || null,
+      })),
       ...push("income_entries", data.income),
       ...push("real_estate_properties", data.realEstateProperties),
       ...push("real_estate_demands", data.realEstateDemands),
@@ -4243,6 +4258,7 @@ function FinanceDashboard() {
                   state={filteredState}
                   metrics={metrics}
                   updateMasterData={updateMasterData}
+                  addItem={addItem}
                   setTab={setTab}
                 />
               )}

@@ -265,11 +265,13 @@ export const TaxFilingHelperTab = ({
   state,
   metrics: _metrics,
   updateMasterData,
+  addItem,
   setTab,
 }: {
   state: any;
   metrics?: any;
   updateMasterData?: (key: string, val: any) => void;
+  addItem?: (key: string, item: any) => Promise<any>;
   setTab?: (tab: string) => void;
 }) => {
   const { familyProfiles } = useMasterData();
@@ -906,9 +908,14 @@ export const TaxFilingHelperTab = ({
       bsrCode: challanForm.bsrCode,
       challanNo: challanForm.challanNo,
       type: challanForm.type,
+      note: challanForm.challanNo
+        ? `Challan: ${challanForm.challanNo}${challanForm.bsrCode ? ` | BSR: ${challanForm.bsrCode}` : ""}`
+        : "",
     };
-    const updated = [...(state.taxPayments || []), newPayment];
-    if (typeof updateMasterData === "function") {
+    if (typeof addItem === "function") {
+      addItem("taxPayments", newPayment);
+    } else if (typeof updateMasterData === "function") {
+      const updated = [...(state.taxPayments || []), newPayment];
       updateMasterData("taxPayments", updated);
     }
     setIsAddChallanModalOpen(false);

@@ -158,6 +158,8 @@ export const NUMERIC_COLS = new Set([
   // health_insurance
   "sum_insured",
   "premium",
+  "deductible",
+  "copay_percent",
   "waiting_period_years",
   "no_claim_bonus",
   // credit_scores
@@ -175,9 +177,29 @@ export const NUMERIC_COLS = new Set([
   // real_estate
   "share_pct",
   "tds_deducted",
+  "agreement_value_paid",
+  "stamp_duty_paid",
+  // gold_holdings
+  "gross_grams",
+  "making_charges",
+  // life_events
+  "inflation_rate",
+  "expected_return",
+  // vehicles
+  "cubic_capacity",
+  "seating_capacity",
+  // recurring_deposits
+  "debit_day",
   // ppf_nps
   "this_year_contribution",
   "employer_contribution",
+  "extension_years",
+  // loans
+  "months_remaining",
+  // prepaid_cards
+  "low_balance_threshold",
+  // insurance nominee share
+  "nominee_share",
   // documents
   "file_size",
   // salary_slips

@@ -436,6 +436,13 @@ CREATE TABLE IF NOT EXISTS public.fixed_deposits (
   years            numeric,
   start_date       date,
   maturity_date    date,
+  fd_number        text,
+  account_number   text,
+  interest_payout  text,
+  deposit_type     text,
+  auto_renew       boolean DEFAULT false,
+  tag              text,
+  notes            text,
   nominee          text DEFAULT '',                           -- 69
   nominee_relation text DEFAULT '',                             -- 69
   created_at       timestamp with time zone DEFAULT now()
@@ -458,6 +465,12 @@ CREATE TABLE IF NOT EXISTS public.recurring_deposits (
   rate             numeric DEFAULT 0,
   tenure_months    numeric,
   start_date       date,
+  maturity_date    date,
+  rd_number        text,
+  account_number   text,
+  debit_day        integer,
+  goal             text,
+  notes            text,
   nominee          text DEFAULT '',                           -- 69
   nominee_relation text DEFAULT '',                             -- 69
   created_at       timestamp with time zone DEFAULT now()
@@ -501,6 +514,10 @@ CREATE TABLE IF NOT EXISTS public.bonds (
   brokerage                  numeric DEFAULT 0,                 -- 26
   stamp_duty                 numeric DEFAULT 0,                 -- 26
   total_investment_amount    numeric,                           -- 26
+  credit_rating              text,
+  demat_account              text,
+  tax_category               text,
+  notes                      text,
   nominee                    text DEFAULT '',                   -- 69
   nominee_relation           text DEFAULT '',                    -- 69
   created_at                 timestamp with time zone DEFAULT now()
@@ -519,25 +536,30 @@ CREATE INDEX IF NOT EXISTS idx_bonds_user ON public.bonds (user_id);
 -- (service/employment history). NPS-specific fields: pran, tier, epf_type,
 -- employer_contribution.
 CREATE TABLE IF NOT EXISTS public.ppf_nps (
-  id                     uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id                uuid REFERENCES auth.users NOT NULL,
-  owner                  text NOT NULL,
-  type                   text,
-  bank                   text,
-  balance                numeric DEFAULT 0,
-  open_date              date,
-  this_year_contribution numeric DEFAULT 0,
-  transactions           jsonb DEFAULT '[]'::jsonb,             -- 06/08/09/10
-  account_number         text,                                  -- 06/08/09/10, also 55
-  uan                    text,                                  -- 07 (superseded, kept for fidelity)
-  establishments         jsonb DEFAULT '[]'::jsonb,              -- 28, also 55
-  pran                   text,                                  -- 54
-  tier                   text DEFAULT 'I',                      -- 54
-  epf_type               text,                                  -- 55
-  employer_contribution  numeric DEFAULT 0,                     -- 55
-  nominee                text DEFAULT '',                        -- 69
-  nominee_relation       text DEFAULT '',                         -- 69
-  created_at             timestamp with time zone DEFAULT now()
+  id                             uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id                        uuid REFERENCES auth.users NOT NULL,
+  owner                          text NOT NULL,
+  type                           text,
+  bank                           text,
+  balance                        numeric DEFAULT 0,
+  rate                           numeric,
+  open_date                      date,
+  this_year_contribution         numeric DEFAULT 0,
+  transactions                   jsonb DEFAULT '[]'::jsonb,             -- 06/08/09/10
+  account_number                 text,                                  -- 06/08/09/10, also 55
+  uan                            text,                                  -- 07 (superseded, kept for fidelity)
+  establishments                 jsonb DEFAULT '[]'::jsonb,              -- 28, also 55
+  pran                           text,                                  -- 54
+  tier                           text DEFAULT 'I',                      -- 54
+  epf_type                       text,                                  -- 55
+  employer_contribution          numeric DEFAULT 0,                     -- 55
+  linked_account                 text,
+  notes                          text,
+  extension_years                integer DEFAULT 0,
+  extension_with_contribution    boolean DEFAULT true,
+  nominee                        text DEFAULT '',                        -- 69
+  nominee_relation               text DEFAULT '',                         -- 69
+  created_at                     timestamp with time zone DEFAULT now()
 );
 
 ALTER TABLE public.ppf_nps DROP CONSTRAINT IF EXISTS ppf_nps_type_check;
@@ -559,11 +581,17 @@ CREATE TABLE IF NOT EXISTS public.gold_holdings (
   name             text,
   type             text NOT NULL DEFAULT 'physical',           -- physical, sgb, digital, etf, mf
   grams            numeric NOT NULL DEFAULT 0,
+  gross_grams      numeric,
   purchase_price   numeric DEFAULT 0,
+  making_charges   numeric,
   purchase_date    date,
   maturity_date    date,
   interest_rate    numeric DEFAULT 2.5,
   purity           text DEFAULT '24K',
+  vault_location   text,
+  hallmark_uid     text,
+  certificate_no   text,
+  demat_account    text,
   nominee          text DEFAULT '',                             -- 69
   nominee_relation text DEFAULT '',                               -- 69
   notes            text,
@@ -618,21 +646,23 @@ CREATE INDEX IF NOT EXISTS idx_govt_schemes_type    ON public.govt_schemes (sche
 -- ================================================================
 
 CREATE TABLE IF NOT EXISTS public.lic_policies (
-  id                 uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id            uuid REFERENCES auth.users NOT NULL,
-  owner              text NOT NULL DEFAULT 'self',
-  plan_name          text,
-  policy_number      text,
-  sum_assured        numeric DEFAULT 0,
-  annual_premium     numeric DEFAULT 0,
-  premium_paid       numeric DEFAULT 0,
-  maturity_date      date,                                     -- 14
-  commencement_date  date,                                     -- 18
-  transactions       jsonb DEFAULT '[]'::jsonb,                 -- 18
-  policy_term        integer,                                  -- 19
-  nominee            text DEFAULT '',                            -- 69
-  nominee_relation   text DEFAULT '',                             -- 69
-  created_at         timestamp with time zone DEFAULT now()
+  id                  uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id             uuid REFERENCES auth.users NOT NULL,
+  owner               text NOT NULL DEFAULT 'self',
+  plan_name           text,
+  policy_number       text,
+  sum_assured         numeric DEFAULT 0,
+  annual_premium      numeric DEFAULT 0,
+  premium_paid        numeric DEFAULT 0,
+  maturity_date       date,                                     -- 14
+  commencement_date   date,                                     -- 18
+  transactions        jsonb DEFAULT '[]'::jsonb,                 -- 18
+  policy_term         integer,                                  -- 19
+  premium_paying_term integer,
+  nominee             text DEFAULT '',                            -- 69
+  nominee_relation    text DEFAULT '',                             -- 69
+  nominee_share       numeric,
+  created_at          timestamp with time zone DEFAULT now()
 );
 
 ALTER TABLE public.lic_policies ENABLE ROW LEVEL SECURITY;
@@ -648,6 +678,7 @@ CREATE TABLE IF NOT EXISTS public.term_plans (
   user_id             uuid REFERENCES auth.users NOT NULL,
   owner               text NOT NULL DEFAULT 'self',
   plan_name           text,
+  policy_number       text,
   insurer             text,
   cover_amount        numeric DEFAULT 0,
   annual_premium      numeric DEFAULT 0,
@@ -660,6 +691,7 @@ CREATE TABLE IF NOT EXISTS public.term_plans (
   transactions        jsonb DEFAULT '[]'::jsonb,                -- 21
   nominee             text DEFAULT '',                           -- 69
   nominee_relation    text DEFAULT '',                            -- 69
+  nominee_share       numeric,
   created_at          timestamp with time zone DEFAULT now()
 );
 
@@ -689,6 +721,7 @@ CREATE TABLE IF NOT EXISTS public.investment_plans (
   transactions             jsonb DEFAULT '[]'::jsonb,
   nominee                  text DEFAULT '',                     -- 69
   nominee_relation         text DEFAULT '',                      -- 69
+  nominee_share            numeric,
   created_at               timestamp with time zone DEFAULT now()
 );
 
@@ -713,12 +746,19 @@ CREATE TABLE IF NOT EXISTS public.health_insurance (
   insured_members      jsonb NOT NULL DEFAULT '[]',            -- [{ name, relation, dob }]
   sum_insured          numeric NOT NULL DEFAULT 0,
   premium              numeric NOT NULL DEFAULT 0,
+  deductible           numeric DEFAULT 0,
+  copay_percent        numeric DEFAULT 0,
   premium_frequency    text NOT NULL DEFAULT 'annual',         -- monthly|quarterly|semi_annual|annual
   start_date           date,
   renewal_date         date,
   hospital_network     text DEFAULT '',
+  tpa_name             text DEFAULT '',
+  tpa_contact          text DEFAULT '',
   cashless             boolean NOT NULL DEFAULT true,
   pre_existing_covered boolean NOT NULL DEFAULT false,
+  restoration_benefit  boolean DEFAULT false,
+  maternity_cover      boolean DEFAULT false,
+  daycare_cover        boolean DEFAULT false,
   waiting_period_years numeric DEFAULT 0,
   no_claim_bonus       numeric DEFAULT 0,
   claims               jsonb NOT NULL DEFAULT '[]',            -- [{ date, amount, description, settled }]
@@ -773,6 +813,7 @@ CREATE TABLE IF NOT EXISTS public.credit_cards (
   last4                 text,
   card_limit            numeric DEFAULT 0,
   outstanding           numeric DEFAULT 0,
+  interest_rate         numeric,
   bill_date             text,
   due_day               text,
   annual_fee            numeric DEFAULT 0,
@@ -810,23 +851,29 @@ COMMENT ON COLUMN public.credit_cards.variants IS 'Linked card variants for dual
 
 
 CREATE TABLE IF NOT EXISTS public.loans (
-  id              uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id         uuid REFERENCES auth.users NOT NULL,
-  owner           text NOT NULL,
-  lender_borrower text NOT NULL,
-  type            text,                                        -- Car, Home, Personal, etc.
-  is_lent         boolean DEFAULT false,                       -- true if user lent money to others
-  principal       numeric DEFAULT 0,
-  outstanding     numeric DEFAULT 0,
-  emi             numeric DEFAULT 0,
-  rate            numeric DEFAULT 0,
+  id               uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id          uuid REFERENCES auth.users NOT NULL,
+  owner            text NOT NULL,
+  lender_borrower  text NOT NULL,
+  type             text,                                        -- Car, Home, Personal, etc.
+  is_lent          boolean DEFAULT false,                       -- true if user lent money to others
+  principal        numeric DEFAULT 0,
+  outstanding      numeric DEFAULT 0,
+  emi              numeric DEFAULT 0,
+  rate             numeric DEFAULT 0,
   months_remaining numeric,
-  due_day         integer CHECK (due_day BETWEEN 1 AND 31),    -- 81
-  note            text,                                        -- 81
-  given_date      date,                                        -- 81
-  due_date        date,                                        -- 81
-  payments        jsonb DEFAULT '[]'::jsonb,                    -- 83
-  created_at      timestamp with time zone DEFAULT now()
+  account_number   text,
+  interest_type    text,
+  status           text DEFAULT 'active',
+  phone            text,
+  is_interest_free boolean DEFAULT false,
+  security         text,
+  due_day          integer CHECK (due_day BETWEEN 1 AND 31),    -- 81
+  note             text,                                        -- 81
+  given_date       date,                                        -- 81
+  due_date         date,                                        -- 81
+  payments         jsonb DEFAULT '[]'::jsonb,                    -- 83
+  created_at       timestamp with time zone DEFAULT now()
 );
 
 ALTER TABLE public.loans ENABLE ROW LEVEL SECURITY;
@@ -838,15 +885,18 @@ CREATE INDEX IF NOT EXISTS idx_loans_user ON public.loans (user_id);
 
 
 CREATE TABLE IF NOT EXISTS public.informal_loans (
-  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id    uuid REFERENCES auth.users NOT NULL,
-  owner      text NOT NULL DEFAULT 'self',
-  direction  text CHECK (direction IN ('borrowed', 'lent')) NOT NULL,
-  person     text NOT NULL,
-  note       text,
-  tranches   jsonb DEFAULT '[]'::jsonb,
-  payments   jsonb DEFAULT '[]'::jsonb,
-  created_at timestamp with time zone DEFAULT now()
+  id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id      uuid REFERENCES auth.users NOT NULL,
+  owner        text NOT NULL DEFAULT 'self',
+  direction    text CHECK (direction IN ('borrowed', 'lent')) NOT NULL,
+  person       text NOT NULL,
+  name         text,
+  relationship text,
+  phone        text,
+  note         text,
+  tranches     jsonb DEFAULT '[]'::jsonb,
+  payments     jsonb DEFAULT '[]'::jsonb,
+  created_at   timestamp with time zone DEFAULT now()
 );
 
 ALTER TABLE public.informal_loans ENABLE ROW LEVEL SECURITY;
@@ -945,21 +995,23 @@ CREATE POLICY "Users can access own data" ON public.real_estate_demands
   FOR ALL USING (auth.uid() = user_id);
 
 CREATE INDEX IF NOT EXISTS idx_re_demands_user_id     ON public.real_estate_demands (user_id);
-CREATE INDEX IF NOT EXISTS idx_re_demands_property_id ON public.real_estate_demands (property_id);
-
-
-CREATE TABLE IF NOT EXISTS public.real_estate_payments (
-  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id          uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  owner            text NOT NULL DEFAULT 'self',
-  property_id      uuid NOT NULL REFERENCES public.real_estate_properties(id) ON DELETE CASCADE,
-  demand_id        uuid REFERENCES public.real_estate_demands(id) ON DELETE SET NULL,
-  payment_date     date,
-  amount           numeric(14,2),
-  payment_mode     text DEFAULT 'NEFT',
-  reference_number text,
-  note             text,
-  created_at       timestamptz DEFAULT now()
+CREATE INDEX IF NOT EXISTS idx_re_demands_property_id ON public.real_estateCREATE TABLE IF NOT EXISTS public.real_estate_payments (
+  id                          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id                     uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  owner                       text NOT NULL DEFAULT 'self',
+  property_id                 uuid NOT NULL REFERENCES public.real_estate_properties(id) ON DELETE CASCADE,
+  demand_id                   uuid REFERENCES public.real_estate_demands(id) ON DELETE SET NULL,
+  payment_date                date,
+  amount                      numeric(14,2),
+  payment_mode                text DEFAULT 'NEFT',
+  payment_source              text,
+  category                    text,
+  reference_number            text,
+  linked_txn_id               text,
+  post_to_account             boolean DEFAULT false,
+  auto_update_agreement_paid  boolean DEFAULT false,
+  note                        text,
+  created_at                  timestamptz DEFAULT now()
 );
 
 ALTER TABLE public.real_estate_payments ENABLE ROW LEVEL SECURITY;
@@ -991,6 +1043,15 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
   registration_number        text,
   chassis_number             text,
   engine_number              text,
+  cubic_capacity             numeric,
+  seating_capacity           integer,
+  emission_norms             text,
+  rto                        text,
+  state                      text,
+  registered_owner           text,
+  financier                  text,
+  insurance_company          text,
+  insurance_policy_number    text,
 
   purchase_date              date,
   purchase_price             numeric(14,2),
@@ -998,6 +1059,7 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
 
   insurance_expiry           date,
   puc_expiry                 date,
+  fitness_upto               date,
 
   -- [{id, date, type, description, cost, odometer, serviceCenter, notes}]
   service_history            jsonb NOT NULL DEFAULT '[]'::jsonb,
@@ -1072,6 +1134,7 @@ CREATE TABLE IF NOT EXISTS public.rental_properties (
   due_day                integer DEFAULT 5,                     -- 25
   escalation_tiers       jsonb DEFAULT '[]'::jsonb,              -- 39
   property_value         numeric DEFAULT 0,                     -- 45
+  default_bank_account_id text,
   created_at             timestamp with time zone DEFAULT now()
 );
 
@@ -1144,6 +1207,8 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
   cycle            text CHECK (cycle IN ('monthly', 'quarterly', 'yearly')),
   renewal_date     date,
   paused           boolean DEFAULT false,
+  payment_method   text,
+  autopay          boolean DEFAULT false,
   remark           text,                                        -- 17
   website          text,                                        -- 47
   last_paid_amount numeric,                                     -- 86
@@ -1236,6 +1301,8 @@ CREATE TABLE IF NOT EXISTS public.life_events (
   target_date    date,
   estimated_cost numeric DEFAULT 0,
   current_saved  numeric DEFAULT 0,
+  inflation_rate numeric DEFAULT 6,
+  expected_return numeric DEFAULT 10,
   priority       text DEFAULT 'medium',                          -- high|medium|low
   notes          text,
   created_at     timestamptz DEFAULT now(),
@@ -1253,20 +1320,23 @@ CREATE POLICY "Users can access own data" ON public.life_events
 -- ================================================================
 
 CREATE TABLE IF NOT EXISTS public.bill_payments (
-  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id         uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  category        text NOT NULL DEFAULT 'electricity',          -- electricity|gas|water|broadband|mobile|cable_tv|ott|maintenance|other
-  provider        text NOT NULL DEFAULT '',
-  account_number  text DEFAULT '',
-  nickname        text DEFAULT '',
-  amount          numeric NOT NULL DEFAULT 0,                   -- typical/expected amount
-  due_day         integer CHECK (due_day BETWEEN 1 AND 31),
-  auto_pay        boolean NOT NULL DEFAULT false,
-  bank_account_id uuid,
-  owner           text NOT NULL DEFAULT 'self',
-  notes           text DEFAULT '',
-  created_at      timestamptz NOT NULL DEFAULT NOW(),
-  updated_at      timestamptz NOT NULL DEFAULT NOW()
+  id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id                uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  category               text NOT NULL DEFAULT 'electricity',          -- electricity|gas|water|broadband|mobile|cable_tv|ott|maintenance|other
+  provider               text NOT NULL DEFAULT '',
+  account_number         text DEFAULT '',
+  nickname               text DEFAULT '',
+  amount                 numeric NOT NULL DEFAULT 0,                   -- typical/expected amount
+  due_day                integer CHECK (due_day BETWEEN 1 AND 31),
+  auto_pay               boolean NOT NULL DEFAULT false,
+  bank_account_id        uuid,
+  frequency              text DEFAULT 'monthly',
+  default_payment_source text DEFAULT '',
+  portal_url             text DEFAULT '',
+  owner                  text NOT NULL DEFAULT 'self',
+  notes                  text DEFAULT '',
+  created_at             timestamptz NOT NULL DEFAULT NOW(),
+  updated_at             timestamptz NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE public.bill_payments DROP CONSTRAINT IF EXISTS bill_payments_bank_account_id_fkey;
@@ -1283,16 +1353,18 @@ CREATE INDEX IF NOT EXISTS idx_bill_payments_user_id ON public.bill_payments (us
 
 
 CREATE TABLE IF NOT EXISTS public.bill_payment_history (
-  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id        uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  bill_id        uuid NOT NULL REFERENCES public.bill_payments(id) ON DELETE CASCADE,
-  paid_date      date NOT NULL,
-  amount         numeric NOT NULL DEFAULT 0,
-  units_consumed numeric,                                       -- electricity/gas — kWh / cubic meters
-  payment_method text DEFAULT '',                                -- UPI|NEFT|auto-debit|cash
-  receipt_number text DEFAULT '',
-  notes          text DEFAULT '',
-  created_at     timestamptz NOT NULL DEFAULT NOW()
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id            uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  bill_id            uuid NOT NULL REFERENCES public.bill_payments(id) ON DELETE CASCADE,
+  paid_date          date NOT NULL,
+  amount             numeric NOT NULL DEFAULT 0,
+  units_consumed     numeric,                                       -- electricity/gas — kWh / cubic meters
+  payment_method     text DEFAULT '',                                -- UPI|NEFT|auto-debit|cash
+  receipt_number     text DEFAULT '',
+  linked_account_id  text DEFAULT '',
+  linked_txn_id      text DEFAULT '',
+  notes              text DEFAULT '',
+  created_at         timestamptz NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE public.bill_payment_history ENABLE ROW LEVEL SECURITY;
@@ -1316,12 +1388,13 @@ CREATE TABLE IF NOT EXISTS public.tax_payments (
   type       text,                                              -- TDS, Advance Tax, Self-Assessment, Professional Tax
   amount     numeric DEFAULT 0,
   note       text,
-  fy         text,                                              -- e.g. "2026-27" — added because TaxFilingHelperTab.tsx
-                                                                  -- and TaxToolsTab.tsx both filter payments by `t.fy === fy`,
-                                                                  -- but the column never existed, so every payment ever
-                                                                  -- recorded was invisible to the advance-tax-paid trackers
-                                                                  -- on both tabs. ALTER TABLE below applies this to an
-                                                                  -- existing (already-created) tax_payments table.
+  fy         text,                                              -- e.g. "2026-27"
+  challan_no text,
+  challan    text,
+  bsr_code   text,
+  bank       text,
+  tax_type   text,
+  notes      text,
   created_at timestamp with time zone DEFAULT now()
 );
 
