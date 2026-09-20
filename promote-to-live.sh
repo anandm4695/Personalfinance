@@ -10,4 +10,4 @@ LIVE_REMOTE="origin"
 
 echo "→ Pushing to $LIVE_REMOTE/$BRANCH ..."
 git push "$LIVE_REMOTE" "$BRANCH"
-echo "✓ Production deployed — https://personal-finance-by-anand-mohta.vercel.app"
+echo "✓ Production deployed — https://arthadrishti-app.vercel.app"

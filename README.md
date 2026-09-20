@@ -55,7 +55,7 @@ npm run build
 npx vercel --prod
 ```
 
-**Live URL:** [https://personal-finance-by-anand-mohta.vercel.app](https://personal-finance-by-anand-mohta.vercel.app)
+**Live URL:** [https://arthadrishti-app.vercel.app](https://arthadrishti-app.vercel.app)
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/anandm4695/Personalfinance)
 

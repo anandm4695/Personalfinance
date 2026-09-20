@@ -22,6 +22,12 @@ const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 const FROM_ADDR = `ArthaDrishti <${FROM_EMAIL}>`;
 
+const APP_URL = (
+  process.env.APP_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "") ||
+  "https://arthadrishti-app.vercel.app"
+).replace(/\/$/, "");
+
 const PUBLIC_DOMAINS = [
   "gmail.com",
   "yahoo.com",
@@ -1564,7 +1570,7 @@ function generateHTML(summary, frequency, recipientName) {
           <table cellpadding="0" cellspacing="0">
             <tr>
               <td style="vertical-align:middle;padding-right:10px;">
-                <img src="https://personal-finance-by-anand-mohta.vercel.app/favicon-192x192.png" width="30" height="30" alt="AD" style="display:block;border-radius:8px;">
+                <img src="${APP_URL}/favicon-192x192.png" width="30" height="30" alt="AD" style="display:block;border-radius:8px;">
               </td>
               <td style="vertical-align:middle;">
                 <div style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;">ArthaDrishti</div>
@@ -1861,13 +1867,13 @@ function generateHTML(summary, frequency, recipientName) {
   <!-- FOOTER & DASHBOARD CTA -->
   <tr><td style="background:${navyBg};padding:28px 24px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
     <div style="margin-bottom:14px;">
-      <a href="https://personal-finance-by-anand-mohta.vercel.app" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:11px 24px;border-radius:8px;">
+      <a href="${APP_URL}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:11px 24px;border-radius:8px;">
         Open ArthaDrishti Dashboard →
       </a>
     </div>
     <div style="font-size:12px;color:#94a3b8;line-height:1.7;font-weight:500;">
       Personal Finance by Anand Mohta · Prepared for ${escapeHtml(recipientName)}<br>
-      <a href="https://personal-finance-by-anand-mohta.vercel.app/#settings" style="color:#64748b;text-decoration:none;font-size:11px;">
+      <a href="${APP_URL}/#settings" style="color:#64748b;text-decoration:none;font-size:11px;">
         Manage email preferences &amp; notification schedule
       </a>
     </div>
