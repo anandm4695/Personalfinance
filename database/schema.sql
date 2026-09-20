@@ -995,7 +995,10 @@ CREATE POLICY "Users can access own data" ON public.real_estate_demands
   FOR ALL USING (auth.uid() = user_id);
 
 CREATE INDEX IF NOT EXISTS idx_re_demands_user_id     ON public.real_estate_demands (user_id);
-CREATE INDEX IF NOT EXISTS idx_re_demands_property_id ON public.real_estateCREATE TABLE IF NOT EXISTS public.real_estate_payments (
+CREATE INDEX IF NOT EXISTS idx_re_demands_property_id ON public.real_estate_demands (property_id);
+
+
+CREATE TABLE IF NOT EXISTS public.real_estate_payments (
   id                          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id                     uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   owner                       text NOT NULL DEFAULT 'self',
