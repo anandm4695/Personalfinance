@@ -67,9 +67,9 @@ import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { ConfirmDialog } from "../ui/Feedback";
 import { BrokerImportModal } from "../modals/BrokerImportModal";
-import { BrokerLogo } from "../ui/BrandLogos";
+import { BrokerLogo, StockLogo } from "../ui/BrandLogos";
 
-export { BrokerLogo };
+export { BrokerLogo, StockLogo };
 
 // Broker logo domains for Clearbit / fallback
 const BROKER_LOGO_DOMAINS: Record<string, string> = {
@@ -149,7 +149,6 @@ function calcPeriodChange(points: Array<{ p: number }> | null | undefined) {
   return { amount, pct };
 }
 
-export { StockLogo } from "../ui/BrandLogos";
 
 export type FifoAlloc = {
   lot: any;
@@ -285,7 +284,7 @@ export function DematTab({
   const [chartData, setChartData] = useState<Record<string, any>>({});
   const [expandedSymbols, setExpandedSymbols] = useState(new Set<string>());
   const [lotSortDir, setLotSortDir] = useState<Record<string, "asc" | "desc">>({});
-  const [fetchingChart, setFetchingChart] = useState<string | null>(null);
+  const [fetchingChart, setFetchingChart] = useState<Record<string, boolean>>({});
   const [chartPeriod, setChartPeriod] = useState<Record<string, string>>({});
   const [sellLot, setSellLot] = useState<any>(null);
   const [fifoSellGroup, setFifoSellGroup] = useState<any>(null);
@@ -692,8 +691,8 @@ export function DematTab({
 
   const fetchChart = async (yfSym: string, range: string = "1d") => {
     const cacheKey = `${yfSym}__${range}`;
-    if (chartData[cacheKey] || fetchingChart === yfSym) return;
-    setFetchingChart(yfSym);
+    if (chartData[cacheKey]?.points?.length || fetchingChart[cacheKey]) return;
+    setFetchingChart((prev) => ({ ...prev, [cacheKey]: true }));
     try {
       const res = await fetch(
         `/api/stock-chart?symbol=${encodeURIComponent(yfSym)}&range=${range}`
@@ -707,8 +706,9 @@ export function DematTab({
       }
     } catch (_) {
       setChartData((prev) => ({ ...prev, [cacheKey]: { date: null, points: [] } }));
+    } finally {
+      setFetchingChart((prev) => ({ ...prev, [cacheKey]: false }));
     }
-    setFetchingChart(null);
   };
 
   const toggleExpand = (yfSym: string) => {
@@ -2081,6 +2081,7 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                     const isExpanded = expandedSymbols.has(yfSym);
                     const isLive = !!md;
                     const activePeriod = chartPeriod[yfSym] || "1d";
+                    const isChartLoading = !!fetchingChart[`${yfSym}__${activePeriod}`];
                     const chartEntry = chartData[`${yfSym}__${activePeriod}`];
                     const charts: any[] | null = chartEntry ? chartEntry.points ?? chartEntry : null;
                     const chartDate: string | null = chartEntry?.date ?? null;
@@ -2476,8 +2477,32 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
                                           </AreaChart>
                                         </ResponsiveContainer>
                                       ) : (
-                                        <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 12 }}>
-                                          {fetchingChart === yfSym ? "Loading price chart…" : "No intraday chart available"}
+                                        <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: THEME.muted, fontSize: 12, gap: 6 }}>
+                                          {isChartLoading ? (
+                                            <span>Loading price chart…</span>
+                                          ) : (
+                                            <>
+                                              <span>No {activePeriod === "1d" ? "intraday" : (CHART_PERIOD_LABELS[activePeriod] || "")} chart data available</span>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  fetchChart(yfSym, activePeriod);
+                                                }}
+                                                style={{
+                                                  background: "transparent",
+                                                  border: `1px solid ${THEME.line}`,
+                                                  borderRadius: 6,
+                                                  padding: "2px 8px",
+                                                  fontSize: 10,
+                                                  color: THEME.accent,
+                                                  cursor: "pointer",
+                                                  fontWeight: 600,
+                                                }}
+                                              >
+                                                Retry
+                                              </button>
+                                            </>
+                                          )}
                                         </div>
                                       )}
                                     </div>

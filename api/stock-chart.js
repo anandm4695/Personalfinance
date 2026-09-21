@@ -27,7 +27,7 @@ module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
 
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (!rateLimit(req, res, { max: 30, windowMs: 60_000 })) return;
+  if (!rateLimit(req, res, { max: 120, windowMs: 60_000 })) return;
 
   const { symbol, range: rangeParam } = req.query;
   if (!symbol) return res.status(400).json({ error: "symbol required" });

@@ -59,8 +59,7 @@ import { Field } from "../ui/Form";
 import { StatCard } from "../ui/StatCard";
 import { ConfirmDialog } from "../ui/Feedback";
 import { DataTable, Column } from "../design-system/DataTable";
-import { StockLogo } from "../tabs/DematTab";
-import { MFLogo } from "../ui/BrandLogos";
+import { MFLogo, StockLogo } from "../ui/BrandLogos";
 
 const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 

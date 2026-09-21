@@ -102,7 +102,7 @@ import { MonthlyReportModal } from "../modals/MonthlyReportModal";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field, Input, Select } from "../ui/Form";
 import { SectionTitle } from "../ui/SectionTitle";
-import { StockLogo } from "./DematTab";
+import { StockLogo } from "../ui/BrandLogos";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 

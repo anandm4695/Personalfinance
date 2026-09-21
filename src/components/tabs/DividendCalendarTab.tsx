@@ -67,7 +67,7 @@ import { Modal, ModalActions } from "../ui/Modal";
 import { Field, Input } from "../ui/Form";
 import { Prv } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
-import { StockLogo } from "./DematTab";
+import { StockLogo } from "../ui/BrandLogos";
 import { DataTable, Column } from "../design-system/DataTable";
 
 const MONTH_NAMES = [
