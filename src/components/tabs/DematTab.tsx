@@ -464,6 +464,36 @@ export function DematTab({
     }
   );
 
+  const { run: saveBrokerImport, loading: savingBrokerImport } = useAsyncAction(
+    async (
+      newStocks: any[],
+      sells: any[],
+      stockUpdates: { id: string; qty: string }[],
+      stockRemovals: string[]
+    ) => {
+      for (const s of newStocks) {
+        await addItem("stocks", s);
+      }
+      for (const u of stockUpdates) {
+        await updateItem("stocks", u.id, { qty: u.qty });
+      }
+      for (const id of stockRemovals) {
+        await removeItem("stocks", id);
+      }
+      for (const sl of sells) {
+        await addItem("stockSells", sl);
+      }
+    },
+    {
+      onSuccess: () => {
+        setShowBrokerImport(false);
+        showToast?.("Broker CSV imported successfully!", "success");
+      },
+      onError: (e: any) =>
+        showToast?.(`Failed to import broker trades: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
   React.useEffect(() => {
     localStorage.setItem("finance_demat_sort", sortBy);
   }, [sortBy]);
@@ -3565,7 +3595,6 @@ CREATE POLICY "Users can access own data" ON public.corporate_actions FOR ALL US
         <BrokerImportModal
           demats={state.demat || []}
           existingStocks={state.stocks || []}
-          activeProfile={activeProfile}
           onClose={() => setShowBrokerImport(false)}
           onImport={saveBrokerImport}
           saving={savingBrokerImport}
