@@ -1983,9 +1983,9 @@ function GoalSimulatorModal({ goals, metrics, onClose }: { goals: any[]; metrics
           </div>
 
           <div>
-            <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: THEME.sage }}>Time Saved Earlier</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage, marginTop: 2 }}>
-              ⚡ {simulationResults.yearsSaved} Years
+            <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
+              <Zap size={18} color={THEME.sage} style={{ flexShrink: 0 }} />
+              <span>{simulationResults.yearsSaved} Years</span>
             </div>
           </div>
         </div>

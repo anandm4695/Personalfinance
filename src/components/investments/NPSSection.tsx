@@ -49,6 +49,7 @@ import {
   Filter,
   Eye,
   EyeOff,
+  Lightbulb,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -554,7 +555,7 @@ export function NPSSection({
           icon={<Award />}
           sub={
             metrics.currentFYEmployee >= 50000
-              ? "✓ Max ₹50,000 tax deduction utilized"
+              ? "Max ₹50,000 tax deduction utilized"
               : `₹${(50000 - metrics.currentFYEmployee).toLocaleString("en-IN")} headroom left in ${getCurrentFY()}`
           }
         />
@@ -2348,8 +2349,9 @@ function NPSTaxOptimizer({ metrics, items }: { metrics: any; items: NPSItem[] })
           <p style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.5, margin: "0 0 12px" }}>
             Deduction for self-contribution up to <b>10% of salary</b> (Basic + DA) for salaried, or 20% of gross income for self-employed, within the overall <b>₹1,50,000</b> ceiling under Section 80CCE.
           </p>
-          <div style={{ padding: "8px 10px", background: "var(--surface-1)", borderRadius: 6, fontSize: 11, color: THEME.ink }}>
-            💡 Shared with EPF, PPF, ELSS, Life Insurance premiums.
+          <div style={{ padding: "8px 10px", background: "var(--surface-1)", borderRadius: 6, fontSize: 11, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
+            <Lightbulb size={13} color={THEME.accent} style={{ flexShrink: 0 }} />
+            <span>Shared with EPF, PPF, ELSS, Life Insurance premiums.</span>
           </div>
         </Card>
 
@@ -2367,8 +2369,9 @@ function NPSTaxOptimizer({ metrics, items }: { metrics: any; items: NPSItem[] })
           <p style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.5, margin: "0 0 12px" }}>
             <b>Over and above the ₹1.5 Lakh 80C limit!</b> Exclusive tax deduction of up to <b>₹50,000</b> for Tier-I contributions. Saves up to ₹15,600 in tax every single year (30% bracket).
           </p>
-          <div style={{ padding: "8px 10px", background: `color-mix(in srgb, ${THEME.gold} 10%, var(--surface-1))`, borderRadius: 6, fontSize: 11, color: THEME.gold, fontWeight: 700 }}>
-            ⚡ Old Tax Regime Exclusive: Save up to ₹15,600/year.
+          <div style={{ padding: "8px 10px", background: `color-mix(in srgb, ${THEME.gold} 10%, var(--surface-1))`, borderRadius: 6, fontSize: 11, color: THEME.gold, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+            <Zap size={13} color={THEME.gold} style={{ flexShrink: 0 }} />
+            <span>Old Tax Regime Exclusive: Save up to ₹15,600/year.</span>
           </div>
         </Card>
 
@@ -2386,8 +2389,9 @@ function NPSTaxOptimizer({ metrics, items }: { metrics: any; items: NPSItem[] })
           <p style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.5, margin: "0 0 12px" }}>
             Employer contribution up to <b>10% of salary</b> (14% for Central/State Govt employees). <b>Available in both Old AND New Tax Regimes!</b> No upper rupee cap (subject to ₹7.5L combined employer EPF/NPS/Superannuation limit).
           </p>
-          <div style={{ padding: "8px 10px", background: `color-mix(in srgb, ${THEME.cyan} 10%, var(--surface-1))`, borderRadius: 6, fontSize: 11, color: THEME.cyan, fontWeight: 700 }}>
-            🏆 Works under New Tax Regime under Section 115BAC!
+          <div style={{ padding: "8px 10px", background: `color-mix(in srgb, ${THEME.cyan} 10%, var(--surface-1))`, borderRadius: 6, fontSize: 11, color: THEME.cyan, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+            <Award size={13} color={THEME.cyan} style={{ flexShrink: 0 }} />
+            <span>Works under New Tax Regime under Section 115BAC!</span>
           </div>
         </Card>
       </div>
@@ -2763,7 +2767,7 @@ function NPSAccountModal({
 
             <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", fontSize: 11 }}>
               <span style={{ color: isAllocValid ? THEME.sage : THEME.rust, fontWeight: 700 }}>
-                Total: {allocSum}% {isAllocValid ? "✓ Valid 100%" : "✗ Must equal exactly 100%"}
+                Total: {allocSum}% {isAllocValid ? "(Valid 100%)" : "(Must equal exactly 100%)"}
               </span>
             </div>
           </div>
@@ -3139,8 +3143,9 @@ function NPSCsvImportModal({
         )}
 
         {previewRows.length > 0 && (
-          <div style={{ fontSize: 12, fontWeight: 700, color: THEME.sage }}>
-            ✓ {previewRows.length} transactions parsed and ready to import.
+          <div style={{ fontSize: 12, fontWeight: 700, color: THEME.sage, display: "flex", alignItems: "center", gap: 5 }}>
+            <CheckCircle2 size={13} color={THEME.sage} style={{ flexShrink: 0 }} />
+            <span>{previewRows.length} transactions parsed and ready to import.</span>
           </div>
         )}
       </div>

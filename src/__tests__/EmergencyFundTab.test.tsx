@@ -95,7 +95,7 @@ describe("EmergencyFundTab Redesign", () => {
     const survivalBtn = screen.getByText("Bare-Bones Survival");
     fireEvent.click(survivalBtn);
 
-    expect(screen.getByText("⚡ Bare-Bones Survival Mode")).toBeDefined();
+    expect(screen.getByText("Bare-Bones Survival Mode")).toBeDefined();
   });
 
   it("allows switching Target Runway Horizon (3M, 6M, 9M, 12M)", () => {

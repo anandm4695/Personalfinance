@@ -836,7 +836,7 @@ export const LifeEventPlannerTab: React.FC<{
   };
 
   const copyExecutiveSummary = () => {
-    const summaryText = `🎯 LIFE EVENT PLANNER EXECUTIVE SUMMARY
+    const summaryText = `LIFE EVENT PLANNER EXECUTIVE SUMMARY
 ==========================================
 • Total Milestones: ${activeEvents.length} active (${enrichedEvents.filter((e) => e.isFunded).length} fully funded)
 • Total Future Inflated Liability: ₹${fmtINRFull(totalInflatedCost)}
@@ -2244,8 +2244,9 @@ Generated from Personal Finance OS on ${today()}`;
                     <span>Monthly SIP Required: ₹{fmtINR(Math.round(monthlySIP))}/mo</span>
                     <span style={{ color: THEME.ink }}>10% Step-Up SIP: ₹{fmtINR(Math.round(stepUp))}/mo</span>
                   </div>
-                  <div style={{ fontSize: 11, color: glide.color, fontWeight: 600 }}>
-                    🛡️ {glide.label}
+                  <div style={{ fontSize: 11, color: glide.color, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                    <Shield size={12} color={glide.color} style={{ flexShrink: 0 }} />
+                    <span>{glide.label}</span>
                   </div>
                 </div>
               );

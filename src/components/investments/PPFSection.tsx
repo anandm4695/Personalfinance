@@ -47,6 +47,7 @@ import {
   Flame,
   Milestone,
   BookOpen,
+  Lightbulb,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -2260,8 +2261,9 @@ function EditPPFModal({ ppf, familyProfiles, onClose, onSave }: any) {
           />
         </Field>
 
-        <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.4 }}>
-          💡 <strong>Tip:</strong> Keep the current balance updated after yearly interest is credited on March 31, or use the ledger to track all deposits and withdrawals.
+        <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.4, display: "flex", alignItems: "center", gap: 6 }}>
+          <Lightbulb size={13} color={THEME.accent} style={{ flexShrink: 0 }} />
+          <span><strong>Tip:</strong> Keep the current balance updated after yearly interest is credited on March 31, or use the ledger to track all deposits and withdrawals.</span>
         </div>
 
         <ModalActions
@@ -2730,8 +2732,9 @@ function PPFCsvImportModal({ ppf, onClose, onImport }: any) {
         )}
 
         {csvPreview.length > 0 && (
-          <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 700 }}>
-            ✓ Parsed {csvPreview.length} valid transaction rows ready for import
+          <div style={{ fontSize: 12, color: THEME.sage, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
+            <CheckCircle2 size={13} color={THEME.sage} style={{ flexShrink: 0 }} />
+            <span>Parsed {csvPreview.length} valid transaction rows ready for import</span>
           </div>
         )}
 

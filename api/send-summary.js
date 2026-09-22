@@ -1248,12 +1248,11 @@ function generateHTML(summary, frequency, recipientName) {
       </table>`;
   }
 
-  function sectionHeader(title, emoji, badge = "") {
+  function sectionHeader(title, badge = "") {
     return `
       <tr><td style="padding:28px 24px 12px;">
         <table cellpadding="0" cellspacing="0" width="100%">
           <tr>
-            <td style="font-size:18px;vertical-align:middle;width:26px;">${emoji}</td>
             <td style="font-size:13px;font-weight:800;color:${textPrimary};text-transform:uppercase;letter-spacing:0.08em;vertical-align:middle;">
               ${escapeHtml(title)}
             </td>
@@ -1277,62 +1276,53 @@ function generateHTML(summary, frequency, recipientName) {
   const dueRows = dues
     .slice(0, 7)
     .map((d, i) => {
-      const icon =
+      const catTag =
         d.type === "cc"
-          ? "💳"
+          ? "CARD"
           : d.type === "emi"
-            ? "🏦"
+            ? "LOAN"
             : d.type === "sip"
-              ? "📈"
+              ? "SIP"
               : d.type === "rent"
-                ? "🏠"
+                ? "RENT"
                 : d.type === "insurance"
-                  ? "🛡️"
+                  ? "INS"
                   : d.type === "demand"
-                    ? "🏗️"
+                    ? "RE"
                     : d.type === "sub"
-                      ? "📱"
-                      : "📌";
+                      ? "SUB"
+                      : "DUE";
       const dueTime = d.date.getTime();
       const daysUntil = Math.ceil((dueTime - todayMs) / 86400000);
       const isPast = daysUntil < 0;
       const isToday = daysUntil === 0;
       const isUrgent = daysUntil > 0 && daysUntil <= 2;
-
       const badgeText = isPast
-        ? "Overdue"
+        ? `${Math.abs(daysUntil)}d OVERDUE`
         : isToday
-          ? "Due Today"
-          : daysUntil === 1
-            ? "Due Tomorrow"
-            : `In ${daysUntil} days`;
-      const badgeBg = isPast || isToday ? negBg : isUrgent ? warnBg : "#f1f5f9";
-      const badgeColor = isPast || isToday ? negColor : isUrgent ? warnColor : textMuted;
-
+          ? "DUE TODAY"
+          : isUrgent
+            ? `DUE IN ${daysUntil}D`
+            : d.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+      const badgeBg = isPast ? negBg : isToday || isUrgent ? warnBg : "#f1f5f9";
+      const badgeColor = isPast ? negColor : isToday || isUrgent ? warnColor : textMuted;
       const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
       return `
-      <tr>
-        <td style="padding:12px 24px;background:${bg};border-bottom:1px solid ${borderColor};">
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="font-size:14px;color:${textPrimary};font-weight:600;">
-                <span style="margin-right:6px;">${icon}</span>${escapeHtml(d.label)}
-                <div style="font-size:11px;color:${textMuted};font-weight:500;margin-top:2px;">
-                  ${d.date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
-                </div>
-              </td>
-              <td style="text-align:right;vertical-align:middle;">
-                <div style="font-size:15px;font-weight:800;color:${isToday || isPast ? negColor : textPrimary};">
-                  ${d.amount > 0 ? fmtINRFull(d.amount) : "—"}
-                </div>
-                <div style="display:inline-block;background:${badgeBg};color:${badgeColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:2px;">
-                  ${badgeText}
-                </div>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>`;
+      <tr><td style="padding:11px 24px;background:${bg};border-bottom:1px solid ${borderColor};">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:13px;color:${textPrimary};font-weight:600;">
+              <span style="display:inline-block;font-size:9.5px;font-weight:800;color:${accentColor};background:${accentLight};padding:2px 6px;border-radius:4px;margin-right:8px;vertical-align:middle;">${catTag}</span>${escapeHtml(d.title || d.label)}
+            </td>
+            <td style="text-align:right;white-space:nowrap;">
+              <span style="font-size:14px;font-weight:800;color:${textPrimary};margin-right:10px;">${fmtINRFull(d.amount)}</span>
+              <span style="display:inline-block;background:${badgeBg};color:${badgeColor};font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:0.03em;">
+                ${badgeText}
+              </span>
+            </td>
+          </tr>
+        </table>
+      </td></tr>`;
     })
     .join("");
 
@@ -1346,7 +1336,7 @@ function generateHTML(summary, frequency, recipientName) {
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td style="font-size:13px;color:#166534;font-weight:600;">
-                <span style="margin-right:6px;">💰</span>${escapeHtml(inf.label)}
+                <span style="display:inline-block;font-size:9.5px;font-weight:800;color:#166534;background:#bbf7d0;padding:2px 6px;border-radius:4px;margin-right:8px;vertical-align:middle;">INFLOW</span>${escapeHtml(inf.label)}
                 <span style="font-size:11px;color:#15803d;font-weight:500;"> · Expected ${inf.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
               </td>
               <td style="font-size:14px;font-weight:800;color:${posColor};text-align:right;">
@@ -1383,13 +1373,14 @@ function generateHTML(summary, frequency, recipientName) {
   // ── Alert rows ────────────────────────────────────────────────────
   const alertRows = alerts
     .map((a) => {
-      const icon = a.type === "alert" ? "🚨" : a.type === "warn" ? "⚠️" : "💡";
+      const typeLabel = a.type === "alert" ? "CRITICAL" : a.type === "warn" ? "WARNING" : "INSIGHT";
       const bg = a.type === "alert" ? negBg : a.type === "warn" ? warnBg : posBg;
       const border = a.type === "alert" ? negColor : a.type === "warn" ? warnColor : posColor;
+      const badgeColor = a.type === "alert" ? negColor : a.type === "warn" ? warnColor : posColor;
       return `
       <tr><td style="padding:6px 24px;">
         <div style="background:${bg};border-left:4px solid ${border};border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:${textPrimary};font-weight:500;line-height:1.5;">
-          ${icon} ${escapeHtml(a.msg)}
+          <span style="font-size:10px;font-weight:800;color:${badgeColor};text-transform:uppercase;margin-right:6px;letter-spacing:0.04em;">[${typeLabel}]</span>${escapeHtml(a.msg)}
         </div>
       </td></tr>`;
     })
@@ -1461,15 +1452,15 @@ function generateHTML(summary, frequency, recipientName) {
   // ── Other assets rows ─────────────────────────────────────────────────────
   rowIdx = 0;
   const otherAssetItems = [
-    goldTotal > 0 && listRow("Gold & SGBs", fmtINR(goldTotal), "🥇"),
-    realEstateAsset > 0 && listRow("Real Estate", fmtINR(realEstateAsset), "🏠"),
-    vehicleAsset > 0 && listRow("Vehicles", fmtINR(vehicleAsset), "🚗"),
-    rentalPropertiesAsset > 0 && listRow("Rental Properties", fmtINR(rentalPropertiesAsset), "🏢"),
-    loansGivenTotal > 0 && listRow("Loans Given", fmtINR(loansGivenTotal), "🤝"),
-    informalLentTotal > 0 && listRow("Informal Lending", fmtINR(informalLentTotal), "💰"),
-    prepaidTotal > 0 && listRow("Prepaid Cards", fmtINR(prepaidTotal), "💳"),
-    rentedDepositAsset > 0 && listRow("Security Deposits", fmtINR(rentedDepositAsset), "🔑"),
-    govtSchemesTotal > 0 && listRow("Govt Schemes", fmtINR(govtSchemesTotal), "🏛️"),
+    goldTotal > 0 && listRow("Gold & SGBs", fmtINR(goldTotal)),
+    realEstateAsset > 0 && listRow("Real Estate", fmtINR(realEstateAsset)),
+    vehicleAsset > 0 && listRow("Vehicles", fmtINR(vehicleAsset)),
+    rentalPropertiesAsset > 0 && listRow("Rental Properties", fmtINR(rentalPropertiesAsset)),
+    loansGivenTotal > 0 && listRow("Loans Given", fmtINR(loansGivenTotal)),
+    informalLentTotal > 0 && listRow("Informal Lending", fmtINR(informalLentTotal)),
+    prepaidTotal > 0 && listRow("Prepaid Cards", fmtINR(prepaidTotal)),
+    rentedDepositAsset > 0 && listRow("Security Deposits", fmtINR(rentedDepositAsset)),
+    govtSchemesTotal > 0 && listRow("Govt Schemes", fmtINR(govtSchemesTotal)),
   ]
     .filter(Boolean)
     .join("");
@@ -1477,13 +1468,13 @@ function generateHTML(summary, frequency, recipientName) {
   // ── Liabilities rows ──────────────────────────────────────────────────────
   rowIdx = 0;
   const liabilityItems = [
-    loanOutstanding > 0 && listRow("Loans Outstanding", fmtINR(loanOutstanding), "🏦"),
-    creditOutstanding > 0 && listRow("Credit Card Dues", fmtINR(creditOutstanding), "💳"),
+    loanOutstanding > 0 && listRow("Loans Outstanding", fmtINR(loanOutstanding)),
+    creditOutstanding > 0 && listRow("Credit Card Dues", fmtINR(creditOutstanding)),
     informalBorrowedTotal > 0 &&
-      listRow("Informal Borrowings", fmtINR(informalBorrowedTotal), "🤝"),
+      listRow("Informal Borrowings", fmtINR(informalBorrowedTotal)),
     rentalDepositLiability > 0 &&
-      listRow("Tenant Deposits Owed", fmtINR(rentalDepositLiability), "🔑"),
-    realEstateOutstanding > 0 && listRow("Real Estate Dues", fmtINR(realEstateOutstanding), "🏗️"),
+      listRow("Tenant Deposits Owed", fmtINR(rentalDepositLiability)),
+    realEstateOutstanding > 0 && listRow("Real Estate Dues", fmtINR(realEstateOutstanding)),
   ]
     .filter(Boolean)
     .join("");
@@ -1662,16 +1653,16 @@ function generateHTML(summary, frequency, recipientName) {
     </table>
   </td></tr>
 
-  <!-- YESTERDAY'S PULSE (If daily and transactions exist) -->
+  <!-- YESTERDAY ACTIVITY -->
   ${
     frequency === "daily" && yesterdaySpend > 0
       ? `
-  <tr><td style="padding:12px 24px 0;">
+  <tr><td style="padding:4px 24px 12px;background:${cardBg};">
     <div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:10px 14px;">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td style="font-size:13px;font-weight:700;color:${textPrimary};">
-            📅 Yesterday's Spending Activity
+            Yesterday's Spending Activity
           </td>
           <td style="font-size:14px;font-weight:900;color:${textPrimary};text-align:right;">
             ${fmtINRFull(yesterdaySpend)} <span style="font-size:11px;color:${textMuted};font-weight:500;">(${yesterdayCount} debit${yesterdayCount === 1 ? "" : "s"})</span>
@@ -1687,7 +1678,7 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     dues.length > 0 || inflows.length > 0
       ? `
-  ${sectionHeader("Upcoming Dues & Obligations — Next 7 Days", "📅", `${dues.length} upcoming`)}
+  ${sectionHeader("Upcoming Dues & Obligations — Next 7 Days", `${dues.length} upcoming`)}
   ${inflowRows}
   <tr><td style="background:${cardBg};">
     ${dueRows}
@@ -1710,7 +1701,7 @@ function generateHTML(summary, frequency, recipientName) {
   }
 
   <!-- MONTH-TO-DATE (MTD) CASH FLOW & BUDGET PACING -->
-  ${sectionHeader(`Month-to-Date Cash Flow · Day ${dayOfMonth} of ${totalDaysInMonth}`, "💸", `${monthElapsedPct}% elapsed`)}
+  ${sectionHeader(`Month-to-Date Cash Flow · Day ${dayOfMonth} of ${totalDaysInMonth}`, `${monthElapsedPct}% elapsed`)}
   <tr><td style="padding:4px 24px 16px;background:${cardBg};">
     <table width="100%" cellpadding="0" cellspacing="0" style="background:${bodyBg};border:1px solid ${borderColor};border-radius:10px;padding:14px 16px;">
       <tr>
@@ -1773,7 +1764,7 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     topCats.length > 0
       ? `
-  ${sectionHeader("Top Expense Categories MTD", "🛍️")}
+  ${sectionHeader("Top Expense Categories MTD")}
   <tr><td style="background:${cardBg};">
     ${catRows}
   </td></tr>`
@@ -1784,7 +1775,7 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     budgetRows
       ? `
-  ${sectionHeader("Budget Watchlist", "📊")}
+  ${sectionHeader("Budget Watchlist")}
   <tr><td style="background:${cardBg};">
     ${budgetRows}
   </td></tr>`
@@ -1795,7 +1786,7 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     investTotal > 0
       ? `
-  ${sectionHeader("Investment Portfolio Allocation", "📈", fmtINR(investTotal))}
+  ${sectionHeader("Investment Portfolio Allocation", fmtINR(investTotal))}
   <tr><td style="background:${cardBg};">
     ${investRows}
   </td></tr>`
@@ -1806,7 +1797,7 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     otherAssetItems
       ? `
-  ${sectionHeader("Other Assets", "🏛️")}
+  ${sectionHeader("Other Assets")}
   <tr><td style="background:${cardBg};">
     ${otherAssetItems}
   </td></tr>`
@@ -1817,7 +1808,7 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     liabilityItems
       ? `
-  ${sectionHeader("Liabilities Breakdown", "📋", fmtINR(totalLiabilities))}
+  ${sectionHeader("Liabilities Breakdown", fmtINR(totalLiabilities))}
   <tr><td style="background:${cardBg};">
     ${liabilityItems}
   </td></tr>`
@@ -1828,7 +1819,7 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     activeCardCount > 0
       ? `
-  ${sectionHeader(`Credit Cards (${creditUtil}% utilized)`, "💳")}
+  ${sectionHeader(`Credit Cards (${creditUtil}% utilized)`)}
   <tr><td style="background:${cardBg};">
     ${ccRows}
   </td></tr>`
@@ -1839,7 +1830,7 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     goals.length > 0
       ? `
-  ${sectionHeader("Financial Goals Progress", "🎯")}
+  ${sectionHeader("Financial Goals Progress")}
   <tr><td style="background:${cardBg};">
     ${goalRows}
   </td></tr>`
@@ -1850,13 +1841,12 @@ function generateHTML(summary, frequency, recipientName) {
   ${
     alerts.length > 0
       ? `
-  ${sectionHeader("Smart Alerts & Action Items", "⚡", `${alerts.length} action${alerts.length === 1 ? "" : "s"}`)}
+  ${sectionHeader("Smart Alerts & Action Items", `${alerts.length} action${alerts.length === 1 ? "" : "s"}`)}
   <tr><td style="background:${cardBg};padding-bottom:14px;">
     ${alertRows}
   </td></tr>`
       : `
   <tr><td style="background:#ecfdf5;border-top:1px solid ${borderColor};padding:24px;text-align:center;">
-    <div style="font-size:28px;margin-bottom:8px;">✅</div>
     <div style="font-size:16px;font-weight:800;color:${posColor};">Everything is looking healthy!</div>
     <div style="font-size:13px;color:${textMuted};margin-top:4px;font-weight:500;">
       No urgent alerts, budgets are within limits, and emergency liquidity is intact.
@@ -2252,36 +2242,46 @@ async function withLiveMFPrices(state) {
 }
 
 // ── Check if current IST day matches user's schedule ─────────────────────────
+function getMatchingFrequencies(settings, frequency) {
+  const freqStr = frequency || settings?.emailFrequency || settings?.email_frequency || "weekly";
+  const freqs = String(freqStr)
+    .split(",")
+    .map((f) => f.trim().toLowerCase())
+    .filter(Boolean);
+
+  const matched = [];
+  const currentIstDay = istDayOfWeek();
+  const currentIstDate = istDate();
+  const daysInMonth = istDaysInCurrentMonth();
+  const configDay = Number(settings?.emailDay ?? settings?.email_day ?? 1);
+
+  for (const freq of freqs) {
+    if (freq === "daily") {
+      matched.push("daily");
+    } else if (freq === "weekly") {
+      if (currentIstDay === configDay) matched.push("weekly");
+    } else if (freq === "monthly") {
+      const effectiveDate = Math.min(configDay, daysInMonth);
+      if (currentIstDate === effectiveDate) matched.push("monthly");
+    }
+  }
+  return matched;
+}
+
 function shouldSendNow(settings, frequency) {
-  const freq = frequency || settings.emailFrequency || settings.email_frequency || "weekly";
-
-  if (freq === "daily") return true;
-
-  if (freq === "weekly") {
-    const configDay = Number(settings.emailDay ?? settings.email_day ?? 1);
-    return istDayOfWeek() === configDay;
-  }
-
-  if (freq === "monthly") {
-    const configDate = Number(settings.emailDay ?? settings.email_day ?? 1);
-    const effectiveDate = Math.min(configDate, istDaysInCurrentMonth());
-    return istDate() === effectiveDate;
-  }
-
-  return false;
+  return getMatchingFrequencies(settings, frequency).length > 0;
 }
 
 // ── Subject line ──────────────────────────────────────────────────────────────
 function buildSubject(frequency, netWorth) {
   const ist = nowIST();
-  const emoji = frequency === "daily" ? "☀️" : frequency === "weekly" ? "📊" : "📈";
   const period =
     frequency === "daily"
       ? ist.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short" })
       : frequency === "weekly"
         ? `Week of ${weekRange()}`
         : monthLabel();
-  return `${emoji} Your ${frequency === "daily" ? "Daily" : frequency === "weekly" ? "Weekly" : "Monthly"} ArthaDrishti Briefing — ${period} | Net Worth ${fmtINR(netWorth)}`;
+  return `Your ${frequency === "daily" ? "Daily" : frequency === "weekly" ? "Weekly" : "Monthly"} ArthaDrishti Briefing — ${period} | Net Worth ${fmtINR(netWorth)}`;
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -2329,9 +2329,10 @@ async function handler(req, res) {
         .eq("user_id", auth.user.id)
         .maybeSingle();
       const recipientName = profData?.name || "there";
-      const freq = ["daily", "weekly", "monthly"].includes(req.query?.frequency)
-        ? req.query.frequency
-        : "daily";
+      const rawFreq = req.query?.frequency;
+      const freq = ["daily", "weekly", "monthly"].includes(rawFreq)
+        ? rawFreq
+        : String(rawFreq || "").split(",")[0] || "daily";
       const summary = computeSummary(await withLiveMFPrices(await withLiveStockPrices(state)));
       const html = generateHTML(summary, freq, recipientName);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -2471,43 +2472,47 @@ async function handler(req, res) {
 
       const results = [];
       for (const row of allSettings || []) {
-        const freq = row.email_frequency || "daily";
-        if (!shouldSendNow(row, freq)) continue;
+        const matchingFreqs = getMatchingFrequencies(row);
+        if (matchingFreqs.length === 0) continue;
 
-        try {
-          const state = await fetchStateFromSupabase(supabase, row.user_id);
+        for (const freq of matchingFreqs) {
+          try {
+            const state = await fetchStateFromSupabase(supabase, row.user_id);
 
-          const { data: profData } = await supabase
-            .from("profiles")
-            .select("name")
-            .eq("user_id", row.user_id)
-            .maybeSingle();
-          const recipientName = profData?.name || row.email_address?.split("@")[0] || "there";
+            const { data: profData } = await supabase
+              .from("profiles")
+              .select("name")
+              .eq("user_id", row.user_id)
+              .maybeSingle();
+            const recipientName = profData?.name || row.email_address?.split("@")[0] || "there";
 
-          const summary = computeSummary(await withLiveMFPrices(await withLiveStockPrices(state)));
-          const html = generateHTML(summary, freq, recipientName);
-          const subject = buildSubject(freq, summary.netWorth);
+            const summary = computeSummary(await withLiveMFPrices(await withLiveStockPrices(state)));
+            const html = generateHTML(summary, freq, recipientName);
+            const subject = buildSubject(freq, summary.netWorth);
 
-          const cronFromEmail = getEffectiveFromEmail(row.from_email);
-          const { error } = await resend.emails.send({
-            from: `ArthaDrishti <${cronFromEmail}>`,
-            to: row.email_address,
-            subject,
-            html,
-          });
+            const cronFromEmail = getEffectiveFromEmail(row.from_email);
+            const { error } = await resend.emails.send({
+              from: `ArthaDrishti <${cronFromEmail}>`,
+              to: row.email_address,
+              subject,
+              html,
+            });
 
-          if (error) console.error(`[send-summary] Failed for user ${row.user_id}:`, error.message);
-          await recordSendResult(supabase, row.user_id, error ? "failed" : "sent", error?.message);
-          results.push({
-            userId: row.user_id,
-            email: row.email_address,
-            sent: !error,
-            error: error?.message,
-          });
-        } catch (userErr) {
-          console.error(`[send-summary] Error processing user ${row.user_id}:`, userErr.message);
-          await recordSendResult(supabase, row.user_id, "failed", userErr.message);
-          results.push({ userId: row.user_id, sent: false, error: userErr.message });
+            if (error)
+              console.error(`[send-summary] Failed for user ${row.user_id} (${freq}):`, error.message);
+            await recordSendResult(supabase, row.user_id, error ? "failed" : "sent", error?.message);
+            results.push({
+              userId: row.user_id,
+              email: row.email_address,
+              frequency: freq,
+              sent: !error,
+              error: error?.message,
+            });
+          } catch (userErr) {
+            console.error(`[send-summary] Error processing user ${row.user_id} (${freq}):`, userErr.message);
+            await recordSendResult(supabase, row.user_id, "failed", userErr.message);
+            results.push({ userId: row.user_id, frequency: freq, sent: false, error: userErr.message });
+          }
         }
       }
 
@@ -2531,6 +2536,7 @@ module.exports = handler;
 handler.computeSummary = computeSummary;
 handler.generateHTML = generateHTML;
 handler.getEffectiveRent = getEffectiveRent;
+handler.getMatchingFrequencies = getMatchingFrequencies;
 handler.shouldSendNow = shouldSendNow;
 handler.annualizePremium = annualizePremium;
 handler.nextAnnualOccurrence = nextAnnualOccurrence;

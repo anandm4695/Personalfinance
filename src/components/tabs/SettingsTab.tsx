@@ -63,6 +63,10 @@ import {
   Layers,
   Activity,
   CheckCheck,
+  CheckSquare,
+  Square,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES, THEME_PRESETS } from "../../utils/constants";
 import {
@@ -1020,7 +1024,7 @@ function AppearanceSection({
                   fontSize: 11,
                 }}
               >
-                {darkMode ? "🌙" : "☀️"}
+                {darkMode ? <Moon size={12} color={THEME.accent} /> : <Sun size={12} color="#888" />}
               </div>
             </button>
           </div>
@@ -1084,7 +1088,8 @@ function AppearanceSection({
                   gap: 6,
                 }}
               >
-                <span>☀️ Light Mode Palettes</span>
+                <Sun size={14} color={THEME.accent} style={{ flexShrink: 0 }} />
+                <span>Light Mode Palettes</span>
               </div>
               <div
                 style={{
@@ -1239,7 +1244,8 @@ function AppearanceSection({
                   gap: 6,
                 }}
               >
-                <span>🌙 Dark Mode Palettes</span>
+                <Moon size={14} color={THEME.accent} style={{ flexShrink: 0 }} />
+                <span>Dark Mode Palettes</span>
               </div>
               <div
                 style={{
@@ -3357,8 +3363,19 @@ function DataSection({
               border: `1px solid color-mix(in srgb, ${THEME.rust} 27%, transparent)`,
             }}
           >
-            <div style={{ fontSize: 14, fontWeight: 700, color: THEME.rust, marginBottom: 12 }}>
-              ⚠️ Are you absolutely certain? This will permanently delete ALL data records.
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: THEME.rust,
+                marginBottom: 12,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <AlertTriangle size={16} color={THEME.rust} style={{ flexShrink: 0 }} />
+              <span>Are you absolutely certain? This will permanently delete ALL data records.</span>
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Button
@@ -3457,9 +3474,26 @@ function nextScheduledSendIST(frequency: string, day: number): Date {
 function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any) {
   const es = emailSettings || {};
   const enabled = !!es.emailEnabled;
-  const frequency = es.emailFrequency || "weekly";
+  const rawFrequency = es.emailFrequency || "weekly";
   const savedAddress = es.emailAddress || "";
   const savedFromEmail = es.fromEmail || "";
+
+  // Multi-select cadence parsing
+  const selectedFrequencies = useMemo(() => {
+    if (!rawFrequency) return ["weekly"];
+    const parts = String(rawFrequency)
+      .split(",")
+      .map((s: string) => s.trim().toLowerCase())
+      .filter((s: string) => ["daily", "weekly", "monthly"].includes(s));
+    return parts.length > 0 ? parts : ["weekly"];
+  }, [rawFrequency]);
+
+  const [activePreviewCadence, setActivePreviewCadence] = useState<string>("weekly");
+  useEffect(() => {
+    if (!selectedFrequencies.includes(activePreviewCadence)) {
+      setActivePreviewCadence(selectedFrequencies[0] || "weekly");
+    }
+  }, [selectedFrequencies, activePreviewCadence]);
 
   const [sending, setSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<"" | "ok" | "err">("");
@@ -3514,6 +3548,51 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
   const address = savedAddress;
   const fromEmail = savedFromEmail;
 
+  function toggleFrequency(val: string) {
+    const exists = selectedFrequencies.includes(val);
+    let next: string[];
+    if (exists) {
+      if (selectedFrequencies.length <= 1) {
+        // Keep at least one cadence selected
+        return;
+      }
+      next = selectedFrequencies.filter((f: string) => f !== val);
+    } else {
+      const order = ["daily", "weekly", "monthly"];
+      next = [...selectedFrequencies, val].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    }
+    updateEmailSettings({ emailFrequency: next.join(",") });
+  }
+
+  const scheduledDeliveries = useMemo(() => {
+    return selectedFrequencies
+      .map((f: string) => {
+        const next = nextScheduledSendIST(f, day);
+        const hoursAway = (next.getTime() - Date.now()) / 3600000;
+        const timeLabel =
+          hoursAway < 20
+            ? "Today at 8:00 AM IST"
+            : hoursAway < 44
+              ? "Tomorrow at 8:00 AM IST"
+              : `${next.toLocaleDateString("en-IN", {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                  timeZone: "UTC",
+                })} at 8:00 AM IST`;
+        const label =
+          f === "daily" ? "Daily Digest" : f === "weekly" ? "Weekly Briefing" : "Monthly Executive";
+        const desc =
+          f === "daily"
+            ? "Every morning at 8:00 AM IST"
+            : f === "weekly"
+              ? `Every ${WEEKDAYS.find((w) => w.value === day)?.label || "Monday"} at 8:00 AM IST`
+              : `Day ${day} of every month at 8:00 AM IST`;
+        return { freq: f, date: next, hoursAway, timeLabel, label, desc };
+      })
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [selectedFrequencies, day]);
+
   const inp: any = {
     width: "100%",
     padding: "10px 14px",
@@ -3527,8 +3606,9 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
     fontFamily: "inherit",
   };
 
-  async function handleSendTest() {
+  async function handleSendTest(targetCadence?: string) {
     if (!address) return;
+    const chosenFreq = targetCadence || activePreviewCadence || selectedFrequencies[0] || "weekly";
     setSending(true);
     setSendStatus("");
     setErrMsg("");
@@ -3544,7 +3624,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
         },
         body: JSON.stringify({
           emailTo: address,
-          frequency,
+          frequency: chosenFreq,
           recipientName: state?.profile?.name || "there",
           fromEmail: fromEmail.trim() || undefined,
         }),
@@ -3582,7 +3662,9 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
     }
   }
 
-  async function handlePreview() {
+  async function handlePreview(targetCadence?: string) {
+    const chosenFreq = targetCadence || activePreviewCadence || selectedFrequencies[0] || "weekly";
+    setActivePreviewCadence(chosenFreq);
     setPreviewOpen(true);
     setPreviewLoading(true);
     setPreviewHtml(null);
@@ -3591,7 +3673,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      const params = new URLSearchParams({ action: "preview", frequency });
+      const params = new URLSearchParams({ action: "preview", frequency: chosenFreq });
       const res = await fetch(`/api/send-summary?${params.toString()}`, {
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
       });
@@ -3609,9 +3691,21 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
 
   const freqOptions = [
     { value: "daily", label: "Daily Digest", desc: "Every morning at 8:00 AM IST" },
-    { value: "weekly", label: "Weekly Briefing", desc: "Once a week on chosen weekday" },
-    { value: "monthly", label: "Monthly Executive", desc: "Once a month on chosen date" },
+    { value: "weekly", label: "Weekly Briefing", desc: "Once a week on your chosen weekday" },
+    { value: "monthly", label: "Monthly Executive", desc: "Once a month on your chosen calendar date" },
   ];
+
+  const earliestDelivery = scheduledDeliveries[0];
+
+  function getCadenceIcon(cadence: string, size = 16, color?: string) {
+    if (cadence === "daily") {
+      return <Sun size={size} color={color || THEME.accent} style={{ flexShrink: 0 }} />;
+    }
+    if (cadence === "weekly") {
+      return <BarChart3 size={size} color={color || THEME.accent} style={{ flexShrink: 0 }} />;
+    }
+    return <TrendingUp size={size} color={color || THEME.accent} style={{ flexShrink: 0 }} />;
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -3693,7 +3787,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             }}
           >
             <strong style={{ color: THEME.accent }}>Backend Dispatch Engine:</strong> Automated
-            reports are delivered via Resend API and Supabase Edge cron triggers.
+            reports are delivered via Resend API and Supabase Edge cron triggers. Multi-cadence
+            scheduling allows receiving daily, weekly, and monthly reports concurrently.
           </div>
         )}
       </Card>
@@ -3744,7 +3839,7 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                     </div>
                     <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
                       {!lastAt
-                        ? "Automated reports trigger at 8:00 AM IST according to your chosen schedule."
+                        ? "Automated reports trigger at 8:00 AM IST according to your active schedules."
                         : failed
                           ? es.lastEmailError || "Delivery failure. Check server health check below."
                           : lastAt.toLocaleString("en-IN", {
@@ -3760,34 +3855,81 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
               );
             })()}
 
-            {address && (
+            {address && earliestDelivery && (
               <div
                 style={{
-                  marginTop: 14,
-                  paddingTop: 14,
+                  marginTop: 16,
+                  paddingTop: 16,
                   borderTop: `1px solid ${THEME.line}`,
                   display: "flex",
-                  alignItems: "flex-start",
-                  gap: 12,
+                  flexDirection: "column",
+                  gap: 10,
                 }}
               >
-                <Calendar size={18} color={THEME.accent} style={{ flexShrink: 0, marginTop: 1 }} />
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink }}>
-                    Next Scheduled Delivery
-                  </div>
-                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
-                    {(() => {
-                      const next = nextScheduledSendIST(frequency, day);
-                      const hoursAway = (next.getTime() - Date.now()) / 3600000;
-                      return hoursAway < 20
-                        ? "Today at 8:00 AM IST"
-                        : hoursAway < 44
-                          ? "Tomorrow at 8:00 AM IST"
-                          : `${next.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })} at 8:00 AM IST`;
-                    })()}
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <Calendar size={18} color={THEME.accent} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span>Next Scheduled Delivery</span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: "3px 8px",
+                          borderRadius: 99,
+                          background: `color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+                          color: THEME.accent,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                        }}
+                      >
+                        {getCadenceIcon(earliestDelivery.freq, 12, THEME.accent)}
+                        <span>{earliestDelivery.label}</span>
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                      {earliestDelivery.timeLabel}
+                    </div>
                   </div>
                 </div>
+
+                {scheduledDeliveries.length > 1 && (
+                  <div
+                    style={{
+                      marginTop: 4,
+                      padding: "10px 14px",
+                      background: "var(--surface-0)",
+                      borderRadius: 8,
+                      border: `1px solid ${THEME.line}`,
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" }}>
+                      Active Cadences:
+                    </span>
+                    {scheduledDeliveries.map((s) => (
+                      <div
+                        key={s.freq}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          fontSize: 12,
+                          color: THEME.ink,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {getCadenceIcon(s.freq, 13, THEME.accent)}
+                        <span>{s.label}:</span>
+                        <span style={{ color: THEME.muted, fontWeight: 500 }}>{s.timeLabel}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </Card>
@@ -3855,71 +3997,169 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
           <Card style={{ padding: 24 }}>
             <div
               style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: THEME.muted,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
                 marginBottom: 16,
               }}
             >
-              Frequency &amp; Timing Schedule
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: THEME.muted,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                Frequency &amp; Timing Schedule
+              </div>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  background: `color-mix(in srgb, ${THEME.accent} 12%, transparent)`,
+                  color: THEME.accent,
+                }}
+              >
+                Multi-Select Enabled
+              </span>
             </div>
 
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginBottom: 10 }}>
-                Cadence Selection
+                Select Cadences (Choose one or multiple)
               </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" as const }}>
-                {freqOptions.map((f) => (
-                  <button
-                    key={f.value}
-                    onClick={() => updateEmailSettings({ emailFrequency: f.value })}
-                    aria-pressed={frequency === f.value}
-                    style={{
-                      flex: "1 1 150px",
-                      padding: "12px 16px",
-                      borderRadius: "var(--t-radius, 12px)",
-                      border:
-                        frequency === f.value
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+                {freqOptions.map((f) => {
+                  const isSelected = selectedFrequencies.includes(f.value);
+                  const isOnlyOne = isSelected && selectedFrequencies.length === 1;
+                  return (
+                    <button
+                      key={f.value}
+                      type="button"
+                      onClick={() => toggleFrequency(f.value)}
+                      aria-pressed={isSelected}
+                      title={isOnlyOne ? "At least one frequency must remain selected" : undefined}
+                      style={{
+                        padding: "16px 18px",
+                        borderRadius: "var(--t-radius, 12px)",
+                        border: isSelected
                           ? `2px solid ${THEME.accent}`
                           : `1.5px solid ${THEME.line}`,
-                      background:
-                        frequency === f.value
+                        background: isSelected
                           ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
                           : "var(--surface-0)",
-                      cursor: "pointer",
-                      textAlign: "left" as const,
-                      fontFamily: "inherit",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: frequency === f.value ? THEME.accent : THEME.ink,
+                        cursor: "pointer",
+                        textAlign: "left" as const,
+                        fontFamily: "inherit",
+                        transition: "all 0.15s ease",
+                        boxShadow: isSelected
+                          ? `0 2px 12px color-mix(in srgb, ${THEME.accent} 15%, transparent)`
+                          : "none",
                       }}
                     >
-                      {f.label}
-                    </div>
-                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>{f.desc}</div>
-                  </button>
-                ))}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 6,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {getCadenceIcon(f.value, 18, isSelected ? THEME.accent : THEME.muted)}
+                          <div
+                            style={{
+                              fontSize: 14.5,
+                              fontWeight: 700,
+                              color: isSelected ? THEME.accent : THEME.ink,
+                            }}
+                          >
+                            {f.label}
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 6,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: isSelected ? THEME.accent : "var(--t-paper)",
+                            border: `1.5px solid ${isSelected ? THEME.accent : THEME.line}`,
+                            color: "#fff",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          {isSelected && <Check size={14} strokeWidth={3} />}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.4 }}>
+                        {f.desc}
+                      </div>
+                      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 99,
+                            background: isSelected
+                              ? `color-mix(in srgb, ${THEME.accent} 16%, transparent)`
+                              : `color-mix(in srgb, ${THEME.line} 60%, transparent)`,
+                            color: isSelected ? THEME.accent : THEME.muted,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.04em",
+                          }}
+                        >
+                          {isSelected ? "Active Cadence" : "Click to Enable"}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                <Lightbulb size={13} color={THEME.accent} style={{ flexShrink: 0 }} />
+                <span>You can select multiple schedules (Daily, Weekly, Monthly) to receive reports at multiple intervals.</span>
               </div>
             </div>
 
-            {frequency === "weekly" && (
-              <div style={{ marginBottom: 20 }}>
+            {/* Timing controls for Weekly schedule */}
+            {selectedFrequencies.includes("weekly") && (
+              <div
+                style={{
+                  marginBottom: 20,
+                  padding: "16px 18px",
+                  background: "var(--surface-0)",
+                  borderRadius: "var(--t-radius, 10px)",
+                  border: `1px solid ${THEME.line}`,
+                  borderLeft: `4px solid ${THEME.accent}`,
+                }}
+              >
                 <div
-                  style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, marginBottom: 10 }}
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    color: THEME.ink,
+                    marginBottom: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
                 >
-                  Preferred Delivery Day
+                  <BarChart3 size={15} color={THEME.accent} style={{ flexShrink: 0 }} />
+                  <span>Weekly Schedule: Preferred Delivery Day</span>
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
                   {WEEKDAYS.map((d) => (
                     <button
                       key={d.value}
+                      type="button"
                       onClick={() => updateEmailSettings({ emailDay: d.value })}
                       aria-pressed={day === d.value}
                       style={{
@@ -3935,8 +4175,8 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                         fontWeight: 600,
                         background:
                           day === d.value
-                            ? `color-mix(in srgb, ${THEME.accent} 8%, transparent)`
-                            : "var(--surface-0)",
+                            ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)`
+                            : "var(--t-paper)",
                         color: day === d.value ? THEME.accent : THEME.muted,
                         transition: "all 0.15s ease",
                       }}
@@ -3948,9 +4188,33 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
               </div>
             )}
 
-            {frequency === "monthly" && (
-              <div style={{ marginBottom: 20 }}>
-                <Field label="Day of Month (1 - 28)">
+            {/* Timing controls for Monthly schedule */}
+            {selectedFrequencies.includes("monthly") && (
+              <div
+                style={{
+                  marginBottom: 20,
+                  padding: "16px 18px",
+                  background: "var(--surface-0)",
+                  borderRadius: "var(--t-radius, 10px)",
+                  border: `1px solid ${THEME.line}`,
+                  borderLeft: `4px solid ${THEME.accent}`,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    color: THEME.ink,
+                    marginBottom: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <TrendingUp size={15} color={THEME.accent} style={{ flexShrink: 0 }} />
+                  <span>Monthly Schedule: Day of Month (1 - 28)</span>
+                </div>
+                <div style={{ maxWidth: 260 }}>
                   <input
                     style={inp}
                     type="number"
@@ -3966,10 +4230,32 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
                       if (clamped !== day) updateEmailSettings({ emailDay: clamped });
                     }}
                   />
-                </Field>
-                <div style={{ fontSize: 11, color: THEME.muted, marginTop: -8 }}>
-                  Capped to 28 so scheduled deliveries run consistently every month without leap year
-                  skips.
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+                  Capped to 28 so scheduled deliveries run consistently every month without leap year skips.
+                </div>
+              </div>
+            )}
+
+            {/* Daily schedule indicator */}
+            {selectedFrequencies.includes("daily") && (
+              <div
+                style={{
+                  padding: "14px 18px",
+                  background: "var(--surface-0)",
+                  borderRadius: "var(--t-radius, 10px)",
+                  border: `1px solid ${THEME.line}`,
+                  borderLeft: `4px solid ${THEME.accent}`,
+                  fontSize: 12.5,
+                  color: THEME.muted,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <Sun size={15} color={THEME.accent} style={{ flexShrink: 0 }} />
+                <div>
+                  <strong style={{ color: THEME.ink }}>Daily Schedule:</strong> Dispatches automatically every morning at 8:00 AM IST.
                 </div>
               </div>
             )}
@@ -4106,19 +4392,75 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
             </div>
             <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 16 }}>
               Send an immediate test digest using current portfolio state, or render the live HTML
-              email in a modal.
+              email in a modal. Select the cadence format to test.
             </div>
+
+            {/* Cadence format selector for test & preview */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: THEME.muted }}>
+                Report Format:
+              </span>
+              {freqOptions.map((f) => {
+                const isActive = activePreviewCadence === f.value;
+                const isSubscribed = selectedFrequencies.includes(f.value);
+                return (
+                  <button
+                    key={f.value}
+                    type="button"
+                    onClick={() => setActivePreviewCadence(f.value)}
+                    style={{
+                      padding: "5px 12px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      border: isActive ? `2px solid ${THEME.accent}` : `1px solid ${THEME.line}`,
+                      background: isActive
+                        ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)`
+                        : "var(--surface-0)",
+                      color: isActive ? THEME.accent : THEME.ink,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {getCadenceIcon(f.value, 13, isActive ? THEME.accent : THEME.muted)}
+                    <span>{f.label}</span>
+                    {isSubscribed && (
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          padding: "1px 5px",
+                          borderRadius: 4,
+                          background: `color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+                          color: THEME.accent,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Active
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <Button variant="secondary" onClick={handlePreview} loading={previewLoading}>
-                Preview Live HTML Email
+              <Button
+                variant="secondary"
+                onClick={() => handlePreview(activePreviewCadence)}
+                loading={previewLoading}
+              >
+                Preview Live HTML Email ({freqOptions.find((f) => f.value === activePreviewCadence)?.label})
               </Button>
               <Button
                 variant="accent"
-                onClick={handleSendTest}
+                onClick={() => handleSendTest(activePreviewCadence)}
                 disabled={!address || addrDirty}
                 loading={sending}
               >
-                Send Test Email Now
+                Send Test Email ({freqOptions.find((f) => f.value === activePreviewCadence)?.label})
               </Button>
               <Button
                 variant="secondary"
@@ -4181,7 +4523,67 @@ function EmailSummarySection({ state, emailSettings, updateEmailSettings }: any)
 
       {/* Preview Modal */}
       {previewOpen && (
-        <Modal title="Live Email Digest Preview" onClose={() => setPreviewOpen(false)} maxWidth={780}>
+        <Modal
+          title={`Live Email Preview — ${freqOptions.find((f) => f.value === activePreviewCadence)?.label || "Briefing"}`}
+          onClose={() => setPreviewOpen(false)}
+          maxWidth={820}
+        >
+          {/* Quick tab switcher inside modal */}
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              marginBottom: 14,
+              borderBottom: `1px solid ${THEME.line}`,
+              paddingBottom: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            {freqOptions.map((f) => {
+              const isCurrent = activePreviewCadence === f.value;
+              const isSubscribed = selectedFrequencies.includes(f.value);
+              return (
+                <button
+                  key={f.value}
+                  type="button"
+                  onClick={() => handlePreview(f.value)}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 8,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: isCurrent ? `2px solid ${THEME.accent}` : `1px solid ${THEME.line}`,
+                    background: isCurrent
+                      ? `color-mix(in srgb, ${THEME.accent} 12%, transparent)`
+                      : "var(--surface-0)",
+                    color: isCurrent ? THEME.accent : THEME.ink,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {getCadenceIcon(f.value, 14, isCurrent ? THEME.accent : THEME.muted)}
+                  <span>{f.label}</span>
+                  {isSubscribed && (
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        padding: "1px 5px",
+                        borderRadius: 4,
+                        background: `color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+                        color: THEME.accent,
+                      }}
+                    >
+                      Active
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           {previewLoading && (
             <div
               style={{ padding: "40px 0", textAlign: "center", color: THEME.muted, fontSize: 13 }}

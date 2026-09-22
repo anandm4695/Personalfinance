@@ -38,6 +38,7 @@ import {
   FileSpreadsheet,
   Activity,
   Award,
+  Lightbulb,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -689,7 +690,7 @@ export const FIREPlannerTab = ({ state, metrics }: any) => {
 
   // Copy Summary to Clipboard
   const handleCopySummary = () => {
-    const text = `🔥 FIRE & Financial Independence Blueprint (${archetype.toUpperCase()})
+    const text = `FIRE & Financial Independence Blueprint (${archetype.toUpperCase()})
 • Target FIRE Corpus: ${fmtINRFull(fireCalc.activeFireNumber)}
 • Current Eligible Net Worth: ${fmtINRFull(fireCalc.currentNW)} (${fireCalc.progress.toFixed(1)}% achieved)
 • Monthly Passive Freedom Dividend: ${fmtINR(fireCalc.monthlyFreedomDividend)}/mo (${fireCalc.freedomDividendCoveragePct.toFixed(1)}% living expenses)
@@ -891,10 +892,10 @@ Generated via Personal Finance by Anand Mohta`;
               </div>
               <span style={{ fontSize: 10, color: THEME.sage, fontWeight: 700 }}>
                 {fireCalc.readinessScore >= 80
-                  ? "⭐ Strong Freedom Position"
+                  ? "Strong Freedom Position"
                   : fireCalc.readinessScore >= 50
-                  ? "🚀 Solid Momentum"
-                  : "🌱 Early Accumulation"}
+                  ? "Solid Momentum"
+                  : "Early Accumulation"}
               </span>
             </div>
 
@@ -1291,7 +1292,7 @@ Generated via Personal Finance by Anand Mohta`;
                         </span>
                         {m.reached && (
                           <Badge variant="success" size="sm">
-                            Achieved 🎉
+                            Achieved
                           </Badge>
                         )}
                       </div>
@@ -1445,7 +1446,7 @@ Generated via Personal Finance by Anand Mohta`;
                   Coast FIRE Status Analysis
                 </span>
                 <Badge variant={fireCalc.isCoastAchieved ? "success" : "neutral"} size="sm">
-                  {fireCalc.isCoastAchieved ? "Coast FI Reached! 🚀" : "Coasting in Progress"}
+                  {fireCalc.isCoastAchieved ? "Coast FI Reached" : "Coasting in Progress"}
                 </Badge>
               </div>
               <p style={{ fontSize: 12, color: THEME.muted, margin: 0 }}>
@@ -1891,7 +1892,7 @@ Generated via Personal Finance by Anand Mohta`;
                       <td style={{ padding: "8px 10px", textAlign: "center" }}>
                         {row.reached ? (
                           <Badge variant="success" size="sm">
-                            FI Reached 🎯
+                            FI Reached
                           </Badge>
                         ) : (
                           <Badge variant="neutral" size="sm">
@@ -1963,14 +1964,23 @@ Generated via Personal Finance by Anand Mohta`;
                     Age {fireCalc.stress.srrDepletedAge}
                   </strong>
                 </div>
-                <div style={{ fontSize: 10, color: THEME.muted }}>
-                  {fireCalc.stress.srrDepletedAge >= lifeExpectancy
-                    ? "✅ Portfolio successfully survives life expectancy!"
-                    : "⚠️ Warning: Portfolio depletes early under early bear market."}
+                <div style={{ fontSize: 10, color: THEME.muted, display: "flex", alignItems: "center", gap: 5 }}>
+                  {fireCalc.stress.srrDepletedAge >= lifeExpectancy ? (
+                    <>
+                      <CheckCircle2 size={12} color={THEME.sage} style={{ flexShrink: 0 }} />
+                      <span>Portfolio successfully survives life expectancy!</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle size={12} color={THEME.rust} style={{ flexShrink: 0 }} />
+                      <span>Warning: Portfolio depletes early under early bear market.</span>
+                    </>
+                  )}
                 </div>
               </div>
-              <div style={{ marginTop: 10, fontSize: 11, color: THEME.sage, fontWeight: 700 }}>
-                💡 Shield: Implement 2-Year Cash Bucket (Bucket 1) to avoid selling equities during a crash.
+              <div style={{ marginTop: 10, fontSize: 11, color: THEME.sage, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                <Lightbulb size={13} color={THEME.sage} style={{ flexShrink: 0 }} />
+                <span>Shield: Implement 2-Year Cash Bucket (Bucket 1) to avoid selling equities during a crash.</span>
               </div>
             </Card>
 
@@ -2001,14 +2011,23 @@ Generated via Personal Finance by Anand Mohta`;
                     Age {fireCalc.stress.hiDepletedAge}
                   </strong>
                 </div>
-                <div style={{ fontSize: 10, color: THEME.muted }}>
-                  {fireCalc.stress.hiDepletedAge >= lifeExpectancy
-                    ? "✅ Portfolio comfortably sustains 8.5% inflation!"
-                    : "⚠️ High inflation requires dynamic withdrawal reduction."}
+                <div style={{ fontSize: 10, color: THEME.muted, display: "flex", alignItems: "center", gap: 5 }}>
+                  {fireCalc.stress.hiDepletedAge >= lifeExpectancy ? (
+                    <>
+                      <CheckCircle2 size={12} color={THEME.sage} style={{ flexShrink: 0 }} />
+                      <span>Portfolio comfortably sustains 8.5% inflation!</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle size={12} color={THEME.gold} style={{ flexShrink: 0 }} />
+                      <span>High inflation requires dynamic withdrawal reduction.</span>
+                    </>
+                  )}
                 </div>
               </div>
-              <div style={{ marginTop: 10, fontSize: 11, color: THEME.sage, fontWeight: 700 }}>
-                💡 Shield: Maintain 60%+ equity index allocation in Bucket 3 to beat real inflation.
+              <div style={{ marginTop: 10, fontSize: 11, color: THEME.sage, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                <Lightbulb size={13} color={THEME.sage} style={{ flexShrink: 0 }} />
+                <span>Shield: Maintain 60%+ equity index allocation in Bucket 3 to beat real inflation.</span>
               </div>
             </Card>
 
@@ -2041,8 +2060,9 @@ Generated via Personal Finance by Anand Mohta`;
                   Requires Safe Withdrawal Rate (SWR) under 3.5% for 100% perpetual survival.
                 </div>
               </div>
-              <div style={{ marginTop: 10, fontSize: 11, color: THEME.sage, fontWeight: 700 }}>
-                💡 Shield: Use Guyton-Klinger Guardrails (freeze inflation adjustment in down years).
+              <div style={{ marginTop: 10, fontSize: 11, color: THEME.sage, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                <Lightbulb size={13} color={THEME.sage} style={{ flexShrink: 0 }} />
+                <span>Shield: Use Guyton-Klinger Guardrails (freeze inflation adjustment in down years).</span>
               </div>
             </Card>
           </div>

@@ -1000,7 +1000,7 @@ function ClaimModal({ policy, onClose, onSave, saving = false }: any) {
 function EmergencyCardModal({ policy, member, onClose }: any) {
   const [copied, setCopied] = useState(false);
 
-  const emergencyText = `🚨 EMERGENCY MEDICAL PASS 🚨
+  const emergencyText = `EMERGENCY MEDICAL PASS
 Policy: ${policy.insurer} (${policy.policyName || "Health Plan"})
 Policy No: ${policy.policyNumber || "N/A"}
 Patient / Member: ${member?.name || "Insured"} (${member?.relation || "self"})
@@ -1931,7 +1931,11 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                             {p.roomRentLimit && (
                               <div style={{ fontSize: 12, color: roomRentCapped ? THEME.rust : THEME.sage }}>
                                 Room Rent Sublimit: <strong>{p.roomRentLimit}</strong>
-                                {roomRentCapped && <span style={{ marginLeft: 4, fontSize: 10 }}>⚠️ (Proportionate deduction risk)</span>}
+                                {roomRentCapped && (
+                                  <span style={{ marginLeft: 6, fontSize: 10.5, display: "inline-flex", alignItems: "center", gap: 3, color: THEME.rust, fontWeight: 600 }}>
+                                    <AlertTriangle size={11} style={{ flexShrink: 0 }} /> (Proportionate deduction risk)
+                                  </span>
+                                )}
                               </div>
                             )}
 
@@ -2099,8 +2103,9 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                       Active Policies ({member.policies.length})
                     </div>
                     {member.policies.length === 0 ? (
-                      <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600 }}>
-                        ⚠️ Not included in any active health policy.
+                      <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                        <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+                        <span>Not included in any active health policy.</span>
                       </div>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

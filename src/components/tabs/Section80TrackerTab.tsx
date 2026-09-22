@@ -35,6 +35,7 @@ import {
   Copy,
   Check,
   Info,
+  Lightbulb,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -1870,10 +1871,13 @@ Generated via Personal Finance by Anand Mohta on ${new Date().toLocaleDateString
                     gap: 10,
                   }}
                 >
-                  <div style={{ fontSize: 12, color: THEME.text }}>
-                    💡 You have <strong>{fmtINRFull(data.totalPotentialHeadroom)}</strong> unfilled
-                    room. Investing this saves up to{" "}
-                    <strong>{fmtINRFull(data.totalPotentialHeadroom * effectiveTaxRate)}</strong> in taxes!
+                  <div style={{ fontSize: 12, color: THEME.text, display: "flex", alignItems: "center", gap: 6 }}>
+                    <Lightbulb size={14} color={THEME.gold} style={{ flexShrink: 0 }} />
+                    <span>
+                      You have <strong>{fmtINRFull(data.totalPotentialHeadroom)}</strong> unfilled
+                      room. Investing this saves up to{" "}
+                      <strong>{fmtINRFull(data.totalPotentialHeadroom * effectiveTaxRate)}</strong> in taxes!
+                    </span>
                   </div>
                   <Button
                     variant="primary"
@@ -2597,8 +2601,9 @@ Generated via Personal Finance by Anand Mohta on ${new Date().toLocaleDateString
 
               <div style={{ marginTop: 14, fontSize: 12, color: THEME.textSecondary }}>
                 {data.sec80CCD1B.remaining === 0 ? (
-                  <span style={{ color: THEME.sage, fontWeight: 600 }}>
-                    ✓ Full ₹50,000 deduction claimed for FY {selectedFY}
+                  <span style={{ color: THEME.sage, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                    <CheckCircle2 size={12} color={THEME.sage} style={{ flexShrink: 0 }} />
+                    <span>Full ₹50,000 deduction claimed for FY {selectedFY}</span>
                   </span>
                 ) : (
                   <span>

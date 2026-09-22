@@ -903,7 +903,7 @@ export function PaymentModal({
               <optgroup label="Bank Accounts (Auto-Debits balance)">
                 {bankAccounts.map((b: any) => (
                   <option key={`bank:${b.id}`} value={`bank:${b.id}`}>
-                    🏦 {b.bankName || b.name} {b.accountNumber ? `(••${b.accountNumber.slice(-4)})` : ""} — Balance: {privacyMode ? "••••" : fmtINRFull(Number(b.balance || 0))}
+                    {b.bankName || b.name} {b.accountNumber ? `(••${b.accountNumber.slice(-4)})` : ""} — Balance: {privacyMode ? "••••" : fmtINRFull(Number(b.balance || 0))}
                   </option>
                 ))}
               </optgroup>
@@ -912,7 +912,7 @@ export function PaymentModal({
               <optgroup label="Credit Cards (Auto-Adds transaction & updates outstanding)">
                 {creditCards.map((c: any) => (
                   <option key={`cc:${c.id}`} value={`cc:${c.id}`}>
-                    💳 {c.cardName || c.bank} {c.cardNumber ? `(••${c.cardNumber.slice(-4)})` : ""} — Outstanding: {privacyMode ? "••••" : fmtINRFull(Number(c.outstanding || 0))}
+                    {c.cardName || c.bank} {c.cardNumber ? `(••${c.cardNumber.slice(-4)})` : ""} — Outstanding: {privacyMode ? "••••" : fmtINRFull(Number(c.outstanding || 0))}
                   </option>
                 ))}
               </optgroup>

@@ -1731,7 +1731,7 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
   }, [calcTab]);
 
   const handleCopySummary = () => {
-    let text = `📊 [${currentCalcMeta.label}] Summary\nCategory: ${currentCalcMeta.categoryLabel}\n`;
+    let text = `[${currentCalcMeta.label}] Summary\nCategory: ${currentCalcMeta.categoryLabel}\n`;
     text += `Personal Finance Hub • Generated on ${new Date().toLocaleDateString("en-IN")}\n\n`;
 
     if (calcTab === "emi") {
@@ -2366,10 +2366,13 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
                         color: THEME.sage,
                         cursor: "pointer",
                         fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
                       }}
                       title="Auto-fill using your live calculated monthly savings"
                     >
-                      ⚡ Use My Savings (₹{fmtINR(ctxMonthlySavings)})
+                      <Zap size={10} style={{ flexShrink: 0 }} /> Use My Savings (₹{fmtINR(ctxMonthlySavings)})
                     </button>
                   )}
                 </div>
@@ -2553,10 +2556,13 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
                         color: THEME.accent,
                         cursor: "pointer",
                         fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
                       }}
                       title="Auto-fill using your live calculated monthly savings"
                     >
-                      ⚡ Use My Savings (₹{fmtINR(ctxMonthlySavings)})
+                      <Zap size={10} style={{ flexShrink: 0 }} /> Use My Savings (₹{fmtINR(ctxMonthlySavings)})
                     </button>
                   )}
                 </div>
@@ -2870,9 +2876,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
                         color: THEME.accent,
                         cursor: "pointer",
                         fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
                       }}
                     >
-                      ⚡ Use Net Worth (₹{fmtINR(ctxNetWorth)})
+                      <Zap size={10} style={{ flexShrink: 0 }} /> Use Net Worth (₹{fmtINR(ctxNetWorth)})
                     </button>
                   </div>
                 )}
@@ -2916,9 +2925,12 @@ export const CalculatorsTab: React.FC<CalculatorsTabProps> = ({ metrics, state, 
                         color: THEME.gold,
                         cursor: "pointer",
                         fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
                       }}
                     >
-                      ⚡ Use Expenses (₹{fmtINR(ctxMonthExpense)})
+                      <Zap size={10} style={{ flexShrink: 0 }} /> Use Expenses (₹{fmtINR(ctxMonthExpense)})
                     </button>
                   )}
                 </div>

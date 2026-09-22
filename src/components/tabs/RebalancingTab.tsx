@@ -764,7 +764,7 @@ export const RebalancingTab: React.FC<RebalancingTabProps> = ({ state, metrics, 
 
   const handleCopyPlan = () => {
     const lines = [
-      `📊 SMART REBALANCING PLAN - ${new Date().toLocaleDateString()}`,
+      `SMART REBALANCING PLAN - ${new Date().toLocaleDateString()}`,
       `Portfolio Value: ₹${Math.round(allocation.total).toLocaleString("en-IN")}`,
       `Alignment Score: ${Math.round(deviationScore)}/100`,
       `Target Profile: ${useCustom ? "Custom Allocation" : target.label || selectedPreset}`,
@@ -781,7 +781,7 @@ export const RebalancingTab: React.FC<RebalancingTabProps> = ({ state, metrics, 
               s.diffAmt
             ).toLocaleString("en-IN")})`
           );
-          lines.push(`   Current: ${s.currentPct}% ➔ Target: ${s.targetPct}%`);
+          lines.push(`   Current: ${s.currentPct}% → Target: ${s.targetPct}%`);
           lines.push(`   Guidance: ${s.overweight ? s.sellInstrumentHint : s.buyInstrumentHint}`);
         });
     } else if (strategyMode === "newMoney") {
@@ -1988,7 +1988,7 @@ export const RebalancingTab: React.FC<RebalancingTabProps> = ({ state, metrics, 
                                 fontWeight: 500,
                               }}
                             >
-                              Current: <span style={{ fontWeight: 700 }}>{s.currentPct}%</span> ➔ Target:{" "}
+                              Current: <span style={{ fontWeight: 700 }}>{s.currentPct}%</span> → Target:{" "}
                               <span style={{ fontWeight: 700 }}>{s.targetPct}%</span> (Corridor: ±{driftThreshold}%)
                             </div>
                           </div>
@@ -2174,7 +2174,7 @@ export const RebalancingTab: React.FC<RebalancingTabProps> = ({ state, metrics, 
                           Allocate to {d.name}
                         </div>
                         <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 2 }}>
-                          {d.pctOfInflow}% of fresh money ➔ Moves {d.name} to {d.postPct}% (Target: {d.targetPct}%)
+                          {d.pctOfInflow}% of fresh money → Moves {d.name} to {d.postPct}% (Target: {d.targetPct}%)
                         </div>
                       </div>
                     </div>
@@ -2340,7 +2340,7 @@ export const RebalancingTab: React.FC<RebalancingTabProps> = ({ state, metrics, 
                       <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 2 }}>
                         {p.sharePct}% of monthly SIP budget
                         {p.monthsToRebalance
-                          ? ` ➔ Rebalances in ~${p.monthsToRebalance} months`
+                          ? ` → Rebalances in ~${p.monthsToRebalance} months`
                           : ""}
                       </div>
                     </div>

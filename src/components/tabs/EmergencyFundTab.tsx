@@ -644,7 +644,13 @@ export const EmergencyFundTab: React.FC<EmergencyFundTabProps> = ({
               </span>
 
               <Badge variant={burnMode === "survival" ? "gold" : "muted"}>
-                {burnMode === "survival" ? "⚡ Bare-Bones Survival Mode" : "Standard Full Burn"}
+                {burnMode === "survival" ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Zap size={11} style={{ flexShrink: 0 }} /> Bare-Bones Survival Mode
+                  </span>
+                ) : (
+                  "Standard Full Burn"
+                )}
               </Badge>
 
               {data.trimmedMonthsAdded > 0.05 && (

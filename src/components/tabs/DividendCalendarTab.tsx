@@ -1250,8 +1250,8 @@ export function DividendCalendarTab({
                 to freedom milestone
               </>
             ) : (
-              <span style={{ color: THEME.sage, fontWeight: 700 }}>
-                🎉 Milestone achieved! Increase target to level up.
+              <span style={{ color: THEME.sage, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <CheckCircle2 size={13} color={THEME.sage} style={{ flexShrink: 0 }} /> Milestone achieved! Increase target to level up.
               </span>
             )}
           </span>

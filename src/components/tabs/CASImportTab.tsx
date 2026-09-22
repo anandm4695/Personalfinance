@@ -31,6 +31,7 @@ import {
   Calendar,
   CheckSquare,
   Square,
+  Lightbulb,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, uid } from "../../utils/finance";
@@ -1094,9 +1095,13 @@ export const CASImportTab: React.FC<{
                     background: "var(--surface-1)",
                     padding: "8px 12px",
                     borderRadius: 6,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
                   }}
                 >
-                  💡 <strong>Password format:</strong> Usually the custom password you entered on CAMS, or your PAN in UPPERCASE.
+                  <Lightbulb size={13} color={THEME.accent} style={{ flexShrink: 0 }} />
+                  <span><strong>Password format:</strong> Usually the custom password you entered on CAMS, or your PAN in UPPERCASE.</span>
                 </div>
               </div>
             )}
@@ -1128,9 +1133,13 @@ export const CASImportTab: React.FC<{
                     background: "var(--surface-1)",
                     padding: "8px 12px",
                     borderRadius: 6,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
                   }}
                 >
-                  💡 <strong>Password format:</strong> Often your PAN in uppercase or PAN in lowercase with DOB (DDMMYYYY).
+                  <Lightbulb size={13} color={THEME.accent} style={{ flexShrink: 0 }} />
+                  <span><strong>Password format:</strong> Often your PAN in uppercase or PAN in lowercase with DOB (DDMMYYYY).</span>
                 </div>
               </div>
             )}
@@ -1186,9 +1195,13 @@ export const CASImportTab: React.FC<{
                     background: "var(--surface-1)",
                     padding: "8px 12px",
                     borderRadius: 6,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
                   }}
                 >
-                  💡 <strong>Password format:</strong> CDSL password is your 10-character PAN in UPPERCASE or DOB in DDMMYYYY.
+                  <Lightbulb size={13} color={THEME.accent} style={{ flexShrink: 0 }} />
+                  <span><strong>Password format:</strong> CDSL password is your 10-character PAN in UPPERCASE or DOB in DDMMYYYY.</span>
                 </div>
               </div>
             )}
@@ -1245,8 +1258,14 @@ export const CASImportTab: React.FC<{
                     flexWrap: "wrap",
                   }}
                 >
-                  <span>✨ <strong>{importedSummary.newCount}</strong> New holdings added</span>
-                  <span>🔄 <strong>{importedSummary.updatedCount}</strong> Existing holdings updated with latest NAV & units</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                    <Sparkles size={12} color={THEME.accent} style={{ flexShrink: 0 }} />
+                    <span><strong>{importedSummary.newCount}</strong> New holdings added</span>
+                  </span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                    <RefreshCw size={12} color={THEME.accent} style={{ flexShrink: 0 }} />
+                    <span><strong>{importedSummary.updatedCount}</strong> Existing holdings updated with latest NAV & units</span>
+                  </span>
                 </div>
               </div>
 

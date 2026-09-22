@@ -10,6 +10,7 @@ import {
   PieChart as PieIcon,
   CheckCircle2,
   Zap,
+  Lightbulb,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, fmtINRExact } from "../../utils/finance";
@@ -228,7 +229,7 @@ export const InsuranceProtectionAnalyzer: React.FC<InsuranceProtectionAnalyzerPr
               {protectionGap > 0 ? (
                 <Money value={protectionGap} variant="full" />
               ) : (
-                `✓ Surplus (+${fmtINRFull(protectionSurplus)})`
+                `Surplus (+${fmtINRFull(protectionSurplus)})`
               )}
             </div>
             <div style={{ fontSize: 10.5, color: "var(--t-muted)", marginTop: 4 }}>
@@ -307,12 +308,16 @@ export const InsuranceProtectionAnalyzer: React.FC<InsuranceProtectionAnalyzerPr
 
             <div style={{ fontSize: 11.5, color: "var(--t-muted)", lineHeight: 1.4 }}>
               {remaining80CCap > 0 ? (
-                <span>
-                  💡 You have <strong style={{ color: "var(--t-ink)" }}><Money value={remaining80CCap} variant="exact" /></strong> unused 80C headroom. Can be fulfilled via PPF, ELSS, or EPF.
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Lightbulb size={13} color="var(--t-gold)" style={{ flexShrink: 0 }} />
+                  <span>
+                    You have <strong style={{ color: "var(--t-ink)" }}><Money value={remaining80CCap} variant="exact" /></strong> unused 80C headroom. Can be fulfilled via PPF, ELSS, or EPF.
+                  </span>
+                </div>
               ) : (
-                <span style={{ color: "var(--t-sage)", fontWeight: 700 }}>
-                  ✓ Your insurance premiums fully exhaust the ₹1.5L Section 80C tax deduction limit!
+                <span style={{ color: "var(--t-sage)", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <CheckCircle2 size={13} color="var(--t-sage)" style={{ flexShrink: 0 }} />
+                  <span>Your insurance premiums fully exhaust the ₹1.5L Section 80C tax deduction limit!</span>
                 </span>
               )}
             </div>

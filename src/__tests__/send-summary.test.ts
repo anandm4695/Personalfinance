@@ -10,9 +10,35 @@ const {
   largestRemainderRound,
   fmtINR,
   fmtINRFull,
+  getMatchingFrequencies,
+  shouldSendNow,
 } = sendSummary;
 
 describe("Daily Email Summary — Senior Accounting, Development & UI Engine", () => {
+  describe("Multi-Cadence Frequency & Timing Schedule Matching", () => {
+    it("handles comma-separated multi-select frequencies (e.g. daily, weekly, monthly)", () => {
+      // If user has daily + weekly, getMatchingFrequencies should at least include 'daily'
+      const matched = getMatchingFrequencies({
+        emailFrequency: "daily,weekly",
+        emailDay: 1,
+      });
+      expect(matched).toContain("daily");
+    });
+
+    it("evaluates shouldSendNow correctly for single and multi-frequency settings", () => {
+      expect(shouldSendNow({ emailFrequency: "daily" })).toBe(true);
+      expect(shouldSendNow({ emailFrequency: "daily,weekly,monthly" })).toBe(true);
+      expect(shouldSendNow({ email_frequency: "daily,weekly" })).toBe(true);
+    });
+
+    it("parses and trims frequency strings cleanly", () => {
+      const matched = getMatchingFrequencies({
+        emailFrequency: "  daily ,  weekly  , monthly ",
+      });
+      expect(matched).toContain("daily");
+    });
+  });
+
   describe("Accounting Bug Fixes", () => {
     it("includes person.amount in informalLent and informalBorrowed when no tranches are logged", () => {
       const stateWithInformal = {
