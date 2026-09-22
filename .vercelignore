@@ -3,5 +3,14 @@
 docs
 artifacts
 scratch
+database
 *.zip
 *.md
+*.sh
+.DS_Store
+coverage
+tests
+*.test.ts
+*.test.tsx
+*.spec.ts
+
