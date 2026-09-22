@@ -651,7 +651,7 @@ export function DividendsSection({
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {autoDividends.slice(0, 3).map((item) => (
+            {autoDividends.slice(0, 3).map((item: any) => (
               <div
                 key={item.id}
                 style={{
@@ -807,7 +807,7 @@ export function DividendsSection({
                       boxShadow: "var(--shadow-md)",
                       fontSize: 12,
                     }}
-                    formatter={(val: any, name: string) => [
+                    formatter={(val: any, name: any) => [
                       fmtINRExact(Number(val)),
                       name === "net" ? "Net Received" : "TDS Withheld",
                     ]}
@@ -1666,7 +1666,7 @@ function DRIPSimulator2({
                 boxShadow: "var(--shadow-md)",
                 fontSize: 12,
               }}
-              formatter={(val: any, name: string) => [
+              formatter={(val: any, name: any) => [
                 fmtINRExact(Number(val)),
                 name === "reinvested" ? `Reinvested (${DRIP_RATES[rateIdx].label.split(" ")[0]})` : "Cash Spent / Kept",
               ]}
