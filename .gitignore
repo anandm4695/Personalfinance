@@ -9,5 +9,8 @@ build
 .vercel
 .cache
 .claude
-
-
+artifacts
+docs/design-assets
+scratch
+*.zip
+*.log
