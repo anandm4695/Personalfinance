@@ -217,8 +217,8 @@ describe("Daily Email Summary — Senior Accounting, Development & UI Engine", (
     });
   });
 
-  describe("HTML Template Rendering & UX", () => {
-    it("generates polished, responsive HTML with correct sections, escaping, and executive briefing layout", () => {
+  describe("Multi-Cadence HTML Template Rendering & UX", () => {
+    it("generates polished Daily Digest HTML with tactical morning briefing sections", () => {
       const state = {
         bankAccounts: [{ balance: 250000 }],
         mutualFunds: [{ scheme: "Nifty 50 Index", units: 100, currentNav: 250 }],
@@ -233,11 +233,71 @@ describe("Daily Email Summary — Senior Accounting, Development & UI Engine", (
 
       expect(html).toContain("ArthaDrishti");
       expect(html).toContain("Morning Briefing");
+      expect(html).toContain("Daily Digest");
+      expect(html).toContain("Available Bank Balance &amp; Cash");
+      expect(html).toContain("Yesterday&#39;s Spending Pulse");
+      expect(html).toContain("Immediate Dues (Today &amp; Next 3 Days)");
+      expect(html).toContain("3-Day Immediate Outflow");
+      expect(html).toContain("Anand");
+      expect(html).not.toContain("<script>");
+    });
+
+    it("generates polished Weekly Briefing HTML with 7-day retrospective and forward runway", () => {
+      const state = {
+        bankAccounts: [{ balance: 350000 }],
+        mutualFunds: [{ scheme: "Flexi Cap Fund", units: 200, currentNav: 500 }],
+        transactions: [
+          { date: new Date().toISOString().slice(0, 10), type: "debit", category: "Groceries", amount: 4500 },
+          { date: new Date().toISOString().slice(0, 10), type: "credit", category: "Salary", amount: 150000 },
+        ],
+        budgets: [{ category: "Groceries", monthly: 20000 }],
+        goals: [{ name: "Emergency Fund", targetAmount: 500000, currentAmount: 350000 }],
+      };
+
+      const summary = computeSummary(state);
+      const html = generateHTML(summary, "weekly", "Anand");
+
+      expect(html).toContain("ArthaDrishti");
+      expect(html).toContain("Weekly Briefing");
       expect(html).toContain("Total Household Net Worth");
-      expect(html).toContain("Bank Cash");
-      expect(html).toContain("Emergency Runway");
+      expect(html).toContain("Past 7-Day Spend");
+      expect(html).toContain("Past 7-Day Income");
+      expect(html).toContain("Next 7-Day Dues");
       expect(html).toContain("7-Day Cash Buffer");
-      expect(html).toContain("Month-to-Date Cash Flow");
+      expect(html).toContain("Past 7 Days Spending by Category");
+      expect(html).toContain("Financial Goals Progress");
+      expect(html).toContain("Anand");
+      expect(html).not.toContain("<script>");
+    });
+
+    it("generates polished Monthly Executive Statement HTML with full portfolio, budgets, and balance sheet", () => {
+      const state = {
+        bankAccounts: [{ balance: 500000 }],
+        mutualFunds: [{ scheme: "Large & Mid Cap", units: 1000, currentNav: 150 }],
+        fixedDeposits: [{ bank: "HDFC", principal: 200000, maturityDate: new Date(Date.now() + 20 * 86400000).toISOString().slice(0, 10) }],
+        transactions: [
+          { date: new Date().toISOString().slice(0, 10), type: "debit", category: "Rent", amount: 35000 },
+          { date: new Date().toISOString().slice(0, 10), type: "credit", category: "Consulting", amount: 200000 },
+        ],
+        budgets: [{ category: "Rent", monthly: 35000 }],
+        goals: [{ name: "House Downpayment", targetAmount: 2000000, currentAmount: 850000 }],
+      };
+
+      const summary = computeSummary(state);
+      const html = generateHTML(summary, "monthly", "Anand");
+
+      expect(html).toContain("ArthaDrishti");
+      expect(html).toContain("Monthly Executive");
+      expect(html).toContain("Total Household Net Worth");
+      expect(html).toContain("Monthly Income MTD");
+      expect(html).toContain("Monthly Expenses MTD");
+      expect(html).toContain("Net Saved &amp; Savings Rate");
+      expect(html).toContain("Emergency Runway");
+      expect(html).toContain("Top Expense Categories MTD");
+      expect(html).toContain("Category Budget Adherence");
+      expect(html).toContain("Investment Portfolio Allocation");
+      expect(html).toContain("Emergency Liquidity Audit");
+      expect(html).toContain("Next 30 Days Forward Outlook");
       expect(html).toContain("Anand");
       expect(html).not.toContain("<script>");
     });
