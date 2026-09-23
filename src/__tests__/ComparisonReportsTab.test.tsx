@@ -99,4 +99,19 @@ describe("ComparisonReportsTab Senior Executive UI", () => {
     );
     expect(html).toContain("Not Enough Comparison Data");
   });
+
+  it("should render large net worth values cleanly in executive comparison cards", () => {
+    const multiCroreState = {
+      ...mockState,
+      netWorthHistory: [
+        { month: currentYM, netWorth: 12496841 },
+        { month: prevYM, netWorth: 12496841 },
+      ],
+    };
+    const html = renderToString(
+      <ComparisonReportsTab state={multiCroreState} metrics={{ netWorth: 12496841 }} />
+    );
+    expect(html).toContain("Net Worth");
+    expect(html).toContain("₹1,24,96,841");
+  });
 });

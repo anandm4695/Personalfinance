@@ -237,6 +237,16 @@ const ExecutiveSplitCard = ({
   const currPct = Math.min(100, Math.round((Math.abs(currentValue || 0) / maxVal) * 100));
   const prevPct = Math.min(100, Math.round((Math.abs(previousValue || 0) / maxVal) * 100));
 
+  // Determine dynamic font size based on numeric length to prevent clipping on large sums (e.g. Crores)
+  const getDynamicFontSize = (val: number | string, isCurrent: boolean) => {
+    if (isRate) return isCurrent ? 18 : 16;
+    const num = typeof val === "number" ? Math.round(Math.abs(val)) : 0;
+    const digitCount = num > 0 ? num.toString().length : 1;
+    if (digitCount >= 8) return isCurrent ? 14.5 : 13.5; // >= 1 Crore (8+ digits: ₹1,24,96,841)
+    if (digitCount >= 6) return isCurrent ? 16 : 14.5;   // >= 1 Lakh (6-7 digits)
+    return isCurrent ? 18 : 16;
+  };
+
   return (
     <div
       className="card-lift"
@@ -244,17 +254,18 @@ const ExecutiveSplitCard = ({
         background: "var(--t-card-bg, var(--surface-0))",
         border: `1.5px solid ${THEME.line}`,
         borderRadius: 16,
-        padding: "18px 20px",
+        padding: "16px 18px",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        gap: 14,
+        gap: 12,
         position: "relative",
         boxShadow: "var(--shadow-xs)",
+        minWidth: 0,
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
           {Icon && (
             <div
               style={{
@@ -266,6 +277,7 @@ const ExecutiveSplitCard = ({
                 alignItems: "center",
                 justifyContent: "center",
                 color: isIncome ? THEME.sage : isNetWorth ? THEME.accent : THEME.ink,
+                flexShrink: 0,
               }}
             >
               <Icon size={15} />
@@ -278,16 +290,26 @@ const ExecutiveSplitCard = ({
               color: THEME.muted,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
             {title}
           </span>
         </div>
-        {deltaIndicator}
+        <div style={{ flexShrink: 0 }}>{deltaIndicator}</div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 10 }}>
-        <div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <div style={{ minWidth: 0, overflow: "hidden" }}>
           <div
             style={{
               fontSize: 10,
@@ -296,17 +318,26 @@ const ExecutiveSplitCard = ({
               textTransform: "uppercase",
               letterSpacing: "0.04em",
               marginBottom: 2,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
+            title={currentLabel}
           >
             {currentLabel}
           </div>
           <div
+            title={typeof currentValue === "number" ? fmtINRFull(currentValue) : String(currentValue)}
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: 19,
+              fontSize: getDynamicFontSize(currentValue, true),
               fontWeight: 700,
               color: isIncome ? THEME.sage : isNetWorth ? THEME.accent : THEME.ink,
-              letterSpacing: "-0.02em",
+              letterSpacing: "-0.025em",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              lineHeight: 1.2,
             }}
           >
             {isRate ? (
@@ -319,18 +350,21 @@ const ExecutiveSplitCard = ({
 
         <div
           style={{
-            fontSize: 11,
+            fontSize: 9.5,
             fontWeight: 800,
             color: THEME.muted,
             background: "var(--surface-1)",
-            padding: "2px 6px",
-            borderRadius: 6,
+            padding: "2px 5px",
+            borderRadius: 5,
+            letterSpacing: "0.02em",
+            flexShrink: 0,
+            lineHeight: 1,
           }}
         >
           VS
         </div>
 
-        <div style={{ textAlign: "right" }}>
+        <div style={{ textAlign: "right", minWidth: 0, overflow: "hidden" }}>
           <div
             style={{
               fontSize: 10,
@@ -339,17 +373,26 @@ const ExecutiveSplitCard = ({
               textTransform: "uppercase",
               letterSpacing: "0.04em",
               marginBottom: 2,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
+            title={previousLabel}
           >
             {previousLabel}
           </div>
           <div
+            title={typeof previousValue === "number" ? fmtINRFull(previousValue) : String(previousValue)}
             style={{
               fontFamily: "var(--font-display)",
-              fontSize: 17,
+              fontSize: getDynamicFontSize(previousValue, false),
               fontWeight: 600,
               color: THEME.muted,
-              letterSpacing: "-0.02em",
+              letterSpacing: "-0.025em",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              lineHeight: 1.2,
             }}
           >
             {isRate ? (
@@ -362,7 +405,7 @@ const ExecutiveSplitCard = ({
       </div>
 
       {/* Mini Visual Gauge Bar */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <div style={{ display: "flex", height: 4, borderRadius: 2, overflow: "hidden", background: "var(--surface-2)" }}>
           <div
             style={{
@@ -398,13 +441,19 @@ const ExecutiveSplitCard = ({
             color: THEME.muted,
             borderTop: `1px solid ${THEME.line}`,
             paddingTop: 8,
+            minWidth: 0,
+            overflow: "hidden",
           }}
         >
-          <span>Net Variance</span>
+          <span style={{ flexShrink: 0 }}>Net Variance</span>
           <span
             style={{
               fontWeight: 800,
               color: isGood ? THEME.sage : THEME.rust,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              textAlign: "right",
             }}
           >
             {isUp ? "+" : ""}
@@ -1249,7 +1298,7 @@ export const ComparisonReportsTab: React.FC<{
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: 14,
           }}
         >
