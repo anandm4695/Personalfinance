@@ -375,11 +375,13 @@ export function BanksTab({
       const monthlyRate = Number(loan.rate || 0) / 100 / 12;
       const interestPortion = outstandingBefore * monthlyRate;
       const principalPortion = Math.min(outstandingBefore, Math.max(0, amt - interestPortion));
-      await updateItem("loansTaken", lid, {
-        outstanding: Math.max(0, outstandingBefore - principalPortion),
-        monthsRemaining: Math.max(0, Number(loan.monthsRemaining || 0) - 1),
-      });
-      await updateItem("transactions", txnId, { linkedPrincipalAmount: principalPortion });
+      await Promise.all([
+        updateItem("loansTaken", lid, {
+          outstanding: Math.max(0, outstandingBefore - principalPortion),
+          monthsRemaining: Math.max(0, Number(loan.monthsRemaining || 0) - 1),
+        }),
+        updateItem("transactions", txnId, { linkedPrincipalAmount: principalPortion }),
+      ]);
     } else if (lt === "rentedProperties") {
       const prop = (state.rentedProperties || []).find((p: any) => p.id === lid);
       if (!prop) return;
@@ -455,11 +457,11 @@ export function BanksTab({
 
   const { run: saveBankEdit, loading: savingBankEdit } = useAsyncAction(
     async (id: string, v: any) => {
+      setEditBankId(null);
       await updateItem("bankAccounts", id, v);
     },
     {
       onSuccess: () => {
-        setEditBankId(null);
         showToast?.("Bank account updated successfully", "success");
       },
       onError: (e: any) =>
@@ -469,11 +471,11 @@ export function BanksTab({
 
   const { run: saveTxnEdit, loading: savingTxnEdit } = useAsyncAction(
     async (id: string, v: any) => {
+      setEditTxnId(null);
       await updateItem("transactions", id, v);
     },
     {
       onSuccess: () => {
-        setEditTxnId(null);
         showToast?.("Transaction updated successfully", "success");
       },
       onError: (e: any) =>
@@ -483,11 +485,11 @@ export function BanksTab({
 
   const { run: saveNewBank, loading: savingNewBank } = useAsyncAction(
     async (v: any) => {
+      setShowBank(false);
       await addItem("bankAccounts", v);
     },
     {
       onSuccess: () => {
-        setShowBank(false);
         showToast?.("Bank account added successfully", "success");
       },
       onError: (e: any) =>
@@ -497,31 +499,34 @@ export function BanksTab({
 
   const { run: saveNewTxn, loading: savingNewTxn } = useAsyncAction(
     async (v: any) => {
+      setShowTxn(false);
       if (v.type === "transfer" && v.toAccountId && v.accountId !== v.toAccountId) {
         const srcAcc = state.bankAccounts.find((a: any) => a.id === v.accountId);
         const destAcc = state.bankAccounts.find((a: any) => a.id === v.toAccountId);
-        await addItem("transactions", {
-          owner: v.owner,
-          date: v.date,
-          accountId: v.accountId,
-          type: "debit",
-          amount: v.amount,
-          category: "Transfer",
-          note: v.note || `Transfer to ${destAcc?.bankName || "account"}`,
-          narration: v.narration,
-          referenceNumber: v.referenceNumber,
-        });
-        await addItem("transactions", {
-          owner: v.owner,
-          date: v.date,
-          accountId: v.toAccountId,
-          type: "credit",
-          amount: v.amount,
-          category: "Transfer",
-          note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`,
-          narration: v.narration,
-          referenceNumber: v.referenceNumber,
-        });
+        await Promise.all([
+          addItem("transactions", {
+            owner: v.owner,
+            date: v.date,
+            accountId: v.accountId,
+            type: "debit",
+            amount: v.amount,
+            category: "Transfer",
+            note: v.note || `Transfer to ${destAcc?.bankName || "account"}`,
+            narration: v.narration,
+            referenceNumber: v.referenceNumber,
+          }),
+          addItem("transactions", {
+            owner: v.owner,
+            date: v.date,
+            accountId: v.toAccountId,
+            type: "credit",
+            amount: v.amount,
+            category: "Transfer",
+            note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`,
+            narration: v.narration,
+            referenceNumber: v.referenceNumber,
+          }),
+        ]);
       } else {
         const { toAccountId: _drop, linkedKey, ...txnBase } = v;
         const ci = linkedKey ? linkedKey.indexOf(":") : -1;
@@ -542,7 +547,6 @@ export function BanksTab({
     },
     {
       onSuccess: () => {
-        setShowTxn(false);
         showToast?.("Transaction recorded successfully", "success");
       },
       onError: (e: any) =>
