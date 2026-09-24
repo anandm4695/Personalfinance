@@ -225,6 +225,7 @@ export const NUMERIC_COLS = new Set([
   "net_salary",
   // transactions
   "statement_balance",
+  "linked_principal_amount",
   // profiles & settings
   "savings_target",
   "gold_price_per_gram",

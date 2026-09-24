@@ -92,4 +92,44 @@ describe("BanksTab Passbook Date Filter Defaults", () => {
     expect(container.textContent).toContain("January Salary");
     expect(container.textContent).toContain("September Salary");
   });
+
+  it("opens record transaction modal with initial account when clicking Txn button on account card", async () => {
+    const mockState = {
+      bankAccounts: [
+        {
+          id: "bank-abc-123",
+          bankName: "HDFC Bank",
+          type: "Savings",
+          accountNumber: "9988",
+          balance: 25000,
+          owner: "wife",
+        },
+      ],
+      transactions: [],
+    };
+
+    const container = await mount(
+      <PrivacyProvider>
+        <BanksTab
+          state={mockState}
+          activeProfile="wife"
+          addItem={vi.fn()}
+          showToast={vi.fn()}
+        />
+      </PrivacyProvider>
+    );
+
+    // Find "Txn" button on the bank account card
+    const txnBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.getAttribute("title") === "Record transaction for this account"
+    );
+    expect(txnBtn).toBeDefined();
+
+    await act(async () => {
+      txnBtn?.click();
+    });
+
+    // Check modal title is rendered in document.body (portal)
+    expect(document.body.textContent).toContain("Record Bank Transaction");
+  });
 });

@@ -726,7 +726,12 @@ function FinanceDashboard() {
         supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("bank_accounts").select("*").eq("user_id", userId),
-        supabase.from("transactions").select("*").eq("user_id", userId),
+        supabase
+          .from("transactions")
+          .select("*")
+          .eq("user_id", userId)
+          .order("date", { ascending: false })
+          .limit(50000),
         supabase.from("mutual_funds").select("*").eq("user_id", userId),
         supabase.from("stocks").select("*").eq("user_id", userId),
         supabase.from("demat_accounts").select("*").eq("user_id", userId),
@@ -2080,6 +2085,33 @@ function FinanceDashboard() {
     return parts.length ? `${label}: ${parts.join(" — ")}` : label;
   };
 
+  const isUuid = (str: any) =>
+    typeof str === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+  const isNetworkError = (msg?: string) =>
+    !!(
+      msg?.includes("Load failed") ||
+      msg?.includes("Failed to fetch") ||
+      msg?.includes("NetworkError") ||
+      msg?.includes("network")
+    );
+
+  const extractMissingColumn = (err: any): string | null => {
+    if (!err) return null;
+    const msg = String(err.message || "");
+    const match1 = msg.match(/Could not find the '(\w+)' column/i);
+    if (match1) return match1[1];
+    const match2 = msg.match(/column ["']?(\w+)["']? (?:of relation|does not exist)/i);
+    if (match2) return match2[1];
+    const match3 = msg.match(/column ["']?(\w+)["']? of relation/i);
+    if (match3) return match3[1];
+    return null;
+  };
+
+  const isMissingColErr = (err: any) =>
+    err && (err.code === "PGRST204" || err.code === "42703" || !!extractMissingColumn(err));
+
   const addItem = async (key: string, item: any) => {
     const userId = session?.user?.id;
     // Auto-assign owner so items satisfy the DB NOT NULL constraint on ppf_nps
@@ -2156,8 +2188,6 @@ function FinanceDashboard() {
       finalItem.property_type = key === "rentalProperties" ? "out" : "in";
     }
 
-    const isUuid = (str: string) =>
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
     const isTextIdTable = key === "stockSells" || key === "mfSells";
     const newId =
       itemWithOwner.id && (isUuid(itemWithOwner.id) || isTextIdTable) ? itemWithOwner.id : uid();
@@ -2215,6 +2245,20 @@ function FinanceDashboard() {
           if (finalItem.tax_type && !finalItem.type) finalItem.type = finalItem.tax_type;
           if (finalItem.notes && !finalItem.note) finalItem.note = finalItem.notes;
         }
+        if (key === "transactions") {
+          if (finalItem.type) {
+            const rawType = String(finalItem.type).toLowerCase();
+            finalItem.type = rawType === "credit" ? "credit" : "debit";
+          } else {
+            finalItem.type = "debit";
+          }
+          if (finalItem.account_id && !isUuid(finalItem.account_id)) {
+            finalItem.account_id = null;
+          }
+          if (finalItem.to_account_id && !isUuid(finalItem.to_account_id)) {
+            finalItem.to_account_id = null;
+          }
+        }
 
         const cleanItem = { ...finalItem, id: newId, user_id: userId };
         for (const k in cleanItem) {
@@ -2247,14 +2291,6 @@ function FinanceDashboard() {
         // Use upsert (INSERT ... ON CONFLICT DO UPDATE) so retries are idempotent.
         // If the first request reached Supabase but the response was lost, a plain INSERT
         // would fail with duplicate-key on retry. Upsert handles that safely.
-        const isNetworkError = (msg?: string) =>
-          !!(
-            msg?.includes("Load failed") ||
-            msg?.includes("Failed to fetch") ||
-            msg?.includes("NetworkError") ||
-            msg?.includes("network")
-          );
-
         const tryUpsert = () => supabase.from(table).upsert(cleanItem, { onConflict: "id" });
 
         pendingWritesRef.current++;
@@ -2334,14 +2370,13 @@ function FinanceDashboard() {
               setState((s: any) => ({ ...s, [key]: (s[key] || []).filter((x: any) => x.id !== newId) }));
             }
           }, 8000);
-        } else if (firstErr.code === "PGRST204") {
+        } else if (isMissingColErr(firstErr)) {
           // Column missing in DB schema — strip the bad column(s) and retry
           let retryItem: any = { ...cleanItem };
           let currentErr: any = firstErr;
           const stripped: string[] = [];
-          while (currentErr?.code === "PGRST204") {
-            const match = currentErr.message?.match(/Could not find the '(\w+)' column/);
-            const badCol = match ? match[1] : null;
+          while (isMissingColErr(currentErr)) {
+            const badCol = extractMissingColumn(currentErr);
             if (!badCol || retryItem[badCol] === undefined) break;
             delete retryItem[badCol];
             stripped.push(badCol);
@@ -2355,7 +2390,7 @@ function FinanceDashboard() {
               `[Supabase] Saved without missing cols: ${stripped.join(", ")} — run SQL migration to sync all fields`
             );
             showToast(
-              `Saved but ${stripped.join(", ")} was not stored — DB column missing. Run SQL migration.`,
+              `Saved locally. Database column ${stripped.join(", ")} is missing — run latest SQL migration in Supabase SQL Editor.`,
               "warn"
             );
           } else if (isNetworkError(currentErr.message)) {
@@ -2416,8 +2451,6 @@ function FinanceDashboard() {
   const addTransactions = async (txns: any[]) => {
     if (!txns || txns.length === 0) return;
     const userId = session?.user?.id;
-    const isUuid = (str: string) =>
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
     // Assign owner and UUID for each transaction
     const txnsWithIds = txns.map((item) => {
@@ -2469,9 +2502,21 @@ function FinanceDashboard() {
 
     // Write to Supabase if online
     if (userId && userId !== "offline-user") {
-      const cleanItems = txnsWithIds.map((item) => {
+      let cleanItems = txnsWithIds.map((item) => {
         const finalItem = camelToSnake(item);
-        const cleanItem = { ...finalItem, user_id: userId };
+        const cleanItem: any = { ...finalItem, user_id: userId };
+        if (cleanItem.type) {
+          const rawType = String(cleanItem.type).toLowerCase();
+          cleanItem.type = rawType === "credit" ? "credit" : "debit";
+        } else {
+          cleanItem.type = "debit";
+        }
+        if (cleanItem.account_id && !isUuid(cleanItem.account_id)) {
+          cleanItem.account_id = null;
+        }
+        if (cleanItem.to_account_id && !isUuid(cleanItem.to_account_id)) {
+          cleanItem.to_account_id = null;
+        }
         for (const k in cleanItem) {
           if (cleanItem[k] === "") cleanItem[k] = null;
           else if (
@@ -2486,10 +2531,37 @@ function FinanceDashboard() {
         return cleanItem;
       });
 
-      // Batch upsert to transactions table
-      const { error: upsertErr } = await supabase
+      // Batch upsert to transactions table with missing-column strip retry
+      let { error: upsertErr } = await supabase
         .from("transactions")
         .upsert(cleanItems, { onConflict: "id" });
+
+      if (upsertErr && isMissingColErr(upsertErr)) {
+        const strippedCols: string[] = [];
+        let currentErr = upsertErr;
+        while (isMissingColErr(currentErr)) {
+          const badCol = extractMissingColumn(currentErr);
+          if (!badCol) break;
+          strippedCols.push(badCol);
+          cleanItems = cleanItems.map((ci) => {
+            const copy = { ...ci };
+            delete copy[badCol];
+            return copy;
+          });
+          const { error: retryErr } = await supabase
+            .from("transactions")
+            .upsert(cleanItems, { onConflict: "id" });
+          currentErr = retryErr || null;
+        }
+        upsertErr = currentErr;
+        if (!upsertErr) {
+          console.warn(`[Batch Transactions] Saved without missing cols: ${strippedCols.join(", ")}`);
+          showToast(
+            `Imported locally. Database column ${strippedCols.join(", ")} is missing — run latest SQL migration in Supabase SQL Editor.`,
+            "warn"
+          );
+        }
+      }
 
       if (upsertErr) {
         console.error("[Batch Transactions Upsert]", upsertErr.message);
@@ -3083,6 +3155,22 @@ function FinanceDashboard() {
           if (patch.taxType !== undefined && patch.type === undefined) finalPatch.type = patch.taxType;
           if (patch.notes !== undefined && patch.note === undefined) finalPatch.note = patch.notes;
         }
+        if (key === "transactions") {
+          if (finalPatch.type !== undefined) {
+            const rawType = String(finalPatch.type).toLowerCase();
+            finalPatch.type = rawType === "credit" ? "credit" : "debit";
+          }
+          if (finalPatch.account_id !== undefined && finalPatch.account_id !== null) {
+            if (!isUuid(finalPatch.account_id)) {
+              finalPatch.account_id = null;
+            }
+          }
+          if (finalPatch.to_account_id !== undefined && finalPatch.to_account_id !== null) {
+            if (!isUuid(finalPatch.to_account_id)) {
+              finalPatch.to_account_id = null;
+            }
+          }
+        }
         if (key === "ppf" && patch.institution !== undefined) {
           finalPatch.bank = patch.institution || "";
           delete finalPatch.institution;
@@ -3260,14 +3348,13 @@ function FinanceDashboard() {
               const { error: r } = await doUpdate(finalPatch);
               if (r) console.error(`Supabase Update retry failed (${table}):`, r.message);
             }, 8000);
-          } else if (error.code === "PGRST204") {
+          } else if (isMissingColErr(error)) {
             // Column missing in DB schema — strip bad column(s) and retry
             let retryPatch: any = { ...finalPatch };
             let currentErr: any = error;
             const strippedU: string[] = [];
-            while (currentErr?.code === "PGRST204") {
-              const match = currentErr.message?.match(/Could not find the '(\w+)' column/);
-              const badCol = match ? match[1] : null;
+            while (isMissingColErr(currentErr)) {
+              const badCol = extractMissingColumn(currentErr);
               if (!badCol || retryPatch[badCol] === undefined) break;
               delete retryPatch[badCol];
               strippedU.push(badCol);
@@ -3279,7 +3366,7 @@ function FinanceDashboard() {
                 `[Supabase] Updated without missing cols: ${strippedU.join(", ")} — run SQL migration`
               );
               showToast(
-                `Updated but ${strippedU.join(", ")} was not stored — DB column missing. Run SQL migration.`,
+                `Updated locally. Database column ${strippedU.join(", ")} is missing — run latest SQL migration in Supabase SQL Editor.`,
                 "warn"
               );
             } else if (currentErr) {
@@ -4025,6 +4112,7 @@ function FinanceDashboard() {
                   masterData={state.masterData || DEFAULT_MASTER_DATA}
                   updateMasterData={updateMasterData}
                   showToast={showToast}
+                  activeProfile={activeProfile}
                 />
               )}
               {tab === "demat" && (

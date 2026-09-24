@@ -294,6 +294,7 @@ export function BanksTab({
   updateItem,
   masterData: _masterData,
   showToast,
+  activeProfile,
 }: any) {
   // Navigation Sub-tab
   const [activeTab, setActiveTab] = useState<"accounts" | "ledger" | "analytics" | "transfers">(
@@ -302,7 +303,7 @@ export function BanksTab({
 
   // Modals & Drawers
   const [showBank, setShowBank] = useState(false);
-  const [showTxn, setShowTxn] = useState(false);
+  const [showTxn, setShowTxn] = useState<boolean | { accountId?: string; owner?: string }>(false);
   const [showImport, setShowImport] = useState(false);
   const [editBankId, setEditBankId] = useState<string | null>(null);
   const [editTxnId, setEditTxnId] = useState<string | null>(null);
@@ -1714,7 +1715,7 @@ export function BanksTab({
                           icon={<Plus size={12} />}
                           style={{ fontSize: 11 }}
                           onClick={() => {
-                            setShowTxn(true);
+                            setShowTxn({ accountId: a.id, owner: a.owner });
                           }}
                           title="Record transaction for this account"
                         >
@@ -3246,6 +3247,9 @@ export function BanksTab({
         <TxnModal
           accounts={state.bankAccounts || []}
           state={state}
+          activeProfile={activeProfile}
+          initialAccountId={typeof showTxn === "object" ? showTxn.accountId : undefined}
+          initialOwner={typeof showTxn === "object" ? showTxn.owner : undefined}
           getDisplayBalance={getDisplayBalance}
           onClose={() => setShowTxn(false)}
           onSave={saveNewTxn}
@@ -3735,14 +3739,27 @@ function BankModal({ onClose, onSave, saving }: any) {
   );
 }
 
-function TxnModal({ accounts, state, getDisplayBalance, onClose, onSave, saving }: any) {
+function TxnModal({
+  accounts,
+  state,
+  getDisplayBalance,
+  onClose,
+  onSave,
+  saving,
+  activeProfile,
+  initialAccountId,
+  initialOwner,
+}: any) {
   const { transactionCategories: cats, familyProfiles } = useMasterData();
   const { privacyMode } = usePrivacy();
-  const defaultToId = accounts.length > 1 ? accounts[1].id : accounts[0]?.id || "";
+  const defaultAccId = initialAccountId || accounts[0]?.id || "";
+  const defaultToId = accounts.length > 1
+    ? (accounts.find((a: any) => a.id !== defaultAccId)?.id || accounts[1]?.id || "")
+    : accounts[0]?.id || "";
   const [f, setF] = useState({
-    owner: "self",
+    owner: initialOwner || (activeProfile && activeProfile !== "all" ? activeProfile : "self"),
     date: today(),
-    accountId: accounts[0]?.id || "",
+    accountId: defaultAccId,
     type: "debit",
     amount: "",
     category: cats[0] || "General",
