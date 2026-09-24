@@ -1,5 +1,3 @@
-import React from "react";
-
 interface CardProps {
   children: React.ReactNode;
   variant?: "base" | "tile" | "insight" | "hero";
@@ -7,6 +5,9 @@ interface CardProps {
   style?: React.CSSProperties;
   onClick?: () => void;
   hover?: boolean;
+  onMouseEnter?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onMouseLeave?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  id?: string;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -16,6 +17,9 @@ export const Card: React.FC<CardProps> = ({
   style,
   onClick,
   hover = true,
+  onMouseEnter,
+  onMouseLeave,
+  id,
 }) => {
   const getVariantClass = () => {
     switch (variant) {
@@ -102,10 +106,13 @@ export const Card: React.FC<CardProps> = ({
 
   return (
     <div
+      id={id}
       className={fullClassName}
       style={outerStyle}
       onClick={onClick}
       onMouseMove={handleMouseMove}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       {...(onClick ? { role: "button", tabIndex: 0, onKeyDown: handleKeyDown } : {})}
     >
       {variant === "hero" && <div className="hero-card-mesh" />}

@@ -68,6 +68,7 @@ import { LoanGivenModal } from "../credit/LoanGivenModal";
 import { InformalLoanSection } from "../credit/InformalLoanSection";
 import { InformalPersonModal } from "../credit/InformalPersonModal";
 import { DebtPayoffOptimizer } from "../credit/DebtPayoffOptimizer";
+import { CardInsightsSection } from "../credit/CardInsightsSection";
 
 export const MONTH_NAMES: string[] = [
   "Jan",
@@ -670,6 +671,10 @@ export function CreditTab({
   const subs: Record<string, { label: string; sub: string }> = {
     cc: { label: "Credit Cards", sub: "Manage your credit cards and track utilization" },
     prepaid: { label: "Prepaid Cards", sub: "Track prepaid card balances" },
+    cardInsights: {
+      label: "Card Insights & Analytics",
+      sub: "Multi-card spends intelligence, month-wise & category breakdowns, F.Y./A.Y. tax hub, and optimization",
+    },
     taken: { label: "Loans Taken", sub: "Track loans you've taken and repayment progress" },
     given: { label: "Loans Given", sub: "Track loans you've given out" },
     borrowed: { label: "From People", sub: "Informal borrowings from people" },
@@ -691,20 +696,37 @@ export function CreditTab({
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: 24,
+          flexWrap: "wrap",
+          gap: 12,
         }}
       >
         <SectionTitle sub={activeMeta.sub}>{activeMeta.label}</SectionTitle>
-        {sub !== "borrowed" &&
-          sub !== "lent" &&
-          sub !== "optimizer" &&
-          !(sub === "taken" && !(state.loansTaken || []).length) &&
-          !(sub === "given" && !(state.loansGiven || []).length) &&
-          !(sub === "cc" && !(state.creditCards || []).length) &&
-          !(sub === "prepaid" && !(state.prepaidCards || []).length) && (
-            <Button variant="accent" icon={<Plus size={14} />} onClick={() => setModal(sub)}>
-              Add {activeMeta.label.split(" ")[0]}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {(sub === "cc" || sub === "prepaid") && (
+            <Button
+              variant="outline"
+              icon={<Sparkles size={14} />}
+              onClick={() => {
+                setSub("cardInsights");
+                onSubTabChange?.("cardInsights");
+              }}
+            >
+              Card Insights
             </Button>
           )}
+          {sub !== "borrowed" &&
+            sub !== "lent" &&
+            sub !== "optimizer" &&
+            sub !== "cardInsights" &&
+            !(sub === "taken" && !(state.loansTaken || []).length) &&
+            !(sub === "given" && !(state.loansGiven || []).length) &&
+            !(sub === "cc" && !(state.creditCards || []).length) &&
+            !(sub === "prepaid" && !(state.prepaidCards || []).length) && (
+              <Button variant="accent" icon={<Plus size={14} />} onClick={() => setModal(sub)}>
+                Add {activeMeta.label.split(" ")[0]}
+              </Button>
+            )}
+        </div>
       </div>
 
       <div>
@@ -956,6 +978,15 @@ export function CreditTab({
               }
             }}
             onAdd={() => setModal("prepaid")}
+          />
+        )}
+        {sub === "cardInsights" && (
+          <CardInsightsSection
+            state={state}
+            onNavigateTab={(target) => {
+              setSub(target);
+              onSubTabChange?.(target);
+            }}
           />
         )}
         {sub === "taken" && (

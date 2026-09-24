@@ -345,6 +345,7 @@ export const NAV_GROUPS: NavGroup[] = [
         children: [
           { id: "cc", label: "Credit Cards", icon: CreditCard },
           { id: "prepaid", label: "Prepaid Cards", icon: Wallet },
+          { id: "cardInsights", label: "Card Insights", icon: Sparkles },
         ],
       },
       {

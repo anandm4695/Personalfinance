@@ -4141,7 +4141,7 @@ function FinanceDashboard() {
                 />
               )}
               {(tab === "credit" ||
-                ["cc", "prepaid", "taken", "given", "borrowed", "lent", "optimizer"].includes(
+                ["cc", "prepaid", "cardInsights", "taken", "given", "borrowed", "lent", "optimizer"].includes(
                   tab
                 )) && (
                 <CreditTab
