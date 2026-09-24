@@ -868,23 +868,53 @@ export const AnnualReportTab = ({
     );
     const creditTotal = creditTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
 
-    const totalBankIncome = ledgerTotal > 0 ? ledgerTotal : creditTotal;
-    const sourceEntries = ledgerTotal > 0 ? incomeLedger : creditTxns;
+    const salarySlipsInFY = (state.salarySlips || []).filter((s: any) => {
+      const d = s.date || (s.slipMonth ? `${s.slipMonth}-01` : "");
+      return d && d >= fyStart && d <= fyEnd;
+    });
+    const salarySlipsTotal = salarySlipsInFY.reduce(
+      (s: number, sl: any) =>
+        s + Number(sl.netSalary ?? sl.inHand ?? sl.takeHome ?? sl.grossSalary ?? 0),
+      0
+    );
+
+    const totalPrimaryIncome =
+      ledgerTotal > 0 ? ledgerTotal : creditTotal > 0 ? creditTotal : salarySlipsTotal;
 
     const catMap: Record<string, number> = {};
-    sourceEntries.forEach((e: any) => {
-      const cat = e.category || e.source || "Other";
-      catMap[cat] = (catMap[cat] || 0) + Number(e.amount || 0);
-    });
-
     const monthlyMap: Record<string, number> = {};
-    sourceEntries.forEach((e: any) => {
-      if (e.date) {
-        const ym = e.date.slice(0, 7);
-        monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(e.amount || 0);
-      }
-    });
 
+    if (ledgerTotal > 0) {
+      incomeLedger.forEach((e: any) => {
+        const cat = e.category || e.source || "Other";
+        catMap[cat] = (catMap[cat] || 0) + Number(e.amount || 0);
+        if (e.date) {
+          const ym = e.date.slice(0, 7);
+          monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(e.amount || 0);
+        }
+      });
+    } else if (creditTotal > 0) {
+      creditTxns.forEach((e: any) => {
+        const cat = e.category || e.source || "Other";
+        catMap[cat] = (catMap[cat] || 0) + Number(e.amount || 0);
+        if (e.date) {
+          const ym = e.date.slice(0, 7);
+          monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(e.amount || 0);
+        }
+      });
+    } else if (salarySlipsTotal > 0) {
+      salarySlipsInFY.forEach((sl: any) => {
+        const amt = Number(sl.netSalary ?? sl.inHand ?? sl.takeHome ?? sl.grossSalary ?? 0);
+        const cat = sl.employer ? `Salary (${sl.employer})` : "Salary";
+        catMap[cat] = (catMap[cat] || 0) + amt;
+        const ym = sl.slipMonth || (sl.date ? sl.date.slice(0, 7) : "");
+        if (ym) {
+          monthlyMap[ym] = (monthlyMap[ym] || 0) + amt;
+        }
+      });
+    }
+
+    // Rental receipts (manual property ledger receipts not linked to bank)
     const rentalReceiptsInFY = (state.rentalProperties || []).flatMap((p: any) =>
       (p.receipts || []).filter((r: any) => r.date && r.date >= fyStart && r.date <= fyEnd)
     );
@@ -896,7 +926,7 @@ export const AnnualReportTab = ({
 
     const rentalIncomeToAdd = alreadyHasRent
       ? 0
-      : (ledgerTotal > 0
+      : (ledgerTotal > 0 || salarySlipsTotal > 0
           ? rentalReceiptsInFY
           : rentalReceiptsInFY.filter((r: any) => !String(r.id || "").startsWith("bank-"))
         ).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
@@ -904,9 +934,40 @@ export const AnnualReportTab = ({
     if (rentalIncomeToAdd > 0) {
       catMap["Rental Income"] = (catMap["Rental Income"] || 0) + rentalIncomeToAdd;
       rentalReceiptsInFY.forEach((r: any) => {
-        if (r.date && (ledgerTotal > 0 || !String(r.id || "").startsWith("bank-"))) {
+        if (
+          r.date &&
+          (ledgerTotal > 0 || salarySlipsTotal > 0 || !String(r.id || "").startsWith("bank-"))
+        ) {
           const ym = r.date.slice(0, 7);
           monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(r.amount || 0);
+        }
+      });
+    }
+
+    // Standalone dividends (recorded in dividend tracker not linked to bank)
+    const dividendsInFY = (state.dividends || []).filter(
+      (d: any) => d.date && d.date >= fyStart && d.date <= fyEnd
+    );
+    const alreadyHasDividends = Object.keys(catMap).some((k) => {
+      const lower = k.toLowerCase();
+      return lower.includes("dividend");
+    });
+    const dividendIncomeToAdd = alreadyHasDividends
+      ? 0
+      : (ledgerTotal > 0 || salarySlipsTotal > 0
+          ? dividendsInFY
+          : dividendsInFY.filter((d: any) => !String(d.id || "").startsWith("bank-"))
+        ).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+
+    if (dividendIncomeToAdd > 0) {
+      catMap["Dividends"] = (catMap["Dividends"] || 0) + dividendIncomeToAdd;
+      dividendsInFY.forEach((d: any) => {
+        if (
+          d.date &&
+          (ledgerTotal > 0 || salarySlipsTotal > 0 || !String(d.id || "").startsWith("bank-"))
+        ) {
+          const ym = d.date.slice(0, 7);
+          monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(d.amount || 0);
         }
       });
     }
@@ -915,18 +976,20 @@ export const AnnualReportTab = ({
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    const totalIncome = totalBankIncome + rentalIncomeToAdd;
+    const totalIncome = totalPrimaryIncome + rentalIncomeToAdd + dividendIncomeToAdd;
 
     const monthlyChart = fyMonths.map((ym, idx) => ({
       month: MONTH_NAMES[idx],
       income: monthlyMap[ym] || 0,
     }));
 
-    return { totalIncome, breakdown, monthlyChart, streamCount: breakdown.length };
+    return { totalIncome, breakdown, monthlyChart, monthlyMap, streamCount: breakdown.length };
   }, [
     state.income,
     state.transactions,
+    state.salarySlips,
     state.rentalProperties,
+    state.dividends,
     selectedFY,
     fyStart,
     fyEnd,
@@ -937,18 +1000,24 @@ export const AnnualReportTab = ({
      (c) EXPENSE SUMMARY
      ═══════════════════════════════════════════════════════════════ */
   const expenseData = useMemo(() => {
+    const isTransfer = (cat: string) =>
+      cat === "Transfer" || cat === "Self Transfer" || cat === "Self-Transfer";
+
     const debitTxns = (state.transactions || []).filter(
       (t: any) =>
         t.date &&
         t.date >= fyStart &&
         t.date <= fyEnd &&
         t.type === "debit" &&
-        t.category !== "Transfer" &&
-        t.category !== "Self Transfer" &&
-        t.category !== "Self-Transfer" &&
+        !isTransfer(t.category) &&
         t.category !== "Investment"
     );
     const txnExpense = debitTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+
+    const hasRentDebitTxn = debitTxns.some(
+      (t: any) =>
+        (t.category || "").toLowerCase() === "rent" || (t.category || "").toLowerCase() === "rental"
+    );
 
     const rentPaid = (state.rentedProperties || []).reduce(
       (sum: number, p: any) =>
@@ -965,15 +1034,16 @@ export const AnnualReportTab = ({
       0
     );
 
-    const totalExpense = txnExpense + rentPaid;
+    const rentPaidToAdd = !hasRentDebitTxn ? rentPaid : 0;
+    const totalExpense = txnExpense + rentPaidToAdd;
 
     const catMap: Record<string, number> = {};
     debitTxns.forEach((t: any) => {
       const cat = t.category || "Uncategorized";
       catMap[cat] = (catMap[cat] || 0) + Number(t.amount || 0);
     });
-    if (rentPaid > 0) {
-      catMap["Rent"] = (catMap["Rent"] || 0) + rentPaid;
+    if (rentPaidToAdd > 0) {
+      catMap["Rent"] = (catMap["Rent"] || 0) + rentPaidToAdd;
     }
     const breakdown = Object.entries(catMap)
       .map(([name, value]) => ({ name, value }))
@@ -987,24 +1057,26 @@ export const AnnualReportTab = ({
         monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(t.amount || 0);
       }
     });
-    (state.rentedProperties || []).forEach((p: any) => {
-      (p.payments || [])
-        .filter(
-          (pay: any) =>
-            pay.date &&
-            pay.date >= fyStart &&
-            pay.date <= fyEnd &&
-            !String(pay.id || "").startsWith("bank-")
-        )
-        .forEach((pay: any) => {
-          const ym = pay.date.slice(0, 7);
-          monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(pay.amount || 0);
-        });
-    });
+    if (rentPaidToAdd > 0) {
+      (state.rentedProperties || []).forEach((p: any) => {
+        (p.payments || [])
+          .filter(
+            (pay: any) =>
+              pay.date &&
+              pay.date >= fyStart &&
+              pay.date <= fyEnd &&
+              !String(pay.id || "").startsWith("bank-")
+          )
+          .forEach((pay: any) => {
+            const ym = pay.date.slice(0, 7);
+            monthlyMap[ym] = (monthlyMap[ym] || 0) + Number(pay.amount || 0);
+          });
+      });
+    }
 
-    const divisor = fyMonthsElapsed || 1;
+    const divisor = isPastFY ? 12 : Math.max(1, fyMonthsElapsed || 12);
     const avgMonthly = totalExpense / divisor;
-    const dailyBurn = totalExpense / (divisor * 30);
+    const dailyBurn = totalExpense / (divisor * 30.4167);
 
     const highestExpense =
       debitTxns.length > 0
@@ -1015,7 +1087,15 @@ export const AnnualReportTab = ({
         : null;
 
     return { totalExpense, breakdown, top5, avgMonthly, dailyBurn, highestExpense, monthlyMap };
-  }, [state.transactions, state.rentedProperties, selectedFY, fyStart, fyEnd, fyMonthsElapsed]);
+  }, [
+    state.transactions,
+    state.rentedProperties,
+    selectedFY,
+    fyStart,
+    fyEnd,
+    fyMonthsElapsed,
+    isPastFY,
+  ]);
 
   /* ═══════════════════════════════════════════════════════════════
      (d) SAVINGS & INVESTMENT
@@ -1033,7 +1113,16 @@ export const AnnualReportTab = ({
 
     const mfBuys = (state.mutualFunds || [])
       .filter((m: any) => m.buyDate && m.buyDate >= fyStart && m.buyDate <= fyEnd)
-      .reduce((sum: number, m: any) => sum + Number(m.invested || m.investedValue || 0), 0);
+      .reduce(
+        (sum: number, m: any) =>
+          sum +
+          Number(
+            m.invested ||
+              m.investedValue ||
+              (m.buyNav ? Number(m.units || 0) * Number(m.buyNav || 0) : 0)
+          ),
+        0
+      );
 
     const fdAdds = (state.fixedDeposits || [])
       .filter((fd: any) => fd.startDate && fd.startDate >= fyStart && fd.startDate <= fyEnd)
@@ -1054,10 +1143,34 @@ export const AnnualReportTab = ({
       .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
     const ppfAdds = ppfFromTxns > 0 ? ppfFromTxns : ppfFromLedger;
 
+    const bondAdds = (state.bonds || [])
+      .filter((b: any) => b.orderDate && b.orderDate >= fyStart && b.orderDate <= fyEnd)
+      .reduce(
+        (sum: number, b: any) =>
+          sum +
+          Number(
+            b.totalInvestmentAmount ||
+              b.totalPrincipalAmount ||
+              Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0) ||
+              b.faceValue ||
+              0
+          ),
+        0
+      );
+
+    const govtSchemeAdds = (state.govtSchemes || [])
+      .filter((g: any) => g.startDate && g.startDate >= fyStart && g.startDate <= fyEnd)
+      .reduce((sum: number, g: any) => sum + Number(g.currentBalance || g.depositedAmount || 0), 0);
+
+    const goldAdds = (state.goldHoldings || [])
+      .filter((h: any) => h.purchaseDate && h.purchaseDate >= fyStart && h.purchaseDate <= fyEnd)
+      .reduce((sum: number, h: any) => sum + Number(h.investedAmount || h.purchasePrice || 0), 0);
+
     const sipTotal =
       (state.sips || []).reduce((s: number, sip: any) => s + Number(sip.amount || 0), 0) * 12;
 
-    const totalNewInvestments = stockBuys + mfBuys + fdAdds + ppfAdds;
+    const totalNewInvestments =
+      stockBuys + mfBuys + fdAdds + ppfAdds + bondAdds + govtSchemeAdds + goldAdds;
 
     const stockSellsInFY = (state.stockSells || []).filter(
       (s: any) => s.sellDate && s.sellDate >= fyStart && s.sellDate <= fyEnd
@@ -1069,7 +1182,8 @@ export const AnnualReportTab = ({
         s.profit != null
           ? Number(s.profit)
           : (Number(s.sellPrice || 0) - Number(s.buyPrice || 0)) * Number(s.qty || 0);
-      if (isLongTerm(s.buyDate, s.sellDate, 12)) ltcg += gain;
+      const isLtcg = s.isLtcg ?? s.isLongTerm ?? isLongTerm(s.buyDate, s.sellDate, 12);
+      if (isLtcg) ltcg += gain;
       else stcg += gain;
     });
 
@@ -1096,7 +1210,11 @@ export const AnnualReportTab = ({
       const isEquity = isEquityMF({ ...m, category: resolvedCategory });
 
       let long: boolean;
-      if (isEquity) {
+      if (m.isLtcg !== undefined) {
+        long = Boolean(m.isLtcg);
+      } else if (m.isLongTerm !== undefined) {
+        long = Boolean(m.isLongTerm);
+      } else if (isEquity) {
         long = isLongTerm(m.buyDate, m.sellDate, 12);
       } else {
         const cleanBuy = String(m.buyDate || "").trim();
@@ -1114,6 +1232,9 @@ export const AnnualReportTab = ({
       mfBuys,
       fdAdds,
       ppfAdds,
+      bondAdds,
+      govtSchemeAdds,
+      goldAdds,
       sipTotal,
       totalNewInvestments,
       stcg: stcg + mfStcg,
@@ -1127,6 +1248,9 @@ export const AnnualReportTab = ({
     state.fixedDeposits,
     state.ppf,
     state.ppfLedger,
+    state.bonds,
+    state.govtSchemes,
+    state.goldHoldings,
     state.sips,
     state.stockSells,
     state.mfSells,
@@ -1137,14 +1261,11 @@ export const AnnualReportTab = ({
 
   const monthlySavingsTrend = useMemo(() => {
     return fyMonths.map((ym) => {
-      const inc =
-        incomeData.monthlyChart.find((d) => {
-          return d.month === MONTH_NAMES[getFYMonths(selectedFY).indexOf(ym)];
-        })?.income || 0;
+      const inc = incomeData.monthlyMap[ym] || 0;
       const exp = expenseData.monthlyMap[ym] || 0;
       return inc - exp;
     });
-  }, [selectedFY, incomeData.monthlyChart, expenseData.monthlyMap, fyMonths]);
+  }, [incomeData.monthlyMap, expenseData.monthlyMap, fyMonths]);
 
   /* ═══════════════════════════════════════════════════════════════
      YEAR-OVER-YEAR COMPARISON
@@ -1173,16 +1294,42 @@ export const AnnualReportTab = ({
       0
     );
 
+    const prevSalarySlipsInFY = (state.salarySlips || []).filter((s: any) => {
+      const d = s.date || (s.slipMonth ? `${s.slipMonth}-01` : "");
+      return d && d >= prevFyStart && d <= prevFyEnd;
+    });
+    const prevSalaryTotal = prevSalarySlipsInFY.reduce(
+      (s: number, sl: any) =>
+        s + Number(sl.netSalary ?? sl.inHand ?? sl.takeHome ?? sl.grossSalary ?? 0),
+      0
+    );
+
+    const prevPrimaryIncome =
+      prevLedgerTotal > 0
+        ? prevLedgerTotal
+        : prevCreditTotal > 0
+        ? prevCreditTotal
+        : prevSalaryTotal;
+
     const prevRentalReceipts = (state.rentalProperties || []).flatMap((p: any) =>
       (p.receipts || []).filter((r: any) => r.date && r.date >= prevFyStart && r.date <= prevFyEnd)
     );
     const prevRentalIncome = (
-      prevLedgerTotal > 0
+      prevLedgerTotal > 0 || prevSalaryTotal > 0
         ? prevRentalReceipts
         : prevRentalReceipts.filter((r: any) => !String(r.id || "").startsWith("bank-"))
     ).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
 
-    const prevIncome = (prevLedgerTotal > 0 ? prevLedgerTotal : prevCreditTotal) + prevRentalIncome;
+    const prevDividends = (state.dividends || []).filter(
+      (d: any) => d.date && d.date >= prevFyStart && d.date <= prevFyEnd
+    );
+    const prevDividendIncome = (
+      prevLedgerTotal > 0 || prevSalaryTotal > 0
+        ? prevDividends
+        : prevDividends.filter((d: any) => !String(d.id || "").startsWith("bank-"))
+    ).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+
+    const prevIncome = prevPrimaryIncome + prevRentalIncome + prevDividendIncome;
 
     const prevDebitTxns = (state.transactions || []).filter(
       (t: any) =>
@@ -1194,6 +1341,10 @@ export const AnnualReportTab = ({
         t.category !== "Investment"
     );
     const prevTxnExpense = prevDebitTxns.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+    const prevHasRentDebit = prevDebitTxns.some(
+      (t: any) =>
+        (t.category || "").toLowerCase() === "rent" || (t.category || "").toLowerCase() === "rental"
+    );
     const prevRentPaid = (state.rentedProperties || []).reduce(
       (sum: number, p: any) =>
         sum +
@@ -1208,20 +1359,14 @@ export const AnnualReportTab = ({
           .reduce((s: number, pay: any) => s + Number(pay.amount || 0), 0),
       0
     );
-    const prevExpense = prevTxnExpense + prevRentPaid;
+    const prevExpense = prevTxnExpense + (!prevHasRentDebit ? prevRentPaid : 0);
 
     const prevClosingNW = netWorthData.openingNW;
     const prevOpeningNW = nwForMonth(`${fyStartYear - 1}-03`);
     const prevNWChange = prevClosingNW - prevOpeningNW;
 
     const hasPrevData =
-      prevIncomeLedger.length > 0 ||
-      prevCreditTxns.length > 0 ||
-      prevDebitTxns.length > 0 ||
-      prevRentalIncome > 0 ||
-      prevRentPaid > 0 ||
-      prevClosingNW > 0 ||
-      prevOpeningNW > 0;
+      prevIncome > 0 || prevExpense > 0 || (prevOpeningNW > 0 && prevClosingNW > 0);
 
     const pctDelta = (curr: number, prev: number) => {
       if (prev !== 0) return ((curr - prev) / Math.abs(prev)) * 100;
@@ -1242,8 +1387,10 @@ export const AnnualReportTab = ({
   }, [
     state.income,
     state.transactions,
+    state.salarySlips,
     state.rentalProperties,
     state.rentedProperties,
+    state.dividends,
     prevFyStart,
     prevFyEnd,
     fyStartYear,
@@ -1263,7 +1410,12 @@ export const AnnualReportTab = ({
     let debtMF = 0;
 
     (state.mutualFunds || []).forEach((m: any) => {
-      const val = Number(m.units || 0) * Number(m.currentNav || m.buyNav || 0);
+      const liveNav = Number(m.currentNav || 0);
+      const fallbackNav =
+        liveNav ||
+        Number(m.buyNav || 0) ||
+        (Number(m.units || 1) > 0 ? Number(m.invested || 0) / Number(m.units || 1) : 0);
+      const val = Number(m.units || 0) * fallbackNav;
       const cat = (m.category || m.type || "").toLowerCase();
       const isDebt =
         cat &&
@@ -1365,7 +1517,11 @@ export const AnnualReportTab = ({
     );
 
     const dtiRatio =
-      incomeData.totalIncome > 0 ? (annualEMI / incomeData.totalIncome) * 100 : 0;
+      incomeData.totalIncome > 0
+        ? (annualEMI / incomeData.totalIncome) * 100
+        : annualEMI > 0
+        ? 100
+        : 0;
 
     return {
       totalLoanCount: loans.length,
@@ -1404,7 +1560,12 @@ export const AnnualReportTab = ({
       const txnPremium = (p.transactions || [])
         .filter((t: any) => t.date && t.date >= fyStart && t.date <= fyEnd)
         .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-      return s + (txnPremium > 0 ? txnPremium : Number(p.annualPremium || 0));
+      return (
+        s +
+        (txnPremium > 0
+          ? txnPremium
+          : annualizePremium(p.premium, p.premiumFrequency, p.annualPremium))
+      );
     }, 0);
 
     const termPremiums = termPlans.reduce(
@@ -1555,7 +1716,7 @@ export const AnnualReportTab = ({
         text: (
           <>
             Highest single expense: <Money value={e.amount} variant="full" /> —{" "}
-            {e.note || e.category || "Transaction"} ({e.date || ""})
+            {e.description || e.note || e.category || "Transaction"} ({e.date || ""})
           </>
         ),
         color: THEME.rust,
@@ -1575,7 +1736,11 @@ export const AnnualReportTab = ({
       .filter((m: any) => m.buyDate && m.buyDate >= fyStart && m.buyDate <= fyEnd)
       .forEach((m: any) =>
         allInvestments.push({
-          amount: Number(m.invested || m.investedValue || 0),
+          amount: Number(
+            m.invested ||
+              m.investedValue ||
+              (m.buyNav ? Number(m.units || 0) * Number(m.buyNav || 0) : 0)
+          ),
           name: m.name || m.scheme || "MF",
         })
       );
@@ -1585,6 +1750,20 @@ export const AnnualReportTab = ({
         allInvestments.push({
           amount: Number(fd.principal || 0),
           name: `FD at ${fd.bank || "Bank"}`,
+        })
+      );
+    (state.bonds || [])
+      .filter((b: any) => b.orderDate && b.orderDate >= fyStart && b.orderDate <= fyEnd)
+      .forEach((b: any) =>
+        allInvestments.push({
+          amount: Number(
+            b.totalInvestmentAmount ||
+              b.totalPrincipalAmount ||
+              Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0) ||
+              b.faceValue ||
+              0
+          ),
+          name: b.name || b.issuer || "Bond",
         })
       );
 
@@ -1620,10 +1799,14 @@ export const AnnualReportTab = ({
     const mfPnLs = (state.mutualFunds || [])
       .filter((m: any) => Number(m.units || 0) > 0)
       .map((m: any) => {
-        const invested = Number(m.invested || m.investedValue || 0);
-        const current = Number(
-          m.currentValue || (m.currentNav || m.buyNav || 0) * (m.units || 0) || 0
+        const invested = Number(
+          m.invested ||
+            m.investedValue ||
+            (m.buyNav ? Number(m.units || 0) * Number(m.buyNav || 0) : 0)
         );
+        const liveNav = Number(m.currentNav || 0);
+        const currentNav = liveNav || Number(m.buyNav || 0);
+        const current = Number(m.currentValue || currentNav * (m.units || 0) || 0);
         const gain = current - invested;
         const gainPct = invested > 0 ? (gain / invested) * 100 : 0;
         return { name: m.name || m.scheme || "MF", gain, gainPct, invested };
@@ -1697,6 +1880,7 @@ export const AnnualReportTab = ({
     state.stocks,
     state.mutualFunds,
     state.fixedDeposits,
+    state.bonds,
     state.loansTaken,
     netWorthData,
     goalsData,
@@ -1720,9 +1904,15 @@ export const AnnualReportTab = ({
 
     // 2. Debt-to-income score (0-25)
     let dScore = 25;
-    if (debtData.dtiRatio > 50) dScore = 5;
-    else if (debtData.dtiRatio > 35) dScore = 12;
-    else if (debtData.dtiRatio > 20) dScore = 20;
+    if (debtData.annualEMI > 0 && incomeData.totalIncome === 0) {
+      dScore = 5;
+    } else if (debtData.dtiRatio > 50) {
+      dScore = 5;
+    } else if (debtData.dtiRatio > 35) {
+      dScore = 12;
+    } else if (debtData.dtiRatio > 20) {
+      dScore = 20;
+    }
 
     // 3. Insurance cover score (0-25)
     let iScore = 0;
@@ -1764,7 +1954,15 @@ export const AnnualReportTab = ({
     }
 
     return { total, tier, tierColor, persona, sScore, dScore, iScore, gScore };
-  }, [savingsData.savingsRate, debtData.dtiRatio, insuranceData.adequacyRatio, goalsData]);
+  }, [
+    savingsData.savingsRate,
+    debtData.dtiRatio,
+    debtData.annualEMI,
+    incomeData.totalIncome,
+    insuranceData.adequacyRatio,
+    insuranceData.totalLifeCover,
+    goalsData,
+  ]);
 
   /* ═══════════════════════════════════════════════════════════════
      EXPORT CSV HANDLER
@@ -2510,8 +2708,10 @@ export const AnnualReportTab = ({
                 />
                 <MetricTile
                   label="Monthly Avg"
-                  value={fmtINRFull(incomeData.totalIncome / (fyMonthsElapsed || 12))}
-                  sub={`Active for ${fyMonthsElapsed || 12} mos`}
+                  value={fmtINRFull(
+                    incomeData.totalIncome / (isPastFY ? 12 : Math.max(1, fyMonthsElapsed || 12))
+                  )}
+                  sub={isPastFY ? "12 months" : `Active for ${fyMonthsElapsed || 12} mos`}
                 />
               </div>
 
@@ -2826,6 +3026,9 @@ export const AnnualReportTab = ({
                 { label: "Mutual Funds", value: savingsData.mfBuys },
                 { label: "Fixed Deposits", value: savingsData.fdAdds },
                 { label: "PPF", value: savingsData.ppfAdds },
+                { label: "Bonds & Debentures", value: savingsData.bondAdds },
+                { label: "Govt Schemes (NPS/SSY/SCSS)", value: savingsData.govtSchemeAdds },
+                { label: "Gold & SGBs", value: savingsData.goldAdds },
                 ...(netWorthData.isCurrentFY
                   ? [{ label: "Active SIPs (run-rate)", value: savingsData.sipTotal }]
                   : []),
@@ -3407,7 +3610,9 @@ export const AnnualReportTab = ({
                   value:
                     incomeData.totalIncome > 0
                       ? `${((debtData.annualEMI / incomeData.totalIncome) * 100).toFixed(0)}%`
-                      : "0%",
+                      : debtData.annualEMI === 0
+                        ? "0%"
+                        : "N/A",
                   status:
                     debtData.annualEMI === 0
                       ? "No Debt"
@@ -3431,7 +3636,9 @@ export const AnnualReportTab = ({
                   pct:
                     incomeData.totalIncome > 0
                       ? Math.min(100, (debtData.annualEMI / incomeData.totalIncome) * 100)
-                      : 0,
+                      : debtData.annualEMI > 0
+                        ? 100
+                        : 0,
                 },
                 {
                   label: "Insurance Cover",

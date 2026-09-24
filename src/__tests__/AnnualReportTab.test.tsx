@@ -285,5 +285,84 @@ describe("AnnualReportTab Premium UI Statically", () => {
     expect(openingCardHtml).toContain("₹3,00,000");
     expect(openingCardHtml).not.toContain("₹10,00,000");
   });
+
+  it("accurately computes income from salary slips and standalone dividends when ledger is empty", () => {
+    const now = new Date();
+    const currentFY = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    const slipMonth = `${currentFY}-08`;
+
+    const state = {
+      income: [],
+      transactions: [],
+      salarySlips: [
+        {
+          id: "slip-1",
+          slipMonth,
+          employer: "TechCorp",
+          grossSalary: 250000,
+          netSalary: 200000,
+        },
+      ],
+      dividends: [
+        {
+          id: "div-1",
+          date: `${currentFY}-09-10`,
+          amount: 15000,
+          symbol: "TCS",
+        },
+      ],
+      bonds: [
+        {
+          id: "bond-1",
+          orderDate: `${currentFY}-06-20`,
+          totalInvestmentAmount: 100000,
+          name: "SGB 2025 Series",
+        },
+      ],
+    };
+
+    const html = renderToString(
+      <PrivacyProvider>
+        <AnnualReportTab state={state} metrics={{ netWorth: 1000000 }} />
+      </PrivacyProvider>
+    );
+
+    // Total income should include ₹2,00,000 salary + ₹15,000 dividend = ₹2,15,000
+    expect(html).toContain("₹2,15,000");
+    expect(html).toContain("Salary (TechCorp)");
+    expect(html).toContain("Dividends");
+    // New investments should include the ₹1,00,000 bond
+    expect(html).toContain("Bonds &amp; Debentures");
+    expect(html).toContain("₹1,00,000");
+  });
+
+  it("accurately handles debit transactions rent deduplication", () => {
+    const now = new Date();
+    const currentFY = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    const fyDate = `${currentFY}-05-01`;
+
+    const state = {
+      income: [{ id: "inc-1", date: fyDate, amount: 150000, category: "Salary" }],
+      transactions: [
+        { id: "tx-1", date: fyDate, amount: 40000, type: "debit", category: "Rent" },
+        { id: "tx-2", date: fyDate, amount: 10000, type: "debit", category: "Groceries" },
+      ],
+      rentedProperties: [
+        {
+          id: "prop-1",
+          payments: [{ id: "pay-1", date: fyDate, amount: 40000 }],
+        },
+      ],
+    };
+
+    const html = renderToString(
+      <PrivacyProvider>
+        <AnnualReportTab state={state} metrics={{ netWorth: 1000000 }} />
+      </PrivacyProvider>
+    );
+
+    // Total expense should be 40k rent + 10k groceries = 50k (not double counted to 90k)
+    expect(html).toContain("₹50,000");
+  });
 });
 
