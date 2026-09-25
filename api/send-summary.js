@@ -1370,6 +1370,9 @@ function renderEmailShell(contentHtml, titleText) {
 <style>
   body { margin:0; padding:0; background-color:${EMAIL_STYLES.bodyBg}; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
   table { border-collapse:collapse; }
+  .dark-hero { background-color:#0a0f1d !important; color:#ffffff !important; }
+  .dark-header { background-color:#0a0f1d !important; }
+  .dark-footer { background-color:#0a0f1d !important; }
   @media only screen and (max-width:540px) {
     .main-wrap { width:100% !important; border-radius:0 !important; }
     .kpi-col { display:block !important; width:100% !important; margin-bottom:10px !important; }
@@ -1379,10 +1382,10 @@ function renderEmailShell(contentHtml, titleText) {
   }
 </style>
 </head>
-<body style="margin:0;padding:0;background-color:${EMAIL_STYLES.bodyBg};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background-color:${EMAIL_STYLES.bodyBg};padding:20px 12px;">
+<body bgcolor="${EMAIL_STYLES.bodyBg}" style="margin:0;padding:0;background-color:${EMAIL_STYLES.bodyBg};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+<table width="100%" cellpadding="0" cellspacing="0" bgcolor="${EMAIL_STYLES.bodyBg}" style="background-color:${EMAIL_STYLES.bodyBg};padding:20px 12px;">
 <tr><td align="center">
-<table class="main-wrap" width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid ${EMAIL_STYLES.borderColor};">
+<table class="main-wrap" width="620" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:620px;width:100%;margin:0 auto;background-color:#ffffff;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid ${EMAIL_STYLES.borderColor};">
 ${contentHtml}
 </table>
 </td></tr>
@@ -1394,7 +1397,7 @@ ${contentHtml}
 function renderFooterBlock(recipientName, cadenceDesc) {
   return `
   <!-- FOOTER & DASHBOARD CTA -->
-  <tr><td style="background:${EMAIL_STYLES.navyBg};padding:26px 24px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
+  <tr bgcolor="${EMAIL_STYLES.navyBg}"><td bgcolor="${EMAIL_STYLES.navyBg}" class="dark-footer" style="background-color:${EMAIL_STYLES.navyBg};background:${EMAIL_STYLES.navyBg};padding:26px 24px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
     <div style="margin-bottom:12px;">
       <a href="${APP_URL}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:13.5px;font-weight:700;padding:10px 22px;border-radius:8px;">
         Open ArthaDrishti Dashboard →
@@ -1531,7 +1534,7 @@ function renderDailyHTML(summary, recipientName, ist) {
 
   const bodyHtml = `
   <!-- HEADER -->
-  <tr><td style="background:${EMAIL_STYLES.navyBg};padding:22px 24px 18px;">
+  <tr bgcolor="${EMAIL_STYLES.navyBg}"><td bgcolor="${EMAIL_STYLES.navyBg}" class="dark-header" style="background-color:${EMAIL_STYLES.navyBg};background:${EMAIL_STYLES.navyBg};padding:22px 24px 18px;">
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td style="vertical-align:middle;">
@@ -1548,7 +1551,7 @@ function renderDailyHTML(summary, recipientName, ist) {
           </table>
         </td>
         <td style="text-align:right;vertical-align:middle;">
-          <div style="display:inline-block;background:#3b2d14;border:1px solid #d97706;border-radius:20px;padding:5px 12px;">
+          <div style="display:inline-block;background-color:#3b2d14;background:#3b2d14;border:1px solid #d97706;border-radius:20px;padding:5px 12px;">
             <span style="font-size:11px;font-weight:800;color:#fde68a;text-transform:uppercase;letter-spacing:0.06em;">
               Daily Digest
             </span>
@@ -1559,7 +1562,7 @@ function renderDailyHTML(summary, recipientName, ist) {
   </td></tr>
 
   <!-- HERO: INSTANT LIQUID CASH & TODAY'S POSITION -->
-  <tr><td style="background:linear-gradient(180deg, #0a0f1d 0%, #1c1917 100%);padding:26px 24px 28px;color:#ffffff;">
+  <tr bgcolor="#0a0f1d"><td bgcolor="#0a0f1d" class="dark-hero" style="background-color:#0a0f1d;background:linear-gradient(180deg, #0a0f1d 0%, #1c1917 100%);padding:26px 24px 28px;color:#ffffff;">
     <div style="font-size:12px;font-weight:700;color:#fde68a;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:6px;">
       Available Bank Balance &amp; Cash
     </div>
@@ -1570,7 +1573,7 @@ function renderDailyHTML(summary, recipientName, ist) {
     <!-- Quick net worth & liquid reserves pill -->
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
       <tr>
-        <td style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:9px 14px;">
+        <td bgcolor="#161e38" style="background-color:#161e38;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:9px 14px;">
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td>
@@ -1803,7 +1806,7 @@ function renderWeeklyHTML(summary, recipientName, ist) {
 
   const bodyHtml = `
   <!-- HEADER -->
-  <tr><td style="background:${EMAIL_STYLES.navyBg};padding:22px 24px 18px;">
+  <tr bgcolor="${EMAIL_STYLES.navyBg}"><td bgcolor="${EMAIL_STYLES.navyBg}" class="dark-header" style="background-color:${EMAIL_STYLES.navyBg};background:${EMAIL_STYLES.navyBg};padding:22px 24px 18px;">
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td style="vertical-align:middle;">
@@ -1820,7 +1823,7 @@ function renderWeeklyHTML(summary, recipientName, ist) {
           </table>
         </td>
         <td style="text-align:right;vertical-align:middle;">
-          <div style="display:inline-block;background:linear-gradient(135deg, #312e81, #1e1b4b);border:1px solid #4338ca;border-radius:20px;padding:5px 12px;">
+          <div style="display:inline-block;background-color:#312e81;background:linear-gradient(135deg, #312e81, #1e1b4b);border:1px solid #4338ca;border-radius:20px;padding:5px 12px;">
             <span style="font-size:11px;font-weight:800;color:#c7d2fe;text-transform:uppercase;letter-spacing:0.06em;">
               Weekly Briefing
             </span>
@@ -1831,7 +1834,7 @@ function renderWeeklyHTML(summary, recipientName, ist) {
   </td></tr>
 
   <!-- HERO: NET WORTH -->
-  <tr><td style="background:linear-gradient(180deg, #0a0f1d 0%, #161e38 100%);padding:26px 24px 30px;color:#ffffff;">
+  <tr bgcolor="#0a0f1d"><td bgcolor="#0a0f1d" class="dark-hero" style="background-color:#0a0f1d;background:linear-gradient(180deg, #0a0f1d 0%, #161e38 100%);padding:26px 24px 30px;color:#ffffff;">
     <div style="font-size:12px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:6px;">
       Total Household Net Worth
     </div>
@@ -1841,7 +1844,7 @@ function renderWeeklyHTML(summary, recipientName, ist) {
 
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
       <tr>
-        <td style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:9px 14px;">
+        <td bgcolor="#161e38" style="background-color:#161e38;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:9px 14px;">
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td>
@@ -2192,7 +2195,7 @@ function renderMonthlyHTML(summary, recipientName, ist) {
 
   const bodyHtml = `
   <!-- HEADER -->
-  <tr><td style="background:${EMAIL_STYLES.navyBg};padding:22px 24px 18px;">
+  <tr bgcolor="${EMAIL_STYLES.navyBg}"><td bgcolor="${EMAIL_STYLES.navyBg}" class="dark-header" style="background-color:${EMAIL_STYLES.navyBg};background:${EMAIL_STYLES.navyBg};padding:22px 24px 18px;">
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td style="vertical-align:middle;">
@@ -2209,7 +2212,7 @@ function renderMonthlyHTML(summary, recipientName, ist) {
           </table>
         </td>
         <td style="text-align:right;vertical-align:middle;">
-          <div style="display:inline-block;background:linear-gradient(135deg, #064e3b, #022c22);border:1px solid #059669;border-radius:20px;padding:5px 12px;">
+          <div style="display:inline-block;background-color:#064e3b;background:linear-gradient(135deg, #064e3b, #022c22);border:1px solid #059669;border-radius:20px;padding:5px 12px;">
             <span style="font-size:11px;font-weight:800;color:#a7f3d0;text-transform:uppercase;letter-spacing:0.06em;">
               Monthly Executive
             </span>
@@ -2220,7 +2223,7 @@ function renderMonthlyHTML(summary, recipientName, ist) {
   </td></tr>
 
   <!-- HERO: NET WORTH & BALANCE SHEET PILL -->
-  <tr><td style="background:linear-gradient(180deg, #0a0f1d 0%, #06241b 100%);padding:28px 24px 32px;color:#ffffff;">
+  <tr bgcolor="#0a0f1d"><td bgcolor="#0a0f1d" class="dark-hero" style="background-color:#0a0f1d;background:linear-gradient(180deg, #0a0f1d 0%, #06241b 100%);padding:28px 24px 32px;color:#ffffff;">
     <div style="font-size:12px;font-weight:700;color:#a7f3d0;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:6px;">
       Total Household Net Worth
     </div>
@@ -2230,7 +2233,7 @@ function renderMonthlyHTML(summary, recipientName, ist) {
 
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
       <tr>
-        <td style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 14px;">
+        <td bgcolor="#06241b" style="background-color:#06241b;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:10px 14px;">
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td>

@@ -239,6 +239,9 @@ describe("Daily Email Summary — Senior Accounting, Development & UI Engine", (
       expect(html).toContain("Immediate Dues (Today &amp; Next 3 Days)");
       expect(html).toContain("3-Day Immediate Outflow");
       expect(html).toContain("Anand");
+      // Bulletproof dark-card fallback assertions to prevent invisible white-on-white text in light mode
+      expect(html).toContain('bgcolor="#0a0f1d"');
+      expect(html).toContain('background-color:#0a0f1d');
       expect(html).not.toContain("<script>");
     });
 
