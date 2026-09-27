@@ -2559,7 +2559,7 @@ function FinanceDashboard() {
 
       if (upsertErr && isMissingColErr(upsertErr)) {
         const strippedCols: string[] = [];
-        let currentErr = upsertErr;
+        let currentErr: any = upsertErr;
         while (isMissingColErr(currentErr)) {
           const badCol = extractMissingColumn(currentErr);
           if (!badCol) break;

@@ -833,10 +833,10 @@ export function BanksTab({
     const typeOrder = (t: any) => (t.type === "credit" ? 0 : 1);
     const getIdx = (t: any) => txnIndexMap.get(t.id) ?? 0;
 
-    let withIdx = filteredTxns.map((t) => ({ t, idx: getIdx(t) }));
+    let withIdx = filteredTxns.map((t: any) => ({ t, idx: getIdx(t) }));
 
     if (sortField) {
-      withIdx.sort((a, b) => {
+      withIdx.sort((a: any, b: any) => {
         if (sortField === "date") {
           const byDate = (a.t.date || "").localeCompare(b.t.date || "");
           if (byDate !== 0) return sortDirection === "asc" ? byDate : -byDate;
@@ -867,7 +867,7 @@ export function BanksTab({
       });
     } else {
       // Default view: Reverse chronological (latest date first, latest within day first)
-      withIdx.sort((a, b) => {
+      withIdx.sort((a: any, b: any) => {
         const byDate = (b.t.date || "").localeCompare(a.t.date || "");
         if (byDate !== 0) return byDate;
         const ca = createdAtOf(a.t);
@@ -880,7 +880,7 @@ export function BanksTab({
         return b.idx - a.idx;
       });
     }
-    return withIdx.map((x) => x.t);
+    return withIdx.map((x: any) => x.t);
   }, [filteredTxns, sortField, sortDirection, txnIndexMap]);
 
   // Pagination reset
