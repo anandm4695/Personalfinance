@@ -37,6 +37,9 @@ export function InformalTrancheModal({
   const [dueDate, setDueDate] = useState<string>(initial?.dueDate || "");
   const [note, setNote] = useState<string>(initial?.note || "");
   const [selectedBankId, setSelectedBankId] = useState<string>("");
+  const [mode, setMode] = useState<string>(initial?.mode || initial?.method || "Bank Transfer");
+  const [narration, setNarration] = useState<string>(initial?.narration || "");
+  const [referenceNumber, setReferenceNumber] = useState<string>(initial?.referenceNumber || initial?.reference || "");
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
@@ -57,6 +60,11 @@ export function InformalTrancheModal({
       amount: numAmt,
       date,
       note: note.trim(),
+      mode,
+      method: mode,
+      ...(narration.trim() ? { narration: narration.trim() } : {}),
+      ...(referenceNumber.trim() ? { referenceNumber: referenceNumber.trim(), reference: referenceNumber.trim() } : {}),
+      ...(selectedBankId ? { bankAccountId: selectedBankId } : {}),
     };
     if (dueDate) {
       trancheData.dueDate = dueDate;
@@ -77,12 +85,17 @@ export function InformalTrancheModal({
           amount: numAmt,
           type: "credit",
           category: "Loan Received",
-          description: `Loan received from ${personName}${note ? ` (${note})` : ""}`,
+          note: note.trim() || `Loan received from ${personName}`,
+          description: note.trim() || `Loan received from ${personName} via ${mode}`,
+          narration: narration.trim() || `Loan received from ${personName} - Ref: ${referenceNumber.trim() || mode}`,
+          referenceNumber: referenceNumber.trim() || undefined,
           accountId: selectedBankId,
           bankAccountId: selectedBankId,
           bankName: selectedBank?.bankName || "Bank",
-          mode: "Bank Transfer",
+          mode,
           owner: person?.owner || "self",
+          linkedType: "informalBorrowed",
+          linkedId: person?.id,
         };
       } else {
         // Lent money disbursed: Debit from user's bank account
@@ -92,17 +105,26 @@ export function InformalTrancheModal({
           amount: numAmt,
           type: "debit",
           category: "Loan Given",
-          description: `Personal loan given to ${personName}${note ? ` (${note})` : ""}`,
+          note: note.trim() || `Personal loan given to ${personName}`,
+          description: note.trim() || `Personal loan given to ${personName} via ${mode}`,
+          narration: narration.trim() || `Loan given to ${personName} - Ref: ${referenceNumber.trim() || mode}`,
+          referenceNumber: referenceNumber.trim() || undefined,
           accountId: selectedBankId,
           bankAccountId: selectedBankId,
           bankName: selectedBank?.bankName || "Bank",
-          mode: "Bank Transfer",
+          mode,
           owner: person?.owner || "self",
+          linkedType: "informalLent",
+          linkedId: person?.id,
         };
       }
     }
 
-    await onSave(trancheData, bankTxn);
+    if (bankTxn) {
+      await onSave(trancheData, bankTxn);
+    } else {
+      await onSave(trancheData);
+    }
   };
 
   return (
@@ -272,6 +294,87 @@ export function InformalTrancheModal({
                 : "If selected, creates an outgoing debit transaction from this bank account."}
             </div>
           </Field>
+        )}
+
+        {/* Bank Transaction Metadata Fields */}
+        {selectedBankId && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              padding: "12px 14px",
+              background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
+              borderRadius: "var(--radius-md)",
+              border: "1px dashed var(--t-line)",
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--t-accent)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Bank Ledger Details
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="Payment Mode">
+                <select
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--t-line)",
+                    background: "var(--t-card-bg)",
+                    color: "var(--t-ink)",
+                    fontSize: 13,
+                    outline: "none",
+                  }}
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value)}
+                >
+                  <option value="Bank Transfer">Bank Transfer (NEFT / IMPS / RTGS)</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Card">Card</option>
+                  <option value="Other">Other</option>
+                </select>
+              </Field>
+
+              <Field label="Reference / Cheque / UTR No.">
+                <input
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--t-line)",
+                    background: "var(--t-card-bg)",
+                    color: "var(--t-ink)",
+                    fontSize: 13,
+                    outline: "none",
+                  }}
+                  placeholder="e.g. Cheque #4521 / UTR No."
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <Field label="Narration / Description (for Bank Ledger)">
+              <input
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--t-line)",
+                  background: "var(--t-card-bg)",
+                  color: "var(--t-ink)",
+                  fontSize: 13,
+                  outline: "none",
+                }}
+                placeholder="e.g. IMPS/P2A/524312441/Personal Loan"
+                value={narration}
+                onChange={(e) => setNarration(e.target.value)}
+              />
+            </Field>
+          </div>
         )}
 
         {/* Note */}

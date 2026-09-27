@@ -53,6 +53,9 @@ export function LoanTakenModal({
   );
 
   const [selectedBankId, setSelectedBankId] = useState<string>("");
+  const [mode, setMode] = useState<string>("Bank Transfer");
+  const [narration, setNarration] = useState<string>("");
+  const [referenceNumber, setReferenceNumber] = useState<string>("");
   const [tenureUnit, setTenureUnit] = useState<"months" | "years">("months");
   const [tenureYears, setTenureYears] = useState<string>(
     f.monthsRemaining ? String(Math.round(Number(f.monthsRemaining) / 12)) : ""
@@ -136,11 +139,14 @@ export function LoanTakenModal({
         amount: principalAmt,
         type: "credit",
         category: "Loan Received",
-        description: `Loan disbursement received from ${f.lender}${f.note ? ` (${f.note})` : ""}`,
+        note: f.note?.trim() || `Loan disbursement received from ${f.lender}`,
+        description: f.note?.trim() || `Loan disbursement received from ${f.lender} via ${mode}`,
+        narration: narration.trim() || `Disbursement from ${f.lender}${f.accountNumber ? ` A/C: ${f.accountNumber}` : ""} - Ref: ${referenceNumber.trim() || mode}`,
+        referenceNumber: referenceNumber.trim() || undefined,
         accountId: selectedBankId,
         bankAccountId: selectedBankId,
         bankName: selectedBank?.bankName || "Bank",
-        mode: "Bank Transfer",
+        mode,
         owner: f.owner || "self",
         linkedType: "loansTaken",
       };
@@ -382,32 +388,87 @@ export function LoanTakenModal({
         </Field>
 
         {!initial && bankAccounts.length > 0 && (
-          <Field label="Disbursed To Bank Account (Optional)">
-            <select
-              style={inputStyle}
-              value={selectedBankId}
-              onChange={(e) => setSelectedBankId(e.target.value)}
-            >
-              <option value="">— Do not record in bank account —</option>
-              {bankAccounts.map((acc: any) => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.bankName} {acc.accountNumber ? `(••••${acc.accountNumber.slice(-4)})` : ""}
-                </option>
-              ))}
-            </select>
+          <>
+            <Field label="Disbursed To Bank Account (Optional)">
+              <select
+                style={inputStyle}
+                value={selectedBankId}
+                onChange={(e) => setSelectedBankId(e.target.value)}
+              >
+                <option value="">— Do not record in bank account —</option>
+                {bankAccounts.map((acc: any) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.bankName} {acc.accountNumber ? `(••••${acc.accountNumber.slice(-4)})` : ""}
+                  </option>
+                ))}
+              </select>
+              {selectedBankId && (
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: THEME.sage,
+                    marginTop: 6,
+                    fontWeight: 600,
+                  }}
+                >
+                  ✓ Will automatically credit {Number(f.principal) > 0 ? `₹${Number(f.principal).toLocaleString("en-IN")}` : "principal"} to this bank account in Banks & Transactions
+                </div>
+              )}
+            </Field>
+
             {selectedBankId && (
               <div
                 style={{
-                  fontSize: 11,
-                  color: THEME.sage,
-                  marginTop: 6,
-                  fontWeight: 600,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  padding: "12px 14px",
+                  background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px dashed var(--t-line)",
                 }}
               >
-                ✓ Will automatically credit {Number(f.principal) > 0 ? `₹${Number(f.principal).toLocaleString("en-IN")}` : "principal"} to this bank account in Banks & Transactions
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--t-accent)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Bank Ledger Details
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <Field label="Payment Mode">
+                    <select
+                      style={inputStyle}
+                      value={mode}
+                      onChange={(e) => setMode(e.target.value)}
+                    >
+                      <option value="Bank Transfer">Bank Transfer (NEFT / IMPS / RTGS)</option>
+                      <option value="UPI">UPI</option>
+                      <option value="Cheque">Cheque</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Card">Card</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Reference / Cheque / UTR No.">
+                    <input
+                      style={inputStyle}
+                      placeholder="e.g. Cheque #4521 / UTR No."
+                      value={referenceNumber}
+                      onChange={(e) => setReferenceNumber(e.target.value)}
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Narration / Description (for Bank Ledger)">
+                  <input
+                    style={inputStyle}
+                    placeholder="e.g. Disbursed Loan Principal / Ref: Loan Account"
+                    value={narration}
+                    onChange={(e) => setNarration(e.target.value)}
+                  />
+                </Field>
               </div>
             )}
-          </Field>
+          </>
         )}
 
         <ModalActions

@@ -67,6 +67,8 @@ export function InformalPaymentModal({
   const [method, setMethod] = useState<string>(initial?.method || "UPI");
   const [note, setNote] = useState<string>(initial?.note || "");
   const [selectedBankId, setSelectedBankId] = useState<string>("");
+  const [narration, setNarration] = useState<string>(initial?.narration || "");
+  const [referenceNumber, setReferenceNumber] = useState<string>(initial?.referenceNumber || initial?.reference || "");
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
@@ -88,6 +90,9 @@ export function InformalPaymentModal({
       date,
       method,
       note: note.trim(),
+      ...(narration.trim() ? { narration: narration.trim() } : {}),
+      ...(referenceNumber.trim() ? { referenceNumber: referenceNumber.trim(), reference: referenceNumber.trim() } : {}),
+      ...(selectedBankId ? { bankAccountId: selectedBankId } : {}),
     };
 
     // Optional bank transaction creation (only on new payment)
@@ -102,12 +107,17 @@ export function InformalPaymentModal({
           amount: numAmt,
           type: "debit",
           category: "Debt Repayment",
-          description: `Repayment to ${personName} via ${method}${note ? ` (${note})` : ""}`,
+          note: note.trim() || `Repayment to ${personName}`,
+          description: note.trim() || `Repayment to ${personName} via ${method}`,
+          narration: narration.trim() || `Repayment to ${personName} - Ref: ${referenceNumber.trim() || method}`,
+          referenceNumber: referenceNumber.trim() || undefined,
           accountId: selectedBankId,
           bankAccountId: selectedBankId,
           bankName: selectedBank?.bankName || "Bank",
           mode: method,
           owner: person?.owner || "self",
+          linkedType: "informalBorrowed",
+          linkedId: person?.id,
         };
       } else {
         // Repayment received from borrower -> Credit into user's bank account
@@ -117,17 +127,26 @@ export function InformalPaymentModal({
           amount: numAmt,
           type: "credit",
           category: "Loan Recovery",
-          description: `Loan recovery from ${personName} via ${method}${note ? ` (${note})` : ""}`,
+          note: note.trim() || `Loan recovery from ${personName}`,
+          description: note.trim() || `Loan recovery from ${personName} via ${method}`,
+          narration: narration.trim() || `Loan recovery from ${personName} - Ref: ${referenceNumber.trim() || method}`,
+          referenceNumber: referenceNumber.trim() || undefined,
           accountId: selectedBankId,
           bankAccountId: selectedBankId,
           bankName: selectedBank?.bankName || "Bank",
           mode: method,
           owner: person?.owner || "self",
+          linkedType: "informalLent",
+          linkedId: person?.id,
         };
       }
     }
 
-    await onSave(paymentData, bankTxn);
+    if (bankTxn) {
+      await onSave(paymentData, bankTxn);
+    } else {
+      await onSave(paymentData);
+    }
   };
 
   return (
@@ -356,6 +375,63 @@ export function InformalPaymentModal({
                 : "If selected, automatically logs an income deposit transaction in your bank ledger."}
             </div>
           </Field>
+        )}
+
+        {/* Bank Transaction Metadata Fields */}
+        {selectedBankId && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              padding: "12px 14px",
+              background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
+              borderRadius: "var(--radius-md)",
+              border: "1px dashed var(--t-line)",
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--t-accent)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Bank Ledger Details
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="Reference / Cheque / UTR No.">
+                <input
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--t-line)",
+                    background: "var(--t-card-bg)",
+                    color: "var(--t-ink)",
+                    fontSize: 13,
+                    outline: "none",
+                  }}
+                  placeholder="e.g. UPI / Cheque #4521 / UTR"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                />
+              </Field>
+
+              <Field label="Narration / Description (for Bank Ledger)">
+                <input
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--t-line)",
+                    background: "var(--t-card-bg)",
+                    color: "var(--t-ink)",
+                    fontSize: 13,
+                    outline: "none",
+                  }}
+                  placeholder="e.g. UPI/23910391/Debt Settlement"
+                  value={narration}
+                  onChange={(e) => setNarration(e.target.value)}
+                />
+              </Field>
+            </div>
+          </div>
         )}
 
         {/* Note */}

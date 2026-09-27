@@ -62,6 +62,7 @@ export function LoanPaymentModal({
   const [date, setDate] = useState<string>(today());
   const [paymentMode, setPaymentMode] = useState<string>(isTaken ? "Auto-Debit (NACH)" : "UPI");
   const [reference, setReference] = useState<string>("");
+  const [narration, setNarration] = useState<string>("");
   const [note, setNote] = useState<string>("");
 
   const numAmount = Number(amount) || 0;
@@ -126,9 +127,11 @@ export function LoanPaymentModal({
           (isTaken
             ? `EMI payment for ${loan.lender || "Loan"}`
             : `Loan repayment from ${loan.borrower || "Borrower"}`),
-        narration: isTaken
-          ? `Loan Payment (${loan.lender || "Loan"}) - Ref: ${reference || paymentMode}`
-          : `Loan Recovery (${loan.borrower || "Borrower"}) - Ref: ${reference || paymentMode}`,
+        narration:
+          narration.trim() ||
+          (isTaken
+            ? `Loan Payment (${loan.lender || "Loan"}) - Ref: ${reference || paymentMode}`
+            : `Loan Recovery (${loan.borrower || "Borrower"}) - Ref: ${reference || paymentMode}`),
         referenceNumber: reference || undefined,
         linkedType: isTaken ? "loansTaken" : "loansGiven",
         linkedId: loan.id,
@@ -398,6 +401,26 @@ export function LoanPaymentModal({
             />
           </Field>
         </div>
+
+        {selectedAccountId && (
+          <Field label="Narration / Description (for Bank Ledger)">
+            <input
+              placeholder={isTaken ? `e.g. EMI/${loan.lender || "Loan"}/NACH` : `e.g. Loan Recovery/${loan.borrower || "Borrower"}/UPI`}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: "1px solid var(--t-line)",
+                background: "var(--surface-0)",
+                color: "var(--t-ink)",
+                fontSize: 13,
+                outline: "none",
+              }}
+              value={narration}
+              onChange={(e) => setNarration(e.target.value)}
+            />
+          </Field>
+        )}
 
         {isTaken && numAmount > 0 && (
           <div
