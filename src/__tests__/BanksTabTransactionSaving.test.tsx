@@ -27,7 +27,7 @@ describe("BanksTab Transaction Saving and Modal State", () => {
     document.body.innerHTML = "";
   });
 
-  it("handles record transaction saving and calls addItem with correct parameters", async () => {
+  it("handles record transaction saving instantly and calls addItem with correct parameters", async () => {
     const addItemMock = vi.fn().mockResolvedValue({ success: true, id: "test-uuid" });
     const showToastMock = vi.fn();
 
@@ -90,6 +90,9 @@ describe("BanksTab Transaction Saving and Modal State", () => {
       saveBtn?.click();
     });
 
+    // Modal closes instantly without waiting for network
+    expect(document.body.textContent).not.toContain("Record Bank Transaction");
+
     expect(addItemMock).toHaveBeenCalledWith(
       "transactions",
       expect.objectContaining({
@@ -107,20 +110,14 @@ describe("BanksTab Transaction Saving and Modal State", () => {
     expect(showToastMock).toHaveBeenCalledWith("Transaction recorded successfully", "success");
   });
 
-  it("keeps transaction modal open and preserves entered values if save fails", async () => {
-    const addItemMock = vi.fn().mockRejectedValue(new Error("Network connection lost"));
+  it("handles transfer transaction via addTransactions for atomic batch execution", async () => {
+    const addTransactionsMock = vi.fn().mockResolvedValue(undefined);
     const showToastMock = vi.fn();
 
     const mockState = {
       bankAccounts: [
-        {
-          id: "bank-1",
-          bankName: "SBI Bank",
-          type: "Savings",
-          accountNumber: "5678",
-          balance: 20000,
-          owner: "self",
-        },
+        { id: "bank-src", bankName: "HDFC Bank", type: "Savings", balance: 50000, owner: "self" },
+        { id: "bank-dest", bankName: "ICICI Bank", type: "Salary", balance: 10000, owner: "self" },
       ],
       transactions: [],
     };
@@ -129,7 +126,7 @@ describe("BanksTab Transaction Saving and Modal State", () => {
       <PrivacyProvider>
         <BanksTab
           state={mockState}
-          addItem={addItemMock}
+          addTransactions={addTransactionsMock}
           showToast={showToastMock}
           activeProfile="self"
         />
@@ -143,10 +140,19 @@ describe("BanksTab Transaction Saving and Modal State", () => {
       recordBtn?.click();
     });
 
+    // Switch to Transfer tab inside modal
+    const modal = document.body.querySelector(".modal, [role='dialog'], [style*='position: fixed']") || document.body;
+    const transferTabBtn = Array.from(modal.querySelectorAll("button")).find((b) =>
+      b.textContent?.trim().includes("Transfer")
+    );
+    await act(async () => {
+      transferTabBtn?.click();
+    });
+
     const amountInput = document.body.querySelector('input[type="number"]') as HTMLInputElement;
     const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!;
     await act(async () => {
-      setter.call(amountInput, "7500");
+      setter.call(amountInput, "5000");
       amountInput.dispatchEvent(new Event("input", { bubbles: true }));
       amountInput.dispatchEvent(new Event("change", { bubbles: true }));
     });
@@ -160,21 +166,11 @@ describe("BanksTab Transaction Saving and Modal State", () => {
       saveBtn?.click();
     });
 
-    await act(async () => {
-      vi.runAllTimers();
-    });
-
-    // Modal is still present in document.body
-    expect(document.body.textContent).toContain("Record Bank Transaction");
-
-    // The user's typed amount is still preserved
-    const preservedInput = document.body.querySelector('input[type="number"]') as HTMLInputElement;
-    expect(preservedInput.value).toBe("7500");
-
-    // Error toast was triggered with error explanation
-    expect(showToastMock).toHaveBeenCalledWith(
-      expect.stringContaining("Failed to save transaction: Network connection lost"),
-      "error"
+    expect(addTransactionsMock).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "debit", amount: 5000 }),
+        expect.objectContaining({ type: "credit", amount: 5000 }),
+      ])
     );
   });
 });

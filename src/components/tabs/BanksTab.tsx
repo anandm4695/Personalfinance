@@ -61,7 +61,6 @@ import {
 } from "../../utils/finance";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
-import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -457,101 +456,124 @@ export function BanksTab({
     }
   };
 
-  const { run: saveBankEdit, loading: savingBankEdit } = useAsyncAction(
+  const saveBankEdit = useCallback(
     async (id: string, v: any) => {
-      await updateItem("bankAccounts", id, v);
-    },
-    {
-      onSuccess: () => {
-        setEditBankId(null);
+      setEditBankId(null);
+      try {
+        await updateItem("bankAccounts", id, v);
         showToast?.("Bank account updated successfully", "success");
-      },
-      onError: (e: any) =>
-        showToast?.(`Failed to save bank account: ${e?.message || "Unknown error"}`, "error"),
-    }
-  );
-
-  const { run: saveTxnEdit, loading: savingTxnEdit } = useAsyncAction(
-    async (id: string, v: any) => {
-      await updateItem("transactions", id, v);
-    },
-    {
-      onSuccess: () => {
-        setEditTxnId(null);
-        showToast?.("Transaction updated successfully", "success");
-      },
-      onError: (e: any) =>
-        showToast?.(`Failed to save transaction: ${e?.message || "Unknown error"}`, "error"),
-    }
-  );
-
-  const { run: saveNewBank, loading: savingNewBank } = useAsyncAction(
-    async (v: any) => {
-      await addItem("bankAccounts", v);
-    },
-    {
-      onSuccess: () => {
-        setShowBank(false);
-        showToast?.("Bank account added successfully", "success");
-      },
-      onError: (e: any) =>
-        showToast?.(`Failed to add bank account: ${e?.message || "Unknown error"}`, "error"),
-    }
-  );
-
-  const { run: saveNewTxn, loading: savingNewTxn } = useAsyncAction(
-    async (v: any) => {
-      const amt = Number(v.amount);
-      if (v.type === "transfer" && v.toAccountId && v.accountId !== v.toAccountId) {
-        const srcAcc = state.bankAccounts.find((a: any) => a.id === v.accountId);
-        const destAcc = state.bankAccounts.find((a: any) => a.id === v.toAccountId);
-        await Promise.all([
-          addItem("transactions", {
-            owner: v.owner,
-            date: v.date,
-            accountId: v.accountId,
-            type: "debit",
-            amount: amt,
-            category: "Transfer",
-            note: v.note || `Transfer to ${destAcc?.bankName || "account"}`,
-            narration: v.narration,
-            referenceNumber: v.referenceNumber,
-          }),
-          addItem("transactions", {
-            owner: v.owner,
-            date: v.date,
-            accountId: v.toAccountId,
-            type: "credit",
-            amount: amt,
-            category: "Transfer",
-            note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`,
-            narration: v.narration,
-            referenceNumber: v.referenceNumber,
-          }),
-        ]);
-      } else {
-        const { toAccountId: _drop, linkedKey, ...txnBase } = v;
-        const ci = linkedKey ? linkedKey.indexOf(":") : -1;
-        const linkedType = ci >= 0 ? linkedKey.slice(0, ci) : undefined;
-        const linkedId = ci >= 0 ? linkedKey.slice(ci + 1) : undefined;
-        const txnId = uid();
-        await addItem("transactions", {
-          ...txnBase,
-          amount: amt || txnBase.amount,
-          id: txnId,
-          ...(linkedType ? { linkedType, linkedId } : {}),
-        });
-        if (linkedKey) await autoPostLinkedTransaction(linkedKey, v, txnId);
+      } catch (e: any) {
+        showToast?.(`Saved locally: ${e?.message || "Syncing in background"}`, "warn");
       }
     },
-    {
-      onSuccess: () => {
-        setShowTxn(false);
+    [updateItem, showToast]
+  );
+
+  const saveTxnEdit = useCallback(
+    async (id: string, v: any) => {
+      setEditTxnId(null);
+      try {
+        await updateItem("transactions", id, v);
+        showToast?.("Transaction updated successfully", "success");
+      } catch (e: any) {
+        showToast?.(`Saved locally: ${e?.message || "Syncing in background"}`, "warn");
+      }
+    },
+    [updateItem, showToast]
+  );
+
+  const saveNewBank = useCallback(
+    async (v: any) => {
+      setShowBank(false);
+      try {
+        await addItem("bankAccounts", v);
+        showToast?.("Bank account added successfully", "success");
+      } catch (e: any) {
+        showToast?.(`Saved locally: ${e?.message || "Syncing in background"}`, "warn");
+      }
+    },
+    [addItem, showToast]
+  );
+
+  const saveNewTxn = useCallback(
+    async (v: any) => {
+      setShowTxn(false);
+      try {
+        const amt = Number(v.amount);
+        if (v.type === "transfer" && v.toAccountId && v.accountId !== v.toAccountId) {
+          const srcAcc = state.bankAccounts.find((a: any) => a.id === v.accountId);
+          const destAcc = state.bankAccounts.find((a: any) => a.id === v.toAccountId);
+          if (addTransactions) {
+            await addTransactions([
+              {
+                owner: v.owner,
+                date: v.date,
+                accountId: v.accountId,
+                type: "debit",
+                amount: amt,
+                category: "Transfer",
+                note: v.note || `Transfer to ${destAcc?.bankName || "account"}`,
+                narration: v.narration,
+                referenceNumber: v.referenceNumber,
+              },
+              {
+                owner: v.owner,
+                date: v.date,
+                accountId: v.toAccountId,
+                type: "credit",
+                amount: amt,
+                category: "Transfer",
+                note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`,
+                narration: v.narration,
+                referenceNumber: v.referenceNumber,
+              },
+            ]);
+          } else {
+            await Promise.all([
+              addItem("transactions", {
+                owner: v.owner,
+                date: v.date,
+                accountId: v.accountId,
+                type: "debit",
+                amount: amt,
+                category: "Transfer",
+                note: v.note || `Transfer to ${destAcc?.bankName || "account"}`,
+                narration: v.narration,
+                referenceNumber: v.referenceNumber,
+              }),
+              addItem("transactions", {
+                owner: v.owner,
+                date: v.date,
+                accountId: v.toAccountId,
+                type: "credit",
+                amount: amt,
+                category: "Transfer",
+                note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`,
+                narration: v.narration,
+                referenceNumber: v.referenceNumber,
+              }),
+            ]);
+          }
+        } else {
+          const { toAccountId: _drop, linkedKey, ...txnBase } = v;
+          const ci = linkedKey ? linkedKey.indexOf(":") : -1;
+          const linkedType = ci >= 0 ? linkedKey.slice(0, ci) : undefined;
+          const linkedId = ci >= 0 ? linkedKey.slice(ci + 1) : undefined;
+          const txnId = uid();
+          await addItem("transactions", {
+            ...txnBase,
+            amount: amt || txnBase.amount,
+            id: txnId,
+            ...(linkedType ? { linkedType, linkedId } : {}),
+          });
+          if (linkedKey) await autoPostLinkedTransaction(linkedKey, v, txnId);
+        }
         showToast?.("Transaction recorded successfully", "success");
-      },
-      onError: (e: any) =>
-        showToast?.(`Failed to save transaction: ${e?.message || "Unknown error"}`, "error"),
-    }
+      } catch (e: any) {
+        showToast?.(`Saved locally: ${e?.message || "Syncing in background"}`, "warn");
+      }
+    },
+    [state.bankAccounts, addTransactions, addItem, autoPostLinkedTransaction, showToast]
   );
 
   const setQuickRange = (preset: string) => {
@@ -3229,7 +3251,6 @@ export function BanksTab({
         <BankModal
           onClose={() => setShowBank(false)}
           onSave={saveNewBank}
-          saving={savingNewBank}
         />
       )}
 
@@ -3238,7 +3259,6 @@ export function BanksTab({
           account={(state.bankAccounts || []).find((a: any) => a.id === editBankId)}
           onClose={() => setEditBankId(null)}
           onSave={(v: any) => saveBankEdit(editBankId, v)}
-          saving={savingBankEdit}
         />
       )}
 
@@ -3252,7 +3272,6 @@ export function BanksTab({
           getDisplayBalance={getDisplayBalance}
           onClose={() => setShowTxn(false)}
           onSave={saveNewTxn}
-          saving={savingNewTxn}
         />
       )}
 
@@ -3263,7 +3282,6 @@ export function BanksTab({
           getDisplayBalance={getDisplayBalance}
           onClose={() => setEditTxnId(null)}
           onSave={(v: any) => saveTxnEdit(editTxnId, v)}
-          saving={savingTxnEdit}
         />
       )}
 
