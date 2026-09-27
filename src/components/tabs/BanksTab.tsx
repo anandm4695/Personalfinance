@@ -636,6 +636,7 @@ export function BanksTab({
         const n = new Date(t.createdAt).getTime();
         return isNaN(n) ? null : n;
       };
+      const typeOrder = (t: any) => (t.type === "credit" ? 0 : 1);
       const withIdx = txns
         .map((t, idx) => ({ t, idx }))
         .sort((a, b) => {
@@ -644,7 +645,10 @@ export function BanksTab({
           const ca = createdAtOf(a.t);
           const cb = createdAtOf(b.t);
           if (ca !== null && cb !== null && ca !== cb) return ca - cb;
-          return b.idx - a.idx;
+          const toA = typeOrder(a.t);
+          const toB = typeOrder(b.t);
+          if (toA !== toB) return toA - toB;
+          return a.idx - b.idx;
         });
       let ordered = withIdx.map((x) => x.t);
 
@@ -689,13 +693,27 @@ export function BanksTab({
     });
     Object.entries(byAccount).forEach(([accountId, txns]) => {
       if (txns.length === 0) return;
-      const sorted = [...txns].sort((a, b) => {
-        const byDate = (a.date || "").localeCompare(b.date || "");
-        if (byDate !== 0) return byDate;
-        const ca = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const cb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return ca - cb;
-      });
+      const createdAtOf = (t: any): number | null => {
+        if (!t.createdAt) return null;
+        const n = new Date(t.createdAt).getTime();
+        return isNaN(n) ? null : n;
+      };
+      const typeOrder = (t: any) => (t.type === "credit" ? 0 : 1);
+      const sorted = txns
+        .map((t, idx) => ({ t, idx }))
+        .sort((a, b) => {
+          const byDate = (a.t.date || "").localeCompare(b.t.date || "");
+          if (byDate !== 0) return byDate;
+          const ca = createdAtOf(a.t);
+          const cb = createdAtOf(b.t);
+          if (ca !== null && cb !== null && ca !== cb) return ca - cb;
+          const toA = typeOrder(a.t);
+          const toB = typeOrder(b.t);
+          if (toA !== toB) return toA - toB;
+          return a.idx - b.idx;
+        })
+        .map((x) => x.t);
+
       const newest = sorted[sorted.length - 1];
       if (newest && balanceAfterTxn[newest.id]) {
         map[accountId] = balanceAfterTxn[newest.id].value;
@@ -814,8 +832,30 @@ export function BanksTab({
   // Sorted transactions
   const sortedTxns = useMemo(() => {
     let txns = [...filteredTxns];
+    const createdAtOf = (t: any): number | null => {
+      if (!t.createdAt) return null;
+      const n = new Date(t.createdAt).getTime();
+      return isNaN(n) ? null : n;
+    };
+    const typeOrder = (t: any) => (t.type === "credit" ? 0 : 1);
+
     if (sortField) {
       txns.sort((a, b) => {
+        if (sortField === "date") {
+          const byDate = (a.date || "").localeCompare(b.date || "");
+          if (byDate !== 0) return sortDirection === "asc" ? byDate : -byDate;
+          const ca = createdAtOf(a);
+          const cb = createdAtOf(b);
+          if (ca !== null && cb !== null && ca !== cb) {
+            return sortDirection === "asc" ? ca - cb : cb - ca;
+          }
+          const toA = typeOrder(a);
+          const toB = typeOrder(b);
+          if (toA !== toB) {
+            return sortDirection === "asc" ? toA - toB : toB - toA;
+          }
+          return 0;
+        }
         let valA = a[sortField] || "";
         let valB = b[sortField] || "";
         if (sortField === "amount") {
@@ -830,12 +870,17 @@ export function BanksTab({
         return 0;
       });
     } else {
+      // Default view: Reverse chronological (latest date first, latest within day first)
       txns.sort((a, b) => {
-        const byDate = new Date(b.date).getTime() - new Date(a.date).getTime();
+        const byDate = (b.date || "").localeCompare(a.date || "");
         if (byDate !== 0) return byDate;
-        const ca = a.createdAt ? new Date(a.createdAt).getTime() : NaN;
-        const cb = b.createdAt ? new Date(b.createdAt).getTime() : NaN;
-        if (!isNaN(ca) && !isNaN(cb) && ca !== cb) return cb - ca;
+        const ca = createdAtOf(a);
+        const cb = createdAtOf(b);
+        if (ca !== null && cb !== null && ca !== cb) return cb - ca;
+        // In reverse chronological view, Debits (end of day transactions) appear on top of Credits
+        const toA = typeOrder(a);
+        const toB = typeOrder(b);
+        if (toA !== toB) return toB - toA;
         return 0;
       });
     }
