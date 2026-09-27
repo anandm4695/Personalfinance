@@ -1,5 +1,5 @@
 import "./styles.css";
-import React, { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from "react";
 import {
   Search,
   X,
@@ -2571,7 +2571,7 @@ function FinanceDashboard() {
           const badCol = extractMissingColumn(currentErr);
           if (!badCol) break;
           strippedCols.push(badCol);
-          cleanItems = cleanItems.map((ci) => {
+          cleanItems = cleanItems.map((ci: any) => {
             const copy = { ...ci };
             delete copy[badCol];
             return copy;
@@ -2593,7 +2593,7 @@ function FinanceDashboard() {
 
       if (upsertErr && (upsertErr.code === "23503" || upsertErr.message?.includes("foreign key"))) {
         // Foreign key violation fallback: retry with account_id / to_account_id unlinked
-        const retryCleanItems = cleanItems.map((ci) => ({
+        const retryCleanItems = cleanItems.map((ci: any) => ({
           ...ci,
           account_id: null,
           to_account_id: null,
@@ -2763,7 +2763,7 @@ function FinanceDashboard() {
           .upsert(batch, { onConflict: "id" });
 
         if (upsertErr && (upsertErr.code === "23503" || upsertErr.message?.includes("foreign key"))) {
-          const retryBatch = batch.map((ci) => ({ ...ci, account_id: null, to_account_id: null }));
+          const retryBatch = batch.map((ci: any) => ({ ...ci, account_id: null, to_account_id: null }));
           const { error: retryErr } = await supabase
             .from("transactions")
             .upsert(retryBatch, { onConflict: "id" });
@@ -2779,7 +2779,7 @@ function FinanceDashboard() {
         }
       }
 
-      setSyncedTxnIds(new Set([...existingIds, ...cleanItems.map((ci) => ci.id)]));
+      setSyncedTxnIds(new Set([...existingIds, ...cleanItems.map((ci: any) => ci.id)]));
       showToast(
         `Successfully synced ${totalSynced} transaction${totalSynced === 1 ? "" : "s"} to cloud!`,
         "success"
