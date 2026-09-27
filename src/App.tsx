@@ -572,6 +572,7 @@ function FinanceDashboard() {
       return null;
     }
   });
+  const [syncedTxnIds, setSyncedTxnIds] = useState<Set<string>>(new Set());
 
   // 2. Aggressive Cleanup of Legacy Dummy Data
   useEffect(() => {
@@ -1129,6 +1130,9 @@ function FinanceDashboard() {
             : {}),
         };
       });
+      if (!txns.error && txns.data != null) {
+        setSyncedTxnIds(new Set(txns.data.map((t: any) => t.id)));
+      }
     } catch (e) {
       console.error("Supabase load failed", e);
     }
@@ -2466,6 +2470,9 @@ function FinanceDashboard() {
     if (syncFailed) {
       throw new Error("Failed to save item to cloud. Please check your connection and try again.");
     }
+    if (key === "transactions") {
+      setSyncedTxnIds((prev) => new Set([...prev, newId]));
+    }
     return { success: !syncFailed, id: newId };
   };
 
@@ -2612,6 +2619,8 @@ function FinanceDashboard() {
             .upsert(retryItems, { onConflict: "id" });
           if (!retryErr) {
             showToast("Synced to cloud.", "success");
+            const addedIds = txnsWithIds.map((item) => item.id);
+            setSyncedTxnIds((prev) => new Set([...prev, ...addedIds]));
           } else {
             console.warn("[Batch Transactions] Background retry error:", retryErr.message);
           }
@@ -2624,6 +2633,9 @@ function FinanceDashboard() {
         showToast(`Saved locally: ${upsertErr.message || "Syncing in background"}`, "warn");
         return;
       }
+
+      const addedIds = txnsWithIds.map((item) => item.id);
+      setSyncedTxnIds((prev) => new Set([...prev, ...addedIds]));
 
       // Group by account ID to update balances in DB sequentially
       const deltas: Record<string, number> = {};
@@ -2705,6 +2717,7 @@ function FinanceDashboard() {
       const missingTxns = localTxns.filter((t: any) => !existingIds.has(t.id));
 
       if (missingTxns.length === 0) {
+        setSyncedTxnIds(new Set([...existingIds, ...localTxns.map((t: any) => t.id)]));
         showToast(`All ${localTxns.length} transactions are fully synced with cloud.`, "success");
         return { success: true, syncedCount: 0, total: localTxns.length };
       }
@@ -2766,6 +2779,7 @@ function FinanceDashboard() {
         }
       }
 
+      setSyncedTxnIds(new Set([...existingIds, ...cleanItems.map((ci) => ci.id)]));
       showToast(
         `Successfully synced ${totalSynced} transaction${totalSynced === 1 ? "" : "s"} to cloud!`,
         "success"
@@ -2789,6 +2803,17 @@ function FinanceDashboard() {
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
   }, [resyncTransactions]);
+
+  const unsyncedTxnIds = useMemo(() => {
+    const allLocal = state.transactions || [];
+    const set = new Set<string>();
+    for (const t of allLocal) {
+      if (t.id && !syncedTxnIds.has(t.id)) {
+        set.add(t.id);
+      }
+    }
+    return set;
+  }, [state.transactions, syncedTxnIds]);
 
   // Reverses the auto-posted side effect of a linked bank transaction (credit card
   // outstanding, loan balance, insurance premium ledger, rent log, subscription renewal
@@ -3102,6 +3127,13 @@ function FinanceDashboard() {
         }
       }
     }
+    if (key === "transactions") {
+      setSyncedTxnIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
     logActivity(`REMOVE_${key.toUpperCase()}`, `Removed ${describeItem(key, deletedItem)}`, {
       id,
       ...(deletedItem || {}),
@@ -3194,6 +3226,12 @@ function FinanceDashboard() {
         .upsert({ user_id: userId, master_data: latestMaster });
       if (masterErr) console.error("[Bulk masterData sync]", masterErr.message);
     }
+
+    setSyncedTxnIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id: string) => next.delete(id));
+      return next;
+    });
 
     logActivity("BULK_DELETE_TRANSACTIONS", `Deleted ${ids.length} transactions`, {
       count: ids.length,
@@ -4271,6 +4309,7 @@ function FinanceDashboard() {
                   addTransactions={addTransactions}
                   resyncTransactions={resyncTransactions}
                   isResyncingTxns={isResyncingTxns}
+                  unsyncedTxnIds={unsyncedTxnIds}
                   removeItem={removeItem}
                   bulkRemoveTransactions={bulkRemoveTransactions}
                   updateItem={updateItem}

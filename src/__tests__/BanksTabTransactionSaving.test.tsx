@@ -174,13 +174,13 @@ describe("BanksTab Transaction Saving and Modal State", () => {
     );
   });
 
-  it("renders Cloud Sync button and calls resyncTransactions when clicked", async () => {
+  it("hides Sync Cloud button when all transactions are synced", async () => {
     const resyncMock = vi.fn().mockResolvedValue({ totalChecked: 5, unsyncedFound: 0, syncedCount: 0 });
     const mockState = {
       bankAccounts: [
         { id: "bank-1", bankName: "HDFC Bank", type: "Savings", balance: 10000, owner: "self" },
       ],
-      transactions: [],
+      transactions: [{ id: "t1", amount: 1000, type: "debit", date: "2026-09-27", accountId: "bank-1" }],
     };
 
     const container = await mount(
@@ -189,13 +189,41 @@ describe("BanksTab Transaction Saving and Modal State", () => {
           state={mockState}
           resyncTransactions={resyncMock}
           isResyncingTxns={false}
+          unsyncedTxnIds={new Set()}
           activeProfile="self"
         />
       </PrivacyProvider>
     );
 
     const syncBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Cloud Sync")
+      b.textContent?.includes("Sync Cloud")
+    );
+    expect(syncBtn).toBeUndefined();
+  });
+
+  it("renders Sync Cloud button only when unsynced transactions exist and calls resyncTransactions", async () => {
+    const resyncMock = vi.fn().mockResolvedValue({ totalChecked: 5, unsyncedFound: 1, syncedCount: 1 });
+    const mockState = {
+      bankAccounts: [
+        { id: "bank-1", bankName: "HDFC Bank", type: "Savings", balance: 10000, owner: "self" },
+      ],
+      transactions: [{ id: "t-unsynced", amount: 1200, type: "debit", date: "2026-09-27", accountId: "bank-1", note: "Grocery" }],
+    };
+
+    const container = await mount(
+      <PrivacyProvider>
+        <BanksTab
+          state={mockState}
+          resyncTransactions={resyncMock}
+          isResyncingTxns={false}
+          unsyncedTxnIds={new Set(["t-unsynced"])}
+          activeProfile="self"
+        />
+      </PrivacyProvider>
+    );
+
+    const syncBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Sync Cloud (1 Pending)")
     );
     expect(syncBtn).toBeDefined();
 
@@ -206,4 +234,5 @@ describe("BanksTab Transaction Saving and Modal State", () => {
     expect(resyncMock).toHaveBeenCalledTimes(1);
   });
 });
+
 

@@ -298,7 +298,9 @@ export function BanksTab({
   activeProfile,
   resyncTransactions,
   isResyncingTxns,
+  unsyncedTxnIds = new Set(),
 }: any) {
+  const unsyncedCount = unsyncedTxnIds?.size || 0;
   // Navigation Sub-tab
   const [activeTab, setActiveTab] = useState<"accounts" | "ledger" | "analytics" | "transfers">(
     "accounts"
@@ -806,6 +808,7 @@ export function BanksTab({
       .filter((t: any) => filterAcc === "all" || t.accountId === filterAcc)
       .filter((t: any) => {
         if (filterType === "all") return true;
+        if (filterType === "unsynced") return unsyncedTxnIds && unsyncedTxnIds.has(t.id);
         if (filterType === "transfer") return t.category === "Transfer" || t.type === "transfer";
         if (filterType === "linked") return Boolean(t.linkedType);
         return t.type === filterType;
@@ -824,7 +827,7 @@ export function BanksTab({
           String(t.amount || "").includes(q)
         );
       });
-  }, [state.transactions, filterAcc, filterType, filterCat, dateFrom, dateTo, search]);
+  }, [state.transactions, filterAcc, filterType, filterCat, dateFrom, dateTo, search, unsyncedTxnIds]);
 
   // Sorted transactions
   const sortedTxns = useMemo(() => {
@@ -1110,9 +1113,9 @@ export function BanksTab({
             Export CSV
           </Button>
 
-          {resyncTransactions && (
+          {(unsyncedCount > 0 || isResyncingTxns) && resyncTransactions && (
             <Button
-              variant="secondary"
+              variant="accent"
               size="sm"
               icon={
                 <RefreshCw
@@ -1124,9 +1127,16 @@ export function BanksTab({
               }
               onClick={() => resyncTransactions()}
               disabled={isResyncingTxns}
-              title="Verify and synchronize transactions with cloud database"
+              title={`Synchronize ${unsyncedCount} pending transaction${unsyncedCount === 1 ? "" : "s"} with cloud database`}
+              style={{
+                background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                color: "#ffffff",
+                border: "1px solid #d97706",
+                boxShadow: "0 2px 8px rgba(217, 119, 6, 0.35)",
+                fontWeight: 700,
+              }}
             >
-              {isResyncingTxns ? "Syncing…" : "Cloud Sync"}
+              {isResyncingTxns ? "Syncing…" : `Sync Cloud (${unsyncedCount} Pending)`}
             </Button>
           )}
 
@@ -1839,7 +1849,41 @@ export function BanksTab({
               </span>
               <Badge variant="accent">{sortedTxns.length} records</Badge>
 
-              {resyncTransactions && (
+              {unsyncedCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setFilterType(filterType === "unsynced" ? "all" : "unsynced")}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "3px 8px",
+                    borderRadius: "var(--radius-sm)",
+                    fontSize: 11,
+                    fontWeight: 800,
+                    background: filterType === "unsynced" ? "#d97706" : "rgba(245, 158, 11, 0.15)",
+                    color: filterType === "unsynced" ? "#ffffff" : "#d97706",
+                    border: "1px solid rgba(245, 158, 11, 0.4)",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  title={
+                    filterType === "unsynced"
+                      ? "Click to show all transactions"
+                      : "Click to filter and view ONLY unsynced transactions"
+                  }
+                >
+                  <RefreshCw
+                    size={11}
+                    style={{ animation: isResyncingTxns ? "spin 1s linear infinite" : "none" }}
+                  />
+                  {filterType === "unsynced"
+                    ? "Viewing Unsynced Only ✕"
+                    : `${unsyncedCount} Pending Sync`}
+                </button>
+              )}
+
+              {unsyncedCount > 0 && resyncTransactions && (
                 <Button
                   variant="secondary"
                   size="sm"
@@ -1854,9 +1898,9 @@ export function BanksTab({
                   }
                   onClick={() => resyncTransactions()}
                   disabled={isResyncingTxns}
-                  title="Verify and synchronize transactions with cloud database"
+                  title="Synchronize pending transactions to cloud database"
                 >
-                  {isResyncingTxns ? "Syncing…" : "Cloud Sync"}
+                  {isResyncingTxns ? "Syncing…" : "Sync Now"}
                 </Button>
               )}
 
@@ -2013,6 +2057,9 @@ export function BanksTab({
               onChange={(e) => setFilterType(e.target.value)}
             >
               <option value="all">All Types</option>
+              {unsyncedCount > 0 && (
+                <option value="unsynced">⚠️ Unsynced ({unsyncedCount} Pending)</option>
+              )}
               <option value="credit">Credits (Income / In)</option>
               <option value="debit">Debits (Expense / Out)</option>
               <option value="transfer">Transfers</option>
@@ -2179,6 +2226,25 @@ export function BanksTab({
                                 RECURRING
                               </Badge>
                             )}
+                          {unsyncedTxnIds && unsyncedTxnIds.has(t.id) && (
+                            <Badge
+                              variant="gold"
+                              size="xs"
+                              style={{
+                                whiteSpace: "nowrap",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                                background: "rgba(245, 158, 11, 0.18)",
+                                color: "#b45309",
+                                border: "1px solid rgba(245, 158, 11, 0.4)",
+                                fontWeight: 800,
+                              }}
+                              title="Pending Cloud Sync — Stored locally on this device"
+                            >
+                              <RefreshCw size={9} /> UNSYNCED
+                            </Badge>
+                          )}
                         </div>
                         {t.narration && (
                           <div
@@ -2694,6 +2760,25 @@ export function BanksTab({
                               style={{ display: "inline-flex", alignItems: "center" }}
                             >
                               <Link2 size={9} />
+                            </Badge>
+                          )}
+                          {unsyncedTxnIds && unsyncedTxnIds.has(t.id) && (
+                            <Badge
+                              variant="gold"
+                              size="xs"
+                              style={{
+                                whiteSpace: "nowrap",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                                background: "rgba(245, 158, 11, 0.18)",
+                                color: "#b45309",
+                                border: "1px solid rgba(245, 158, 11, 0.4)",
+                                fontWeight: 800,
+                              }}
+                              title="Pending Cloud Sync — Stored locally on this device"
+                            >
+                              <RefreshCw size={9} /> UNSYNCED
                             </Badge>
                           )}
                         </div>
