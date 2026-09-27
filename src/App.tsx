@@ -2677,6 +2677,119 @@ function FinanceDashboard() {
     });
   };
 
+  const [isResyncingTxns, setIsResyncingTxns] = useState(false);
+
+  const resyncTransactions = useCallback(async () => {
+    const userId = session?.user?.id;
+    if (!userId || userId === "offline-user") {
+      showToast("Sign in to sync transactions with cloud storage.", "warn");
+      return { success: false, syncedCount: 0, total: (state.transactions || []).length };
+    }
+
+    setIsResyncingTxns(true);
+    try {
+      // 1. Fetch all transaction IDs already in Supabase
+      const { data: dbTxns, error: fetchErr } = await supabase
+        .from("transactions")
+        .select("id")
+        .eq("user_id", userId);
+
+      if (fetchErr) {
+        console.error("[Resync Transactions Fetch]", fetchErr.message);
+        showToast(`Sync check failed: ${fetchErr.message}`, "error");
+        return { success: false, syncedCount: 0, total: (state.transactions || []).length };
+      }
+
+      const existingIds = new Set((dbTxns || []).map((t: any) => t.id));
+      const localTxns = state.transactions || [];
+      const missingTxns = localTxns.filter((t: any) => !existingIds.has(t.id));
+
+      if (missingTxns.length === 0) {
+        showToast(`All ${localTxns.length} transactions are fully synced with cloud.`, "success");
+        return { success: true, syncedCount: 0, total: localTxns.length };
+      }
+
+      // 2. Batch-sync missing transactions
+      let cleanItems = missingTxns.map((item: any) => {
+        const ownerVal = item.owner || (activeProfile !== "all" ? activeProfile : "self");
+        const newId = item.id && isUuid(item.id) ? item.id : uid();
+        const finalItem = camelToSnake({ ...item, id: newId, owner: ownerVal });
+        const cleanItem: any = { ...finalItem, user_id: userId };
+        if (cleanItem.type) {
+          const rawType = String(cleanItem.type).toLowerCase();
+          cleanItem.type = rawType === "credit" ? "credit" : "debit";
+        } else {
+          cleanItem.type = "debit";
+        }
+        if (cleanItem.account_id && !isUuid(cleanItem.account_id)) {
+          cleanItem.account_id = null;
+        }
+        if (cleanItem.to_account_id && !isUuid(cleanItem.to_account_id)) {
+          cleanItem.to_account_id = null;
+        }
+        for (const k in cleanItem) {
+          if (cleanItem[k] === "") cleanItem[k] = null;
+          else if (
+            NUMERIC_COLS.has(k) &&
+            typeof cleanItem[k] === "string" &&
+            cleanItem[k] !== null
+          ) {
+            const parsed = parseFloat(cleanItem[k]);
+            cleanItem[k] = isNaN(parsed) ? null : parsed;
+          }
+        }
+        return cleanItem;
+      });
+
+      const BATCH_SIZE = 500;
+      let totalSynced = 0;
+      for (let i = 0; i < cleanItems.length; i += BATCH_SIZE) {
+        const batch = cleanItems.slice(i, i + BATCH_SIZE);
+        let { error: upsertErr } = await supabase
+          .from("transactions")
+          .upsert(batch, { onConflict: "id" });
+
+        if (upsertErr && (upsertErr.code === "23503" || upsertErr.message?.includes("foreign key"))) {
+          const retryBatch = batch.map((ci) => ({ ...ci, account_id: null, to_account_id: null }));
+          const { error: retryErr } = await supabase
+            .from("transactions")
+            .upsert(retryBatch, { onConflict: "id" });
+          upsertErr = retryErr;
+        }
+
+        if (upsertErr) {
+          console.error("[Resync Batch Upsert Error]", upsertErr);
+          showToast(`Partial sync warning: ${upsertErr.message}`, "warn");
+          break;
+        } else {
+          totalSynced += batch.length;
+        }
+      }
+
+      showToast(
+        `Successfully synced ${totalSynced} transaction${totalSynced === 1 ? "" : "s"} to cloud!`,
+        "success"
+      );
+      return { success: true, syncedCount: totalSynced, total: localTxns.length };
+    } catch (err: any) {
+      console.error("[Resync Transactions]", err);
+      showToast(`Sync failed: ${err?.message || "Unknown error"}`, "error");
+      return { success: false, syncedCount: 0, total: (state.transactions || []).length };
+    } finally {
+      setIsResyncingTxns(false);
+    }
+  }, [session, state.transactions, activeProfile, showToast]);
+
+  // Automatic background reconnect sync when online
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log("[Network] Online event detected, syncing any pending transactions...");
+      resyncTransactions();
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [resyncTransactions]);
+
   // Reverses the auto-posted side effect of a linked bank transaction (credit card
   // outstanding, loan balance, insurance premium ledger, rent log, subscription renewal
   // date) on its linked module record. Shared by removeItem (single delete) and
@@ -4156,6 +4269,8 @@ function FinanceDashboard() {
                   fullState={state}
                   addItem={addItem}
                   addTransactions={addTransactions}
+                  resyncTransactions={resyncTransactions}
+                  isResyncingTxns={isResyncingTxns}
                   removeItem={removeItem}
                   bulkRemoveTransactions={bulkRemoveTransactions}
                   updateItem={updateItem}

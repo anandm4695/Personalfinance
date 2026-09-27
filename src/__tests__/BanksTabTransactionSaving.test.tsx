@@ -173,4 +173,37 @@ describe("BanksTab Transaction Saving and Modal State", () => {
       ])
     );
   });
+
+  it("renders Cloud Sync button and calls resyncTransactions when clicked", async () => {
+    const resyncMock = vi.fn().mockResolvedValue({ totalChecked: 5, unsyncedFound: 0, syncedCount: 0 });
+    const mockState = {
+      bankAccounts: [
+        { id: "bank-1", bankName: "HDFC Bank", type: "Savings", balance: 10000, owner: "self" },
+      ],
+      transactions: [],
+    };
+
+    const container = await mount(
+      <PrivacyProvider>
+        <BanksTab
+          state={mockState}
+          resyncTransactions={resyncMock}
+          isResyncingTxns={false}
+          activeProfile="self"
+        />
+      </PrivacyProvider>
+    );
+
+    const syncBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Cloud Sync")
+    );
+    expect(syncBtn).toBeDefined();
+
+    await act(async () => {
+      syncBtn?.click();
+    });
+
+    expect(resyncMock).toHaveBeenCalledTimes(1);
+  });
 });
+

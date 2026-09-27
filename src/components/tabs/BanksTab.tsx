@@ -31,6 +31,7 @@ import {
   BarChart3,
   Layers,
   ShieldCheck,
+  RefreshCw,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -295,6 +296,8 @@ export function BanksTab({
   masterData: _masterData,
   showToast,
   activeProfile,
+  resyncTransactions,
+  isResyncingTxns,
 }: any) {
   // Navigation Sub-tab
   const [activeTab, setActiveTab] = useState<"accounts" | "ledger" | "analytics" | "transfers">(
@@ -1107,6 +1110,26 @@ export function BanksTab({
             Export CSV
           </Button>
 
+          {resyncTransactions && (
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={
+                <RefreshCw
+                  size={14}
+                  style={{
+                    animation: isResyncingTxns ? "spin 1s linear infinite" : "none",
+                  }}
+                />
+              }
+              onClick={() => resyncTransactions()}
+              disabled={isResyncingTxns}
+              title="Verify and synchronize transactions with cloud database"
+            >
+              {isResyncingTxns ? "Syncing…" : "Cloud Sync"}
+            </Button>
+          )}
+
           <Button
             variant="accent"
             size="sm"
@@ -1815,6 +1838,27 @@ export function BanksTab({
                 Passbook Transaction Ledger
               </span>
               <Badge variant="accent">{sortedTxns.length} records</Badge>
+
+              {resyncTransactions && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  style={{ height: 26, fontSize: 11, padding: "0 8px" }}
+                  icon={
+                    <RefreshCw
+                      size={12}
+                      style={{
+                        animation: isResyncingTxns ? "spin 1s linear infinite" : "none",
+                      }}
+                    />
+                  }
+                  onClick={() => resyncTransactions()}
+                  disabled={isResyncingTxns}
+                  title="Verify and synchronize transactions with cloud database"
+                >
+                  {isResyncingTxns ? "Syncing…" : "Cloud Sync"}
+                </Button>
+              )}
 
               {filterAcc !== "all" && (
                 <Badge
