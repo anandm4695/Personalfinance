@@ -571,9 +571,12 @@ export function CreditTab({
   );
   const { run: saveNewLoanTaken, loading: savingNewLoanTaken } = useAsyncAction(
     async (v: any, bankTxn?: any) => {
-      await addItem("loansTaken", v);
+      const res = await addItem("loansTaken", v);
       if (bankTxn) {
-        await addItem("transactions", bankTxn);
+        await addItem("transactions", {
+          ...bankTxn,
+          linkedId: res?.id || bankTxn.linkedId || undefined,
+        });
         showToast?.("Loan added and disbursement credited to bank account", "success");
       }
     },
@@ -584,9 +587,12 @@ export function CreditTab({
   );
   const { run: saveNewLoanGiven, loading: savingNewLoanGiven } = useAsyncAction(
     async (v: any, bankTxn?: any) => {
-      await addItem("loansGiven", v);
+      const res = await addItem("loansGiven", v);
       if (bankTxn) {
-        await addItem("transactions", bankTxn);
+        await addItem("transactions", {
+          ...bankTxn,
+          linkedId: res?.id || bankTxn.linkedId || undefined,
+        });
         showToast?.("Loan added and disbursement debited from bank account", "success");
       }
     },

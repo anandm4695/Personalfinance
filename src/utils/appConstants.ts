@@ -178,12 +178,14 @@ export const NUMERIC_COLS = new Set([
   "units_consumed",
   // real_estate
   "share_pct",
+  "tds_amount",
   "tds_deducted",
   "agreement_value_paid",
   "stamp_duty_paid",
   // gold_holdings
   "gross_grams",
   "making_charges",
+  "interest_rate",
   // life_events
   "inflation_rate",
   "expected_return",
@@ -231,6 +233,8 @@ export const NUMERIC_COLS = new Set([
   // profiles & settings
   "savings_target",
   "gold_price_per_gram",
+  "email_day",
+  "email_hour",
   // net worth history
   "cash",
   "equity",

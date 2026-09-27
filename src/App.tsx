@@ -941,7 +941,10 @@ function FinanceDashboard() {
           ...(!bnds.error && bnds.data != null ? { bonds: snakeToCamel(bnds.data) } : {}),
           ...(!pn.error && pn.data != null
             ? {
-                ppf: snakeToCamel(pn.data.filter((x: any) => x.type === "PPF")),
+                ppf: snakeToCamel(pn.data.filter((x: any) => x.type === "PPF")).map((p: any) => ({
+                  ...p,
+                  institution: p.bank || p.institution || "",
+                })),
                 nps: snakeToCamel(pn.data.filter((x: any) => x.type === "NPS")).map((n: any) => {
                   const meta =
                     n.establishments &&
@@ -965,7 +968,11 @@ function FinanceDashboard() {
                     employerContribution: n.employerContribution || 0,
                   };
                 }),
-                epf: snakeToCamel(pn.data.filter((x: any) => x.type === "EPF")),
+                epf: snakeToCamel(pn.data.filter((x: any) => x.type === "EPF")).map((e: any) => ({
+                  ...e,
+                  employer: e.bank || e.employer || "",
+                  uan: e.accountNumber || e.uan || "",
+                })),
               }
             : {}),
           ...(!ccs.error && ccs.data != null
@@ -2116,6 +2123,215 @@ function FinanceDashboard() {
   const isMissingColErr = (err: any) =>
     err && (err.code === "PGRST204" || err.code === "42703" || !!extractMissingColumn(err));
 
+  const prepareItemForDb = useCallback(
+    (key: string, item: any, userId: string, explicitId?: string) => {
+      const ownerVal = item.owner || (activeProfile !== "all" ? activeProfile : "self");
+      const itemWithOwner = { ...item, owner: ownerVal };
+      let finalItem = camelToSnake(itemWithOwner);
+
+      if (key === "ppf" || key === "nps" || key === "epf") finalItem.type = key.toUpperCase();
+      if (key === "ppf") {
+        finalItem.bank = item.institution || item.bank || "";
+        delete finalItem.institution;
+        if (item.openDate || item.openingDate || item.startDate) {
+          finalItem.open_date = item.openDate || item.openingDate || item.startDate;
+        }
+        delete finalItem.opening_date;
+        delete finalItem.start_date;
+      }
+      if (key === "nps") {
+        finalItem.account_number =
+          item.pran || item.accountNumber || finalItem.pran || finalItem.account_number || "";
+        delete finalItem.pran;
+        finalItem.epf_type =
+          item.tier || item.epfType || finalItem.tier || finalItem.epf_type || "I";
+        delete finalItem.tier;
+        finalItem.bank =
+          item.fundManager || item.bank || finalItem.fund_manager || finalItem.bank || "";
+        delete finalItem.fund_manager;
+        finalItem.this_year_contribution =
+          Number(
+            item.yearContribution ??
+              item.thisYearContribution ??
+              finalItem.this_year_contribution ??
+              0
+          ) || 0;
+        delete finalItem.year_contribution;
+        finalItem.employer_contribution =
+          Number(item.employerContribution ?? finalItem.employer_contribution ?? 0) || 0;
+        finalItem.establishments =
+          item.establishments &&
+          typeof item.establishments === "object" &&
+          !Array.isArray(item.establishments)
+            ? item.establishments
+            : {
+                schemeType: item.schemeType || "All Citizen",
+                investmentChoice: item.investmentChoice || "Auto",
+                lifecycleFund: item.lifecycleFund || "LC-50",
+                equityPct: Number(item.equityPct) || 0,
+                corpBondPct: Number(item.corpBondPct) || 0,
+                govtSecPct: Number(item.govtSecPct) || 0,
+                altAssetPct: Number(item.altAssetPct) || 0,
+              };
+        delete finalItem.scheme_type;
+        delete finalItem.investment_choice;
+        delete finalItem.lifecycle_fund;
+        delete finalItem.equity_pct;
+        delete finalItem.corp_bond_pct;
+        delete finalItem.govt_sec_pct;
+        delete finalItem.alt_asset_pct;
+      }
+      if (key === "epf") {
+        finalItem.bank = item.employer || item.bank || finalItem.employer || finalItem.bank || "";
+        delete finalItem.employer;
+        finalItem.account_number =
+          item.uan || item.accountNumber || finalItem.uan || finalItem.account_number || "";
+        delete finalItem.uan;
+      }
+      if (key === "loansTaken") {
+        finalItem.is_lent = false;
+        finalItem.lender_borrower =
+          item.lender || item.lenderBorrower || finalItem.lender || finalItem.lender_borrower || "";
+        delete finalItem.lender;
+      }
+      if (key === "loansGiven") {
+        finalItem.is_lent = true;
+        finalItem.lender_borrower =
+          item.borrower ||
+          item.lender ||
+          item.lenderBorrower ||
+          finalItem.borrower ||
+          finalItem.lender ||
+          finalItem.lender_borrower ||
+          "";
+        finalItem.given_date =
+          item.date || item.givenDate || finalItem.date || finalItem.given_date || null;
+        delete finalItem.borrower;
+        delete finalItem.lender;
+        delete finalItem.date;
+      }
+      if (key === "budgets") {
+        finalItem.monthly_limit =
+          item.monthlyLimit ?? item.monthly ?? finalItem.monthly_limit ?? finalItem.monthly ?? null;
+        delete finalItem.monthly;
+      }
+      if (key === "reminders") {
+        finalItem.reminder_date =
+          item.reminderDate ?? item.date ?? finalItem.reminder_date ?? finalItem.date ?? null;
+        delete finalItem.date;
+      }
+      if (key === "mutualFunds") {
+        if (item.name !== undefined || finalItem.name !== undefined) {
+          finalItem.scheme =
+            item.name || item.scheme || finalItem.name || finalItem.scheme || "";
+          delete finalItem.name;
+        }
+        if (item.category !== undefined || finalItem.category !== undefined) {
+          finalItem.type =
+            item.category || item.type || finalItem.category || finalItem.type || null;
+          delete finalItem.category;
+        }
+      }
+      if (key === "informalBorrowed") finalItem.direction = "borrowed";
+      if (key === "informalLent") finalItem.direction = "lent";
+      if (key === "rentalProperties" || key === "rentedProperties") {
+        finalItem.property_type_detail =
+          item.propertyType ||
+          item.propertyTypeDetail ||
+          finalItem.property_type_detail ||
+          "shop";
+        finalItem.property_type = key === "rentalProperties" ? "out" : "in";
+      }
+      if (key === "bankAccounts") {
+        finalItem.account_type =
+          item.type || item.accountType || finalItem.account_type || "Savings";
+        delete finalItem.type;
+      }
+      if (key === "creditCards") {
+        finalItem.card_limit =
+          item.cardLimit ?? item.limit ?? finalItem.card_limit ?? finalItem.limit ?? null;
+        delete finalItem.limit;
+      }
+      if (key === "taxPayments") {
+        if (finalItem.tax_type && !finalItem.type) finalItem.type = finalItem.tax_type;
+        if (finalItem.notes && !finalItem.note) finalItem.note = finalItem.notes;
+      }
+      if (key === "transactions") {
+        if (finalItem.type) {
+          const rawType = String(finalItem.type).toLowerCase();
+          finalItem.type = rawType === "credit" ? "credit" : "debit";
+        } else {
+          finalItem.type = "debit";
+        }
+        if (finalItem.account_id && !isUuid(finalItem.account_id)) {
+          finalItem.account_id = null;
+        }
+        if (finalItem.to_account_id && !isUuid(finalItem.to_account_id)) {
+          finalItem.to_account_id = null;
+        }
+      }
+      if (key === "stocks") {
+        if (finalItem.demat_id && !isUuid(finalItem.demat_id)) {
+          finalItem.demat_id = null;
+        }
+      }
+      if (key === "recurringExpenses") {
+        if (finalItem.account_id && !isUuid(finalItem.account_id)) {
+          finalItem.account_id = null;
+        }
+      }
+      if (key === "billPayments") {
+        if (finalItem.bank_account_id && !isUuid(finalItem.bank_account_id)) {
+          finalItem.bank_account_id = null;
+        }
+      }
+      if (key === "realEstatePayments") {
+        if (finalItem.demand_id && !isUuid(finalItem.demand_id)) {
+          finalItem.demand_id = null;
+        }
+      }
+      if (key === "documents") {
+        if (finalItem.linked_id && !isUuid(finalItem.linked_id)) {
+          finalItem.linked_id = null;
+        }
+      }
+
+      const isTextIdTable = key === "stockSells" || key === "mfSells";
+      const resolvedId =
+        explicitId ||
+        (itemWithOwner.id && (isUuid(itemWithOwner.id) || isTextIdTable)
+          ? itemWithOwner.id
+          : uid());
+
+      const cleanItem: any = { ...finalItem, id: resolvedId, user_id: userId };
+      for (const k in cleanItem) {
+        if (k.startsWith("_")) {
+          delete cleanItem[k];
+          continue;
+        }
+        if (cleanItem[k] === "") cleanItem[k] = null;
+        else if (
+          NUMERIC_COLS.has(k) &&
+          typeof cleanItem[k] === "string" &&
+          cleanItem[k] !== null
+        ) {
+          const parsed = parseFloat(cleanItem[k]);
+          cleanItem[k] = isNaN(parsed) ? null : parsed;
+        }
+      }
+      if (key === "healthInsurance") {
+        if (cleanItem.policy_number === null) cleanItem.policy_number = "";
+        if (cleanItem.policy_name === null) cleanItem.policy_name = "";
+      }
+      if (key === "vehicles") {
+        delete cleanItem.photo_url;
+      }
+
+      return cleanItem;
+    },
+    [activeProfile]
+  );
+
   const addItem = async (key: string, item: any) => {
     const userId = session?.user?.id;
     // Auto-assign owner so items satisfy the DB NOT NULL constraint on ppf_nps
@@ -2123,74 +2339,6 @@ function FinanceDashboard() {
     // Forms that already pass owner (e.g. bank accounts) take precedence.
     const ownerVal = item.owner || (activeProfile !== "all" ? activeProfile : "self");
     const itemWithOwner = { ...item, owner: ownerVal };
-
-    let finalItem = camelToSnake(itemWithOwner);
-
-    if (key === "ppf" || key === "nps" || key === "epf") finalItem.type = key.toUpperCase();
-    if (key === "ppf") {
-      finalItem.bank = item.institution || "";
-      delete finalItem.institution;
-    }
-    if (key === "nps") {
-      finalItem.account_number = finalItem.pran || "";
-      delete finalItem.pran;
-      finalItem.epf_type = finalItem.tier || "I";
-      delete finalItem.tier;
-      finalItem.bank = finalItem.fund_manager || "";
-      delete finalItem.fund_manager;
-      finalItem.this_year_contribution = Number(finalItem.year_contribution) || 0;
-      delete finalItem.year_contribution;
-      finalItem.employer_contribution = Number(finalItem.employer_contribution) || 0;
-      finalItem.establishments = {
-        schemeType: item.schemeType || "All Citizen",
-        investmentChoice: item.investmentChoice || "Auto",
-        lifecycleFund: item.lifecycleFund || "LC-50",
-        equityPct: Number(item.equityPct) || 0,
-        corpBondPct: Number(item.corpBondPct) || 0,
-        govtSecPct: Number(item.govtSecPct) || 0,
-        altAssetPct: Number(item.altAssetPct) || 0,
-      };
-      delete finalItem.scheme_type;
-      delete finalItem.investment_choice;
-      delete finalItem.lifecycle_fund;
-      delete finalItem.equity_pct;
-      delete finalItem.corp_bond_pct;
-      delete finalItem.govt_sec_pct;
-      delete finalItem.alt_asset_pct;
-    }
-    if (key === "epf") {
-      finalItem.bank = item.employer || "";
-      delete finalItem.employer;
-      finalItem.account_number = item.uan || "";
-      delete finalItem.uan;
-    }
-    if (key === "loansTaken") finalItem.is_lent = false;
-    if (key === "loansGiven") finalItem.is_lent = true;
-    if (key === "budgets") {
-      finalItem.monthly_limit = item.monthly;
-      delete finalItem.monthly;
-    }
-    if (key === "reminders") {
-      finalItem.reminder_date = item.date;
-      delete finalItem.date;
-    }
-    if (key === "mutualFunds") {
-      // Form uses `name`/`category` but DB has `scheme NOT NULL`/`type`
-      if (finalItem.name !== undefined) {
-        finalItem.scheme = finalItem.name;
-        delete finalItem.name;
-      }
-      if (finalItem.category !== undefined) {
-        finalItem.type = finalItem.category;
-        delete finalItem.category;
-      }
-    }
-    if (key === "informalBorrowed") finalItem.direction = "borrowed";
-    if (key === "informalLent") finalItem.direction = "lent";
-    if (key === "rentalProperties" || key === "rentedProperties") {
-      finalItem.property_type_detail = item.propertyType || "shop";
-      finalItem.property_type = key === "rentalProperties" ? "out" : "in";
-    }
 
     const isTextIdTable = key === "stockSells" || key === "mfSells";
     const newId =
@@ -2225,72 +2373,7 @@ function FinanceDashboard() {
     if (userId && userId !== "offline-user") {
       const table = TABLE_MAP[key];
       if (table) {
-        // Specific field mapping for various modules to match Supabase schema
-        if (key === "bankAccounts") {
-          finalItem.account_type = item.type || "Savings";
-          delete finalItem.type;
-        }
-        if (key === "creditCards") {
-          finalItem.card_limit = item.limit;
-          delete finalItem.limit;
-        }
-        if (key === "loansTaken") {
-          finalItem.lender_borrower = item.lender;
-          delete finalItem.lender;
-        }
-        if (key === "loansGiven") {
-          finalItem.lender_borrower = item.borrower || item.lender;
-          finalItem.given_date = item.date || null;
-          delete finalItem.borrower;
-          delete finalItem.lender;
-          delete finalItem.date;
-        }
-        if (key === "taxPayments") {
-          if (finalItem.tax_type && !finalItem.type) finalItem.type = finalItem.tax_type;
-          if (finalItem.notes && !finalItem.note) finalItem.note = finalItem.notes;
-        }
-        if (key === "transactions") {
-          if (finalItem.type) {
-            const rawType = String(finalItem.type).toLowerCase();
-            finalItem.type = rawType === "credit" ? "credit" : "debit";
-          } else {
-            finalItem.type = "debit";
-          }
-          if (finalItem.account_id && !isUuid(finalItem.account_id)) {
-            finalItem.account_id = null;
-          }
-          if (finalItem.to_account_id && !isUuid(finalItem.to_account_id)) {
-            finalItem.to_account_id = null;
-          }
-        }
-
-        const cleanItem = { ...finalItem, id: newId, user_id: userId };
-        for (const k in cleanItem) {
-          if (k.startsWith("_")) {
-            delete cleanItem[k];
-            continue;
-          }
-          if (cleanItem[k] === "") cleanItem[k] = null;
-          else if (
-            NUMERIC_COLS.has(k) &&
-            typeof cleanItem[k] === "string" &&
-            cleanItem[k] !== null
-          ) {
-            const parsed = parseFloat(cleanItem[k]);
-            cleanItem[k] = isNaN(parsed) ? null : parsed;
-          }
-        }
-        // health_insurance.policy_number/policy_name are `NOT NULL DEFAULT ''` in the
-        // DB but genuinely optional in the UI (no required-field validation) — the
-        // blanket ""->null conversion above turns a left-blank field into an explicit
-        // null, which overrides the column default and fails the NOT NULL constraint.
-        if (key === "healthInsurance") {
-          if (cleanItem.policy_number === null) cleanItem.policy_number = "";
-          if (cleanItem.policy_name === null) cleanItem.policy_name = "";
-        }
-        if (key === "vehicles") {
-          delete cleanItem.photo_url;
-        }
+        const cleanItem = prepareItemForDb(key, itemWithOwner, userId, newId);
 
         // Use upsert (INSERT ... ON CONFLICT DO UPDATE) so retries are idempotent.
         // If the first request reached Supabase but the response was lost, a plain INSERT
@@ -2530,34 +2613,9 @@ function FinanceDashboard() {
 
     // Write to Supabase if online
     if (userId && userId !== "offline-user") {
-      let cleanItems = txnsWithIds.map((item) => {
-        const finalItem = camelToSnake(item);
-        const cleanItem: any = { ...finalItem, user_id: userId };
-        if (cleanItem.type) {
-          const rawType = String(cleanItem.type).toLowerCase();
-          cleanItem.type = rawType === "credit" ? "credit" : "debit";
-        } else {
-          cleanItem.type = "debit";
-        }
-        if (cleanItem.account_id && !isUuid(cleanItem.account_id)) {
-          cleanItem.account_id = null;
-        }
-        if (cleanItem.to_account_id && !isUuid(cleanItem.to_account_id)) {
-          cleanItem.to_account_id = null;
-        }
-        for (const k in cleanItem) {
-          if (cleanItem[k] === "") cleanItem[k] = null;
-          else if (
-            NUMERIC_COLS.has(k) &&
-            typeof cleanItem[k] === "string" &&
-            cleanItem[k] !== null
-          ) {
-            const parsed = parseFloat(cleanItem[k]);
-            cleanItem[k] = isNaN(parsed) ? null : parsed;
-          }
-        }
-        return cleanItem;
-      });
+      let cleanItems = txnsWithIds.map((item) =>
+        prepareItemForDb("transactions", item, userId, item.id)
+      );
 
       // Batch upsert to transactions table with missing-column strip retry
       let { error: upsertErr } = await supabase
@@ -2723,36 +2781,9 @@ function FinanceDashboard() {
       }
 
       // 2. Batch-sync missing transactions
-      let cleanItems = missingTxns.map((item: any) => {
-        const ownerVal = item.owner || (activeProfile !== "all" ? activeProfile : "self");
-        const newId = item.id && isUuid(item.id) ? item.id : uid();
-        const finalItem = camelToSnake({ ...item, id: newId, owner: ownerVal });
-        const cleanItem: any = { ...finalItem, user_id: userId };
-        if (cleanItem.type) {
-          const rawType = String(cleanItem.type).toLowerCase();
-          cleanItem.type = rawType === "credit" ? "credit" : "debit";
-        } else {
-          cleanItem.type = "debit";
-        }
-        if (cleanItem.account_id && !isUuid(cleanItem.account_id)) {
-          cleanItem.account_id = null;
-        }
-        if (cleanItem.to_account_id && !isUuid(cleanItem.to_account_id)) {
-          cleanItem.to_account_id = null;
-        }
-        for (const k in cleanItem) {
-          if (cleanItem[k] === "") cleanItem[k] = null;
-          else if (
-            NUMERIC_COLS.has(k) &&
-            typeof cleanItem[k] === "string" &&
-            cleanItem[k] !== null
-          ) {
-            const parsed = parseFloat(cleanItem[k]);
-            cleanItem[k] = isNaN(parsed) ? null : parsed;
-          }
-        }
-        return cleanItem;
-      });
+      let cleanItems = missingTxns.map((item: any) =>
+        prepareItemForDb("transactions", item, userId, item.id)
+      );
 
       const BATCH_SIZE = 500;
       let totalSynced = 0;
@@ -3431,6 +3462,32 @@ function FinanceDashboard() {
           }
         }
 
+        if (key === "stocks") {
+          if (finalPatch.demat_id !== undefined && finalPatch.demat_id !== null && !isUuid(finalPatch.demat_id)) {
+            finalPatch.demat_id = null;
+          }
+        }
+        if (key === "recurringExpenses") {
+          if (finalPatch.account_id !== undefined && finalPatch.account_id !== null && !isUuid(finalPatch.account_id)) {
+            finalPatch.account_id = null;
+          }
+        }
+        if (key === "billPayments") {
+          if (finalPatch.bank_account_id !== undefined && finalPatch.bank_account_id !== null && !isUuid(finalPatch.bank_account_id)) {
+            finalPatch.bank_account_id = null;
+          }
+        }
+        if (key === "realEstatePayments") {
+          if (finalPatch.demand_id !== undefined && finalPatch.demand_id !== null && !isUuid(finalPatch.demand_id)) {
+            finalPatch.demand_id = null;
+          }
+        }
+        if (key === "documents") {
+          if (finalPatch.linked_id !== undefined && finalPatch.linked_id !== null && !isUuid(finalPatch.linked_id)) {
+            finalPatch.linked_id = null;
+          }
+        }
+
         for (const k in finalPatch) {
           if (finalPatch[k] === "") finalPatch[k] = null;
           else if (
@@ -3660,116 +3717,83 @@ function FinanceDashboard() {
       return r;
     };
 
-    const push = (table: string, items: any[], extra?: (item: any) => any) =>
-      (items || []).map((item) => {
-        const base = cleanItem(camelToSnake(item));
-        const merged = { ...base, ...(extra ? extra(item) : {}), user_id: userId };
-        return supabase.from(table).upsert(merged, { onConflict: "id" });
+    const push = (key: string, items: any[]) => {
+      const table = TABLE_MAP[key];
+      if (!table) return [];
+      return (items || []).map((item) => {
+        const itemClean = prepareItemForDb(key, item, userId);
+        return supabase.from(table).upsert(itemClean, { onConflict: "id" });
       });
+    };
 
     const ops = [
       data.profile &&
-        supabase
-          .from("profiles")
-          .upsert({ ...cleanItem(camelToSnake(data.profile)), user_id: userId }),
-      data.settings &&
-        supabase
-          .from("user_settings")
-          .upsert({ ...cleanItem(camelToSnake(data.settings)), user_id: userId }),
-      ...push("bank_accounts", data.bankAccounts),
+        supabase.from("profiles").upsert({
+          ...cleanItem(camelToSnake(data.profile)),
+          user_id: userId,
+          name: data.profile.name || "there",
+          fy: data.profile.fy || getCurrentFY(),
+          regime: data.profile.regime || "new",
+          savings_target:
+            Number(data.profile.savingsTarget ?? data.profile.savings_target ?? 20) || 20,
+        }),
+      (data.settings || data.masterData || data.dismissedAlerts) &&
+        supabase.from("user_settings").upsert({
+          ...cleanItem(camelToSnake(data.settings || {})),
+          ...(data.masterData ? { master_data: data.masterData } : {}),
+          ...(data.dismissedAlerts ? { dismissed_alerts: data.dismissedAlerts } : {}),
+          user_id: userId,
+        }),
+      ...push("bankAccounts", data.bankAccounts),
       ...push("transactions", data.transactions),
-      ...push("mutual_funds", data.mutualFunds, (item) => ({
-        scheme: item.name || item.scheme || "",
-        type: item.category || item.type || null,
-        name: undefined,
-        category: undefined,
-      })),
+      ...push("mutualFunds", data.mutualFunds),
       ...push("stocks", data.stocks),
-      ...push("demat_accounts", data.demat),
-      ...push("fixed_deposits", data.fixedDeposits),
-      ...push("recurring_deposits", data.recurringDeposits),
+      ...push("demat", data.demat),
+      ...push("fixedDeposits", data.fixedDeposits),
+      ...push("recurringDeposits", data.recurringDeposits),
       ...push("bonds", data.bonds),
-      ...push("ppf_nps", data.ppf, (item) => ({
-        type: "PPF",
-        bank: item.institution || item.bank || "",
-        open_date: item.openDate || item.openingDate || item.startDate || null,
-      })),
-      ...push("ppf_nps", data.nps, () => ({ type: "NPS" })),
-      ...push("ppf_nps", data.epf, () => ({ type: "EPF" })),
-      ...push("credit_cards", data.creditCards, (item) => ({
-        card_limit: item.cardLimit ?? item.limit ?? null,
-        limit: undefined,
-      })),
-      ...push("prepaid_cards", data.prepaidCards),
-      ...push("loans", data.loansTaken, (item) => ({
-        is_lent: false,
-        lender_borrower: item.lender || item.lenderBorrower || "",
-        lender: undefined,
-      })),
-      ...push("loans", data.loansGiven, (item) => ({
-        is_lent: true,
-        lender_borrower: item.borrower || item.lenderBorrower || "",
-        given_date: item.date || null,
-        borrower: undefined,
-        lender: undefined,
-        date: undefined,
-      })),
+      ...push("ppf", data.ppf),
+      ...push("nps", data.nps),
+      ...push("epf", data.epf),
+      ...push("creditCards", data.creditCards),
+      ...push("prepaidCards", data.prepaidCards),
+      ...push("loansTaken", data.loansTaken),
+      ...push("loansGiven", data.loansGiven),
       ...push("goals", data.goals),
-      ...push("budgets", data.budgets, (item) => ({
-        monthly_limit: item.monthlyLimit ?? item.monthly ?? null,
-        monthly: undefined,
-      })),
-      ...push("recurring_expenses", data.recurringExpenses),
+      ...push("budgets", data.budgets),
+      ...push("recurringExpenses", data.recurringExpenses),
       ...push("subscriptions", data.subscriptions),
-      ...push("reminders", data.reminders, (item) => ({
-        reminder_date: item.reminderDate ?? item.date ?? null,
-        date: undefined,
-      })),
-      ...push("lic_policies", data.lic),
-      ...push("term_plans", data.termPlans),
-      ...push("investment_plans", data.investmentPlans),
-      ...push("informal_loans", data.informalBorrowed, () => ({ direction: "borrowed" })),
-      ...push("informal_loans", data.informalLent, () => ({ direction: "lent" })),
-      ...push("rental_properties", data.rentalProperties, (item) => ({
-        property_type: "out",
-        property_type_detail: item.propertyType || "shop",
-      })),
-      ...push("rental_properties", data.rentedProperties, (item) => ({
-        property_type: "in",
-        property_type_detail: item.propertyType || "shop",
-      })),
+      ...push("reminders", data.reminders),
+      ...push("lic", data.lic),
+      ...push("termPlans", data.termPlans),
+      ...push("investmentPlans", data.investmentPlans),
+      ...push("informalBorrowed", data.informalBorrowed),
+      ...push("informalLent", data.informalLent),
+      ...push("rentalProperties", data.rentalProperties),
+      ...push("rentedProperties", data.rentedProperties),
       ...push("sips", data.sips),
-      ...push("stock_sells", data.stockSells),
-      ...push("mf_sells", data.mfSells),
-      ...push("corporate_actions", data.corporateActions),
-      ...push("tax_payments", data.taxPayments, (item) => ({
-        type: item.type || item.taxType || "Advance Tax",
-        note: item.note || item.notes || null,
-      })),
-      ...push("income_entries", data.income),
-      ...push("real_estate_properties", data.realEstateProperties),
-      ...push("real_estate_demands", data.realEstateDemands),
-      ...push("real_estate_payments", data.realEstatePayments),
+      ...push("stockSells", data.stockSells),
+      ...push("mfSells", data.mfSells),
+      ...push("corporateActions", data.corporateActions),
+      ...push("taxPayments", data.taxPayments),
+      ...push("income", data.income),
+      ...push("realEstateProperties", data.realEstateProperties),
+      ...push("realEstateDemands", data.realEstateDemands),
+      ...push("realEstatePayments", data.realEstatePayments),
       ...push("vehicles", data.vehicles),
       ...push("dividends", data.dividends),
       ...push("documents", data.documents),
-      ...push("gold_holdings", data.goldHoldings),
-      ...push("life_events", data.lifeEvents),
-      ...push("watchlists", data.wishlists),
-      ...push("watchlist_items", data.wishlistItems),
-      ...push("health_insurance", data.healthInsurance, (item) => ({
-        // policy_number/policy_name are `NOT NULL DEFAULT ''` — cleanItem's blanket
-        // ""->null conversion breaks the NOT NULL constraint for a legitimately
-        // blank (optional in the UI) field. See the same guard in addItem/updateItem.
-        policy_number: item.policyNumber || "",
-        policy_name: item.policyName || "",
-      })),
-      ...push("credit_scores", data.creditScores),
-      ...push("bill_payments", data.billPayments),
-      ...push("bill_payment_history", data.billPaymentHistory),
-      ...push("govt_schemes", data.govtSchemes),
-      ...push("salary_slips", data.salarySlips),
-      ...push("form_26as", data.form26as),
+      ...push("goldHoldings", data.goldHoldings),
+      ...push("lifeEvents", data.lifeEvents),
+      ...push("wishlists", data.wishlists),
+      ...push("wishlistItems", data.wishlistItems),
+      ...push("healthInsurance", data.healthInsurance),
+      ...push("creditScores", data.creditScores),
+      ...push("billPayments", data.billPayments),
+      ...push("billPaymentHistory", data.billPaymentHistory),
+      ...push("govtSchemes", data.govtSchemes),
+      ...push("salarySlips", data.salarySlips),
+      ...push("form26as", data.form26as),
       ...(data.netWorthHistory || []).map((entry: any) =>
         supabase.from("net_worth_history").upsert(
           {
@@ -3782,6 +3806,7 @@ function FinanceDashboard() {
             real_estate: entry.realEstate ?? 0,
             vehicles: entry.vehicles ?? 0,
             liabilities: entry.liabilities ?? 0,
+            ...(entry.breakdown ? { breakdown: entry.breakdown } : {}),
           },
           { onConflict: "user_id,month" }
         )

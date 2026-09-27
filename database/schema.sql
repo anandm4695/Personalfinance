@@ -1502,17 +1502,22 @@ CREATE TABLE IF NOT EXISTS public.documents (
   -- Will & Nominee Tracker also stores its "Will Document" and "Key Contact"
   -- records in this table (discriminated by `type`), reusing it as a
   -- generic metadata store rather than only a file vault.
-  type           text DEFAULT '',                                 -- 'will' | 'key_contact' (blank = an actual Document Vault file upload)
-  date           date,                                             -- will: date the will was made/updated
-  location       text DEFAULT '',                                 -- will: physical location (bank locker, home safe, ...)
-  witnesses      text DEFAULT '',                                  -- will: witness names
-  lawyer_name    text DEFAULT '',
-  lawyer_contact text DEFAULT '',
-  notes          text DEFAULT '',
-  role           text DEFAULT '',                                  -- key contact: Lawyer/CA/Financial Advisor/...
-  phone          text DEFAULT '',                                  -- key contact
-  email          text DEFAULT '',                                  -- key contact
-  uploaded_at    timestamptz DEFAULT NOW(),
+  type                  text DEFAULT '',                                 -- 'will' | 'key_contact' (blank = an actual Document Vault file upload)
+  status                text DEFAULT 'draft',                            -- will: 'draft' | 'executed' | 'registered'
+  primary_executor      text DEFAULT '',                                 -- will
+  alternate_executor    text DEFAULT '',                                 -- will
+  reg_number            text DEFAULT '',                                 -- will: registration number
+  sub_registrar_office  text DEFAULT '',                                 -- will
+  date                  date,                                            -- will: date the will was made/updated
+  location              text DEFAULT '',                                 -- will: physical location (bank locker, home safe, ...)
+  witnesses             text DEFAULT '',                                 -- will: witness names
+  lawyer_name           text DEFAULT '',
+  lawyer_contact        text DEFAULT '',
+  notes                 text DEFAULT '',
+  role                  text DEFAULT '',                                 -- key contact: Lawyer/CA/Financial Advisor/...
+  phone                 text DEFAULT '',                                 -- key contact
+  email                 text DEFAULT '',                                 -- key contact
+  uploaded_at           timestamptz DEFAULT NOW(),
   -- Document Vault (DocumentVaultTab.tsx) fields — blank `type` rows only.
   category          text DEFAULT '',
   subcategory       text DEFAULT '',
