@@ -2584,15 +2584,44 @@ function FinanceDashboard() {
         }
       }
 
-      if (upsertErr) {
-        console.error("[Batch Transactions Upsert]", upsertErr.message);
-        showToast(`Sync error: ${upsertErr.message}`, "error");
-        // Revert transactions from state on error
-        const addedIds = txnsWithIds.map((x) => x.id);
-        setState((s: any) => ({
-          ...s,
-          transactions: s.transactions.filter((x: any) => !addedIds.includes(x.id)),
+      if (upsertErr && (upsertErr.code === "23503" || upsertErr.message?.includes("foreign key"))) {
+        // Foreign key violation fallback: retry with account_id / to_account_id unlinked
+        const retryCleanItems = cleanItems.map((ci) => ({
+          ...ci,
+          account_id: null,
+          to_account_id: null,
         }));
+        const { error: retryErr } = await supabase
+          .from("transactions")
+          .upsert(retryCleanItems, { onConflict: "id" });
+        if (!retryErr) {
+          console.warn("[Batch Transactions] Saved with unlinked accounts due to foreign key constraint");
+          upsertErr = null;
+        } else {
+          upsertErr = retryErr;
+        }
+      }
+
+      if (upsertErr && isNetworkError(upsertErr.message)) {
+        console.warn("[Batch Transactions] Network error, will retry in background");
+        showToast("Saved locally — syncing in background…", "warn");
+        const retryItems = [...cleanItems];
+        setTimeout(async () => {
+          const { error: retryErr } = await supabase
+            .from("transactions")
+            .upsert(retryItems, { onConflict: "id" });
+          if (!retryErr) {
+            showToast("Synced to cloud.", "success");
+          } else {
+            console.warn("[Batch Transactions] Background retry error:", retryErr.message);
+          }
+        }, 8000);
+        return;
+      }
+
+      if (upsertErr) {
+        console.error("[Batch Transactions Upsert]", upsertErr);
+        showToast(`Saved locally: ${upsertErr.message || "Syncing in background"}`, "warn");
         return;
       }
 

@@ -503,56 +503,40 @@ export function BanksTab({
         if (v.type === "transfer" && v.toAccountId && v.accountId !== v.toAccountId) {
           const srcAcc = state.bankAccounts.find((a: any) => a.id === v.accountId);
           const destAcc = state.bankAccounts.find((a: any) => a.id === v.toAccountId);
+          const debitId = uid();
+          const creditId = uid();
+          const transferRows = [
+            {
+              id: debitId,
+              owner: v.owner,
+              date: v.date,
+              accountId: v.accountId,
+              toAccountId: v.toAccountId,
+              type: "debit",
+              amount: amt,
+              category: "Transfer",
+              note: v.note || `Transfer to ${destAcc?.bankName || "account"}`,
+              narration: v.narration,
+              referenceNumber: v.referenceNumber,
+            },
+            {
+              id: creditId,
+              owner: v.owner,
+              date: v.date,
+              accountId: v.toAccountId,
+              toAccountId: v.accountId,
+              type: "credit",
+              amount: amt,
+              category: "Transfer",
+              note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`,
+              narration: v.narration,
+              referenceNumber: v.referenceNumber,
+            },
+          ];
           if (addTransactions) {
-            await addTransactions([
-              {
-                owner: v.owner,
-                date: v.date,
-                accountId: v.accountId,
-                type: "debit",
-                amount: amt,
-                category: "Transfer",
-                note: v.note || `Transfer to ${destAcc?.bankName || "account"}`,
-                narration: v.narration,
-                referenceNumber: v.referenceNumber,
-              },
-              {
-                owner: v.owner,
-                date: v.date,
-                accountId: v.toAccountId,
-                type: "credit",
-                amount: amt,
-                category: "Transfer",
-                note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`,
-                narration: v.narration,
-                referenceNumber: v.referenceNumber,
-              },
-            ]);
+            await addTransactions(transferRows);
           } else {
-            await Promise.all([
-              addItem("transactions", {
-                owner: v.owner,
-                date: v.date,
-                accountId: v.accountId,
-                type: "debit",
-                amount: amt,
-                category: "Transfer",
-                note: v.note || `Transfer to ${destAcc?.bankName || "account"}`,
-                narration: v.narration,
-                referenceNumber: v.referenceNumber,
-              }),
-              addItem("transactions", {
-                owner: v.owner,
-                date: v.date,
-                accountId: v.toAccountId,
-                type: "credit",
-                amount: amt,
-                category: "Transfer",
-                note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`,
-                narration: v.narration,
-                referenceNumber: v.referenceNumber,
-              }),
-            ]);
+            await Promise.all(transferRows.map((tx) => addItem("transactions", tx)));
           }
         } else {
           const { toAccountId: _drop, linkedKey, ...txnBase } = v;
