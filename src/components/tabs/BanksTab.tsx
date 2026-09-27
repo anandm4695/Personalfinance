@@ -614,6 +614,14 @@ export function BanksTab({
   // Balance calculations and passbook math
   const balanceSource = fullState || state;
 
+  const txnIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    (balanceSource.transactions || []).forEach((t: any, idx: number) => {
+      if (t.id) map.set(t.id, idx);
+    });
+    return map;
+  }, [balanceSource.transactions]);
+
   const balanceAfterTxn = useMemo(() => {
     const map: Record<string, { value: number; confirmed: boolean; orderEstimated?: boolean }> = {};
     const byAccount: Record<string, any[]> = {};
@@ -637,8 +645,9 @@ export function BanksTab({
         return isNaN(n) ? null : n;
       };
       const typeOrder = (t: any) => (t.type === "credit" ? 0 : 1);
+      const getIdx = (t: any, fallback: number) => txnIndexMap.get(t.id) ?? fallback;
       const withIdx = txns
-        .map((t, idx) => ({ t, idx }))
+        .map((t, idx) => ({ t, idx: getIdx(t, idx) }))
         .sort((a, b) => {
           const byDate = (a.t.date || "").localeCompare(b.t.date || "");
           if (byDate !== 0) return byDate;
@@ -682,7 +691,7 @@ export function BanksTab({
       }
     });
     return map;
-  }, [balanceSource.transactions, balanceSource.bankAccounts]);
+  }, [balanceSource.transactions, balanceSource.bankAccounts, txnIndexMap]);
 
   const accountLatestBalance = useMemo(() => {
     const map: Record<string, number> = {};
@@ -699,8 +708,9 @@ export function BanksTab({
         return isNaN(n) ? null : n;
       };
       const typeOrder = (t: any) => (t.type === "credit" ? 0 : 1);
+      const getIdx = (t: any, fallback: number) => txnIndexMap.get(t.id) ?? fallback;
       const sorted = txns
-        .map((t, idx) => ({ t, idx }))
+        .map((t, idx) => ({ t, idx: getIdx(t, idx) }))
         .sort((a, b) => {
           const byDate = (a.t.date || "").localeCompare(b.t.date || "");
           if (byDate !== 0) return byDate;
@@ -725,7 +735,7 @@ export function BanksTab({
       }
     });
     return map;
-  }, [balanceSource.transactions, balanceAfterTxn]);
+  }, [balanceSource.transactions, balanceAfterTxn, txnIndexMap]);
 
   const getDisplayBalance = useCallback(
     (acc: any): number => {
@@ -831,33 +841,35 @@ export function BanksTab({
 
   // Sorted transactions
   const sortedTxns = useMemo(() => {
-    let txns = [...filteredTxns];
     const createdAtOf = (t: any): number | null => {
       if (!t.createdAt) return null;
       const n = new Date(t.createdAt).getTime();
       return isNaN(n) ? null : n;
     };
     const typeOrder = (t: any) => (t.type === "credit" ? 0 : 1);
+    const getIdx = (t: any) => txnIndexMap.get(t.id) ?? 0;
+
+    let withIdx = filteredTxns.map((t) => ({ t, idx: getIdx(t) }));
 
     if (sortField) {
-      txns.sort((a, b) => {
+      withIdx.sort((a, b) => {
         if (sortField === "date") {
-          const byDate = (a.date || "").localeCompare(b.date || "");
+          const byDate = (a.t.date || "").localeCompare(b.t.date || "");
           if (byDate !== 0) return sortDirection === "asc" ? byDate : -byDate;
-          const ca = createdAtOf(a);
-          const cb = createdAtOf(b);
+          const ca = createdAtOf(a.t);
+          const cb = createdAtOf(b.t);
           if (ca !== null && cb !== null && ca !== cb) {
             return sortDirection === "asc" ? ca - cb : cb - ca;
           }
-          const toA = typeOrder(a);
-          const toB = typeOrder(b);
+          const toA = typeOrder(a.t);
+          const toB = typeOrder(b.t);
           if (toA !== toB) {
             return sortDirection === "asc" ? toA - toB : toB - toA;
           }
-          return 0;
+          return sortDirection === "asc" ? a.idx - b.idx : b.idx - a.idx;
         }
-        let valA = a[sortField] || "";
-        let valB = b[sortField] || "";
+        let valA = a.t[sortField] || "";
+        let valB = b.t[sortField] || "";
         if (sortField === "amount") {
           valA = Number(valA || 0);
           valB = Number(valB || 0);
@@ -871,21 +883,21 @@ export function BanksTab({
       });
     } else {
       // Default view: Reverse chronological (latest date first, latest within day first)
-      txns.sort((a, b) => {
-        const byDate = (b.date || "").localeCompare(a.date || "");
+      withIdx.sort((a, b) => {
+        const byDate = (b.t.date || "").localeCompare(a.t.date || "");
         if (byDate !== 0) return byDate;
-        const ca = createdAtOf(a);
-        const cb = createdAtOf(b);
+        const ca = createdAtOf(a.t);
+        const cb = createdAtOf(b.t);
         if (ca !== null && cb !== null && ca !== cb) return cb - ca;
         // In reverse chronological view, Debits (end of day transactions) appear on top of Credits
-        const toA = typeOrder(a);
-        const toB = typeOrder(b);
+        const toA = typeOrder(a.t);
+        const toB = typeOrder(b.t);
         if (toA !== toB) return toB - toA;
-        return 0;
+        return b.idx - a.idx;
       });
     }
-    return txns;
-  }, [filteredTxns, sortField, sortDirection]);
+    return withIdx.map((x) => x.t);
+  }, [filteredTxns, sortField, sortDirection, txnIndexMap]);
 
   // Pagination reset
   useEffect(() => {

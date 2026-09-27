@@ -171,4 +171,85 @@ describe("BanksTab Same-Day Credit & Debit Sorting and Passbook Balances", () =>
     expect(ledgerText).toContain("Contra Money Transfer From 4958 to 2118");
     expect(ledgerText).toContain("FUND TRANSFER FROM SHREERAJ DEVELOPER LLP");
   });
+
+  it("orders multiple same-day credits in reverse chronological order so latest balance is on top", async () => {
+    // Starting balance ₹1 after 01 Mar transfer
+    const twoCreditsState = {
+      bankAccounts: mockBankAccounts,
+      transactions: [
+        {
+          id: "tx-init-credit",
+          accountId: "kotak-4958",
+          date: "2025-03-01",
+          type: "credit",
+          amount: 96628,
+          note: "Payment Received From Shrinath",
+        },
+        {
+          id: "tx-init-debit",
+          accountId: "kotak-4958",
+          date: "2025-03-01",
+          type: "debit",
+          amount: 96627, // Leaves balance = ₹1
+          note: "Contra Money Transfer From 4958 to 3014",
+        },
+        {
+          id: "tx-food-1",
+          accountId: "kotak-4958",
+          date: "2025-09-13",
+          type: "credit",
+          amount: 300,
+          note: "Payment Received For Group Food (Anju)",
+        },
+        {
+          id: "tx-food-2",
+          accountId: "kotak-4958",
+          date: "2025-09-13",
+          type: "credit",
+          amount: 300,
+          note: "Payment Received For Group Food (Sachin)",
+        },
+      ],
+      profile: { name: "Anand Mohta", baseCurrency: "INR" },
+    };
+
+    const container = await mount(
+      <PrivacyProvider>
+        <BanksTab
+          state={twoCreditsState}
+          fullState={twoCreditsState}
+          addItem={vi.fn()}
+          updateItem={vi.fn()}
+          deleteItem={vi.fn()}
+          showToast={vi.fn()}
+        />
+      </PrivacyProvider>
+    );
+
+    const viewPassbookBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("View Passbook")
+    );
+    await act(async () => {
+      viewPassbookBtn?.click();
+    });
+
+    const rows = Array.from(container.querySelectorAll("table tbody tr"));
+    expect(rows.length).toBeGreaterThanOrEqual(4);
+
+    // Row 0 (top row) should be Sachin (the 2nd credit on Sep 13) with closing balance ₹601
+    expect(rows[0].textContent).toContain("Sachin");
+    expect(rows[0].textContent).toContain("₹601");
+
+    // Row 1 (2nd row) should be Anju (the 1st credit on Sep 13) with balance ₹301
+    expect(rows[1].textContent).toContain("Anju");
+    expect(rows[1].textContent).toContain("₹301");
+
+    // Row 2 should be the debit on Mar 01 with balance ₹1
+    expect(rows[2].textContent).toContain("Contra Money Transfer");
+    expect(rows[2].textContent).toContain("₹1");
+
+    // Row 3 should be the credit on Mar 01 with balance ₹96,628
+    expect(rows[3].textContent).toContain("Shrinath");
+    expect(rows[3].textContent).toContain("₹96,628");
+  });
 });
