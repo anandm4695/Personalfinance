@@ -570,8 +570,12 @@ export function CreditTab({
     }
   );
   const { run: saveNewLoanTaken, loading: savingNewLoanTaken } = useAsyncAction(
-    async (v: any) => {
+    async (v: any, bankTxn?: any) => {
       await addItem("loansTaken", v);
+      if (bankTxn) {
+        await addItem("transactions", bankTxn);
+        showToast?.("Loan added and disbursement credited to bank account", "success");
+      }
     },
     {
       onSuccess: () => setModal(null),
@@ -579,8 +583,12 @@ export function CreditTab({
     }
   );
   const { run: saveNewLoanGiven, loading: savingNewLoanGiven } = useAsyncAction(
-    async (v: any) => {
+    async (v: any, bankTxn?: any) => {
       await addItem("loansGiven", v);
+      if (bankTxn) {
+        await addItem("transactions", bankTxn);
+        showToast?.("Loan added and disbursement debited from bank account", "success");
+      }
     },
     {
       onSuccess: () => setModal(null),
@@ -1115,6 +1123,7 @@ export function CreditTab({
       )}
       {modal === "taken" && (
         <LoanTakenModal
+          bankAccounts={state.bankAccounts || []}
           onClose={() => setModal(null)}
           onSave={saveNewLoanTaken}
           saving={savingNewLoanTaken}
@@ -1122,6 +1131,7 @@ export function CreditTab({
       )}
       {modal === "given" && (
         <LoanGivenModal
+          bankAccounts={state.bankAccounts || []}
           onClose={() => setModal(null)}
           onSave={saveNewLoanGiven}
           saving={savingNewLoanGiven}

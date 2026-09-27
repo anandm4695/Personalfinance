@@ -19,13 +19,15 @@ import { Money } from "../ui/Money";
 
 interface LoanGivenModalProps {
   initial?: any;
+  bankAccounts?: any[];
   onClose: () => void;
-  onSave: (data: any) => Promise<void> | void;
+  onSave: (data: any, bankTxn?: any) => Promise<void> | void;
   saving?: boolean;
 }
 
 export function LoanGivenModal({
   initial = null,
+  bankAccounts = [],
   onClose,
   onSave,
   saving,
@@ -49,6 +51,8 @@ export function LoanGivenModal({
     }
   );
 
+  const [selectedBankId, setSelectedBankId] = useState<string>("");
+
   const setDuePreset = (monthsToAdd: number) => {
     const base = f.date ? new Date(f.date + "T00:00:00") : new Date();
     base.setMonth(base.getMonth() + monthsToAdd);
@@ -67,12 +71,33 @@ export function LoanGivenModal({
     }
 
     const outstanding = f.outstanding !== "" ? f.outstanding : f.principal;
-    onSave({
+    const loanData = {
       ...f,
       principal: Number(f.principal) || 0,
       outstanding: Math.max(0, Number(outstanding) || 0),
       rate: f.isInterestFree ? 0 : Number(f.rate) || 0,
-    });
+    };
+
+    let bankTxn: any = null;
+    if (!initial && selectedBankId) {
+      const selectedBank = bankAccounts.find((b: any) => b.id === selectedBankId);
+      bankTxn = {
+        id: `txn-${Date.now()}`,
+        date: f.date || today(),
+        amount: principalNum,
+        type: "debit",
+        category: "Loan Given",
+        description: `Personal loan disbursed to ${f.borrower}${f.note ? ` (${f.note})` : ""}`,
+        accountId: selectedBankId,
+        bankAccountId: selectedBankId,
+        bankName: selectedBank?.bankName || "Bank",
+        mode: "Bank Transfer",
+        owner: f.owner || "self",
+        linkedType: "loansGiven",
+      };
+    }
+
+    onSave(loanData, bankTxn);
   };
 
   const inputStyle: React.CSSProperties = {
@@ -300,6 +325,35 @@ export function LoanGivenModal({
             onChange={(e) => setF({ ...f, note: e.target.value })}
           />
         </Field>
+
+        {!initial && bankAccounts.length > 0 && (
+          <Field label="Disbursed From Bank Account (Optional)">
+            <select
+              style={inputStyle}
+              value={selectedBankId}
+              onChange={(e) => setSelectedBankId(e.target.value)}
+            >
+              <option value="">— Do not record in bank account —</option>
+              {bankAccounts.map((acc: any) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.bankName} {acc.accountNumber ? `(••••${acc.accountNumber.slice(-4)})` : ""}
+                </option>
+              ))}
+            </select>
+            {selectedBankId && (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: THEME.sage,
+                  marginTop: 6,
+                  fontWeight: 600,
+                }}
+              >
+                ✓ Will automatically debit {principalNum > 0 ? `₹${principalNum.toLocaleString("en-IN")}` : "principal"} from this bank account in Banks & Transactions
+              </div>
+            )}
+          </Field>
+        )}
 
         <ModalActions
           onSave={handleSave}

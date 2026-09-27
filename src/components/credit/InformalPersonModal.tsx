@@ -1,7 +1,7 @@
-/* eslint-disable */
 import React, { useState } from "react";
-import { User, Phone, Tag, FileText, Sparkles } from "lucide-react";
+import { User, Phone, Tag, FileText, Sparkles, IndianRupee, Calendar, Landmark, Clock } from "lucide-react";
 import { THEME } from "../../utils/constants";
+import { today } from "../../utils/finance";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -19,7 +19,8 @@ const RELATIONSHIP_OPTIONS = [
 interface InformalPersonModalProps {
   direction: "borrowed" | "lent";
   initial?: any | null;
-  onSave: (personData: any) => Promise<void> | void;
+  bankAccounts?: any[];
+  onSave: (personData: any, bankTxn?: any) => Promise<void> | void;
   onClose: () => void;
   saving?: boolean;
 }
@@ -27,6 +28,7 @@ interface InformalPersonModalProps {
 export function InformalPersonModal({
   direction,
   initial = null,
+  bankAccounts = [],
   onSave,
   onClose,
   saving = false,
@@ -41,6 +43,10 @@ export function InformalPersonModal({
   const [relationship, setRelationship] = useState(initial?.relationship || "Friend");
   const [phone, setPhone] = useState(initial?.phone || "");
   const [note, setNote] = useState(initial?.note || "");
+  const [initialAmount, setInitialAmount] = useState<string>("");
+  const [date, setDate] = useState<string>(today());
+  const [dueDate, setDueDate] = useState<string>("");
+  const [selectedBankId, setSelectedBankId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
@@ -60,13 +66,67 @@ export function InformalPersonModal({
       note: note.trim(),
     };
 
+    let bankTxn: any = null;
+    const initialNum = Number(initialAmount);
+
     // If new person, initialize tranches and payments arrays
     if (!initial) {
-      payload.tranches = [];
       payload.payments = [];
+      if (initialNum > 0) {
+        payload.tranches = [
+          {
+            id: `tr-${Date.now()}`,
+            amount: initialNum,
+            date: date || today(),
+            ...(dueDate ? { dueDate } : {}),
+            note: note.trim() || (isBorrowed ? "Initial loan received" : "Initial loan given"),
+          },
+        ];
+
+        if (selectedBankId) {
+          const selectedBank = bankAccounts.find((b: any) => b.id === selectedBankId);
+          if (isBorrowed) {
+            // Borrowed money received -> Credit user's bank account
+            bankTxn = {
+              id: `txn-${Date.now()}`,
+              date: date || today(),
+              amount: initialNum,
+              type: "credit",
+              category: "Loan Received",
+              description: `Loan received from ${trimmedName}${note ? ` (${note})` : ""}`,
+              accountId: selectedBankId,
+              bankAccountId: selectedBankId,
+              bankName: selectedBank?.bankName || "Bank",
+              mode: "Bank Transfer",
+              owner: owner || "self",
+            };
+          } else {
+            // Lent money disbursed -> Debit user's bank account
+            bankTxn = {
+              id: `txn-${Date.now()}`,
+              date: date || today(),
+              amount: initialNum,
+              type: "debit",
+              category: "Loan Given",
+              description: `Personal loan given to ${trimmedName}${note ? ` (${note})` : ""}`,
+              accountId: selectedBankId,
+              bankAccountId: selectedBankId,
+              bankName: selectedBank?.bankName || "Bank",
+              mode: "Bank Transfer",
+              owner: owner || "self",
+            };
+          }
+        }
+      } else {
+        payload.tranches = [];
+      }
     }
 
-    await onSave(payload);
+    if (bankTxn) {
+      await onSave(payload, bankTxn);
+    } else {
+      await onSave(payload);
+    }
   };
 
   return (
@@ -282,6 +342,180 @@ export function InformalPersonModal({
             />
           </div>
         </Field>
+
+        {/* Initial Loan Tranche (Optional - Only on Add) */}
+        {!initial && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              padding: "14px",
+              background: "color-mix(in srgb, var(--surface-1) 50%, transparent)",
+              borderRadius: "var(--radius-md)",
+              border: "1px dashed var(--t-line)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <IndianRupee size={15} color={isBorrowed ? "var(--t-rust)" : "var(--t-accent)"} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--t-ink)" }}>
+                Initial Loan Record (Optional)
+              </span>
+            </div>
+
+            <Field label={isBorrowed ? "Initial Amount Borrowed (₹)" : "Initial Amount Lent (₹)"}>
+              <div style={{ position: "relative" }}>
+                <input
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px 10px 36px",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--t-line)",
+                    background: "var(--t-card-bg)",
+                    color: "var(--t-ink)",
+                    fontSize: 13,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                  type="number"
+                  min="0"
+                  placeholder="e.g. 50000 (leave blank to add later)"
+                  value={initialAmount}
+                  onChange={(e) => setInitialAmount(e.target.value)}
+                />
+                <IndianRupee
+                  size={15}
+                  style={{
+                    position: "absolute",
+                    left: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "var(--t-muted)",
+                  }}
+                />
+              </div>
+            </Field>
+
+            {Number(initialAmount) > 0 && (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <Field label="Transaction Date">
+                    <div style={{ position: "relative" }}>
+                      <input
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px 10px 36px",
+                          borderRadius: "var(--radius-md)",
+                          border: "1px solid var(--t-line)",
+                          background: "var(--t-card-bg)",
+                          color: "var(--t-ink)",
+                          fontSize: 13,
+                          outline: "none",
+                          boxSizing: "border-box",
+                        }}
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                      />
+                      <Calendar
+                        size={15}
+                        style={{
+                          position: "absolute",
+                          left: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          color: "var(--t-muted)",
+                        }}
+                      />
+                    </div>
+                  </Field>
+
+                  <Field label="Repayment Due Date (optional)">
+                    <div style={{ position: "relative" }}>
+                      <input
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px 10px 36px",
+                          borderRadius: "var(--radius-md)",
+                          border: "1px solid var(--t-line)",
+                          background: "var(--t-card-bg)",
+                          color: "var(--t-ink)",
+                          fontSize: 13,
+                          outline: "none",
+                          boxSizing: "border-box",
+                        }}
+                        type="date"
+                        value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)}
+                      />
+                      <Clock
+                        size={15}
+                        style={{
+                          position: "absolute",
+                          left: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          color: "var(--t-muted)",
+                        }}
+                      />
+                    </div>
+                  </Field>
+                </div>
+
+                {bankAccounts.length > 0 && (
+                  <Field label={isBorrowed ? "Auto-Credit Bank Account (optional)" : "Auto-Debit Bank Account (optional)"}>
+                    <div style={{ position: "relative" }}>
+                      <select
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px 10px 36px",
+                          borderRadius: "var(--radius-md)",
+                          border: "1px solid var(--t-line)",
+                          background: "var(--t-card-bg)",
+                          color: "var(--t-ink)",
+                          fontSize: 13,
+                          outline: "none",
+                          boxSizing: "border-box",
+                        }}
+                        value={selectedBankId}
+                        onChange={(e) => setSelectedBankId(e.target.value)}
+                      >
+                        <option value="">— Do not record in bank account —</option>
+                        {bankAccounts.map((acc: any) => (
+                          <option key={acc.id} value={acc.id}>
+                            {acc.bankName} {acc.accountNumber ? `(••••${acc.accountNumber.slice(-4)})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <Landmark
+                        size={15}
+                        style={{
+                          position: "absolute",
+                          left: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          color: "var(--t-muted)",
+                        }}
+                      />
+                    </div>
+                    {selectedBankId && (
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: THEME.sage,
+                          marginTop: 6,
+                          fontWeight: 600,
+                        }}
+                      >
+                        ✓ Will automatically create a {isBorrowed ? "credit" : "debit"} transaction in Banks & Transactions
+                      </div>
+                    )}
+                  </Field>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         <ModalActions
           onSave={handleSubmit}

@@ -58,6 +58,8 @@ import {
   fmtINR,
   fmtINRFull,
   loanOutstanding,
+  loanGivenOutstanding,
+  informalPersonOutstanding,
   uid,
 } from "../../utils/finance";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
@@ -364,7 +366,7 @@ export function BanksTab({
     const lid = linkedKey.slice(ci + 1);
     const amt = Number(txn.amount || 0);
     if (amt <= 0) return;
-    const { date, note } = txn;
+    const { date, note, type } = txn;
     const newId = `bank-${txnId}`;
 
     if (["lic", "termPlans", "investmentPlans"].includes(lt)) {
@@ -377,17 +379,128 @@ export function BanksTab({
     } else if (lt === "loansTaken") {
       const loan = (state.loansTaken || []).find((l: any) => l.id === lid);
       if (!loan) return;
-      const outstandingBefore = loanOutstanding(loan);
-      const monthlyRate = Number(loan.rate || 0) / 100 / 12;
-      const interestPortion = outstandingBefore * monthlyRate;
-      const principalPortion = Math.min(outstandingBefore, Math.max(0, amt - interestPortion));
-      await Promise.all([
-        updateItem("loansTaken", lid, {
-          outstanding: Math.max(0, outstandingBefore - principalPortion),
-          monthsRemaining: Math.max(0, Number(loan.monthsRemaining || 0) - 1),
-        }),
-        updateItem("transactions", txnId, { linkedPrincipalAmount: principalPortion }),
-      ]);
+      if (type === "credit") {
+        // Loan proceeds / top-up received into bank account
+        const currentPrincipal = Number(loan.principal || 0);
+        const currentOutstanding = loanOutstanding(loan);
+        await updateItem("loansTaken", lid, {
+          principal: currentPrincipal + amt,
+          outstanding: currentOutstanding + amt,
+        });
+      } else {
+        // Loan EMI / Repayment / Prepayment paid from bank account
+        const outstandingBefore = loanOutstanding(loan);
+        const monthlyRate = Number(loan.rate || 0) / 100 / 12;
+        const interestPortion = monthlyRate > 0 ? outstandingBefore * monthlyRate : 0;
+        const principalPortion = Math.min(outstandingBefore, Math.max(0, amt - interestPortion));
+        const newOutstanding = Math.max(0, outstandingBefore - principalPortion);
+        const newMonths = Number(loan.monthsRemaining || 0) > 0 ? Math.max(0, Number(loan.monthsRemaining) - 1) : 0;
+        const paymentRecord = {
+          id: newId,
+          date,
+          amount: amt,
+          type: "emi",
+          mode: "Bank Transfer",
+          principalPortion: Math.round(principalPortion),
+          interestPortion: Math.round(interestPortion),
+          note: note || "Bank auto-post",
+        };
+        await Promise.all([
+          updateItem("loansTaken", lid, {
+            outstanding: newOutstanding,
+            monthsRemaining: newMonths,
+            payments: [...(loan.payments || []), paymentRecord],
+            ...(newOutstanding <= 0 ? { status: "closed" } : {}),
+          }),
+          updateItem("transactions", txnId, { linkedPrincipalAmount: principalPortion }),
+        ]);
+      }
+    } else if (lt === "loansGiven") {
+      const loan = (state.loansGiven || []).find((l: any) => l.id === lid);
+      if (!loan) return;
+      if (type === "credit") {
+        // Loan recovery / payment received from borrower into bank account
+        const currentOutstanding = loanGivenOutstanding(loan);
+        const newOutstanding = Math.max(0, currentOutstanding - amt);
+        const paymentRecord = {
+          id: newId,
+          date,
+          amount: amt,
+          type: "receipt",
+          mode: "Bank Transfer",
+          note: note || "Bank auto-post",
+        };
+        await updateItem("loansGiven", lid, {
+          outstanding: newOutstanding,
+          payments: [...(loan.payments || []), paymentRecord],
+          ...(newOutstanding <= 0 ? { status: "settled" } : {}),
+        });
+      } else {
+        // Loan disbursement / top-up given to borrower from bank account
+        const currentOutstanding = loanGivenOutstanding(loan);
+        await updateItem("loansGiven", lid, {
+          principal: (Number(loan.principal) || 0) + amt,
+          outstanding: currentOutstanding + amt,
+        });
+      }
+    } else if (lt === "informalBorrowed") {
+      const person = (state.informalBorrowed || []).find((p: any) => p.id === lid);
+      if (!person) return;
+      if (type === "credit") {
+        // Loan / borrowed money received from lender into bank account
+        const tranches = [
+          ...(person.tranches || []),
+          {
+            id: newId,
+            amount: amt,
+            date,
+            note: note || "Loan received via Bank",
+          },
+        ];
+        await updateItem("informalBorrowed", lid, { tranches });
+      } else {
+        // Debt repayment paid to lender from bank account
+        const payments = [
+          ...(person.payments || []),
+          {
+            id: newId,
+            amount: amt,
+            date,
+            method: "Bank Transfer",
+            note: note || "Repayment via Bank",
+          },
+        ];
+        await updateItem("informalBorrowed", lid, { payments });
+      }
+    } else if (lt === "informalLent") {
+      const person = (state.informalLent || []).find((p: any) => p.id === lid);
+      if (!person) return;
+      if (type === "credit") {
+        // Loan recovery / payment received from borrower into bank account
+        const payments = [
+          ...(person.payments || []),
+          {
+            id: newId,
+            amount: amt,
+            date,
+            method: "Bank Transfer",
+            note: note || "Loan recovery via Bank",
+          },
+        ];
+        await updateItem("informalLent", lid, { payments });
+      } else {
+        // Loan disbursed / money lent to borrower from bank account
+        const tranches = [
+          ...(person.tranches || []),
+          {
+            id: newId,
+            amount: amt,
+            date,
+            note: note || "Loan disbursed via Bank",
+          },
+        ];
+        await updateItem("informalLent", lid, { tranches });
+      }
     } else if (lt === "rentedProperties") {
       const prop = (state.rentedProperties || []).find((p: any) => p.id === lid);
       if (!prop) return;
@@ -3732,18 +3845,127 @@ function getLinkConfig(category: string, type: string, state: any, privacyMode?:
           maximumFractionDigits: 0,
         });
 
-  if (category === "EMI" && type === "debit") {
-    return {
-      label: "Loan",
-      options: (state.loansTaken || [])
+  const catLower = (category || "").toLowerCase();
+
+  // Loans & People Linking on Debit (Money Paid Out / Repayment / Lending)
+  if (type === "debit") {
+    const isLoanCategory =
+      category === "EMI" ||
+      category === "Debt Repayment" ||
+      category === "Loan Given" ||
+      category === "Loans & People" ||
+      category === "From People" ||
+      category === "To People" ||
+      catLower.includes("loan") ||
+      catLower.includes("debt") ||
+      catLower.includes("emi");
+
+    if (isLoanCategory) {
+      const options: { key: string; label: string }[] = [];
+
+      // 1. Formal Loans Taken (EMI / Prepayment)
+      (state.loansTaken || [])
         .filter((l: any) => loanOutstanding(l) > 0)
-        .map((l: any) => ({
+        .forEach((l: any) => {
+          options.push({
+            key: `loansTaken:${l.id}`,
+            label: `Bank Loan: ${l.lender || "Loan"} – ${l.type || ""} | EMI ${fmt(l.emi)}/mo | Balance ${fmt(loanOutstanding(l))}`,
+          });
+        });
+
+      // 2. Informal Borrowed / From People (Repay Lender)
+      (state.informalBorrowed || []).forEach((p: any) => {
+        const out = informalPersonOutstanding(p);
+        options.push({
+          key: `informalBorrowed:${p.id}`,
+          label: `From People (Repay): ${p.person || p.name || "Lender"} | You Owe ${fmt(out)}`,
+        });
+      });
+
+      // 3. Informal Lent / To People (Lend Money / Disburse)
+      (state.informalLent || []).forEach((p: any) => {
+        const out = informalPersonOutstanding(p);
+        options.push({
+          key: `informalLent:${p.id}`,
+          label: `To People (Disburse / Lend): ${p.person || p.name || "Borrower"} | Lent ${fmt(out)}`,
+        });
+      });
+
+      // 4. Formal Loans Given (Disburse Top-up)
+      (state.loansGiven || []).forEach((l: any) => {
+        options.push({
+          key: `loansGiven:${l.id}`,
+          label: `Formal Loan Given (Disburse): ${l.borrower || "Borrower"} | Balance ${fmt(loanGivenOutstanding(l))}`,
+        });
+      });
+
+      if (options.length > 0) {
+        return {
+          label: "Loan / Person Record",
+          options,
+        };
+      }
+    }
+  }
+
+  // Loans & People Linking on Credit (Money Received In / Recovery / Loan Received)
+  if (type === "credit") {
+    const isRecoveryOrLoan =
+      category === "Loan Recovery" ||
+      category === "Debt Repayment" ||
+      category === "Loans & People" ||
+      category === "To People" ||
+      category === "From People" ||
+      catLower.includes("recovery") ||
+      catLower.includes("receipt") ||
+      catLower.includes("borrow") ||
+      catLower.includes("loan");
+
+    if (isRecoveryOrLoan) {
+      const options: { key: string; label: string }[] = [];
+
+      // 1. Informal Lent / To People (Loan Recovery Received)
+      (state.informalLent || []).forEach((p: any) => {
+        const out = informalPersonOutstanding(p);
+        options.push({
+          key: `informalLent:${p.id}`,
+          label: `To People (Recovery): ${p.person || p.name || "Borrower"} | Owed ${fmt(out)}`,
+        });
+      });
+
+      // 2. Formal Loans Given (EMI / Payment Received)
+      (state.loansGiven || [])
+        .filter((l: any) => loanGivenOutstanding(l) > 0)
+        .forEach((l: any) => {
+          options.push({
+            key: `loansGiven:${l.id}`,
+            label: `Formal Loan Given (Receipt): ${l.borrower || "Borrower"} | Balance ${fmt(loanGivenOutstanding(l))}`,
+          });
+        });
+
+      // 3. Informal Borrowed / From People (Loan Received / Borrowed)
+      (state.informalBorrowed || []).forEach((p: any) => {
+        options.push({
+          key: `informalBorrowed:${p.id}`,
+          label: `From People (Loan Received): ${p.person || p.name || "Lender"}`,
+        });
+      });
+
+      // 4. Formal Loans Taken (Disbursement Received)
+      (state.loansTaken || []).forEach((l: any) => {
+        options.push({
           key: `loansTaken:${l.id}`,
-          label: `${l.lender || "Loan"} – ${l.type || ""} | EMI ${fmt(l.emi)}/mo | Outstanding ${fmt(
-            loanOutstanding(l)
-          )}`,
-        })),
-    };
+          label: `Bank Loan (Disbursement): ${l.lender || "Lender"}`,
+        });
+      });
+
+      if (options.length > 0) {
+        return {
+          label: "Loan / Person Record",
+          options,
+        };
+      }
+    }
   }
   if (category === "Insurance" && type === "debit") {
     return {

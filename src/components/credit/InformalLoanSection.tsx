@@ -1294,8 +1294,12 @@ export function InformalLoanSection({
       {addPersonOpen && (
         <InformalPersonModal
           direction={direction}
-          onSave={async (newPerson) => {
+          bankAccounts={bankAccounts}
+          onSave={async (newPerson, bankTxn) => {
             await onAddPerson(newPerson);
+            if (bankTxn && onAddTransaction) {
+              await onAddTransaction(bankTxn);
+            }
             setAddPersonOpen(false);
           }}
           onClose={() => setAddPersonOpen(false)}

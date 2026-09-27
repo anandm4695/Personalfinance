@@ -19,13 +19,15 @@ import { Money } from "../ui/Money";
 
 interface LoanTakenModalProps {
   initial?: any;
+  bankAccounts?: any[];
   onClose: () => void;
-  onSave: (data: any) => Promise<void> | void;
+  onSave: (data: any, bankTxn?: any) => Promise<void> | void;
   saving?: boolean;
 }
 
 export function LoanTakenModal({
   initial = null,
+  bankAccounts = [],
   onClose,
   onSave,
   saving,
@@ -50,6 +52,7 @@ export function LoanTakenModal({
     }
   );
 
+  const [selectedBankId, setSelectedBankId] = useState<string>("");
   const [tenureUnit, setTenureUnit] = useState<"months" | "years">("months");
   const [tenureYears, setTenureYears] = useState<string>(
     f.monthsRemaining ? String(Math.round(Number(f.monthsRemaining) / 12)) : ""
@@ -113,15 +116,37 @@ export function LoanTakenModal({
       return;
     }
 
+    const principalAmt = Number(f.principal) || 0;
     const outstanding = f.outstanding !== "" ? f.outstanding : f.principal;
-    onSave({
+    const loanData = {
       ...f,
-      principal: Number(f.principal) || 0,
+      principal: principalAmt,
       outstanding: Math.max(0, Number(outstanding) || 0),
       emi: Number(f.emi) || 0,
       rate: Number(f.rate) || 0,
       monthsRemaining: Number(f.monthsRemaining) || 0,
-    });
+    };
+
+    let bankTxn: any = null;
+    if (!initial && selectedBankId) {
+      const selectedBank = bankAccounts.find((b: any) => b.id === selectedBankId);
+      bankTxn = {
+        id: `txn-${Date.now()}`,
+        date: new Date().toISOString().slice(0, 10),
+        amount: principalAmt,
+        type: "credit",
+        category: "Loan Received",
+        description: `Loan disbursement received from ${f.lender}${f.note ? ` (${f.note})` : ""}`,
+        accountId: selectedBankId,
+        bankAccountId: selectedBankId,
+        bankName: selectedBank?.bankName || "Bank",
+        mode: "Bank Transfer",
+        owner: f.owner || "self",
+        linkedType: "loansTaken",
+      };
+    }
+
+    onSave(loanData, bankTxn);
   };
 
   const inputStyle: React.CSSProperties = {
@@ -355,6 +380,35 @@ export function LoanTakenModal({
             onChange={(e) => setF({ ...f, note: e.target.value })}
           />
         </Field>
+
+        {!initial && bankAccounts.length > 0 && (
+          <Field label="Disbursed To Bank Account (Optional)">
+            <select
+              style={inputStyle}
+              value={selectedBankId}
+              onChange={(e) => setSelectedBankId(e.target.value)}
+            >
+              <option value="">— Do not record in bank account —</option>
+              {bankAccounts.map((acc: any) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.bankName} {acc.accountNumber ? `(••••${acc.accountNumber.slice(-4)})` : ""}
+                </option>
+              ))}
+            </select>
+            {selectedBankId && (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: THEME.sage,
+                  marginTop: 6,
+                  fontWeight: 600,
+                }}
+              >
+                ✓ Will automatically credit {Number(f.principal) > 0 ? `₹${Number(f.principal).toLocaleString("en-IN")}` : "principal"} to this bank account in Banks & Transactions
+              </div>
+            )}
+          </Field>
+        )}
 
         <ModalActions
           onSave={handleSave}

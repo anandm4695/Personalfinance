@@ -487,7 +487,9 @@ export const autoCateg = (note: string): string | null => {
       /\bsip\b|mutual fund|stock purchase|zerodha|groww|nifty|sensex|invest|ppf deposit|nps.*contrib|demat/i,
       "Investment",
     ],
-    [/\bemi\b|loan repay|hdfc.*loan|sbi.*loan|equitas/i, "EMI"],
+    [/\bemi\b|loan repay|hdfc.*loan|sbi.*loan|equitas|debt repay/i, "EMI"],
+    [/loan recover|money recover|lent recover/i, "Loan Recovery"],
+    [/loan given|lent money|money lent/i, "Loan Given"],
     [
       /insurance|lic.*premium|term.*insur|policy.*premium|health.*insur|star.*health|niva.*bupa|hdfc.*ergo|bajaj.*allianz/i,
       "Insurance",
@@ -899,6 +901,20 @@ export const loanGivenOutstanding = (l: any): number => {
   if ((l?.status || "").toLowerCase() === "closed") return 0;
   if (l?.outstanding != null && l.outstanding !== "") return Number(l.outstanding) || 0;
   return Number(l?.principal || l?.amount || 0);
+};
+
+export const informalPersonOutstanding = (person: any): number => {
+  if (!person) return 0;
+  const tranches: any[] = Array.isArray(person.tranches) ? person.tranches : [];
+  const payments: any[] = Array.isArray(person.payments) ? person.payments : [];
+  if (tranches.length === 0 && Number(person.amount || 0) > 0) {
+    const legacyPrincipal = Number(person.amount || 0);
+    const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+    return Math.max(0, legacyPrincipal - totalP);
+  }
+  const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+  const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+  return Math.max(0, totalT - totalP);
 };
 
 export interface AutoDetectedDeductions {
