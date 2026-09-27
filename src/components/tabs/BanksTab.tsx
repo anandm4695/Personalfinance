@@ -57,6 +57,7 @@ import {
   fmtINR,
   fmtINRFull,
   loanOutstanding,
+  uid,
 } from "../../utils/finance";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
@@ -458,11 +459,11 @@ export function BanksTab({
 
   const { run: saveBankEdit, loading: savingBankEdit } = useAsyncAction(
     async (id: string, v: any) => {
-      setEditBankId(null);
       await updateItem("bankAccounts", id, v);
     },
     {
       onSuccess: () => {
+        setEditBankId(null);
         showToast?.("Bank account updated successfully", "success");
       },
       onError: (e: any) =>
@@ -472,11 +473,11 @@ export function BanksTab({
 
   const { run: saveTxnEdit, loading: savingTxnEdit } = useAsyncAction(
     async (id: string, v: any) => {
-      setEditTxnId(null);
       await updateItem("transactions", id, v);
     },
     {
       onSuccess: () => {
+        setEditTxnId(null);
         showToast?.("Transaction updated successfully", "success");
       },
       onError: (e: any) =>
@@ -486,11 +487,11 @@ export function BanksTab({
 
   const { run: saveNewBank, loading: savingNewBank } = useAsyncAction(
     async (v: any) => {
-      setShowBank(false);
       await addItem("bankAccounts", v);
     },
     {
       onSuccess: () => {
+        setShowBank(false);
         showToast?.("Bank account added successfully", "success");
       },
       onError: (e: any) =>
@@ -500,7 +501,7 @@ export function BanksTab({
 
   const { run: saveNewTxn, loading: savingNewTxn } = useAsyncAction(
     async (v: any) => {
-      setShowTxn(false);
+      const amt = Number(v.amount);
       if (v.type === "transfer" && v.toAccountId && v.accountId !== v.toAccountId) {
         const srcAcc = state.bankAccounts.find((a: any) => a.id === v.accountId);
         const destAcc = state.bankAccounts.find((a: any) => a.id === v.toAccountId);
@@ -510,7 +511,7 @@ export function BanksTab({
             date: v.date,
             accountId: v.accountId,
             type: "debit",
-            amount: v.amount,
+            amount: amt,
             category: "Transfer",
             note: v.note || `Transfer to ${destAcc?.bankName || "account"}`,
             narration: v.narration,
@@ -521,7 +522,7 @@ export function BanksTab({
             date: v.date,
             accountId: v.toAccountId,
             type: "credit",
-            amount: v.amount,
+            amount: amt,
             category: "Transfer",
             note: v.note || `Transfer from ${srcAcc?.bankName || "account"}`,
             narration: v.narration,
@@ -533,21 +534,19 @@ export function BanksTab({
         const ci = linkedKey ? linkedKey.indexOf(":") : -1;
         const linkedType = ci >= 0 ? linkedKey.slice(0, ci) : undefined;
         const linkedId = ci >= 0 ? linkedKey.slice(ci + 1) : undefined;
-        const txnId = linkedKey
-          ? crypto.randomUUID
-            ? crypto.randomUUID()
-            : Math.random().toString(36).slice(2)
-          : undefined;
+        const txnId = uid();
         await addItem("transactions", {
           ...txnBase,
-          ...(txnId ? { id: txnId } : {}),
+          amount: amt || txnBase.amount,
+          id: txnId,
           ...(linkedType ? { linkedType, linkedId } : {}),
         });
-        if (linkedKey) await autoPostLinkedTransaction(linkedKey, v, txnId as string);
+        if (linkedKey) await autoPostLinkedTransaction(linkedKey, v, txnId);
       }
     },
     {
       onSuccess: () => {
+        setShowTxn(false);
         showToast?.("Transaction recorded successfully", "success");
       },
       onError: (e: any) =>
@@ -3771,6 +3770,21 @@ function TxnModal({
     statementBalance: "",
   });
 
+  useEffect(() => {
+    if (!f.accountId && accounts && accounts.length > 0) {
+      const firstAcc = initialAccountId || accounts[0]?.id || "";
+      const toAcc =
+        accounts.length > 1
+          ? accounts.find((a: any) => a.id !== firstAcc)?.id || accounts[1]?.id || ""
+          : accounts[0]?.id || "";
+      setF((prev) => ({
+        ...prev,
+        accountId: prev.accountId || firstAcc,
+        toAccountId: prev.toAccountId || toAcc,
+      }));
+    }
+  }, [accounts, initialAccountId]);
+
   const isTransfer = f.type === "transfer";
 
   return (
@@ -4025,15 +4039,26 @@ function TxnModal({
       </div>
 
       <ModalActions
-        onSave={() =>
-          Number(f.amount) > 0 &&
-          f.accountId &&
-          (!isTransfer || (f.toAccountId && f.accountId !== f.toAccountId)) &&
-          onSave(f)
-        }
+        onSave={() => {
+          if (saving) return;
+          const numAmt = Number(f.amount);
+          if (
+            numAmt > 0 &&
+            f.accountId &&
+            (!isTransfer || (f.toAccountId && f.accountId !== f.toAccountId))
+          ) {
+            onSave(f);
+          }
+        }}
         onClose={onClose}
         saveLabel="Record Transaction"
-        disabled={saving || !f.amount || Number(f.amount) <= 0}
+        disabled={
+          saving ||
+          !f.amount ||
+          Number(f.amount) <= 0 ||
+          !f.accountId ||
+          (isTransfer && (!f.toAccountId || f.accountId === f.toAccountId))
+        }
         loading={saving}
       />
     </Modal>

@@ -2298,6 +2298,8 @@ function FinanceDashboard() {
         try {
           const { error } = await tryUpsert();
           firstErr = error;
+        } catch (netErr: any) {
+          firstErr = { message: netErr?.message || "Network error" };
         } finally {
           pendingWritesRef.current--;
         }
@@ -2399,6 +2401,22 @@ function FinanceDashboard() {
             console.error(`Supabase Upsert Error (${table}):`, currentErr);
             showToast(`Sync failed [${currentErr.code}]: ${currentErr.message}`, "error");
             setState((s: any) => ({ ...s, [key]: (s[key] || []).filter((x: any) => x.id !== newId) }));
+            syncFailed = true;
+          }
+        } else if (firstErr.code === "23503" && (cleanItem.account_id || cleanItem.to_account_id)) {
+          // Foreign key violation (e.g. account_id / to_account_id references an account not in DB)
+          const retryItem: any = { ...cleanItem, account_id: null, to_account_id: null };
+          const { error: retryErr } = await supabase
+            .from(table)
+            .upsert(retryItem, { onConflict: "id" });
+          if (!retryErr) {
+            console.warn(`[Supabase] Saved transaction with unlinked account due to foreign key constraint`);
+            showToast("Saved locally and synced to cloud.", "success");
+          } else {
+            console.error(`Supabase FK Error (${table}):`, retryErr);
+            showToast(`Sync failed [${retryErr.code}]: ${retryErr.message}`, "error");
+            setState((s: any) => ({ ...s, [key]: (s[key] || []).filter((x: any) => x.id !== newId) }));
+            syncFailed = true;
           }
         } else if (firstErr.code === "42P01") {
           // Table does not exist — revert from state and show clear migration instruction
@@ -2445,6 +2463,9 @@ function FinanceDashboard() {
       ...item,
       id: newId,
     });
+    if (syncFailed) {
+      throw new Error("Failed to save item to cloud. Please check your connection and try again.");
+    }
     return { success: !syncFailed, id: newId };
   };
 
