@@ -43,6 +43,8 @@ import {
   Store,
   Compass,
   FileSpreadsheet,
+  Globe,
+  ArrowRight,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, fmtINRExact, fmtDate, today } from "../../utils/finance";
@@ -56,6 +58,15 @@ import { StatCard } from "../ui/StatCard";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 import { getNextFeeDate } from "../tabs/CreditTab";
+import {
+  POPULAR_MERCHANTS,
+  SPEND_CATEGORIES,
+  rankCardsForPayment,
+  generateCategoryCardMatrix,
+  resolveMerchant,
+  type EvaluatedCardPayment,
+  type PaymentRecommendationResult,
+} from "../../utils/cardRewardEngine";
 
 export interface NormalizedCardTxn {
   id: string;
@@ -199,7 +210,7 @@ export function CardInsightsSection({
 
   // View & Filter States
   const [activeView, setActiveView] = useState<
-    "overview" | "monthly" | "categories" | "tax_fy" | "merchants" | "optimization" | "ledger"
+    "overview" | "reward_matcher" | "monthly" | "categories" | "tax_fy" | "merchants" | "optimization" | "ledger"
   >("overview");
   const [cardFilter, setCardFilter] = useState<string>("all"); // "all", "cc_all", "prepaid_all", or specific card ID
   const [periodFilter, setPeriodFilter] = useState<string>("all"); // "all", "current_fy", "prev_fy", "fy_custom", "ay_custom", "last_30d", "last_3m", "last_6m", "last_12m", "this_month", "this_cy"
@@ -209,6 +220,11 @@ export function CardInsightsSection({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "amt_desc" | "amt_asc">("date_desc");
   const [selectedCategoryModal, setSelectedCategoryModal] = useState<string | null>(null);
+
+  // Smart "Which Card to Use?" (Payment & Reward Maximizer) States
+  const [matcherMerchant, setMatcherMerchant] = useState<string>("Swiggy");
+  const [matcherCategory, setMatcherCategory] = useState<string>("Food & Dining");
+  const [matcherAmount, setMatcherAmount] = useState<number>(1500);
 
   // Normalize all transactions across Credit Cards & Prepaid Cards
   const allNormalizedTransactions = useMemo(() => {
@@ -866,6 +882,31 @@ export function CardInsightsSection({
     };
   }, [creditCards, prepaidCards]);
 
+  // Map swipe info by card id for combined reward + runway calculation
+  const rankedCardsForSwipeMap = useMemo(() => {
+    const map: Record<string, any> = {};
+    (portfolioSummary.rankedCardsForSwipe || []).forEach((c: any) => {
+      map[c.id] = c;
+    });
+    return map;
+  }, [portfolioSummary.rankedCardsForSwipe]);
+
+  // Real-time Payment & Reward Maximizer recommendation
+  const paymentRecommendation = useMemo(() => {
+    return rankCardsForPayment(
+      creditCards,
+      matcherMerchant,
+      matcherCategory,
+      matcherAmount,
+      rankedCardsForSwipeMap
+    );
+  }, [creditCards, matcherMerchant, matcherCategory, matcherAmount, rankedCardsForSwipeMap]);
+
+  // At-a-glance Category Matrix Cheat Sheet across all 8 major everyday spend categories
+  const categoryMatrix = useMemo(() => {
+    return generateCategoryCardMatrix(creditCards, rankedCardsForSwipeMap);
+  }, [creditCards, rankedCardsForSwipeMap]);
+
   // Current FY SFT 285BA Tax Compliance Status (Limit ₹10,00,000 for credit cards in a financial year)
   const sftCompliance = useMemo(() => {
     const currentFYStart = getCurrentFYStartYear();
@@ -1048,6 +1089,7 @@ export function CardInsightsSection({
         >
           {[
             { id: "overview", label: "Executive Summary", icon: <Layers size={14} /> },
+            { id: "reward_matcher", label: "Best Card for Payment", icon: <Sparkles size={14} /> },
             { id: "monthly", label: "Month-Wise Breakdown", icon: <Calendar size={14} /> },
             { id: "categories", label: "Category Intelligence", icon: <Tag size={14} /> },
             { id: "tax_fy", label: "F.Y. & A.Y. Tax Hub", icon: <Receipt size={14} /> },
@@ -1086,374 +1128,443 @@ export function CardInsightsSection({
         </div>
       </div>
 
-      {/* 2. Global Filter & Scope Toolbar */}
-      <Card
-        style={{
-          padding: "14px 18px",
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: 12,
-          justifyContent: "space-between",
-          background: "var(--t-card)",
-        }}
-      >
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, flex: 1 }}>
-          {/* Card Scope Selector */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, textTransform: "uppercase" }}>
-              Card:
-            </span>
-            <select
-              value={cardFilter}
-              onChange={(e) => setCardFilter(e.target.value)}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 500,
-                border: "1px solid var(--t-line)",
-                background: "var(--t-input-bg, var(--t-surface))",
-                color: THEME.ink,
-                outline: "none",
-                cursor: "pointer",
-                maxWidth: 210,
-              }}
-            >
-              <option value="all">All Cards ({creditCards.length + prepaidCards.length})</option>
-              <option value="cc_all">All Credit Cards ({creditCards.length})</option>
-              <option value="prepaid_all">All Prepaid Cards ({prepaidCards.length})</option>
-              <optgroup label="Credit Cards">
-                {creditCards.map((c: any) => (
-                  <option key={c.id} value={c.id}>
-                    {getCardDisplayName(c)} {c.last4 ? `(••• ${c.last4})` : ""}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Prepaid Cards">
-                {prepaidCards.map((p: any) => (
-                  <option key={p.id} value={p.id}>
-                    {getPrepaidDisplayName(p)} {p.last4 ? `(••• ${p.last4})` : ""}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-          </div>
-
-          {/* Time Horizon Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, textTransform: "uppercase" }}>
-              Period:
-            </span>
-            <select
-              value={periodFilter}
-              onChange={(e) => setPeriodFilter(e.target.value)}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 500,
-                border: "1px solid var(--t-line)",
-                background: "var(--t-input-bg, var(--t-surface))",
-                color: THEME.ink,
-                outline: "none",
-                cursor: "pointer",
-              }}
-            >
-              <option value="all">All Time</option>
-              <option value="current_fy">Current F.Y. ({availableFYs[0] || "FY 2024-25"})</option>
-              <option value="prev_fy">Previous F.Y.</option>
-              <option value="fy_custom">Select F.Y. (Financial Year)</option>
-              <option value="ay_custom">Select A.Y. (Assessment Year)</option>
-              <option value="this_month">This Month</option>
-              <option value="last_30d">Last 30 Days</option>
-              <option value="last_3m">Last 3 Months</option>
-              <option value="last_6m">Last 6 Months</option>
-              <option value="last_12m">Last 12 Months</option>
-              <option value="this_cy">Current Calendar Year</option>
-            </select>
-          </div>
-
-          {/* Specific FY Selector */}
-          {periodFilter === "fy_custom" && (
-            <select
-              value={selectedFY}
-              onChange={(e) => setSelectedFY(e.target.value)}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 600,
-                border: "1px solid var(--t-accent)",
-                background: "color-mix(in srgb, var(--t-accent) 8%, var(--t-surface))",
-                color: "var(--t-accent)",
-                outline: "none",
-                cursor: "pointer",
-              }}
-            >
-              {availableFYs.map((fy) => (
-                <option key={fy} value={fy}>
-                  {fy} (Apr {fy.split(" ")[1]?.split("-")[0]} - Mar {Number(fy.split(" ")[1]?.split("-")[0]) + 1})
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* Specific AY Selector */}
-          {periodFilter === "ay_custom" && (
-            <select
-              value={selectedAY}
-              onChange={(e) => setSelectedAY(e.target.value)}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 600,
-                border: "1px solid var(--t-accent)",
-                background: "color-mix(in srgb, var(--t-accent) 8%, var(--t-surface))",
-                color: "var(--t-accent)",
-                outline: "none",
-                cursor: "pointer",
-              }}
-            >
-              {availableAYs.map((ay) => (
-                <option key={ay} value={ay}>
-                  {ay} (Relates to FY {Number(ay.split(" ")[1]?.split("-")[0]) - 1}-{String(Number(ay.split(" ")[1]?.split("-")[0])).slice(-2)})
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* Category Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, textTransform: "uppercase" }}>
-              Category:
-            </span>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 500,
-                border: "1px solid var(--t-line)",
-                background: "var(--t-input-bg, var(--t-surface))",
-                color: THEME.ink,
-                outline: "none",
-                cursor: "pointer",
-                maxWidth: 170,
-              }}
-            >
-              <option value="all">All Categories ({allCategories.length})</option>
-              {allCategories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Search Input */}
-        <div style={{ position: "relative", width: 220 }}>
-          <Search
-            size={14}
+      {/* 2. Global Filter & Scope Toolbar (Rendered on historical transaction views) */}
+      {["overview", "monthly", "categories", "tax_fy", "merchants", "ledger"].includes(activeView) && (
+        <>
+          <Card
             style={{
-              position: "absolute",
-              left: 10,
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: THEME.muted,
-            }}
-          />
-          <input
-            type="text"
-            placeholder="Search merchant/note..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "6px 10px 6px 30px",
-              borderRadius: 8,
-              fontSize: 12.5,
-              border: "1px solid var(--t-line)",
-              background: "var(--t-input-bg, var(--t-surface))",
-              color: THEME.ink,
-              outline: "none",
-              boxSizing: "border-box",
-            }}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              style={{
-                position: "absolute",
-                right: 8,
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "none",
-                border: "none",
-                color: THEME.muted,
-                cursor: "pointer",
-                padding: 0,
-              }}
-            >
-              <X size={12} />
-            </button>
-          )}
-        </div>
-      </Card>
-
-      {/* 3. High-Level KPI Stat Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-          gap: 14,
-        }}
-      >
-        <StatCard
-          label="Total Card Spends"
-          value={fmtINRFull(metrics.totalCharges)}
-          numericValue={metrics.totalCharges}
-          formatValue={fmtINRFull}
-          icon={<CreditCard />}
-          color={THEME.rust}
-          sub={`${metrics.chargeCount} transactions · Avg ${privacyMode ? "••••" : fmtINR(metrics.avgSpendPerTxn)}/swipe`}
-        />
-
-        <StatCard
-          label="Payments & Top-Ups"
-          value={fmtINRFull(metrics.totalPayments + metrics.totalLoads)}
-          numericValue={metrics.totalPayments + metrics.totalLoads}
-          formatValue={fmtINRFull}
-          icon={<TrendingUp />}
-          color={THEME.sage}
-          sub={`${metrics.paymentCount} settlements logged`}
-        />
-
-        <StatCard
-          label="Monthly Average Outflow"
-          value={fmtINRFull(Math.round(metrics.monthlyAverageSpend))}
-          numericValue={Math.round(metrics.monthlyAverageSpend)}
-          formatValue={fmtINRFull}
-          icon={<Calendar />}
-          color={THEME.accent}
-          sub={`Across ${metrics.sortedMonths.length || 1} active month${metrics.sortedMonths.length !== 1 ? "s" : ""}`}
-        />
-
-        <StatCard
-          label="Credit Utilization"
-          value={`${portfolioSummary.overallUtilPct}%`}
-          icon={<ShieldCheck />}
-          color={
-            portfolioSummary.overallUtilPct > 70
-              ? THEME.rust
-              : portfolioSummary.overallUtilPct > 30
-              ? THEME.gold
-              : THEME.sage
-          }
-          sub={`${fmtINR(portfolioSummary.totalOutstanding)} of ${fmtINR(portfolioSummary.totalLimit)} used`}
-        />
-
-        {portfolioSummary.totalRewardPoints > 0 && (
-          <StatCard
-            label="Rewards Portfolio"
-            value={Math.round(portfolioSummary.totalRewardPoints).toLocaleString("en-IN")}
-            icon={<Award />}
-            color={THEME.gold}
-            sub={
-              portfolioSummary.totalRewardValue > 0
-                ? `≈ ${privacyMode ? "••••" : fmtINRFull(portfolioSummary.totalRewardValue)} cash value`
-                : "Points accrued across cards"
-            }
-          />
-        )}
-      </div>
-
-      {/* 4. Active SFT Tax Advisory Banner */}
-      <div
-        style={{
-          padding: "14px 18px",
-          borderRadius: 12,
-          fontSize: 13,
-          background: sftCompliance.isExceeded
-            ? "color-mix(in srgb, var(--t-rust) 8%, var(--t-surface))"
-            : sftCompliance.isWarning
-            ? "color-mix(in srgb, var(--t-gold) 8%, var(--t-surface))"
-            : "color-mix(in srgb, var(--t-accent) 6%, var(--t-surface))",
-          border: `1px solid ${
-            sftCompliance.isExceeded
-              ? "color-mix(in srgb, var(--t-rust) 25%, transparent)"
-              : sftCompliance.isWarning
-              ? "color-mix(in srgb, var(--t-gold) 25%, transparent)"
-              : "color-mix(in srgb, var(--t-accent) 20%, transparent)"
-          }`,
-          borderLeft: `5px solid ${
-            sftCompliance.isExceeded ? THEME.rust : sftCompliance.isWarning ? THEME.gold : THEME.accent
-          }`,
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 14,
-        }}
-      >
-        <Receipt
-          size={20}
-          color={sftCompliance.isExceeded ? THEME.rust : sftCompliance.isWarning ? THEME.gold : THEME.accent}
-          style={{ flexShrink: 0, marginTop: 2 }}
-        />
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <div style={{ fontWeight: 700, color: THEME.ink }}>
-              Section 285BA / SFT Compliance Monitor ({sftCompliance.targetFY})
-            </div>
-            <Badge
-              variant={sftCompliance.isExceeded ? "danger" : sftCompliance.isWarning ? "warning" : "accent"}
-            >
-              {sftCompliance.sftPct}% of ₹10L Threshold
-            </Badge>
-          </div>
-          <div style={{ color: THEME.muted, fontSize: 12.5, marginTop: 4, lineHeight: 1.45 }}>
-            Under Indian Income Tax rules (Rule 114E), banks report credit card transactions to the Tax Department if annual card spends/payments aggregate to <strong>₹10,00,000 or more</strong> in a Financial Year.
-            {sftCompliance.isExceeded ? (
-              <span style={{ color: THEME.rust, fontWeight: 600 }}>
-                {" "}Your total card spends in {sftCompliance.targetFY} are <Prv>{fmtINRFull(sftCompliance.totalCCChargesInFY)}</Prv>, which exceeds the SFT reporting limit. Keep invoice receipts and source-of-fund records handy for ITR filing.
-              </span>
-            ) : (
-              <span>
-                {" "}Current spends in {sftCompliance.targetFY}: <Prv><strong style={{ color: THEME.ink }}>{fmtINRFull(sftCompliance.totalCCChargesInFY)}</strong></Prv> (Safe limit remaining: <Prv><strong>{fmtINRFull(sftCompliance.remainingSafeLimit)}</strong></Prv>).
-              </span>
-            )}
-          </div>
-          {/* Progress bar */}
-          <div
-            style={{
-              height: 6,
-              background: "var(--t-line)",
-              borderRadius: 3,
-              marginTop: 10,
-              overflow: "hidden",
+              padding: "14px 18px",
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 12,
+              justifyContent: "space-between",
+              background: "var(--t-card)",
             }}
           >
-            <div
-              style={{
-                height: "100%",
-                width: `${sftCompliance.sftPct}%`,
-                background: sftCompliance.isExceeded ? THEME.rust : sftCompliance.isWarning ? THEME.gold : THEME.accent,
-                borderRadius: 3,
-                transition: "width 0.4s ease",
-              }}
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, flex: 1 }}>
+              {/* Card Scope Selector */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, textTransform: "uppercase" }}>
+                  Card:
+                </span>
+                <select
+                  value={cardFilter}
+                  onChange={(e) => setCardFilter(e.target.value)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    border: "1px solid var(--t-line)",
+                    background: "var(--t-input-bg, var(--t-surface))",
+                    color: THEME.ink,
+                    outline: "none",
+                    cursor: "pointer",
+                    maxWidth: 210,
+                  }}
+                >
+                  <option value="all">All Cards ({creditCards.length + prepaidCards.length})</option>
+                  <option value="cc_all">All Credit Cards ({creditCards.length})</option>
+                  <option value="prepaid_all">All Prepaid Cards ({prepaidCards.length})</option>
+                  <optgroup label="Credit Cards">
+                    {creditCards.map((c: any) => (
+                      <option key={c.id} value={c.id}>
+                        {getCardDisplayName(c)} {c.last4 ? `(••• ${c.last4})` : ""}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Prepaid Cards">
+                    {prepaidCards.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {getPrepaidDisplayName(p)} {p.last4 ? `(••• ${p.last4})` : ""}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* Time Horizon Filter */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, textTransform: "uppercase" }}>
+                  Period:
+                </span>
+                <select
+                  value={periodFilter}
+                  onChange={(e) => setPeriodFilter(e.target.value)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    border: "1px solid var(--t-line)",
+                    background: "var(--t-input-bg, var(--t-surface))",
+                    color: THEME.ink,
+                    outline: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  <option value="all">All Time</option>
+                  <option value="current_fy">Current F.Y. ({availableFYs[0] || "FY 2024-25"})</option>
+                  <option value="prev_fy">Previous F.Y.</option>
+                  <option value="fy_custom">Select F.Y. (Financial Year)</option>
+                  <option value="ay_custom">Select A.Y. (Assessment Year)</option>
+                  <option value="this_month">This Month</option>
+                  <option value="last_30d">Last 30 Days</option>
+                  <option value="last_3m">Last 3 Months</option>
+                  <option value="last_6m">Last 6 Months</option>
+                  <option value="last_12m">Last 12 Months</option>
+                  <option value="this_cy">Current Calendar Year</option>
+                </select>
+              </div>
+
+              {/* Specific FY Selector */}
+              {periodFilter === "fy_custom" && (
+                <select
+                  value={selectedFY}
+                  onChange={(e) => setSelectedFY(e.target.value)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    border: "1px solid var(--t-accent)",
+                    background: "color-mix(in srgb, var(--t-accent) 8%, var(--t-surface))",
+                    color: "var(--t-accent)",
+                    outline: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  {availableFYs.map((fy) => (
+                    <option key={fy} value={fy}>
+                      {fy} (Apr {fy.split(" ")[1]?.split("-")[0]} - Mar {Number(fy.split(" ")[1]?.split("-")[0]) + 1})
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {/* Specific AY Selector */}
+              {periodFilter === "ay_custom" && (
+                <select
+                  value={selectedAY}
+                  onChange={(e) => setSelectedAY(e.target.value)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    border: "1px solid var(--t-accent)",
+                    background: "color-mix(in srgb, var(--t-accent) 8%, var(--t-surface))",
+                    color: "var(--t-accent)",
+                    outline: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  {availableAYs.map((ay) => (
+                    <option key={ay} value={ay}>
+                      {ay} (Relates to FY {Number(ay.split(" ")[1]?.split("-")[0]) - 1}-{String(Number(ay.split(" ")[1]?.split("-")[0])).slice(-2)})
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {/* Category Filter */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: THEME.muted, textTransform: "uppercase" }}>
+                  Category:
+                </span>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    border: "1px solid var(--t-line)",
+                    background: "var(--t-input-bg, var(--t-surface))",
+                    color: THEME.ink,
+                    outline: "none",
+                    cursor: "pointer",
+                    maxWidth: 170,
+                  }}
+                >
+                  <option value="all">All Categories ({allCategories.length})</option>
+                  {allCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Search Input */}
+            <div style={{ position: "relative", width: 220 }}>
+              <Search
+                size={14}
+                style={{
+                  position: "absolute",
+                  left: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: THEME.muted,
+                }}
+              />
+              <input
+                type="text"
+                placeholder="Search merchant/note..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "6px 10px 6px 30px",
+                  borderRadius: 8,
+                  fontSize: 12.5,
+                  border: "1px solid var(--t-line)",
+                  background: "var(--t-input-bg, var(--t-surface))",
+                  color: THEME.ink,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    color: THEME.muted,
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          </Card>
+
+          {/* 3. High-Level KPI Stat Cards */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+              gap: 14,
+            }}
+          >
+            <StatCard
+              label="Total Card Spends"
+              value={fmtINRFull(metrics.totalCharges)}
+              numericValue={metrics.totalCharges}
+              formatValue={fmtINRFull}
+              icon={<CreditCard />}
+              color={THEME.rust}
+              sub={`${metrics.chargeCount} transactions · Avg ${privacyMode ? "••••" : fmtINR(metrics.avgSpendPerTxn)}/swipe`}
             />
+
+            <StatCard
+              label="Payments & Top-Ups"
+              value={fmtINRFull(metrics.totalPayments + metrics.totalLoads)}
+              numericValue={metrics.totalPayments + metrics.totalLoads}
+              formatValue={fmtINRFull}
+              icon={<TrendingUp />}
+              color={THEME.sage}
+              sub={`${metrics.paymentCount} settlements logged`}
+            />
+
+            <StatCard
+              label="Monthly Average Outflow"
+              value={fmtINRFull(Math.round(metrics.monthlyAverageSpend))}
+              numericValue={Math.round(metrics.monthlyAverageSpend)}
+              formatValue={fmtINRFull}
+              icon={<Calendar />}
+              color={THEME.accent}
+              sub={`Across ${metrics.sortedMonths.length || 1} active month${metrics.sortedMonths.length !== 1 ? "s" : ""}`}
+            />
+
+            <StatCard
+              label="Credit Utilization"
+              value={`${portfolioSummary.overallUtilPct}%`}
+              icon={<ShieldCheck />}
+              color={
+                portfolioSummary.overallUtilPct > 70
+                  ? THEME.rust
+                  : portfolioSummary.overallUtilPct > 30
+                  ? THEME.gold
+                  : THEME.sage
+              }
+              sub={`${fmtINR(portfolioSummary.totalOutstanding)} of ${fmtINR(portfolioSummary.totalLimit)} used`}
+            />
+
+            {portfolioSummary.totalRewardPoints > 0 && (
+              <StatCard
+                label="Rewards Portfolio"
+                value={Math.round(portfolioSummary.totalRewardPoints).toLocaleString("en-IN")}
+                icon={<Award />}
+                color={THEME.gold}
+                sub={
+                  portfolioSummary.totalRewardValue > 0
+                    ? `≈ ${privacyMode ? "••••" : fmtINRFull(portfolioSummary.totalRewardValue)} cash value`
+                    : "Points accrued across cards"
+                }
+              />
+            )}
           </div>
-        </div>
-      </div>
+
+          {/* 4. Active SFT Tax Advisory Banner */}
+          <div
+            style={{
+              padding: "14px 18px",
+              borderRadius: 12,
+              fontSize: 13,
+              background: sftCompliance.isExceeded
+                ? "color-mix(in srgb, var(--t-rust) 8%, var(--t-surface))"
+                : sftCompliance.isWarning
+                ? "color-mix(in srgb, var(--t-gold) 8%, var(--t-surface))"
+                : "color-mix(in srgb, var(--t-accent) 6%, var(--t-surface))",
+              border: `1px solid ${
+                sftCompliance.isExceeded
+                  ? "color-mix(in srgb, var(--t-rust) 25%, transparent)"
+                  : sftCompliance.isWarning
+                  ? "color-mix(in srgb, var(--t-gold) 25%, transparent)"
+                  : "color-mix(in srgb, var(--t-accent) 20%, transparent)"
+              }`,
+              borderLeft: `5px solid ${
+                sftCompliance.isExceeded ? THEME.rust : sftCompliance.isWarning ? THEME.gold : THEME.accent
+              }`,
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 14,
+            }}
+          >
+            <Receipt
+              size={20}
+              color={sftCompliance.isExceeded ? THEME.rust : sftCompliance.isWarning ? THEME.gold : THEME.accent}
+              style={{ flexShrink: 0, marginTop: 2 }}
+            />
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                <div style={{ fontWeight: 700, color: THEME.ink }}>
+                  Section 285BA / SFT Compliance Monitor ({sftCompliance.targetFY})
+                </div>
+                <Badge
+                  variant={sftCompliance.isExceeded ? "danger" : sftCompliance.isWarning ? "warning" : "accent"}
+                >
+                  {sftCompliance.sftPct}% of ₹10L Threshold
+                </Badge>
+              </div>
+              <div style={{ color: THEME.muted, fontSize: 12.5, marginTop: 4, lineHeight: 1.45 }}>
+                Under Indian Income Tax rules (Rule 114E), banks report credit card transactions to the Tax Department if annual card spends/payments aggregate to <strong>₹10,00,000 or more</strong> in a Financial Year.
+                {sftCompliance.isExceeded ? (
+                  <span style={{ color: THEME.rust, fontWeight: 600 }}>
+                    {" "}Your total card spends in {sftCompliance.targetFY} are <Prv>{fmtINRFull(sftCompliance.totalCCChargesInFY)}</Prv>, which exceeds the SFT reporting limit. Keep invoice receipts and source-of-fund records handy for ITR filing.
+                  </span>
+                ) : (
+                  <span>
+                    {" "}Current spends in {sftCompliance.targetFY}: <Prv><strong style={{ color: THEME.ink }}>{fmtINRFull(sftCompliance.totalCCChargesInFY)}</strong></Prv> (Safe limit remaining: <Prv><strong>{fmtINRFull(sftCompliance.remainingSafeLimit)}</strong></Prv>).
+                  </span>
+                )}
+              </div>
+              {/* Progress bar */}
+              <div
+                style={{
+                  height: 6,
+                  background: "var(--t-line)",
+                  borderRadius: 3,
+                  marginTop: 10,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${sftCompliance.sftPct}%`,
+                    background: sftCompliance.isExceeded ? THEME.rust : sftCompliance.isWarning ? THEME.gold : THEME.accent,
+                    borderRadius: 3,
+                    transition: "width 0.4s ease",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* 5. Deep-Dive Section Views */}
 
       {/* VIEW 1: EXECUTIVE SUMMARY */}
       {activeView === "overview" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Smart Payment & Reward Maximizer Spotlight Card */}
+          <div
+            style={{
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 12%, var(--t-card)) 0%, color-mix(in srgb, var(--t-surface) 95%, transparent) 100%)",
+              border: "1.5px solid color-mix(in srgb, var(--t-accent) 30%, var(--t-line))",
+              borderRadius: 14,
+              padding: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 14,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: "var(--t-accent)",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  boxShadow: "0 4px 12px color-mix(in srgb, var(--t-accent) 30%, transparent)",
+                }}
+              >
+                <Sparkles size={20} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14.5, color: THEME.ink }}>
+                  Which Card Should You Use for Your Next Payment?
+                </div>
+                <div style={{ fontSize: 12.5, color: THEME.muted, marginTop: 2 }}>
+                  Find the exact card in your wallet that gives the highest cashback on <strong>Swiggy, Amazon, Zomato, Blinkit, Flight bookings</strong>, and utility bills.
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveView("reward_matcher")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "8px 16px",
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 700,
+                background: "var(--t-accent)",
+                color: "#ffffff",
+                border: "none",
+                cursor: "pointer",
+                boxShadow: "0 2px 8px color-mix(in srgb, var(--t-accent) 25%, transparent)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <span>Calculate Best Card</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
+
           {/* Month Trend & Category Distribution Grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 16 }}>
             {/* Monthly Trend Mini Visual */}
@@ -2248,6 +2359,740 @@ export function CardInsightsSection({
               </Card>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* VIEW: PAYMENT & REWARD MAXIMIZER (WHICH CARD TO USE?) */}
+      {activeView === "reward_matcher" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* 1. Interactive Payment Configurator Card */}
+          <Card style={{ padding: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 12,
+                    background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 25%, transparent) 0%, color-mix(in srgb, var(--t-gold) 20%, transparent) 100%)",
+                    color: "var(--t-accent)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 4px 12px color-mix(in srgb, var(--t-accent) 20%, transparent)",
+                  }}
+                >
+                  <Sparkles size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: THEME.ink }}>
+                    Payment & Reward Maximizer (Which Card to Use?)
+                  </h3>
+                  <div style={{ fontSize: 12.5, color: THEME.muted, marginTop: 2 }}>
+                    Real-time intelligence analyzing your active credit cards to maximize cashback, reward points, and interest-free credit runway.
+                  </div>
+                </div>
+              </div>
+
+              <Badge variant="accent" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", fontSize: 11 }}>
+                <ShieldCheck size={13} /> {creditCards.length} Cards in Portfolio
+              </Badge>
+            </div>
+
+            {/* Input Controls Grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: 14,
+                marginBottom: 18,
+              }}
+            >
+              {/* Merchant / Payment Search */}
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 6 }}>
+                  Merchant / Service / App
+                </label>
+                <div style={{ position: "relative" }}>
+                  <Search
+                    size={15}
+                    style={{
+                      position: "absolute",
+                      left: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: THEME.muted,
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={matcherMerchant}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setMatcherMerchant(val);
+                      const m = resolveMerchant(val);
+                      if (m) {
+                        setMatcherCategory(m.category);
+                      }
+                    }}
+                    placeholder="e.g. Swiggy, Zomato, Amazon, Blinkit, MakeMyTrip..."
+                    list="popular-merchants-datalist"
+                    style={{
+                      width: "100%",
+                      padding: matcherMerchant ? "10px 32px 10px 36px" : "10px 12px 10px 36px",
+                      borderRadius: 10,
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      border: "1.5px solid var(--t-line)",
+                      background: "var(--t-input-bg, var(--t-surface))",
+                      color: THEME.ink,
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  {matcherMerchant && (
+                    <button
+                      type="button"
+                      onClick={() => setMatcherMerchant("")}
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        color: THEME.muted,
+                        cursor: "pointer",
+                        padding: 0,
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                      title="Clear merchant"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                  <datalist id="popular-merchants-datalist">
+                    {POPULAR_MERCHANTS.map((m) => (
+                      <option key={m.id} value={m.name}>
+                        {m.category} · {m.description}
+                      </option>
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              {/* Spend Category */}
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 6 }}>
+                  Spend Category
+                </label>
+                <select
+                  value={matcherCategory}
+                  onChange={(e) => setMatcherCategory(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    border: "1.5px solid var(--t-line)",
+                    background: "var(--t-input-bg, var(--t-surface))",
+                    color: THEME.ink,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  {SPEND_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Payment Amount */}
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 6 }}>
+                  Payment Amount (₹)
+                </label>
+                <div style={{ position: "relative" }}>
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: THEME.muted,
+                    }}
+                  >
+                    ₹
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="100"
+                    value={matcherAmount}
+                    onChange={(e) => setMatcherAmount(Math.max(1, Number(e.target.value) || 0))}
+                    placeholder="1500"
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px 10px 28px",
+                      borderRadius: 10,
+                      fontSize: 14,
+                      fontWeight: 700,
+                      border: "1.5px solid var(--t-line)",
+                      background: "var(--t-input-bg, var(--t-surface))",
+                      color: THEME.ink,
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Amount Chips */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: THEME.muted, marginRight: 4 }}>
+                Quick Amounts:
+              </span>
+              {[500, 1000, 1500, 2500, 5000, 10000, 25000, 50000].map((amt) => {
+                const isActive = matcherAmount === amt;
+                return (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setMatcherAmount(amt)}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: isActive ? 700 : 500,
+                      background: isActive ? "var(--t-accent)" : "color-mix(in srgb, var(--t-surface) 90%, transparent)",
+                      color: isActive ? "#ffffff" : THEME.ink,
+                      border: isActive ? "1px solid var(--t-accent)" : "1px solid var(--t-line)",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    ₹{amt >= 1000 ? `${amt / 1000}k` : amt}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Popular 1-Click Merchant Quick Tap Chips */}
+            <div style={{ borderTop: "1px solid var(--t-line)", paddingTop: 14 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>
+                Popular Everyday Merchants (1-Click Switch)
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {POPULAR_MERCHANTS.slice(0, 12).map((m) => {
+                  const isSelected = matcherMerchant.toLowerCase().trim() === m.name.toLowerCase().trim();
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => {
+                        setMatcherMerchant(m.name);
+                        setMatcherCategory(m.category);
+                        if (matcherAmount === 1500 && m.typicalSpend) {
+                          setMatcherAmount(m.typicalSpend);
+                        }
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 7,
+                        padding: "6px 12px",
+                        borderRadius: 20,
+                        fontSize: 12.5,
+                        fontWeight: isSelected ? 700 : 500,
+                        background: isSelected ? "color-mix(in srgb, var(--t-accent) 15%, var(--t-card))" : "var(--t-surface)",
+                        color: isSelected ? "var(--t-accent)" : THEME.ink,
+                        border: isSelected ? "1.5px solid var(--t-accent)" : "1px solid var(--t-line)",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <BankLogo bankName={m.brandName || m.name} size={18} />
+                      <span>{m.name}</span>
+                      {m.badge && (
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            padding: "1px 6px",
+                            borderRadius: 6,
+                            background: isSelected ? "var(--t-accent)" : "var(--t-line)",
+                            color: isSelected ? "#ffffff" : THEME.muted,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {m.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Card>
+
+          {/* 2. Recommendation Results */}
+          {creditCards.length === 0 ? (
+            <Card style={{ padding: 40, textAlign: "center", color: THEME.muted }}>
+              <CreditCard size={36} style={{ margin: "0 auto 12px", opacity: 0.5 }} />
+              <div style={{ fontSize: 16, fontWeight: 700, color: THEME.ink }}>No Credit Cards Found</div>
+              <div style={{ fontSize: 13, marginTop: 4 }}>Add your credit cards to see personalized reward and cashback optimization.</div>
+            </Card>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* TOP RECOMMENDED WINNER CARD (#1 HERO BANNER) */}
+              {paymentRecommendation.topCard && (
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 14%, var(--t-card)) 0%, color-mix(in srgb, var(--t-surface) 95%, transparent) 100%)",
+                    border: "2px solid var(--t-accent)",
+                    borderRadius: 16,
+                    padding: 24,
+                    boxShadow: "0 8px 30px -4px color-mix(in srgb, var(--t-accent) 25%, transparent)",
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* Glowing background watermark */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: -20,
+                      top: -20,
+                      opacity: 0.06,
+                      pointerEvents: "none",
+                      transform: "rotate(12deg)",
+                    }}
+                  >
+                    <Sparkles size={200} />
+                  </div>
+
+                  <div style={{ position: "relative", zIndex: 1 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 14, marginBottom: 16 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <BankLogo bankName={paymentRecommendation.topCard.bankName || paymentRecommendation.topCard.cardName} size={48} />
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 800,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.08em",
+                                color: "var(--t-accent)",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                            >
+                              <Sparkles size={13} /> #1 BEST CARD TO SWIPE
+                            </span>
+                            <Badge variant="accent" style={{ fontSize: 10.5, padding: "2px 8px" }}>
+                              Rank #1 in Wallet
+                            </Badge>
+                            {paymentRecommendation.topCard.isCoBrandedMatch && (
+                              <Badge variant="sage" style={{ fontSize: 10.5, padding: "2px 8px" }}>
+                                Co-Branded Partner Card
+                              </Badge>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 22, fontWeight: 800, color: THEME.ink, marginTop: 3 }}>
+                            {paymentRecommendation.topCard.cardName}
+                          </div>
+                          <div style={{ fontSize: 13, color: THEME.muted, marginTop: 2 }}>
+                            {paymentRecommendation.topCard.bankName} {paymentRecommendation.topCard.network ? `· ${paymentRecommendation.topCard.network}` : ""} {paymentRecommendation.topCard.last4 ? `•••• ${paymentRecommendation.topCard.last4}` : ""} {paymentRecommendation.topCard.owner ? `· (${paymentRecommendation.topCard.owner})` : ""}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Profit Callout Box */}
+                      <div
+                        style={{
+                          background: "var(--t-card)",
+                          border: "1.5px solid color-mix(in srgb, var(--t-sage) 40%, var(--t-line))",
+                          borderRadius: 12,
+                          padding: "12px 18px",
+                          textAlign: "right",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                        }}
+                      >
+                        <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em" }}>
+                          Calculated Benefit
+                        </div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: THEME.sage, lineHeight: 1.2, marginTop: 2 }}>
+                          + {fmtINRFull(paymentRecommendation.topCard.savingsInINR)}
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--t-accent)", marginTop: 2 }}>
+                          {paymentRecommendation.topCard.returnPct}% {paymentRecommendation.topCard.perkType === "cashback" ? "Cashback" : paymentRecommendation.topCard.perkType === "miles" ? "Travel Miles" : "Reward Return"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Detailed Rationale Banner */}
+                    <div
+                      style={{
+                        background: "var(--t-surface)",
+                        borderRadius: 12,
+                        padding: "14px 16px",
+                        fontSize: 13,
+                        color: THEME.ink,
+                        lineHeight: 1.55,
+                        border: "1px solid var(--t-line)",
+                        marginBottom: 16,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, color: "var(--t-accent)", marginBottom: 4 }}>
+                        <Coins size={16} /> Why use this card for {paymentRecommendation.merchantName}?
+                      </div>
+                      <div>
+                        {paymentRecommendation.topCard.perkReason}
+                        {paymentRecommendation.topCard.maxCap ? ` (${paymentRecommendation.topCard.maxCap}).` : "."}{" "}
+                        On your payment of <strong>{fmtINRFull(paymentRecommendation.amount)}</strong>, you earn <strong>{paymentRecommendation.topCard.returnPct}% value back</strong> ({fmtINRFull(paymentRecommendation.topCard.savingsInINR)} profit).
+                      </div>
+                    </div>
+
+                    {/* Snapshot Grid of Safety & Runway */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+                      <div style={{ background: "var(--t-card)", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--t-line)" }}>
+                        <div style={{ fontSize: 11, color: THEME.muted }}>Interest-Free Runway</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t-accent)", marginTop: 2 }}>
+                          ~{paymentRecommendation.topCard.interestFreeDays} Days
+                        </div>
+                        <div style={{ fontSize: 10.5, color: THEME.muted, marginTop: 2 }}>
+                          Due on {paymentRecommendation.topCard.nextDueDateStr}
+                        </div>
+                      </div>
+
+                      <div style={{ background: "var(--t-card)", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--t-line)" }}>
+                        <div style={{ fontSize: 11, color: THEME.muted }}>Available Credit Limit</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: THEME.sage, marginTop: 2 }}>
+                          <Prv>{fmtINRFull(paymentRecommendation.topCard.availableLimit)}</Prv>
+                        </div>
+                        <div style={{ fontSize: 10.5, color: paymentRecommendation.topCard.availableLimit >= paymentRecommendation.amount ? THEME.sage : THEME.rust, marginTop: 2, fontWeight: 600 }}>
+                          {paymentRecommendation.topCard.availableLimit >= paymentRecommendation.amount ? "✓ Sufficient Limit" : "⚠ Low Limit"}
+                        </div>
+                      </div>
+
+                      <div style={{ background: "var(--t-card)", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--t-line)" }}>
+                        <div style={{ fontSize: 11, color: THEME.muted }}>Reward Structure</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 2 }}>
+                          {paymentRecommendation.topCard.badge || `${paymentRecommendation.topCard.returnPct}% Return`}
+                        </div>
+                        <div style={{ fontSize: 10.5, color: THEME.muted, marginTop: 2 }}>
+                          {paymentRecommendation.topCard.perkType.toUpperCase()}
+                        </div>
+                      </div>
+
+                      <div style={{ background: "var(--t-card)", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--t-line)" }}>
+                        <div style={{ fontSize: 11, color: THEME.muted }}>Spend Target</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 2 }}>
+                          {paymentRecommendation.merchantName}
+                        </div>
+                        <div style={{ fontSize: 10.5, color: THEME.muted, marginTop: 2 }}>
+                          {paymentRecommendation.category}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. FULL RANKED COMPARISON TABLE OF ALL CARDS IN WALLET */}
+              <Card style={{ padding: 22 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: THEME.ink }}>
+                      All Cards in Portfolio Ranked for {paymentRecommendation.merchantName}
+                    </h4>
+                    <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                      Compare expected cashback, reward value, and profit on a spend of {fmtINRFull(paymentRecommendation.amount)}.
+                    </div>
+                  </div>
+                  <Badge variant="neutral">
+                    {paymentRecommendation.rankedCards.length} Cards Evaluated
+                  </Badge>
+                </div>
+
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid var(--t-line)", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>
+                        <th style={{ padding: "10px 8px", textAlign: "left" }}>Rank & Card</th>
+                        <th style={{ padding: "10px 8px", textAlign: "left" }}>Reward Rate</th>
+                        <th style={{ padding: "10px 8px", textAlign: "right" }}>Expected Benefit</th>
+                        <th style={{ padding: "10px 8px", textAlign: "right" }}>Diff vs #1 Pick</th>
+                        <th style={{ padding: "10px 8px", textAlign: "right" }}>Available Limit</th>
+                        <th style={{ padding: "10px 8px", textAlign: "left" }}>Perk Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentRecommendation.rankedCards.map((c, idx) => {
+                        const isTop = idx === 0;
+                        const topSavings = paymentRecommendation.topCard ? paymentRecommendation.topCard.savingsInINR : 0;
+                        const diffVsTop = topSavings - c.savingsInINR;
+
+                        return (
+                          <tr
+                            key={c.cardId}
+                            style={{
+                              borderBottom: "1px solid var(--t-line)",
+                              background: isTop ? "color-mix(in srgb, var(--t-accent) 5%, transparent)" : "transparent",
+                            }}
+                          >
+                            <td style={{ padding: "12px 8px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <span
+                                  style={{
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: "50%",
+                                    background: isTop ? "var(--t-accent)" : "var(--t-line)",
+                                    color: isTop ? "#fff" : THEME.muted,
+                                    fontSize: 11,
+                                    fontWeight: 800,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  {idx + 1}
+                                </span>
+                                <BankLogo bankName={c.bankName || c.cardName} size={28} />
+                                <div>
+                                  <div style={{ fontWeight: 700, color: THEME.ink }}>
+                                    {c.cardName}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: THEME.muted }}>
+                                    {c.bankName} {c.last4 ? `•••• ${c.last4}` : ""} {c.network ? `· ${c.network}` : ""}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td style={{ padding: "12px 8px" }}>
+                              <Badge variant={isTop ? "accent" : c.returnPct >= 5.0 ? "sage" : c.returnPct >= 2.0 ? "warning" : "neutral"}>
+                                {c.returnPct}% {c.perkType === "cashback" ? "Cashback" : c.perkType === "miles" ? "Miles" : "Points"}
+                              </Badge>
+                            </td>
+
+                            <td style={{ padding: "12px 8px", textAlign: "right", fontWeight: 700, color: isTop ? THEME.sage : THEME.ink, fontSize: 14 }}>
+                              + {fmtINRFull(c.savingsInINR)}
+                            </td>
+
+                            <td style={{ padding: "12px 8px", textAlign: "right", fontSize: 12 }}>
+                              {isTop ? (
+                                <span style={{ color: THEME.sage, fontWeight: 700 }}>Best Pick</span>
+                              ) : (
+                                <span style={{ color: THEME.rust, fontWeight: 600 }}>
+                                  - {fmtINRFull(diffVsTop)}
+                                </span>
+                              )}
+                            </td>
+
+                            <td style={{ padding: "12px 8px", textAlign: "right" }}>
+                              <div style={{ fontWeight: 600, color: THEME.sage }}>
+                                <Prv>{fmtINRFull(c.availableLimit)}</Prv>
+                              </div>
+                            </td>
+
+                            <td style={{ padding: "12px 8px", fontSize: 12, color: THEME.muted, maxWidth: 280 }}>
+                              <div style={{ lineHeight: 1.4 }}>{c.perkReason}</div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+
+              {/* 4. MARKET UPGRADE / OPPORTUNITY SPOTLIGHT */}
+              {paymentRecommendation.bestMarketAlternative && (
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, color-mix(in srgb, var(--t-gold) 12%, var(--t-card)) 0%, var(--t-card) 100%)",
+                    border: "1.5px solid color-mix(in srgb, var(--t-gold) 40%, var(--t-line))",
+                    borderRadius: 14,
+                    padding: "16px 20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
+                        background: "color-mix(in srgb, var(--t-gold) 20%, transparent)",
+                        color: THEME.gold,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Sparkles size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: THEME.gold }}>
+                        Wallet Upgrade Opportunity
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 1 }}>
+                        {paymentRecommendation.bestMarketAlternative.cardName} yields {paymentRecommendation.bestMarketAlternative.returnPct}% on {paymentRecommendation.merchantName}
+                      </div>
+                      <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
+                        {paymentRecommendation.bestMarketAlternative.reason}. Getting this card would save you an extra <strong>{fmtINRFull(paymentRecommendation.bestMarketAlternative.extraSavingsVsTopOwned)}</strong> on this payment.
+                      </div>
+                    </div>
+                  </div>
+
+                  <Badge variant="warning" style={{ fontSize: 12, padding: "4px 10px", fontWeight: 700 }}>
+                    +{paymentRecommendation.bestMarketAlternative.returnPct}% Potential
+                  </Badge>
+                </div>
+              )}
+
+              {/* 5. AT-A-GLANCE CATEGORY CHEAT SHEET MATRIX */}
+              <Card style={{ padding: 22 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+                      <Layers size={17} color="var(--t-accent)" /> Best Card for Every Category (Cheat Sheet)
+                    </h4>
+                    <div style={{ fontSize: 12.5, color: THEME.muted, marginTop: 2 }}>
+                      Keep this handy matrix on your phone or dashboard for everyday shopping and offline/online swipes.
+                    </div>
+                  </div>
+                  <Badge variant="accent">
+                    8 Core Categories
+                  </Badge>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {categoryMatrix.map((item) => {
+                    const hasCard = !!item.bestCard;
+                    return (
+                      <div
+                        key={item.category}
+                        style={{
+                          padding: 16,
+                          borderRadius: 12,
+                          background: "var(--t-surface)",
+                          border: "1px solid var(--t-line)",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <div style={{ color: getCategoryColor(item.category) }}>
+                                {getCategoryIcon(item.category)}
+                              </div>
+                              <span style={{ fontWeight: 700, fontSize: 13.5, color: THEME.ink }}>
+                                {item.category}
+                              </span>
+                            </div>
+                            {hasCard && (
+                              <Badge variant={item.bestCard!.returnPct >= 5.0 ? "sage" : "accent"} style={{ fontSize: 11 }}>
+                                {item.bestCard!.returnPct}% Return
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Best Card in this category */}
+                          {hasCard ? (
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                background: "var(--t-card)",
+                                padding: "10px 12px",
+                                borderRadius: 10,
+                                border: "1px solid var(--t-line)",
+                                marginBottom: 8,
+                              }}
+                            >
+                              <BankLogo bankName={item.bestCard!.bankName || item.bestCard!.cardName} size={28} />
+                              <div style={{ overflow: "hidden" }}>
+                                <div style={{ fontWeight: 700, fontSize: 13, color: THEME.ink, whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>
+                                  {item.bestCard!.cardName}
+                                </div>
+                                <div style={{ fontSize: 11, color: THEME.muted }}>
+                                  {item.bestCard!.last4 ? `•••• ${item.bestCard!.last4} · ` : ""}{item.bestCard!.perkType.toUpperCase()}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 12, color: THEME.muted, padding: "8px 0" }}>
+                              No active cards mapped
+                            </div>
+                          )}
+
+                          <div style={{ fontSize: 11.5, color: THEME.muted, lineHeight: 1.4, marginBottom: 10 }}>
+                            {item.popularExamples}
+                          </div>
+                        </div>
+
+                        {/* 1-Click Action to Test this category */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMatcherCategory(item.category);
+                            const firstExample = item.popularExamples.split(",")[0]?.trim();
+                            if (firstExample) setMatcherMerchant(firstExample);
+                            window.scrollTo({ top: 300, behavior: "smooth" });
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            background: "color-mix(in srgb, var(--t-accent) 10%, transparent)",
+                            color: "var(--t-accent)",
+                            border: "1px solid color-mix(in srgb, var(--t-accent) 25%, transparent)",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                            width: "100%",
+                          }}
+                        >
+                          <span>Test with {item.category}</span>
+                          <ArrowRight size={13} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            </div>
+          )}
         </div>
       )}
 

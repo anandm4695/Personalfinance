@@ -226,4 +226,22 @@ describe("CardInsightsSection Component UI & Calculations", () => {
     expect(screen.getByText("Amazon India")).toBeDefined();
     expect(screen.getByText("Starbucks Coffee")).toBeDefined();
   });
+
+  it("switches to Best Card for Payment view and optimizes merchant rewards interactively", () => {
+    render(<CardInsightsSection state={mockState} />);
+
+    const rewardMatcherTab = screen.getByRole("button", { name: /Best Card for Payment/i });
+    fireEvent.click(rewardMatcherTab);
+
+    expect(
+      screen.getByText(/Payment & Reward Maximizer \(Which Card to Use\?\)/i)
+    ).toBeDefined();
+    expect(screen.getByText(/#1 BEST CARD TO SWIPE/i)).toBeDefined();
+    expect(screen.getByText(/Best Card for Every Category \(Cheat Sheet\)/i)).toBeDefined();
+
+    // Test quick merchant switch
+    const swiggyBtn = screen.getByRole("button", { name: /Swiggy/i });
+    fireEvent.click(swiggyBtn);
+    expect(screen.getByText(/Why use this card for Swiggy\?/i)).toBeDefined();
+  });
 });
