@@ -96,11 +96,12 @@ const CARD_COLOR_MAP: Array<{ keys: string[]; g: Gradient }> = [
   { keys: ["smart earn"], g: { from: "#1A237E", to: "#0D1460" } },
 
   // ── Standard Chartered specific ───────────────────────────────────────────
-  { keys: ["ultimate"], g: { from: "#1A4A1A", to: "#0A2A0A" } },
-  { keys: ["smart"], g: { from: "#006400", to: "#003200" } },
-  { keys: ["manhattan"], g: { from: "#C8102E", to: "#6B0016" } },
-  { keys: ["priority banking"], g: { from: "#004A00", to: "#002500" } },
-  { keys: ["rewards+"], g: { from: "#006400", to: "#003200" } },
+  { keys: ["ultimate", "sc ultimate"], g: { from: "#00482B", via: "#002B1A", to: "#00180F" } },
+  { keys: ["smart", "sc smart", "digismart", "sc digismart"], g: { from: "#007934", via: "#005524", to: "#003216" } },
+  { keys: ["manhattan", "sc manhattan"], g: { from: "#C8102E", to: "#6B0016" } },
+  { keys: ["priority banking", "sc priority"], g: { from: "#004A00", to: "#002500" } },
+  { keys: ["rewards+", "sc rewards", "platinum rewards"], g: { from: "#006400", to: "#003200" } },
+  { keys: ["easemytrip", "sc easemytrip"], g: { from: "#0099DA", via: "#007934", to: "#004820" } },
 
   // ── Federal Bank specific ─────────────────────────────────────────────────
   { keys: ["scapia"], g: { from: "#1A1A2E", to: "#16213E" } },
@@ -152,7 +153,7 @@ const CARD_COLOR_MAP: Array<{ keys: string[]; g: Gradient }> = [
   { keys: ["kotak"], g: { from: "#C0392B", to: "#6B0000" } },
   { keys: ["indusind", "indusland"], g: { from: "#145A32", to: "#072E18" } },
   { keys: ["yes bank", "yes first"], g: { from: "#0047AB", to: "#002366" } },
-  { keys: ["standard chartered"], g: { from: "#006400", to: "#003200" } },
+  { keys: ["standard chartered", "standered chartered", "standard charted", "standered charted", "standardchartered", "stanchart", "stan chart", "sc bank", "scb", "sc"], g: { from: "#007934", via: "#005524", to: "#003216" } },
   { keys: ["rbl"], g: { from: "#003087", to: "#001A4D" } },
   { keys: ["idfc first", "idfc"], g: { from: "#1A237E", to: "#0D1460" } },
   { keys: ["au small", "au bank", "au sb"], g: { from: "#C0392B", to: "#6B0000" } },

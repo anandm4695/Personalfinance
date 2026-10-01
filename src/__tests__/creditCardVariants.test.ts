@@ -174,4 +174,28 @@ describe("Credit Card Dual & Multi-Variant Account Support", () => {
     expect(totalCCOutstanding).toBe(80000); // 50k + 30k
     expect(creditUtilization).toBe(10); // 80,000 / 800,000 = 10%
   });
+
+  it("resolves Standard Chartered bank logo and aliases accurately (including typo variations)", async () => {
+    const { resolveBrand } = await import("../components/ui/BrandLogos");
+    const variations = [
+      "Standard Chartered",
+      "Standard Chartered Bank",
+      "STANDERED CHARTED",
+      "Standard Charted",
+      "Standered Chartered",
+      "Standard Chartered Ultimate",
+      "Standard Chartered Smart",
+      "SC DigiSmart",
+      "SCB",
+      "StanChart",
+    ];
+
+    for (const v of variations) {
+      const brand = resolveBrand(v);
+      expect(brand).not.toBeNull();
+      expect(brand?.name).toBe("Standard Chartered");
+      expect(brand?.localSvg).toBe("/sc-logo.svg");
+      expect(brand?.domain).toBe("sc.com");
+    }
+  });
 });

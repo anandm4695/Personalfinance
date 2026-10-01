@@ -1254,6 +1254,17 @@ function CCEmptyState({ onAdd, onAddPreset }: any) {
         },
       ],
     },
+    {
+      issuer: "Standard Chartered Ultimate",
+      network: "Visa",
+      limit: "500000",
+      billDate: "24",
+      dueDay: "14",
+      annualFee: "5000",
+      waiverInfo: "5 reward points per ₹150 spent",
+      rewardPointsBalance: "8000",
+      rewardPointValue: "1",
+    },
   ];
 
   return (
@@ -1955,7 +1966,7 @@ function CCList({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <BankLogo bankName={c.issuer} size={32} />
+            <BankLogo bankName={c.issuer || c.cardName || c.name || c.bank || "Credit Card"} size={32} />
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <CardNetworkLogo network={c.network} />
               {(c.variants || []).map((v: any, vIdx: number) => (
@@ -6931,8 +6942,39 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [], saving 
             style={input}
             value={f.issuer}
             onChange={(e) => setF({ ...f, issuer: e.target.value })}
-            placeholder="e.g. Federal Scapia, ICICI Sapphiro, HDFC Regalia"
+            placeholder="e.g. Standard Chartered Ultimate, HDFC Regalia, ICICI Amazon Pay"
+            list="cc-issuers-datalist"
           />
+          <datalist id="cc-issuers-datalist">
+            <option value="Standard Chartered Ultimate" />
+            <option value="Standard Chartered Smart" />
+            <option value="Standard Chartered DigiSmart" />
+            <option value="Standard Chartered EaseMyTrip" />
+            <option value="Standard Chartered Platinum Rewards" />
+            <option value="Standard Chartered Bank" />
+            <option value="HDFC Regalia Gold" />
+            <option value="HDFC Infinia" />
+            <option value="HDFC Millennia" />
+            <option value="ICICI Amazon Pay" />
+            <option value="ICICI Sapphiro" />
+            <option value="ICICI Emeralde" />
+            <option value="SBI Cashback" />
+            <option value="SBI SimplyClick" />
+            <option value="SBI Card PRIME" />
+            <option value="Axis Atlas" />
+            <option value="Axis Magnus" />
+            <option value="Axis Airtel" />
+            <option value="Federal Scapia" />
+            <option value="Kotak League" />
+            <option value="IndusInd Legend" />
+            <option value="AU Zenith+" />
+            <option value="OneCard" />
+            <option value="Amex Platinum" />
+            <option value="Amex MRCC" />
+            <option value="Amex SmartEarn" />
+            <option value="HSBC Live+" />
+            <option value="RBL ShopRite" />
+          </datalist>
         </Field>
         <Field label="Primary Network">
           <select
