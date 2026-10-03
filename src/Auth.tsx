@@ -25,8 +25,10 @@ import {
   Layers,
   Award,
   Globe2,
+  Zap,
 } from "lucide-react";
 import { BrandMark } from "./components/ui/BrandMark";
+import { DEMO_USER_SESSION } from "./utils/demoData";
 
 /* ─── Time-of-day greeting ───────────────────────────────────────────── */
 function getGreeting(): string {
@@ -343,6 +345,16 @@ export default function Auth({
     window.history.replaceState({}, document.title, window.location.pathname);
     onRecoveryComplete?.();
     switchMode("login");
+  };
+
+  const handleDemoLogin = () => {
+    setLoading(true);
+    setError(null);
+    setMsg(null);
+    try {
+      localStorage.setItem("pf_demo_mode", "true");
+    } catch {}
+    onLogin(DEMO_USER_SESSION);
   };
 
   const switchMode = (m: "login" | "signup" | "forgot" | "reset") => {
@@ -1043,6 +1055,47 @@ export default function Auth({
                   )}
                 </form>
               )}
+
+              {/* ── Guest Demo Access Section ── */}
+              {(isLogin || isSignUp) && (
+                <div className="af-demo-container">
+                  <div className="af-divider-row" role="separator" aria-label="Or explore demo">
+                    <span className="af-divider-line" />
+                    <span className="af-divider-text">OR TEST-DRIVE WITH DUMMY DATA</span>
+                    <span className="af-divider-line" />
+                  </div>
+
+                  <div className="af-demo-card">
+                    <div className="af-demo-card-shine" />
+                    <div className="af-demo-content">
+                      <div className="af-demo-icon-wrap">
+                        <Sparkles size={18} className="af-demo-icon" />
+                      </div>
+                      <div className="af-demo-text">
+                        <div className="af-demo-title-row">
+                          <span className="af-demo-title">Explore Interactive Demo</span>
+                          <span className="af-demo-badge">No Password</span>
+                        </div>
+                        <p className="af-demo-desc">
+                          Explore full wealth tracking with comprehensive dummy portfolio data — no username, password, or signup needed.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleDemoLogin}
+                      disabled={loading}
+                      className="af-demo-btn"
+                      id="btn-explore-demo"
+                    >
+                      <Zap size={15} className="af-demo-btn-icon" />
+                      <span>Launch Demo with Dummy Data</span>
+                      <ArrowRight size={14} className="af-demo-btn-arrow" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
 
@@ -1062,6 +1115,167 @@ export default function Auth({
 
 /* ─── Ultra-Premium Stylesheet ─────────────────────────────────────────── */
 const AF_STYLES = `
+/* ── Interactive Demo Sandbox Section ───── */
+.af-demo-container {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.af-divider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.af-divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+}
+
+.af-divider-text {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #94A3B8;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.af-demo-card {
+  position: relative;
+  background: linear-gradient(145deg, rgba(212, 175, 55, 0.08) 0%, rgba(16, 24, 42, 0.92) 60%, rgba(99, 102, 241, 0.06) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.af-demo-card:hover {
+  border-color: rgba(212, 175, 55, 0.6);
+  box-shadow: 0 6px 24px rgba(212, 175, 55, 0.18);
+}
+
+.af-demo-card-shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.7), transparent);
+}
+
+.af-demo-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.af-demo-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #F5E5C9;
+  flex-shrink: 0;
+}
+
+.af-demo-icon {
+  color: #E8C872;
+}
+
+.af-demo-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.af-demo-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.af-demo-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+}
+
+.af-demo-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.18);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.af-demo-desc {
+  font-size: 11.5px;
+  color: #94A3B8;
+  margin-top: 4px;
+  line-height: 1.45;
+  margin-bottom: 0;
+}
+
+.af-demo-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: rgba(212, 175, 55, 0.14);
+  color: #F5E5C9;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  transition: all 0.18s ease;
+}
+
+.af-demo-btn:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.25);
+  border-color: rgba(212, 175, 55, 0.75);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.25);
+}
+
+.af-demo-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.af-demo-btn-icon {
+  color: #E8C872;
+}
+
+.af-demo-btn-arrow {
+  transition: transform 0.15s ease;
+}
+
+.af-demo-btn:hover .af-demo-btn-arrow {
+  transform: translateX(3px);
+}
+
 /* ── Global Container & Luxe Tokens ─────── */
 .af-shell {
   --af-gold-primary: #D4AF37;

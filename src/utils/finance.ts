@@ -428,13 +428,21 @@ export const getMonthsToNextEscalation = (p: any, yearMonth?: string): number | 
 
 // ── End Rental Escalation Tier Helpers ────────────────────────────────────────
 
-export const getCCDueDate = (c: any, referenceDate?: Date) => {
+export const getCCDueDate = (c: any, referenceDate?: Date): string | null => {
+  if (!c) return null;
   // Prefer computed due date from dueDay over a stored dueDate.
   // A stored dueDate can go stale (e.g. card's dueDay changed but old dueDate was never cleared).
-  // If dueDay is present, always compute the next occurrence from it.
+  // If dueDay is present (or dueDate is numeric), always compute the next occurrence from it.
   const now = referenceDate || new Date();
-  if (c.dueDay) {
-    const day = parseInt(c.dueDay, 10);
+  const rawDueDay =
+    c.dueDay ??
+    (typeof c.dueDate === "number" ||
+    (typeof c.dueDate === "string" && /^\d{1,2}$/.test(c.dueDate.trim()))
+      ? c.dueDate
+      : undefined);
+
+  if (rawDueDay !== undefined && rawDueDay !== null && rawDueDay !== "") {
+    const day = parseInt(String(rawDueDay), 10);
     if (!isNaN(day) && day >= 1 && day <= 31) {
       // Clamp to the last day of the target month so a dueDay of 29/30/31 doesn't
       // overflow into the following month (e.g. Feb 31 -> Mar 3) when the target
@@ -456,8 +464,10 @@ export const getCCDueDate = (c: any, referenceDate?: Date) => {
       return getLocalDateString(d);
     }
   }
-  // Fall back to the stored dueDate only when no dueDay is set
-  if (c.dueDate) return c.dueDate;
+  // Fall back to the stored dueDate only when no valid dueDay is set and dueDate is a valid date string
+  if (typeof c.dueDate === "string" && c.dueDate.includes("-")) {
+    return c.dueDate;
+  }
   return null;
 };
 

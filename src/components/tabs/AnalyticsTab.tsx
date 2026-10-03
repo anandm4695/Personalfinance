@@ -1786,13 +1786,13 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
       .forEach((c: any) => {
         const dueDate = getCCDueDate(c);
-        if (dueDate) {
+        if (typeof dueDate === "string" && dueDate.includes("-")) {
           const [cyy, cmm, cdd] = dueDate.split("-").map(Number);
           const ms = new Date(cyy, cmm - 1, cdd).getTime();
           const daysLeft = Math.ceil((ms - todayMs) / 86400000);
           if (daysLeft >= 0 && ms <= plus30Ms)
             dues.push({
-              name: (c.issuer || "Card") + " Bill",
+              name: (c.issuer || c.cardName || "Card") + " Bill",
               amount: Number(c.outstanding || 0),
               daysLeft,
               date: dueDate,

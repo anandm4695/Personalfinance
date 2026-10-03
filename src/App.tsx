@@ -22,6 +22,7 @@ import {
   Command,
   Sparkles,
   AlertTriangle,
+  RotateCcw,
 } from "lucide-react";
 import {
   supabase,
@@ -30,6 +31,7 @@ import {
 } from "./supabaseClient";
 import Auth from "./Auth";
 import { PrivacyProvider, usePrivacy } from "./context/PrivacyContext";
+import { getDemoState, DEMO_USER_SESSION, isDemoSession } from "./utils/demoData";
 
 // Modular Imports
 import { THEME, DENSITY } from "./utils/constants";
@@ -574,9 +576,11 @@ function FinanceDashboard() {
   });
   const [syncedTxnIds, setSyncedTxnIds] = useState<Set<string>>(new Set());
 
-  // 2. Aggressive Cleanup of Legacy Dummy Data
+  // 2. Aggressive Cleanup of Legacy Dummy Data (bypassed in Demo Mode)
   useEffect(() => {
     if (isAuthChecking) return;
+    if (localStorage.getItem("pf_demo_mode") === "true" || isDemoSession(session)) return;
+
     const saved = loadState();
     const isDummy = (s: any) => {
       if (!s) return false;
@@ -604,22 +608,42 @@ function FinanceDashboard() {
         .then(({ data: { session: supaSession }, error }: any) => {
           if (!error && supaSession) {
             setSession(supaSession);
+          } else if (localStorage.getItem("pf_demo_mode") === "true") {
+            setSession(DEMO_USER_SESSION);
+            setState((prev: any) => {
+              const hasBank = Array.isArray(prev?.bankAccounts) && prev.bankAccounts.length > 0;
+              return hasBank ? prev : getDemoState(prev?.settings);
+            });
           } else {
             setSession(null);
           }
           setIsAuthChecking(false);
         })
         .catch(() => {
+          if (localStorage.getItem("pf_demo_mode") === "true") {
+            setSession(DEMO_USER_SESSION);
+          } else {
+            setSession(null);
+          }
           setIsAuthChecking(false);
         });
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event: any, supaSession: any) => {
-        setSession(supaSession || null);
+        if (supaSession) {
+          setSession(supaSession);
+        } else if (localStorage.getItem("pf_demo_mode") === "true") {
+          setSession(DEMO_USER_SESSION);
+        } else {
+          setSession(null);
+        }
       });
       return () => subscription.unsubscribe();
     } catch (e) {
       console.warn("Supabase initialization failed", e);
+      if (localStorage.getItem("pf_demo_mode") === "true") {
+        setSession(DEMO_USER_SESSION);
+      }
       setIsAuthChecking(false);
     }
   }, []);
@@ -3675,6 +3699,9 @@ function FinanceDashboard() {
     logActivity("EXPORT", `Exported full backup — finance-backup-${today()}.json`);
   };
   const handleSignOut = async () => {
+    try {
+      localStorage.removeItem("pf_demo_mode");
+    } catch {}
     await supabase.auth.signOut().catch(() => {});
     setSession(null);
     lastFetchedUserIdRef.current = null;
@@ -4061,7 +4088,15 @@ function FinanceDashboard() {
     }
     return (
       <Auth
-        onLogin={setSession}
+        onLogin={(s) => {
+          if (isDemoSession(s)) {
+            try {
+              localStorage.setItem("pf_demo_mode", "true");
+            } catch {}
+            setState((prev: any) => getDemoState(prev?.settings));
+          }
+          setSession(s);
+        }}
         onRecoveryComplete={() => setRecoveryMode(false)}
       />
     );
