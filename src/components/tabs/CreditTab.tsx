@@ -551,6 +551,7 @@ export function CreditTab({
 
   const { run: saveNewCC, loading: savingNewCC } = useAsyncAction(
     async (v: any) => {
+      setModal(null);
       await addItem("creditCards", v);
     },
     {
@@ -561,6 +562,7 @@ export function CreditTab({
   );
   const { run: saveNewPrepaid, loading: savingNewPrepaid } = useAsyncAction(
     async (v: any) => {
+      setModal(null);
       await addItem("prepaidCards", v);
     },
     {
@@ -604,6 +606,7 @@ export function CreditTab({
 
   const { run: saveCCEdit, loading: savingCCEdit } = useAsyncAction(
     async (id: string, v: any) => {
+      setEditId(null);
       // If the ledger already has entries and the user hand-edited Outstanding to a
       // different number, reconcile with an adjustment entry instead of letting the
       // next ledger edit silently recompute Outstanding from the (now stale) ledger sum
@@ -635,6 +638,7 @@ export function CreditTab({
   );
   const { run: savePrepaidEdit, loading: savingPrepaidEdit } = useAsyncAction(
     async (id: string, v: any) => {
+      setEditId(null);
       await updateItem("prepaidCards", id, v);
     },
     {
@@ -3278,8 +3282,10 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
+  const hasInitRef = React.useRef(false);
   React.useEffect(() => {
-    if ((card.transactions || []).length === 0 && Number(card.outstanding) > 0) {
+    if (!hasInitRef.current && (card.transactions || []).length === 0 && Number(card.outstanding) > 0) {
+      hasInitRef.current = true;
       onUpdate(initTxs);
     }
   }, [card.transactions, card.outstanding, initTxs, onUpdate]);
@@ -6901,33 +6907,69 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
 
 function CCModal({ onClose, onSave, initial = null, existingGroups = [], saving }: any) {
   const { ccNetworks, familyProfiles } = useMasterData();
-  const [f, setF] = useState(
-    initial || {
-      issuer: "",
-      network: ccNetworks[0] || "Visa",
-      last4: "",
-      limit: "",
-      outstanding: "0",
-      billDate: "",
-      dueDay: "",
-      annualFee: "0",
-      feeMonth: "",
-      feeDay: "",
-      interestRate: "36",
-      waiverInfo: "",
-      helpline: "",
-      transactions: [],
-      owner: "self",
-      status: "active",
-      closedDate: "",
-      sharedGroup: "",
-      sharedGroupLimit: "",
-      autoPay: false,
-      rewardPointsBalance: "",
-      rewardPointValue: "",
-      variants: [],
+  const [f, setF] = useState(() => {
+    if (!initial) {
+      return {
+        issuer: "",
+        network: ccNetworks[0] || "Visa",
+        last4: "",
+        limit: "",
+        outstanding: "0",
+        billDate: "",
+        dueDay: "",
+        annualFee: "0",
+        feeMonth: "",
+        feeDay: "",
+        interestRate: "36",
+        waiverInfo: "",
+        helpline: "",
+        transactions: [],
+        owner: "self",
+        status: "active",
+        closedDate: "",
+        sharedGroup: "",
+        sharedGroupLimit: "",
+        autoPay: false,
+        rewardPointsBalance: "",
+        rewardPointValue: "",
+        variants: [],
+      };
     }
-  );
+    return {
+      ...initial,
+      issuer: initial.issuer || initial.cardName || initial.name || initial.bank || "",
+      network: initial.network || ccNetworks[0] || "Visa",
+      last4: initial.last4 || "",
+      limit:
+        initial.limit != null && initial.limit !== ""
+          ? String(initial.limit)
+          : initial.cardLimit != null && initial.cardLimit !== ""
+            ? String(initial.cardLimit)
+            : "",
+      outstanding: initial.outstanding != null ? String(initial.outstanding) : "0",
+      billDate: initial.billDate != null ? String(initial.billDate) : "",
+      dueDay: initial.dueDay != null ? String(initial.dueDay) : "",
+      annualFee: initial.annualFee != null ? String(initial.annualFee) : "0",
+      feeMonth: initial.feeMonth != null ? String(initial.feeMonth) : "",
+      feeDay: initial.feeDay != null ? String(initial.feeDay) : "",
+      interestRate: initial.interestRate != null ? String(initial.interestRate) : "36",
+      waiverInfo: initial.waiverInfo || "",
+      helpline: initial.helpline || "",
+      transactions: Array.isArray(initial.transactions) ? initial.transactions : [],
+      owner: initial.owner || "self",
+      status: initial.status || "active",
+      closedDate: initial.closedDate || "",
+      sharedGroup: initial.sharedGroup || "",
+      sharedGroupLimit:
+        initial.sharedGroupLimit != null ? String(initial.sharedGroupLimit) : "",
+      autoPay: !!initial.autoPay,
+      rewardPointsBalance:
+        initial.rewardPointsBalance != null ? String(initial.rewardPointsBalance) : "",
+      rewardPointValue:
+        initial.rewardPointValue != null ? String(initial.rewardPointValue) : "",
+      variants: Array.isArray(initial.variants) ? initial.variants : [],
+    };
+  });
   const isClosed = (f.status || "active").toLowerCase() === "closed";
   return (
     <Modal title={initial ? "Edit Credit Card" : "Add Credit Card"} onClose={onClose}>
@@ -7515,19 +7557,34 @@ function CCModal({ onClose, onSave, initial = null, existingGroups = [], saving 
 
 function PrepaidModal({ onClose, onSave, initial = null, saving }: any) {
   const { prepaidCardTypes, familyProfiles } = useMasterData();
-  const [f, setF] = useState(
-    initial || {
-      owner: "self",
-      cardName: "",
-      cardType: prepaidCardTypes[0] || "Meal Card",
-      last4: "",
-      status: "active",
-      closedDate: "",
-      expiryDate: "",
-      lowBalanceThreshold: "100",
-      transactions: [],
+  const [f, setF] = useState(() => {
+    if (!initial) {
+      return {
+        owner: "self",
+        cardName: "",
+        cardType: prepaidCardTypes[0] || "Meal Card",
+        last4: "",
+        status: "active",
+        closedDate: "",
+        expiryDate: "",
+        lowBalanceThreshold: "100",
+        transactions: [],
+      };
     }
-  );
+    return {
+      ...initial,
+      owner: initial.owner || "self",
+      cardName: initial.cardName || initial.name || initial.provider || initial.bank || "",
+      cardType: initial.cardType || prepaidCardTypes[0] || "Meal Card",
+      last4: initial.last4 || "",
+      status: initial.status || "active",
+      closedDate: initial.closedDate || "",
+      expiryDate: initial.expiryDate || "",
+      lowBalanceThreshold:
+        initial.lowBalanceThreshold != null ? String(initial.lowBalanceThreshold) : "100",
+      transactions: Array.isArray(initial.transactions) ? initial.transactions : [],
+    };
+  });
   const [openingBal, setOpeningBal] = useState("");
   const [error, setError] = useState("");
 
