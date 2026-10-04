@@ -396,7 +396,8 @@ export function PPFSection({
         if (sortBy === "balance_desc") return bStats.displayBalance - aStats.displayBalance;
         if (sortBy === "balance_asc") return aStats.displayBalance - bStats.displayBalance;
         if (sortBy === "fy_deposit_desc") return bStats.currentFYDeposits - aStats.currentFYDeposits;
-        if (sortBy === "maturity_asc") return aStats.maturityDate.localeCompare(bStats.maturityDate);
+        if (sortBy === "maturity_asc")
+          return (aStats.maturityDate || "").localeCompare(bStats.maturityDate || "");
         if (sortBy === "institution_asc")
           return (a.institution || a.bank || "").localeCompare(b.institution || b.bank || "");
         return 0;

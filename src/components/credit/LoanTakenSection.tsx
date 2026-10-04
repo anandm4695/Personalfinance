@@ -1073,7 +1073,7 @@ function LoanHistoryModal({ loan, onClose, onUndoPayment }: any) {
         <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 300, overflowY: "auto" }}>
           {payments
             .slice()
-            .sort((a, b) => b.date.localeCompare(a.date))
+            .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
             .map((p) => (
               <div
                 key={p.id}

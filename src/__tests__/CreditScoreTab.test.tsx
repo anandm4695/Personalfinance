@@ -171,4 +171,43 @@ describe("CreditScoreTab & Bureau Engine", () => {
     expect(screen.getByText(/RBI Mandatory 30-Day Resolution Protocol/i)).toBeInTheDocument();
     expect(screen.getByText(/TransUnion CIBIL/i)).toBeInTheDocument();
   });
+
+  it("handles legacy and corrupt credit scores with missing or asOfDate without throwing errors", () => {
+    const legacyScores: any[] = [
+      {
+        id: "demo-cs-1",
+        bureau: "CIBIL",
+        score: 815,
+        asOfDate: "2026-09-24",
+        owner: "self",
+      },
+      {
+        id: "demo-cs-2",
+        bureau: "Experian",
+        score: 838,
+        asOfDate: "2026-09-19",
+        owner: "self",
+      },
+      {
+        id: "demo-cs-3",
+        bureau: "CIBIL",
+        score: 750,
+        // no checkDate or asOfDate
+        owner: "self",
+      },
+    ];
+
+    expect(() => {
+      render(
+        <CreditScoreTab
+          state={{ creditScores: legacyScores, creditCards: [], loans: [] }}
+          addItem={vi.fn()}
+          removeItem={vi.fn()}
+          updateItem={vi.fn()}
+        />
+      );
+    }).not.toThrow();
+
+    expect(screen.getAllByText("815").length).toBeGreaterThan(0);
+  });
 });

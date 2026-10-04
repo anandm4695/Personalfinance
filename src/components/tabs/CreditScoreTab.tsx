@@ -613,14 +613,15 @@ function CreditPillarsEngine({
 
   // 3. Credit Age & Vintage (15% weight)
   const allDates = [
-    ...sorted.map((s) => s.checkDate),
+    ...sorted.map((s) => s.checkDate || (s as any).asOfDate || (s as any).date),
     ...(loans || []).map((l) => l.startDate || l.disbursedDate || l.date),
     ...(creditCards || []).map((c) => c.issueDate || c.openedDate),
   ].filter(Boolean) as string[];
   
   let earliestYear = new Date().getFullYear();
   allDates.forEach((d) => {
-    const yr = new Date(d).getFullYear();
+    const dt = new Date(d);
+    const yr = dt.getFullYear();
     if (yr && !isNaN(yr) && yr < earliestYear) earliestYear = yr;
   });
   const creditAgeYears = Math.max(1, new Date().getFullYear() - earliestYear);
@@ -654,9 +655,12 @@ function CreditPillarsEngine({
   // 5. Recent Inquiries & Velocity (10% weight)
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-  const recentLogsCount = sorted.filter(
-    (s) => new Date(s.checkDate) >= sixMonthsAgo
-  ).length;
+  const recentLogsCount = sorted.filter((s) => {
+    const rawDate = s.checkDate || (s as any).asOfDate || (s as any).date;
+    if (!rawDate) return false;
+    const dt = new Date(rawDate);
+    return !isNaN(dt.getTime()) && dt >= sixMonthsAgo;
+  }).length;
   const inquiryRating =
     recentLogsCount <= 3 ? "Low (Safe)" : recentLogsCount <= 6 ? "Moderate" : "High Velocity";
   const inquiryScore = recentLogsCount <= 3 ? 100 : recentLogsCount <= 6 ? 75 : 50;
@@ -1264,7 +1268,12 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
   const rawCards = state.creditCards;
   const rawLoans = state.loans;
 
-  const scores: CreditScoreEntry[] = useMemo(() => rawScores || [], [rawScores]);
+  const scores: CreditScoreEntry[] = useMemo(() => {
+    return (rawScores || []).map((s: any) => ({
+      ...s,
+      checkDate: s.checkDate || s.asOfDate || s.date || s.check_date || "",
+    }));
+  }, [rawScores]);
   const creditCards: CreditCardItem[] = useMemo(() => rawCards || [], [rawCards]);
   const loans: LoanItem[] = useMemo(() => rawLoans || [], [rawLoans]);
 
@@ -1312,7 +1321,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
     BUREAUS.forEach((b) => {
       const bScores = ownerScopedScores
         .filter((s) => s.bureau === b)
-        .sort((x, y) => x.checkDate.localeCompare(y.checkDate));
+        .sort((x, y) => (x.checkDate || "").localeCompare(y.checkDate || ""));
       const latest = bScores[bScores.length - 1] || null;
       const prev = bScores[bScores.length - 2] || null;
       const delta = latest && prev ? latest.score - prev.score : null;
@@ -1327,7 +1336,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
     [ownerScopedScores, bureau]
   );
   const bureauSorted = useMemo(
-    () => [...bureauFiltered].sort((a, b) => a.checkDate.localeCompare(b.checkDate)),
+    () => [...bureauFiltered].sort((a, b) => (a.checkDate || "").localeCompare(b.checkDate || "")),
     [bureauFiltered]
   );
   const activeLatest = bureauSorted[bureauSorted.length - 1];
@@ -1346,37 +1355,47 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
       // Aggregate by unique dates
       const dateMap: Record<string, Record<string, string | number>> = {};
       ownerScopedScores.forEach((s) => {
-        if (new Date(s.checkDate) < cutoff) return;
+        if (!s.checkDate) return;
+        const dt = new Date(s.checkDate);
+        if (isNaN(dt.getTime()) || dt < cutoff) return;
         const dateKey = s.checkDate;
         if (!dateMap[dateKey]) {
           dateMap[dateKey] = {
             dateKey,
-            dateLabel: new Date(s.checkDate).toLocaleDateString("en-IN", { month: "short", year: "2-digit" }),
+            dateLabel: dt.toLocaleDateString("en-IN", { month: "short", year: "2-digit" }),
           };
         }
         dateMap[dateKey][s.bureau] = s.score;
       });
-      return Object.values(dateMap).sort((a, b) => String(a.dateKey).localeCompare(String(b.dateKey)));
+      return Object.values(dateMap).sort((a, b) => String(a.dateKey || "").localeCompare(String(b.dateKey || "")));
     }
 
     return bureauSorted
-      .filter((s) => new Date(s.checkDate) >= cutoff)
-      .map((s) => ({
-        dateLabel: new Date(s.checkDate).toLocaleDateString("en-IN", { month: "short", year: "2-digit" }),
-        score: s.score,
-        bureau: s.bureau,
-      }));
+      .filter((s) => {
+        if (!s.checkDate) return false;
+        const dt = new Date(s.checkDate);
+        return !isNaN(dt.getTime()) && dt >= cutoff;
+      })
+      .map((s) => {
+        const dt = new Date(s.checkDate);
+        return {
+          dateLabel: !isNaN(dt.getTime()) ? dt.toLocaleDateString("en-IN", { month: "short", year: "2-digit" }) : s.checkDate,
+          score: s.score,
+          bureau: s.bureau,
+        };
+      });
   }, [ownerScopedScores, bureauSorted, timeRange, overlayAllBureaus]);
 
   // Search and Sort for History Log Table
   const searchLower = search.trim().toLowerCase();
   const historyList = useMemo(() => {
-    const list = [...ownerScopedScores].sort((a, b) => b.checkDate.localeCompare(a.checkDate));
+    const list = [...ownerScopedScores].sort((a, b) => (b.checkDate || "").localeCompare(a.checkDate || ""));
     if (!searchLower) return list;
     return list.filter((s) => {
-      const dateLabel = new Date(s.checkDate)
-        .toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
-        .toLowerCase();
+      const dt = s.checkDate ? new Date(s.checkDate) : null;
+      const dateLabel = dt && !isNaN(dt.getTime())
+        ? dt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }).toLowerCase()
+        : (s.checkDate || "").toLowerCase();
       return (
         dateLabel.includes(searchLower) ||
         (s.bureau || "").toLowerCase().includes(searchLower) ||
@@ -1411,15 +1430,21 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
 
   const handleExportCSV = () => {
     exportArrayToCSV(
-      historyList.map((s) => ({
-        ...s,
-        ownerName: getOwnerAvatarInfo(s.owner, familyProfiles).name,
-        dateFormatted: new Date(s.checkDate).toLocaleDateString("en-IN", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }),
-      })),
+      historyList.map((s) => {
+        const dt = s.checkDate ? new Date(s.checkDate) : null;
+        const dateFormatted = dt && !isNaN(dt.getTime())
+          ? dt.toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : s.checkDate || "";
+        return {
+          ...s,
+          ownerName: getOwnerAvatarInfo(s.owner, familyProfiles).name,
+          dateFormatted,
+        };
+      }),
       [
         { key: "dateFormatted", label: "Check Date" },
         { key: "bureau", label: "Bureau" },
@@ -1661,12 +1686,17 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
 
                   <div style={{ fontSize: 10, color: THEME.muted, marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span>
-                      {data.latest
-                        ? new Date(data.latest.checkDate).toLocaleDateString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
+                      {data.latest && data.latest.checkDate
+                        ? (() => {
+                            const dt = new Date(data.latest.checkDate);
+                            return !isNaN(dt.getTime())
+                              ? dt.toLocaleDateString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })
+                              : data.latest.checkDate;
+                          })()
                         : "No logs"}
                     </span>
                     <button
@@ -1755,11 +1785,18 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                     <div style={{ fontSize: 11, color: THEME.muted, textAlign: "center", marginTop: 8 }}>
                       Checked on{" "}
                       <strong>
-                        {new Date(activeLatest.checkDate).toLocaleDateString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
+                        {activeLatest.checkDate
+                          ? (() => {
+                              const dt = new Date(activeLatest.checkDate);
+                              return !isNaN(dt.getTime())
+                                ? dt.toLocaleDateString("en-IN", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                  })
+                                : activeLatest.checkDate;
+                            })()
+                          : "Unknown"}
                       </strong>
                       {activeLatest.source && ` via ${activeLatest.source}`}
                     </div>
@@ -2136,11 +2173,18 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <span style={{ fontWeight: 700, fontSize: 13, color: THEME.ink }}>
-                              {new Date(s.checkDate).toLocaleDateString("en-IN", {
-                                day: "2-digit",
-                                month: "long",
-                                year: "numeric",
-                              })}
+                              {s.checkDate
+                                ? (() => {
+                                    const dt = new Date(s.checkDate);
+                                    return !isNaN(dt.getTime())
+                                      ? dt.toLocaleDateString("en-IN", {
+                                          day: "2-digit",
+                                          month: "long",
+                                          year: "numeric",
+                                        })
+                                      : s.checkDate;
+                                  })()
+                                : "No Date"}
                             </span>
                             <Badge style={{ background: grade.bg, color: grade.color, fontWeight: 700, fontSize: 10 }}>
                               {grade.label}

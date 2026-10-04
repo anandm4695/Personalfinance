@@ -252,7 +252,7 @@ export function InformalLoanSection({
         return (b.lastActivityDate || "").localeCompare(a.lastActivityDate || "");
       }
       if (sortBy === "name_asc") {
-        return a.name.localeCompare(b.name);
+        return (a.name || "").localeCompare(b.name || "");
       }
       return 0;
     });

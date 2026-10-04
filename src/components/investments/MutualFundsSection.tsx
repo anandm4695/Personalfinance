@@ -593,7 +593,7 @@ export function MutualFundsSection({
 
     // Sorting
     list.sort((a, b) => {
-      if (mfSortBy === "name") return a.fundName.localeCompare(b.fundName);
+      if (mfSortBy === "name") return (a.fundName || "").localeCompare(b.fundName || "");
       if (mfSortBy === "value") return grpVal(b) - grpVal(a);
       if (mfSortBy === "units") return grpUnits(b) - grpUnits(a);
       if (mfSortBy === "pnl") {
