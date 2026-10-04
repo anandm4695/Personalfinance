@@ -198,4 +198,37 @@ describe("Credit Card Dual & Multi-Variant Account Support", () => {
       expect(brand?.domain).toBe("sc.com");
     }
   });
+
+  it("resolves American Express and Amex Rewards card branding accurately", async () => {
+    const { resolveBrand } = await import("../components/ui/BrandLogos");
+    const amexVariations = [
+      "American Express",
+      "American Express Rewards",
+      "American Express Membership Rewards",
+      "American Express Platinum",
+      "American Express Smart Earn",
+      "American Express SmartEarn",
+      "American Express Gold",
+      "American Express Credit Card",
+      "American Express Bank",
+      "Amex",
+      "Amex Rewards",
+      "Amex Membership Rewards",
+      "Amex MRCC",
+      "Amex Platinum",
+      "Amex SmartEarn",
+      "Amex Gold",
+      "Amex Travel",
+      "Amex Card",
+    ];
+
+    for (const v of amexVariations) {
+      const brand = resolveBrand(v);
+      expect(brand).not.toBeNull();
+      expect(brand?.name).toBe("American Express");
+      expect(brand?.localSvg).toBe("/amex-logo.svg");
+      expect(brand?.domain).toBe("americanexpress.com");
+      expect(brand?.color).toBe("#006fcf");
+    }
+  });
 });

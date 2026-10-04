@@ -220,7 +220,7 @@ const CardNetworkLogo = ({ network }: { network?: string }) => {
     );
 
   // Amex — Official American Express logo (source: Simple Icons, Apache 2.0)
-  if (n === "amex" || n === "american express")
+  if (n === "amex" || n === "american express" || n.includes("amex") || n.includes("american express"))
     return (
       <svg
         width="40"

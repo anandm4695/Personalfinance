@@ -64,6 +64,26 @@ export const CANONICAL_BRANDS: Record<string, BrandInfo> = {
   "sc bank": { domain: "sc.com", localSvg: "/sc-logo.svg", name: "Standard Chartered", color: "#007934", isPrimaryInstitution: true },
   "scb bank": { domain: "sc.com", localSvg: "/sc-logo.svg", name: "Standard Chartered", color: "#007934", isPrimaryInstitution: true },
   "scb": { domain: "sc.com", localSvg: "/sc-logo.svg", name: "Standard Chartered", color: "#007934", isPrimaryInstitution: true },
+
+  // American Express (Amex)
+  "american express": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "american express rewards": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "american express membership rewards": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "american express platinum": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "american express smart earn": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "american express smartearn": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "american express gold": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "american express credit card": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "american express bank": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "amex": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "amex rewards": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "amex membership rewards": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "amex mrcc": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "amex platinum": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "amex smartearn": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "amex gold": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "amex travel": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
+  "amex card": { domain: "americanexpress.com", localSvg: "/amex-logo.svg", name: "American Express", color: "#006fcf", isPrimaryInstitution: true },
   "yes bank": { domain: "yesbank.in", growwSym: "YESBANK", name: "YES Bank", color: "#003a70", isPrimaryInstitution: true },
   "post office": { domain: "ippbonline.com", name: "India Post", color: "#d8232a", isPrimaryInstitution: true },
   "india post": { domain: "ippbonline.com", name: "India Post", color: "#d8232a", isPrimaryInstitution: true },
@@ -962,7 +982,7 @@ export const CardNetworkLogo = ({
   }
 
   // Amex — American Express Official Vector
-  if (n === "amex" || n === "american express" || n.includes("amex")) {
+  if (n === "amex" || n === "american express" || n.includes("amex") || n.includes("american express")) {
     return (
       <svg
         height={height}
