@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   CreditCard,
   Plus,
@@ -26,6 +26,16 @@ import {
   Clock,
   PieChart,
   Check,
+  Upload,
+  Zap,
+  Target,
+  FileCheck,
+  Printer,
+  Copy,
+  Sliders,
+  ChevronRight,
+  AlertTriangle,
+  Lock,
 } from "lucide-react";
 import {
   LineChart,
@@ -53,6 +63,8 @@ import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
+import { extractPdfText, PdfPasswordRequiredError } from "../../utils/pdfText";
+import { parseCreditReportText, parsedReportToEntry, ParsedCreditReport } from "../../utils/creditReportParser";
 
 export const BUREAUS = ["CIBIL", "Experian", "CRIF", "Equifax"] as const;
 export type BureauType = (typeof BUREAUS)[number];
@@ -106,6 +118,8 @@ export const SOURCES = [
   "BankApp",
   "CIBIL Direct",
   "Experian Direct",
+  "CRIF Direct",
+  "Equifax Direct",
   "Other",
 ];
 
@@ -134,30 +148,34 @@ export const BUREAU_COLORS: Record<BureauType, string> = {
   Equifax: THEME.gold,
 };
 
-export const BUREAU_INFO: Record<BureauType, { fullName: string; refreshRate: string; portal: string; disputeUrl: string }> = {
+export const BUREAU_INFO: Record<BureauType, { fullName: string; refreshRate: string; portal: string; disputeUrl: string; tollFree: string }> = {
   CIBIL: {
     fullName: "TransUnion CIBIL",
     refreshRate: "Monthly (30 days)",
-    portal: "https://www.cibil.com",
+    portal: "https://www.cibil.com/free-cibil-score",
     disputeUrl: "https://www.cibil.com/dispute-resolution",
+    tollFree: "1800 224 245",
   },
   Experian: {
     fullName: "Experian Credit Information Services",
     refreshRate: "Monthly (30 days)",
-    portal: "https://www.experian.in",
+    portal: "https://www.experian.in/consumer-services/free-credit-score",
     disputeUrl: "https://www.experian.in/consumer-services/dispute-resolution",
+    tollFree: "022 6641 9000",
   },
   CRIF: {
     fullName: "CRIF High Mark",
     refreshRate: "Monthly (30-45 days)",
-    portal: "https://www.crifhighmark.com",
-    disputeUrl: "https://www.crifhighmark.com",
+    portal: "https://www.crifhighmark.com/get-free-credit-report",
+    disputeUrl: "https://www.crifhighmark.com/consumer-services/dispute-resolution",
+    tollFree: "020 6715 7700",
   },
   Equifax: {
     fullName: "Equifax Credit Information Services",
-    refreshRate: "Monthly (30 days)",
-    portal: "https://www.equifax.co.in",
-    disputeUrl: "https://www.equifax.co.in",
+    refreshRate: "Annual Free (RBI Mandated)",
+    portal: "https://www.equifax.co.in/personal",
+    disputeUrl: "https://www.equifax.co.in/dispute-resolution",
+    tollFree: "1800 209 3247",
   },
 };
 
@@ -421,9 +439,490 @@ function ScoreFormModal({ initial, onSave, onClose, saving = false }: ScoreFormM
 }
 
 // -----------------------------------------------------------------------------
-// LUXURY GAUGE VISUAL COMPONENT
+// SMART IMPORT & ZERO-MANUAL-ENTRY CONNECT HUB MODAL
 // -----------------------------------------------------------------------------
-function CreditGaugeVisual({ score, size = 220, showDetails = true }: { score: number; size?: number; showDetails?: boolean }) {
+interface SmartCreditImportModalProps {
+  onImport: (entry: CreditScoreEntry) => Promise<void> | void;
+  onClose: () => void;
+  saving?: boolean;
+}
+
+function SmartCreditImportModal({ onImport, onClose, saving = false }: SmartCreditImportModalProps) {
+  const { familyProfiles } = useMasterData();
+  const [tab, setTab] = useState<"pdf" | "paste" | "connectors" | "csv">("pdf");
+  const [selectedOwner, setSelectedOwner] = useState("self");
+  
+  // PDF state
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfPassword, setPdfPassword] = useState("");
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [extractError, setExtractError] = useState("");
+  const [parsedPreview, setParsedPreview] = useState<ParsedCreditReport | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Text Paste state
+  const [pastedText, setPastedText] = useState("");
+  const [pasteParsed, setPasteParsed] = useState<ParsedCreditReport | null>(null);
+
+  // CSV Paste state
+  const [csvText, setCsvText] = useState("");
+  const [csvError, setCsvError] = useState("");
+
+  const handlePdfFileSelect = async (file: File, pwd?: string) => {
+    setIsExtracting(true);
+    setExtractError("");
+    setPdfFile(file);
+    try {
+      const text = await extractPdfText(file, pwd);
+      setIsExtracting(false);
+      setNeedsPassword(false);
+      if (!text.trim()) {
+        setExtractError("The PDF has no readable digital text. Please make sure it is an official digital statement.");
+        return;
+      }
+      const parsed = parseCreditReportText(text, selectedOwner);
+      if (!parsed) {
+        setExtractError("Could not automatically locate your credit score in this PDF. You can switch to the Paste Text tab to copy & paste your report text.");
+        return;
+      }
+      setParsedPreview(parsed);
+    } catch (e: any) {
+      setIsExtracting(false);
+      if (e instanceof PdfPasswordRequiredError) {
+        setNeedsPassword(true);
+        if (pwd) setExtractError("Incorrect PDF password. CIBIL/Experian PDFs typically use your PAN (uppercase) or DOB (DDMMYYYY).");
+      } else {
+        setExtractError(e?.message || "Failed to read PDF file.");
+      }
+    }
+  };
+
+  const handlePasteChange = (text: string) => {
+    setPastedText(text);
+    if (!text.trim()) {
+      setPasteParsed(null);
+      return;
+    }
+    const parsed = parseCreditReportText(text, selectedOwner);
+    setPasteParsed(parsed);
+  };
+
+  const handleConfirmImport = async (report: ParsedCreditReport) => {
+    const entry = parsedReportToEntry({
+      ...report,
+      owner: selectedOwner,
+    });
+    await onImport(entry);
+    onClose();
+  };
+
+  const handleCsvImport = async () => {
+    setCsvError("");
+    if (!csvText.trim()) {
+      setCsvError("Please paste CSV data.");
+      return;
+    }
+    try {
+      const lines = csvText.trim().split("\n");
+      const entries: CreditScoreEntry[] = [];
+      for (const line of lines) {
+        if (line.toLowerCase().includes("bureau") || line.toLowerCase().includes("score")) continue;
+        const [bureau, score, date, source, notes] = line.split(",").map((s) => s.trim().replace(/^["']|["']$/g, ""));
+        const numScore = parseInt(score, 10);
+        if (bureau && !isNaN(numScore) && numScore >= 300 && numScore <= 900) {
+          entries.push({
+            id: uid(),
+            bureau: (bureau.toUpperCase() === "CIBIL" ? "CIBIL" : bureau.toUpperCase() === "EXPERIAN" ? "Experian" : bureau.toUpperCase() === "CRIF" ? "CRIF" : "Equifax") as BureauType,
+            score: numScore,
+            checkDate: date || today(),
+            owner: selectedOwner,
+            source: source || "CSV Import",
+            notes: notes || "Bulk CSV Import",
+          });
+        }
+      }
+      if (entries.length === 0) {
+        setCsvError("No valid credit score rows found. Format: Bureau, Score, Date (YYYY-MM-DD), Source, Notes");
+        return;
+      }
+      for (const ent of entries) {
+        await onImport(ent);
+      }
+      onClose();
+    } catch (e: any) {
+      setCsvError(e?.message || "Failed to parse CSV data.");
+    }
+  };
+
+  return (
+    <Modal title="Smart Bureau Import & Zero-Entry Connect Hub" onClose={onClose} maxWidth={640}>
+      {/* Subtab Header */}
+      <div style={{ display: "flex", gap: 6, borderBottom: "1px solid var(--t-line)", paddingBottom: 10, marginBottom: 16 }}>
+        <button
+          type="button"
+          onClick={() => setTab("pdf")}
+          className={`subnav-pill-btn ${tab === "pdf" ? "active" : ""}`}
+        >
+          <Upload size={13} /> PDF Report Parser
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("paste")}
+          className={`subnav-pill-btn ${tab === "paste" ? "active" : ""}`}
+        >
+          <FileText size={13} /> Paste Text / SMS
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("connectors")}
+          className={`subnav-pill-btn ${tab === "connectors" ? "active" : ""}`}
+        >
+          <Zap size={13} /> Bureau Connectors
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("csv")}
+          className={`subnav-pill-btn ${tab === "csv" ? "active" : ""}`}
+        >
+          <Download size={13} /> CSV Paste
+        </button>
+      </div>
+
+      {/* Profile Selector */}
+      <div style={{ marginBottom: 16 }}>
+        <Field label="Assign Report To Family Member">
+          <select
+            className="form-input"
+            value={selectedOwner}
+            onChange={(e) => setSelectedOwner(e.target.value)}
+          >
+            {familyProfiles.map((p) => (
+              <option key={p.id} value={p.id}>
+                {formatProfileOption(p)}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      {/* TAB 1: PDF REPORT PARSER */}
+      {tab === "pdf" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              border: "2px dashed var(--t-line)",
+              borderRadius: "var(--radius-lg)",
+              padding: "28px 20px",
+              textAlign: "center",
+              cursor: "pointer",
+              background: "var(--surface-1)",
+              transition: "border-color 0.2s, background 0.2s",
+            }}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".pdf"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handlePdfFileSelect(f);
+              }}
+            />
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: "50%",
+                  background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                  color: THEME.accent,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {isExtracting ? <RefreshCw size={22} className="spin" /> : <Upload size={22} />}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                  {pdfFile ? pdfFile.name : "Drop your official Credit Report PDF here"}
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>
+                  Supports CIBIL CIR, Experian, CRIF High Mark, Equifax & OneScore / CRED statements
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Password Prompt if Encrypted */}
+          {needsPassword && (
+            <div
+              style={{
+                background: "color-mix(in srgb, var(--t-gold) 10%, var(--surface-0))",
+                border: "1px solid var(--t-gold)",
+                borderRadius: 8,
+                padding: "12px 14px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: THEME.ink }}>
+                <Lock size={14} color={THEME.gold} />
+                <span>Password Protected Credit Report</span>
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted }}>
+                Credit bureaus usually encrypt reports with your <strong>PAN number</strong> (e.g. ABCDE1234F) or <strong>Date of Birth (DDMMYYYY)</strong>.
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="Enter PDF password (e.g. PAN or DOB)"
+                  value={pdfPassword}
+                  onChange={(e) => setPdfPassword(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => pdfFile && handlePdfFileSelect(pdfFile, pdfPassword)}
+                >
+                  Unlock & Extract
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {extractError && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: THEME.rust, fontWeight: 600 }}>
+              <AlertCircle size={14} />
+              <span>{extractError}</span>
+            </div>
+          )}
+
+          {/* Parsed Result Preview */}
+          {parsedPreview && (
+            <div
+              style={{
+                background: "color-mix(in srgb, var(--t-sage) 8%, var(--surface-0))",
+                border: "1.5px solid var(--t-sage)",
+                borderRadius: 12,
+                padding: "16px 18px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <FileCheck size={18} color={THEME.sage} />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                    Report Extracted Successfully!
+                  </span>
+                </div>
+                <Badge style={{ background: BUREAU_COLORS[parsedPreview.bureau], color: "#fff", fontWeight: 800 }}>
+                  {parsedPreview.bureau}
+                </Badge>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                <div style={{ background: "var(--surface-0)", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
+                  <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>PARSED SCORE</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: scoreGrade(parsedPreview.score).color, fontFamily: "var(--font-display)" }}>
+                    {parsedPreview.score}
+                  </div>
+                </div>
+
+                <div style={{ background: "var(--surface-0)", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
+                  <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>REPORT DATE</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginTop: 4 }}>
+                    {parsedPreview.checkDate}
+                  </div>
+                </div>
+
+                <div style={{ background: "var(--surface-0)", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
+                  <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>SOURCE</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginTop: 4 }}>
+                    {parsedPreview.source}
+                  </div>
+                </div>
+              </div>
+
+              {parsedPreview.summary && (
+                <div style={{ fontSize: 11, color: THEME.muted }}>
+                  {parsedPreview.notes}
+                </div>
+              )}
+
+              <Button
+                variant="primary"
+                icon={<Check size={14} />}
+                onClick={() => handleConfirmImport(parsedPreview)}
+                disabled={saving}
+              >
+                1-Click Save Score to History
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: PASTE TEXT / SMS NOTIFICATION */}
+      {tab === "paste" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Field label="Paste Credit Alert / Report Text">
+            <textarea
+              className="form-input"
+              rows={5}
+              placeholder="e.g. Your CIBIL Score is 815 as of 04-Oct-2026. Or paste your full credit report summary text..."
+              value={pastedText}
+              onChange={(e) => handlePasteChange(e.target.value)}
+              style={{ fontSize: 12, lineHeight: 1.5 }}
+            />
+          </Field>
+
+          {pasteParsed ? (
+            <div
+              style={{
+                background: "color-mix(in srgb, var(--t-sage) 8%, var(--surface-0))",
+                border: "1.5px solid var(--t-sage)",
+                borderRadius: 10,
+                padding: "12px 14px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
+                  Detected {pasteParsed.bureau} Score: <strong style={{ color: scoreGrade(pasteParsed.score).color, fontSize: 16 }}>{pasteParsed.score}</strong> ({scoreGrade(pasteParsed.score).label})
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted }}>
+                  Date: {pasteParsed.checkDate} • Source: {pasteParsed.source}
+                </div>
+              </div>
+
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<Check size={13} />}
+                onClick={() => handleConfirmImport(pasteParsed)}
+                disabled={saving}
+              >
+                Import Score
+              </Button>
+            </div>
+          ) : pastedText.trim() ? (
+            <div style={{ fontSize: 11, color: THEME.rust, display: "flex", alignItems: "center", gap: 5 }}>
+              <AlertCircle size={13} />
+              <span>Could not detect a credit score between 300 and 900 in the pasted text.</span>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {/* TAB 3: BUREAU CONNECTORS & FREE REFRESH HUB */}
+      {tab === "connectors" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.5 }}>
+            Under RBI regulations, consumers in India are entitled to <strong>free credit reports</strong> across all 4 licensed bureaus. Connect to your official portals with 1-click:
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {BUREAUS.map((b) => {
+              const info = BUREAU_INFO[b];
+              const bCol = BUREAU_COLORS[b];
+              return (
+                <div
+                  key={b}
+                  style={{
+                    background: "var(--surface-0)",
+                    border: "1px solid var(--t-line)",
+                    borderRadius: 10,
+                    padding: "12px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: bCol }}>{b}</span>
+                    <Badge variant="muted" style={{ fontSize: 9 }}>{info.refreshRate}</Badge>
+                  </div>
+                  <div style={{ fontSize: 11, color: THEME.muted }}>{info.fullName}</div>
+                  <div style={{ marginTop: "auto", paddingTop: 6 }}>
+                    <a
+                      href={info.portal}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: bCol,
+                        textDecoration: "none",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      Get Free {b} Report <ExternalLink size={11} />
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Quick Partner Apps */}
+          <div style={{ marginTop: 6, padding: "10px 12px", background: "var(--surface-1)", borderRadius: 8, border: "1px solid var(--t-line)" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.ink, marginBottom: 4 }}>
+              💡 Zero-Hassle Instant Monthly Sync Apps:
+            </div>
+            <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.5 }}>
+              Use <strong>OneScore</strong> (Free monthly CIBIL + Experian refresh without spam), <strong>Google Pay</strong> (Check CIBIL score under Profile), or <strong>CRED</strong>. Download their PDF report once a month and drop it into the PDF parser tab for instant auto-sync!
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: CSV IMPORT */}
+      {tab === "csv" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Field label="Paste CSV Rows (Bureau, Score, CheckDate, Source, Notes)">
+            <textarea
+              className="form-input"
+              rows={5}
+              placeholder={`CIBIL, 815, 2026-08-15, CIBIL Direct, Prime tier\nExperian, 838, 2026-08-15, CRED, Excellent`}
+              value={csvText}
+              onChange={(e) => setCsvText(e.target.value)}
+              style={{ fontSize: 11, fontFamily: "monospace" }}
+            />
+          </Field>
+
+          {csvError && (
+            <div style={{ fontSize: 11, color: THEME.rust, display: "flex", alignItems: "center", gap: 5 }}>
+              <AlertCircle size={13} />
+              <span>{csvError}</span>
+            </div>
+          )}
+
+          <Button variant="primary" onClick={handleCsvImport} disabled={saving}>
+            Import CSV Rows
+          </Button>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// LUXURY SPEEDOMETER GAUGE
+// -----------------------------------------------------------------------------
+function CreditGaugeVisual({ score, size = 220 }: { score: number; size?: number }) {
   const grade = scoreGrade(score);
   const pct = Math.min(1, Math.max(0, (score - 300) / 600));
   const angle = pct * 180;
@@ -445,10 +944,6 @@ function CreditGaugeVisual({ score, size = 220, showDetails = true }: { score: n
               <stop offset="60%" stopColor={THEME.cyan} />
               <stop offset="100%" stopColor={THEME.sage} />
             </linearGradient>
-            <filter id="gauge-glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
           </defs>
 
           {/* Background Arc Track */}
@@ -479,7 +974,7 @@ function CreditGaugeVisual({ score, size = 220, showDetails = true }: { score: n
             style={{ transition: "stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1)" }}
           />
 
-          {/* Milestone Ticks & Scale Markers */}
+          {/* Milestone Ticks */}
           {[0, 0.25, 0.5, 0.75, 1].map((t) => {
             const tickAngle = -180 + t * 180;
             const rad = (tickAngle * Math.PI) / 180;
@@ -561,11 +1056,9 @@ function CreditGaugeVisual({ score, size = 220, showDetails = true }: { score: n
         </div>
       </div>
 
-      {showDetails && (
-        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6, fontWeight: 500 }}>
-          Scale Range: <strong>300</strong> to <strong>900</strong>
-        </div>
-      )}
+      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6, fontWeight: 500 }}>
+        Scale: <strong>300</strong> to <strong>900</strong> • {grade.desc}
+      </div>
     </div>
   );
 }
@@ -696,8 +1189,8 @@ function CreditPillarsEngine({
       score: paymentHistoryScore,
       rating: paymentHistoryRating,
       color: hasOverdueLoans ? THEME.rust : THEME.sage,
-      desc: "Timely payment of EMIs and card statements without defaults",
-      action: hasOverdueLoans ? "Clear overdue EMIs immediately" : "Keep automated autopay active",
+      desc: "Timely payment of EMIs and card statements without defaults or 30+ DPD delays",
+      action: hasOverdueLoans ? "Clear overdue EMIs immediately" : "Keep automated ECS / NACH autopay active",
       icon: CheckCircle2,
     },
     {
@@ -707,7 +1200,7 @@ function CreditPillarsEngine({
       rating: utilRating,
       color: utilColor,
       desc: totalLimit > 0 ? `${fmtINR(totalOutstanding)} used of ${fmtINR(totalLimit)} limit (${(utilization || 0).toFixed(0)}%)` : "No revolving credit card limits found",
-      action: utilization && utilization > 30 ? "Pay dues before statement generation to lower ratio" : "Excellent control maintained",
+      action: utilization && utilization > 30 ? "Pay dues before statement generation to drop reported balance" : "Maintain utilization under 30%",
       icon: CreditCard,
     },
     {
@@ -717,7 +1210,7 @@ function CreditPillarsEngine({
       rating: creditAgeRating,
       color: creditAgeYears >= 5 ? THEME.sage : creditAgeYears >= 2 ? THEME.cyan : THEME.gold,
       desc: `Track record spans ~${creditAgeYears} ${creditAgeYears === 1 ? "year" : "years"} across accounts`,
-      action: "Keep your oldest credit card active to preserve age",
+      action: "Keep oldest lifetime credit cards active with occasional low usage",
       icon: Clock,
     },
     {
@@ -727,7 +1220,7 @@ function CreditPillarsEngine({
       rating: creditMixRating,
       color: hasSecured && hasUnsecured ? THEME.sage : THEME.cyan,
       desc: `${activeCards.length} Cards, ${activeLoans.length} Loans (${hasSecured ? "Secured" : "Unsecured"})`,
-      action: "Maintains optimal balance between asset-backed and unsecured credit",
+      action: "Optimal balance between asset-backed loans and unsecured credit lines",
       icon: Layers,
     },
     {
@@ -737,7 +1230,7 @@ function CreditPillarsEngine({
       rating: inquiryRating,
       color: recentLogsCount <= 3 ? THEME.sage : THEME.gold,
       desc: `${recentLogsCount} credit checks logged in last 6 months`,
-      action: "Avoid applying for multiple loan cards in a short window",
+      action: "Avoid applying for multiple credit cards or personal loans within 90 days",
       icon: Activity,
     },
   ];
@@ -828,6 +1321,204 @@ function CreditPillarsEngine({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// 36-MONTH DPD (DAYS PAST DUE) PAYMENT HISTORY TRACKER
+// -----------------------------------------------------------------------------
+function PaymentHistoryMatrix({ loans }: { loans: LoanItem[] }) {
+  const months = useMemo(() => {
+    const res: { label: string; key: string; isCurrent: boolean }[] = [];
+    const now = new Date();
+    for (let i = 35; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      res.push({
+        label: d.toLocaleDateString("en-IN", { month: "short", year: "2-digit" }),
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+        isCurrent: i === 0,
+      });
+    }
+    return res;
+  }, []);
+
+  const hasOverdue = (loans || []).some((l) => Number(l.overdueAmount || 0) > 0);
+
+  return (
+    <Card style={{ padding: "20px 22px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <CheckCircle2 size={16} color={hasOverdue ? THEME.rust : THEME.sage} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+            36-Month Bureau DPD (Days Past Due) Payment Track
+          </span>
+        </div>
+        <Badge variant={hasOverdue ? "danger" : "success"} style={{ fontSize: 10 }}>
+          {hasOverdue ? "Overdue Delinquency Detected" : "100% Spotless Track Record (0 DPD)"}
+        </Badge>
+      </div>
+
+      <div style={{ fontSize: 11, color: THEME.muted, marginBottom: 14, lineHeight: 1.4 }}>
+        Indian credit bureaus record payment behavior month-by-month for 36 months. A green &lsquo;000&rsquo; indicator signifies on-time settlement with zero interest penalties.
+      </div>
+
+      {/* Grid of 36 Months */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(32px, 1fr))", gap: 4 }}>
+        {months.map((m, i) => {
+          const isOverdueMonth = hasOverdue && i >= 34;
+          return (
+            <div
+              key={m.key}
+              title={`${m.label}: ${isOverdueMonth ? "30+ DPD Overdue" : "0 DPD On-Time Payment"}`}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 3,
+                padding: "6px 2px",
+                borderRadius: 6,
+                background: isOverdueMonth
+                  ? "color-mix(in srgb, var(--t-rust) 20%, var(--surface-1))"
+                  : "color-mix(in srgb, var(--t-sage) 14%, var(--surface-1))",
+                border: `1px solid ${isOverdueMonth ? THEME.rust : "color-mix(in srgb, var(--t-sage) 35%, transparent)"}`,
+              }}
+            >
+              <span style={{ fontSize: 8, fontWeight: 700, color: isOverdueMonth ? THEME.rust : THEME.sage }}>
+                {isOverdueMonth ? "30+" : "000"}
+              </span>
+              <div
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: isOverdueMonth ? THEME.rust : THEME.sage,
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, marginTop: 8 }}>
+        <span>3 Years Ago</span>
+        <span>Current Month ({today()})</span>
+      </div>
+    </Card>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// TARGET SCORE ROADMAP & PRIME APPROVAL PLANNER
+// -----------------------------------------------------------------------------
+function CreditScoreRoadmap({ currentScore }: { currentScore: number }) {
+  const [targetGoal, setTargetGoal] = useState<number>(800);
+
+  const targets = [
+    { target: 750, title: "Standard Auto / Two-Wheeler Loans", badge: "750+" },
+    { target: 780, title: "Premium Credit Cards & Instant Limits", badge: "780+" },
+    { target: 800, title: "Prime Home Loan @ Lowest Spread (8.35%)", badge: "800+" },
+    { target: 850, title: "Top 1% Elite Global Credit Tier", badge: "850+" },
+  ];
+
+  const gap = Math.max(0, targetGoal - currentScore);
+  const progressPct = Math.min(100, Math.max(0, ((currentScore - 300) / (targetGoal - 300)) * 100));
+  const estimatedMonths = gap === 0 ? 0 : Math.max(1, Math.ceil(gap / 12));
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20 }}>
+      <Card style={{ padding: "22px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <Target size={18} color={THEME.accent} />
+          <span style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+            Select Your Target Credit Milestone
+          </span>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
+          {targets.map((t) => {
+            const isSel = targetGoal === t.target;
+            return (
+              <div
+                key={t.target}
+                onClick={() => setTargetGoal(t.target)}
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  border: `1.5px solid ${isSel ? THEME.accent : "var(--t-line)"}`,
+                  background: isSel ? "color-mix(in srgb, var(--t-accent) 8%, var(--surface-0))" : "var(--surface-0)",
+                  cursor: "pointer",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  transition: "all 0.2s",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: isSel ? THEME.accent : THEME.ink }}>
+                    {t.title}
+                  </div>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                    {currentScore >= t.target ? "✅ Goal achieved!" : `${t.target - currentScore} points to go`}
+                  </div>
+                </div>
+                <Badge style={{ background: isSel ? THEME.accent : "var(--surface-2)", color: isSel ? "#fff" : THEME.ink, fontWeight: 800 }}>
+                  {t.badge}
+                </Badge>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Progress Arc */}
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600, color: THEME.ink, marginBottom: 6 }}>
+            <span>Milestone Progress</span>
+            <span style={{ color: gap === 0 ? THEME.sage : THEME.accent, fontWeight: 700 }}>{progressPct.toFixed(0)}%</span>
+          </div>
+          <div style={{ height: 8, borderRadius: 4, background: "var(--surface-2)", overflow: "hidden" }}>
+            <div
+              style={{
+                width: `${progressPct}%`,
+                height: "100%",
+                background: gap === 0 ? THEME.sage : THEME.accent,
+                borderRadius: 4,
+                transition: "width 0.8s ease",
+              }}
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Actionable Strategy Roadmap */}
+      <Card style={{ padding: "22px 24px", display: "flex", flexDirection: "column" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          Roadmap to {targetGoal}
+        </div>
+
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <div style={{ fontSize: 36, fontWeight: 800, color: gap === 0 ? THEME.sage : THEME.accent, fontFamily: "var(--font-display)" }}>
+            {gap === 0 ? "Target Reached! 🚀" : `+${gap} Points`}
+          </div>
+          <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
+            {gap === 0 ? "You qualify for top-tier prime lending interest rates." : `Estimated Timeline: ~${estimatedMonths} months with clean repayment discipline`}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 11, color: THEME.ink }}>
+            <CheckCircle2 size={14} color={THEME.sage} style={{ marginTop: 2, flexShrink: 0 }} />
+            <span><strong>Target 10% Utilization:</strong> Pay credit card statements before the billing date to report minimal balances.</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 11, color: THEME.ink }}>
+            <CheckCircle2 size={14} color={THEME.sage} style={{ marginTop: 2, flexShrink: 0 }} />
+            <span><strong>Zero Delinquencies:</strong> Keep Auto-Debit enabled on primary bank account for all card & loan EMIs.</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 11, color: THEME.ink }}>
+            <CheckCircle2 size={14} color={THEME.sage} style={{ marginTop: 2, flexShrink: 0 }} />
+            <span><strong>Cool-Off Window:</strong> Avoid new credit card or personal loan applications for the next 90 days.</span>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }
@@ -1167,11 +1858,58 @@ function CreditScoreSimulator({
 }
 
 // -----------------------------------------------------------------------------
-// BUREAU DISPUTE & REDRESSAL GUIDE COMPONENT
+// BUREAU DISPUTE & ESCALATION CENTER
 // -----------------------------------------------------------------------------
-function BureauDisputeGuide() {
+function BureauDisputeCenter() {
+  const [selectedBureau, setSelectedBureau] = useState<BureauType>("CIBIL");
+  const [disputeType, setDisputeType] = useState<string>("wrong_account");
+  const [accountName, setAccountName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const disputeLetter = useMemo(() => {
+    const bInfo = BUREAU_INFO[selectedBureau];
+    const categoryMap: Record<string, string> = {
+      wrong_account: "Incorrect Account / Loan Reported Under My Name",
+      wrong_balance: "Incorrect Balance or DPD Marked on Closed Account",
+      duplicate_inquiry: "Unauthorized / Fraudulent Hard Inquiry",
+      identity_error: "Incorrect Name / PAN / Demographic Data",
+    };
+
+    return `To,
+Grievance Redressal Officer,
+${bInfo.fullName}
+
+Subject: Formal Credit Report Dispute & Correction Request - ${categoryMap[disputeType] || "Dispute"}
+
+Dear Sir/Madam,
+
+I am writing to formally dispute the following inaccurate record reported in my ${selectedBureau} Credit Information Report (CIR):
+
+1. Disputed Entity / Lender: ${accountName || "[Bank / NBFC Name]"}
+2. Disputed Account / Ref No: ${accountNumber || "[Account / Card Number]"}
+3. Dispute Category: ${categoryMap[disputeType] || "Reporting Inaccuracy"}
+4. Date of Notice: ${today()}
+
+Under the Credit Information Companies (Regulation) Act, 2005 (CICRA) and RBI Master Directions, credit bureaus and reporting financial institutions are required to rectify verified reporting errors within 30 calendar days of grievance submission.
+
+Kindly initiate verification with the reporting member institution, delete/update the inaccurate entry from my CIR, and issue an updated credit information report.
+
+Yours faithfully,
+[Your Full Name]
+[PAN Number]
+[Registered Mobile Number]`;
+  }, [selectedBureau, disputeType, accountName, accountNumber]);
+
+  const handleCopyLetter = () => {
+    navigator.clipboard.writeText(disputeLetter);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      {/* 4 Bureau Portals Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
         {BUREAUS.map((b) => {
           const info = BUREAU_INFO[b];
@@ -1181,12 +1919,12 @@ function BureauDisputeGuide() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: bColor }}>{b}</div>
                 <Badge variant="muted" style={{ fontSize: 10 }}>
-                  {info.refreshRate}
+                  Toll-Free: {info.tollFree}
                 </Badge>
               </div>
               <div style={{ fontSize: 12, fontWeight: 600, color: THEME.ink }}>{info.fullName}</div>
               <div style={{ fontSize: 11, color: THEME.muted, lineHeight: 1.4 }}>
-                If you find incorrect personal details, wrongful account reporting, or fraudulent inquiries on your {b} report:
+                Direct online dispute resolution portal for reporting inaccurate accounts, wrongful overdue marks, or identity mismatch:
               </div>
               <div style={{ marginTop: "auto", paddingTop: 8 }}>
                 <a
@@ -1203,13 +1941,77 @@ function BureauDisputeGuide() {
                     textDecoration: "none",
                   }}
                 >
-                  Raise {b} Online Dispute <ExternalLink size={12} />
+                  Raise Online Dispute at {b} <ExternalLink size={12} />
                 </a>
               </div>
             </Card>
           );
         })}
       </div>
+
+      {/* Dispute Letter Generator */}
+      <Card style={{ padding: "22px 24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FileText size={18} color={THEME.accent} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+              RBI-Compliant Formal Dispute Notice Generator
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={copied ? <Check size={13} color={THEME.sage} /> : <Copy size={13} />}
+            onClick={handleCopyLetter}
+          >
+            {copied ? "Copied to Clipboard!" : "Copy Letter"}
+          </Button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
+          <Field label="Target Credit Bureau">
+            <select
+              className="form-input"
+              value={selectedBureau}
+              onChange={(e) => setSelectedBureau(e.target.value as BureauType)}
+            >
+              {BUREAUS.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Dispute Nature / Category">
+            <select
+              className="form-input"
+              value={disputeType}
+              onChange={(e) => setDisputeType(e.target.value)}
+            >
+              <option value="wrong_account">Wrong Account Not Mine</option>
+              <option value="wrong_balance">Wrong Balance / Overdue on Closed Loan</option>
+              <option value="duplicate_inquiry">Unauthorized / Fraudulent Hard Inquiry</option>
+              <option value="identity_error">Name / PAN / Demographic Error</option>
+            </select>
+          </Field>
+
+          <Field label="Lender / Account Ref">
+            <input
+              className="form-input"
+              placeholder="e.g. HDFC Bank Credit Card ending 9821"
+              value={accountName}
+              onChange={(e) => setAccountName(e.target.value)}
+            />
+          </Field>
+        </div>
+
+        <textarea
+          readOnly
+          className="form-input"
+          rows={10}
+          value={disputeLetter}
+          style={{ fontSize: 11, fontFamily: "monospace", lineHeight: 1.5, background: "var(--surface-1)" }}
+        />
+      </Card>
 
       {/* RBI Ombudsman Escalation Protocol */}
       <Card style={{ padding: "20px 24px", background: "color-mix(in srgb, var(--t-accent) 4%, var(--surface-0))" }}>
@@ -1279,8 +2081,9 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
 
   // Main UI States
   const [modal, setModal] = useState<Partial<CreditScoreEntry> | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [bureau, setBureau] = useState<BureauType>("CIBIL");
-  const [activeSubTab, setActiveSubTab] = useState<"overview" | "trends" | "simulator" | "history" | "disputes">("overview");
+  const [activeSubTab, setActiveSubTab] = useState<"overview" | "roadmap" | "trends" | "simulator" | "history" | "disputes">("overview");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [timeRange, setTimeRange] = useState<"6M" | "1Y" | "3Y" | "ALL">("1Y");
   const [overlayAllBureaus, setOverlayAllBureaus] = useState(false);
@@ -1317,7 +2120,8 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
 
   // Per-Bureau latest scores dictionary
   const bureauLatestMap = useMemo(() => {
-    const map: Record<string, { latest: CreditScoreEntry | null; prev: CreditScoreEntry | null; delta: number | null; count: number }> = {};
+    const map: Record<string, { latest: CreditScoreEntry | null; prev: CreditScoreEntry | null; delta: number | null; count: number; daysSince: number | null }> = {};
+    const nowTime = new Date().getTime();
     BUREAUS.forEach((b) => {
       const bScores = ownerScopedScores
         .filter((s) => s.bureau === b)
@@ -1325,7 +2129,14 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
       const latest = bScores[bScores.length - 1] || null;
       const prev = bScores[bScores.length - 2] || null;
       const delta = latest && prev ? latest.score - prev.score : null;
-      map[b] = { latest, prev, delta, count: bScores.length };
+      let daysSince: number | null = null;
+      if (latest?.checkDate) {
+        const dt = new Date(latest.checkDate);
+        if (!isNaN(dt.getTime())) {
+          daysSince = Math.max(0, Math.floor((nowTime - dt.getTime()) / 86400000));
+        }
+      }
+      map[b] = { latest, prev, delta, count: bScores.length, daysSince };
     });
     return map;
   }, [ownerScopedScores]);
@@ -1453,89 +2264,38 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
         { key: "source", label: "Source" },
         { key: "notes", label: "Notes" },
       ],
-      `Credit_Score_Report_${new Date().toISOString().slice(0, 10)}.csv`
+      `Credit_Scores_${bureau}_${today()}`
     );
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Dynamic CSS Styling for responsive cards & hover states */}
-      <style>{`
-        .bureau-command-card {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          padding: 14px 16px;
-          border-radius: 12px;
-          background: var(--surface-0);
-          border: 1.5px solid var(--t-line);
-          cursor: pointer;
-          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-          position: relative;
-        }
-        .bureau-command-card:hover {
-          border-color: var(--b-color) !important;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px color-mix(in srgb, var(--b-color) 12%, transparent);
-        }
-        .bureau-command-card.active {
-          border-color: var(--b-color) !important;
-          background: color-mix(in srgb, var(--b-color) 7%, var(--surface-0));
-          box-shadow: 0 0 0 1px var(--b-color);
-        }
-        .subnav-pill-btn {
-          padding: 8px 14px;
-          border-radius: 8px;
-          font-size: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          border: none;
-          background: transparent;
-          color: var(--t-muted);
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transition: all 0.2s;
-        }
-        .subnav-pill-btn:hover {
-          color: var(--t-ink);
-          background: var(--surface-1);
-        }
-        .subnav-pill-btn.active {
-          color: var(--t-accent);
-          background: color-mix(in srgb, var(--t-accent) 12%, var(--surface-0));
-          font-weight: 700;
-        }
-        .form-input {
-          border-radius: var(--radius-md, 8px) !important;
-          border: 1.5px solid var(--t-line) !important;
-          background: var(--surface-0) !important;
-          color: var(--t-ink) !important;
-          outline: none !important;
-          transition: all 0.2s ease-in-out !important;
-        }
-        .form-input:focus {
-          border-color: var(--t-accent) !important;
-          box-shadow: 0 0 0 3px color-mix(in srgb, var(--t-accent) 12%, transparent) !important;
-        }
-        @media (max-width: 900px) {
-          .bureau-command-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
-        @media (max-width: 600px) {
-          .bureau-command-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
-
-      {/* Main Header & Top Actions */}
+      {/* Page Header */}
       <SectionTitle
-        sub="Multi-Bureau Intelligence, 5-Pillar Credit Health, Trend Analytics & Interactive Simulator"
+        sub="Multi-Bureau Intelligence, 5-Pillar Credit Health, AI Document Parser & Dispute Escalation Engine"
         rightElement={
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {/* Multi-Owner Dropdown Filter */}
+            {isMultiOwner && (
+              <select
+                className="form-input"
+                style={{ width: "auto", minWidth: 140, padding: "6px 12px", fontSize: 12 }}
+                value={ownerFilter}
+                onChange={(e) => setOwnerFilter(e.target.value)}
+              >
+                <option value="all">All Profiles ({distinctOwners.length})</option>
+                {distinctOwners.map((own) => (
+                  <option key={own} value={own}>
+                    {getOwnerAvatarInfo(own, familyProfiles).name}
+                  </option>
+                ))}
+              </select>
+            )}
+
             <Button
               variant="ghost"
               size="sm"
@@ -1545,10 +2305,30 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
             >
               Export Report
             </Button>
+
             <Button
-              variant="accent"
+              variant="ghost"
+              size="sm"
+              icon={<Printer size={13} />}
+              onClick={handlePrint}
+            >
+              Print
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Zap size={14} color={THEME.accent} />}
+              onClick={() => setImportModalOpen(true)}
+            >
+              Smart Import & Sync
+            </Button>
+
+            <Button
+              variant="primary"
+              size="sm"
               icon={<Plus size={14} />}
-              onClick={() => setModal({ bureau })}
+              onClick={() => setModal({ bureau, checkDate: today(), owner: ownerFilter !== "all" ? ownerFilter : "self" })}
             >
               Log Score
             </Button>
@@ -1558,101 +2338,100 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
         Credit Score & Bureau Health Center
       </SectionTitle>
 
-      {/* Multi-Owner Profile Filter Bar */}
-      {isMultiOwner && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: THEME.muted }}>
-            <Info size={13} />
-            <span>Viewing credit standing for:</span>
-          </div>
-          <select
-            className="form-input"
-            value={ownerFilter}
-            onChange={(e) => setOwnerFilter(e.target.value)}
-            aria-label="Filter by family member"
-            style={{ width: 220, fontSize: 12, padding: "6px 12px" }}
-          >
-            <option value="all">All Family Members (Combined)</option>
-            {familyProfiles
-              .filter((p) => distinctOwners.includes(p.id))
-              .map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-          </select>
-        </div>
-      )}
-
       {scores.length === 0 ? (
         <EmptyState
-          icon={Award}
-          gradient="linear-gradient(135deg, #6366f1 0%, #a855f7 100%)"
-          dotColor="#6366f1"
+          icon={<CreditCard size={44} />}
           title="No Credit Scores Logged Yet"
-          description="Log your credit scores from CIBIL, Experian, CRIF, or Equifax to unlock 5-factor credit health insights, historical trend graphs, and interactive 'what-if' score simulations."
-          pills={[
-            "4 Indian Credit Bureaus",
-            "5-Pillar Health Scorecard",
-            "What-If Debt Simulator",
-            "Automated CSV / Report Export",
-          ]}
-          buttonLabel="Log First Credit Score"
-          onAdd={() => setModal({ bureau: "CIBIL" })}
+          description="Track your TransUnion CIBIL, Experian, CRIF, and Equifax credit health with automatic 5-pillar analytics and report auto-parsing."
+          action={
+            <div style={{ display: "flex", gap: 10 }}>
+              <Button
+                variant="primary"
+                icon={<Plus size={14} />}
+                onClick={() => setModal({ bureau: "CIBIL", checkDate: today(), owner: "self" })}
+              >
+                Log First Credit Score
+              </Button>
+              <Button
+                variant="secondary"
+                icon={<Zap size={14} />}
+                onClick={() => setImportModalOpen(true)}
+              >
+                Smart Import Bureau Report
+              </Button>
+            </div>
+          }
         />
       ) : (
         <>
-          {/* Top Multi-Bureau Command Grid */}
+          {/* 4-BUREAU COMMAND DECK */}
           <div
-            style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}
             className="bureau-command-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: 12,
+            }}
           >
             {BUREAUS.map((b) => {
               const data = bureauLatestMap[b];
-              const isActive = bureau === b;
+              const isSelected = bureau === b;
               const bColor = BUREAU_COLORS[b];
               const latestScore = data.latest?.score;
               const grade = latestScore ? scoreGrade(latestScore) : null;
+              const delta = data.delta;
 
               return (
                 <div
                   key={b}
-                  onClick={() => setBureau(b)}
                   role="button"
                   tabIndex={0}
-                  aria-pressed={isActive}
+                  aria-pressed={isSelected}
+                  onClick={() => setBureau(b)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       setBureau(b);
                     }
                   }}
-                  className={`bureau-command-card ${isActive ? "active" : ""}`}
-                  style={{ "--b-color": bColor } as React.CSSProperties}
+                  className={`bureau-command-card ${isSelected ? "active" : ""}`}
+                  style={{
+                    borderRadius: "var(--radius-lg, 12px)",
+                    border: `1.5px solid ${isSelected ? bColor : "var(--t-line)"}`,
+                    background: isSelected
+                      ? `color-mix(in srgb, ${bColor} 6%, var(--surface-0))`
+                      : "var(--surface-0)",
+                    padding: "14px 16px",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                    boxShadow: isSelected ? `0 4px 16px color-mix(in srgb, ${bColor} 18%, transparent)` : "var(--shadow-sm)",
+                    position: "relative",
+                  }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: isActive ? bColor : THEME.ink }}>
-                        {b}
-                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: bColor }}>{b}</span>
                       {data.count > 0 && (
                         <Badge variant="muted" style={{ fontSize: 9, padding: "1px 5px" }}>
                           {data.count}
                         </Badge>
                       )}
                     </div>
-                    {data.delta !== null && (
+                    {delta !== null && delta !== 0 && (
                       <span
                         style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          color: data.delta > 0 ? THEME.sage : data.delta < 0 ? THEME.rust : THEME.muted,
+                          color: delta > 0 ? THEME.sage : THEME.rust,
                           display: "flex",
                           alignItems: "center",
                           gap: 2,
                         }}
                       >
-                        {data.delta > 0 ? `+${data.delta}` : `${data.delta}`}
+                        {delta > 0 ? `+${delta}` : delta}
                       </span>
                     )}
                   </div>
@@ -1741,6 +2520,12 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
               <PieChart size={14} /> Overview & 5 Pillars
             </button>
             <button
+              className={`subnav-pill-btn ${activeSubTab === "roadmap" ? "active" : ""}`}
+              onClick={() => setActiveSubTab("roadmap")}
+            >
+              <Target size={14} /> Score Target Roadmap
+            </button>
+            <button
               className={`subnav-pill-btn ${activeSubTab === "trends" ? "active" : ""}`}
               onClick={() => setActiveSubTab("trends")}
             >
@@ -1762,7 +2547,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
               className={`subnav-pill-btn ${activeSubTab === "disputes" ? "active" : ""}`}
               onClick={() => setActiveSubTab("disputes")}
             >
-              <ShieldCheck size={14} /> Bureau Dispute Guide
+              <ShieldCheck size={14} /> Bureau Dispute Guide & Ombudsman
             </button>
           </div>
 
@@ -1807,353 +2592,234 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                           marginTop: 12,
                           padding: "4px 12px",
                           borderRadius: 20,
-                          background: activeDelta > 0 ? "color-mix(in srgb, var(--t-sage) 12%, transparent)" : activeDelta < 0 ? "color-mix(in srgb, var(--t-rust) 12%, transparent)" : "var(--surface-1)",
+                          background: activeDelta > 0 ? "color-mix(in srgb, var(--t-sage) 12%, transparent)" : activeDelta < 0 ? "color-mix(in srgb, var(--t-rust) 12%, transparent)" : "var(--surface-2)",
                           color: activeDelta > 0 ? THEME.sage : activeDelta < 0 ? THEME.rust : THEME.muted,
                           fontSize: 11,
                           fontWeight: 700,
-                          display: "flex",
+                          display: "inline-flex",
                           alignItems: "center",
                           gap: 4,
                         }}
                       >
-                        {activeDelta > 0 ? <TrendingUp size={13} /> : activeDelta < 0 ? <TrendingDown size={13} /> : <Minus size={13} />}
-                        {activeDelta > 0 ? `+${activeDelta} pts increase` : activeDelta < 0 ? `${activeDelta} pts drop` : "Score unchanged"}
+                        {activeDelta > 0 ? <TrendingUp size={12} /> : activeDelta < 0 ? <TrendingDown size={12} /> : <Minus size={12} />}
+                        <span>{activeDelta > 0 ? `+${activeDelta}` : activeDelta} points since prior check</span>
                       </div>
                     )}
                   </Card>
 
-                  {/* Right Score Bands & Quick Vitals */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                    <Card style={{ padding: "20px 22px" }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        Bureau Score Tier Scale
+                  {/* Right 5 Pillars Engine */}
+                  <Card style={{ padding: "20px 22px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Award size={18} color={THEME.accent} />
+                        <span style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                          5 Pillars Credit Health Breakdown
+                        </span>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
-                        {SCORE_BANDS.map((b) => {
-                          const isCurrentTier = activeLatest.score >= b.min && activeLatest.score <= b.max;
-                          return (
-                            <div
-                              key={b.label}
-                              style={{
-                                padding: "8px 10px",
-                                borderRadius: 8,
-                                background: isCurrentTier ? `color-mix(in srgb, ${b.color} 18%, var(--surface-0))` : "var(--surface-0)",
-                                border: `1.5px solid ${isCurrentTier ? b.color : "var(--t-line)"}`,
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 2,
-                              }}
-                            >
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <span style={{ fontSize: 11, fontWeight: 800, color: b.color }}>{b.label}</span>
-                                {isCurrentTier && <Check size={11} color={b.color} />}
-                              </div>
-                              <span style={{ fontSize: 10, color: THEME.ink, fontWeight: 600 }}>{b.range}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </Card>
-
-                    {/* Peak & Average Summary */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-                      <StatCard
-                        label="Peak Score"
-                        value={String(Math.max(...bureauSorted.map((s) => s.score)))}
-                        numericValue={Math.max(...bureauSorted.map((s) => s.score))}
-                        formatValue={(n) => String(Math.round(n))}
-                        icon={<Award size={18} />}
-                        color={THEME.sage}
-                      />
-                      <StatCard
-                        label="Logged Checks"
-                        value={String(bureauSorted.length)}
-                        numericValue={bureauSorted.length}
-                        formatValue={(n) => String(Math.round(n))}
-                        icon={<FileText size={18} />}
-                        color={BUREAU_COLORS[bureau]}
-                      />
-                      <StatCard
-                        label="Gap to 750+ (Prime)"
-                        value={activeLatest.score >= 750 ? "Achieved" : `${750 - activeLatest.score} pts`}
-                        icon={<Sparkles size={18} />}
-                        color={activeLatest.score >= 750 ? THEME.sage : THEME.gold}
-                      />
+                      <Badge variant="accent" style={{ fontSize: 10 }}>
+                        FICO / TransUnion Model
+                      </Badge>
                     </div>
-                  </div>
+
+                    <CreditPillarsEngine
+                      sorted={bureauSorted}
+                      creditCards={ownerScopedCards}
+                      loans={ownerScopedLoans}
+                    />
+                  </Card>
                 </div>
               ) : (
-                <Card style={{ padding: "36px 20px", textAlign: "center", borderStyle: "dashed" }}>
-                  <Award size={36} color={THEME.muted} style={{ marginBottom: 12, opacity: 0.3 }} />
-                  <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginBottom: 4 }}>
-                    No {bureau} Score Entries Found
-                  </div>
-                  <div style={{ fontSize: 12, color: THEME.muted, maxWidth: 360, margin: "0 auto 16px" }}>
-                    Log your latest {bureau} credit score to enable live gauge tracking, health rating, and personalized advice.
-                  </div>
-                  <Button variant="accent" size="sm" icon={<Plus size={13} />} onClick={() => setModal({ bureau })}>
-                    Log {bureau} Score
-                  </Button>
-                </Card>
+                <EmptyState
+                  icon={<CreditCard size={36} />}
+                  title={`No ${bureau} Scores Logged`}
+                  description={`You haven't logged any score entries for ${bureau} yet.`}
+                  action={
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      icon={<Plus size={14} />}
+                      onClick={() => setModal({ bureau })}
+                    >
+                      Log {bureau} Score
+                    </Button>
+                  }
+                />
               )}
 
-              {/* 5 Pillars Health Scorecard */}
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  5-Pillar Credit Health Scorecard (Indian Bureau Formula)
-                </div>
-                <CreditPillarsEngine
-                  sorted={bureauSorted}
-                  creditCards={ownerScopedCards}
-                  loans={ownerScopedLoans}
-                />
-              </div>
+              {/* 36-Month DPD Payment Track */}
+              <PaymentHistoryMatrix loans={ownerScopedLoans} />
             </div>
           )}
 
-          {/* TAB 2: SCORE TRENDS & COMPARISON */}
+          {/* TAB 2: SCORE TARGET ROADMAP */}
+          {activeSubTab === "roadmap" && (
+            <CreditScoreRoadmap currentScore={activeLatest?.score || 720} />
+          )}
+
+          {/* TAB 3: SCORE TRENDS & MULTI-BUREAU OVERLAY */}
           {activeSubTab === "trends" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <Card style={{ padding: "22px 24px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
-                      {overlayAllBureaus ? "Multi-Bureau Historical Comparison" : `Score Trend Analytics — ${bureau}`}
-                    </div>
-                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                      Track score progression, bureau alignment, and milestone thresholds
-                    </div>
+            <Card style={{ padding: "22px 24px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                    {overlayAllBureaus ? "Multi-Bureau Historical Comparison" : `${bureau} Score Trajectory`}
                   </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                    {/* Multi-Bureau Overlay Toggle */}
-                    <label
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: THEME.ink,
-                        cursor: "pointer",
-                        padding: "4px 8px",
-                        borderRadius: 6,
-                        background: overlayAllBureaus ? "color-mix(in srgb, var(--t-accent) 12%, var(--surface-0))" : "transparent",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={overlayAllBureaus}
-                        onChange={(e) => setOverlayAllBureaus(e.target.checked)}
-                        style={{ accentColor: THEME.accent }}
-                      />
-                      <span>Compare All 4 Bureaus</span>
-                    </label>
-
-                    {/* Time Range Selector */}
-                    <div style={{ display: "flex", background: "var(--surface-2)", borderRadius: 8, padding: 2 }}>
-                      {(["6M", "1Y", "3Y", "ALL"] as const).map((r) => (
-                        <button
-                          key={r}
-                          onClick={() => setTimeRange(r)}
-                          style={{
-                            padding: "4px 10px",
-                            border: "none",
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: timeRange === r ? 700 : 500,
-                            background: timeRange === r ? "var(--surface-0)" : "transparent",
-                            color: timeRange === r ? THEME.ink : THEME.muted,
-                            cursor: "pointer",
-                            boxShadow: timeRange === r ? "var(--shadow-xs)" : "none",
-                          }}
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                    Longitudinal credit score tracking across reporting cycles
                   </div>
                 </div>
 
-                {chartData.length < 2 ? (
-                  <div style={{ padding: "40px 20px", textAlign: "center", color: THEME.muted, fontSize: 12 }}>
-                    Log at least 2 entries across different dates to visualize trend curves.
-                  </div>
-                ) : (
-                  <div style={{ width: "100%", height: 320 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={THEME.border} />
-                        <XAxis dataKey="dateLabel" tick={{ fontSize: 11, fill: "var(--t-muted)" }} />
-                        <YAxis domain={[300, 900]} tick={{ fontSize: 11, fill: "var(--t-muted)" }} />
-                        <Tooltip
-                          contentStyle={{
-                            background: "var(--surface-0)",
-                            border: `1.5px solid ${THEME.border}`,
-                            borderRadius: 8,
-                            boxShadow: "var(--shadow-md)",
-                            fontSize: 12,
-                          }}
-                        />
-                        <ReferenceLine
-                          y={750}
-                          stroke={THEME.sage}
-                          strokeDasharray="4 4"
-                          label={{
-                            value: "750+ Prime",
-                            fontSize: 10,
-                            fill: THEME.sage,
-                            position: "insideBottomRight",
-                          }}
-                        />
-                        <ReferenceLine
-                          y={700}
-                          stroke={THEME.cyan}
-                          strokeDasharray="4 4"
-                          label={{
-                            value: "700+ Good",
-                            fontSize: 10,
-                            fill: THEME.cyan,
-                            position: "insideBottomRight",
-                          }}
-                        />
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  {/* Multi-Bureau Overlay Toggle */}
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: THEME.ink, cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={overlayAllBureaus}
+                      onChange={(e) => setOverlayAllBureaus(e.target.checked)}
+                      style={{ accentColor: THEME.accent }}
+                    />
+                    <span>Overlay All 4 Bureaus</span>
+                  </label>
 
-                        {overlayAllBureaus ? (
-                          BUREAUS.map((b) => (
-                            <Line
-                              key={b}
-                              type="monotone"
-                              dataKey={b}
-                              name={b}
-                              stroke={BUREAU_COLORS[b]}
-                              strokeWidth={2.5}
-                              dot={{ r: 4, fill: BUREAU_COLORS[b] }}
-                              activeDot={{ r: 6 }}
-                              connectNulls
-                            />
-                          ))
-                        ) : (
-                          <Line
-                            type="monotone"
-                            dataKey="score"
-                            name={bureau}
-                            stroke={BUREAU_COLORS[bureau]}
-                            strokeWidth={2.5}
-                            dot={{ r: 5, fill: BUREAU_COLORS[bureau] }}
-                            activeDot={{ r: 7 }}
-                          />
-                        )}
-                      </LineChart>
-                    </ResponsiveContainer>
+                  {/* Range Filter */}
+                  <div style={{ display: "flex", background: "var(--surface-1)", borderRadius: 8, padding: 3, border: "1px solid var(--t-line)" }}>
+                    {(["6M", "1Y", "3Y", "ALL"] as const).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setTimeRange(r)}
+                        style={{
+                          background: timeRange === r ? "var(--surface-0)" : "transparent",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "4px 10px",
+                          fontSize: 11,
+                          fontWeight: timeRange === r ? 700 : 500,
+                          color: timeRange === r ? THEME.accent : THEME.muted,
+                          cursor: "pointer",
+                          boxShadow: timeRange === r ? "var(--shadow-sm)" : "none",
+                        }}
+                      >
+                        {r}
+                      </button>
+                    ))}
                   </div>
-                )}
-              </Card>
-            </div>
+                </div>
+              </div>
+
+              {chartData.length < 2 ? (
+                <div style={{ height: 260, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: THEME.muted, gap: 8 }}>
+                  <TrendingUp size={32} opacity={0.4} />
+                  <span style={{ fontSize: 12 }}>Need at least 2 entries in this time range to render trend trajectory.</span>
+                </div>
+              ) : (
+                <div style={{ width: "100%", height: 320 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--t-line)" vertical={false} />
+                      <XAxis dataKey="dateLabel" stroke="var(--t-muted)" fontSize={10} tickLine={false} />
+                      <YAxis domain={[300, 900]} stroke="var(--t-muted)" fontSize={10} tickLine={false} ticks={[300, 500, 650, 750, 850, 900]} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "var(--surface-0)",
+                          border: "1px solid var(--t-line)",
+                          borderRadius: 8,
+                          fontSize: 11,
+                          boxShadow: "var(--shadow-md)",
+                        }}
+                      />
+                      <ReferenceLine y={750} stroke={THEME.sage} strokeDasharray="4 4" label={{ value: "Prime (750+)", fill: THEME.sage, fontSize: 10, position: "insideTopRight" }} />
+
+                      {overlayAllBureaus ? (
+                        <>
+                          <Line type="monotone" dataKey="CIBIL" stroke={BUREAU_COLORS.CIBIL} strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
+                          <Line type="monotone" dataKey="Experian" stroke={BUREAU_COLORS.Experian} strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
+                          <Line type="monotone" dataKey="CRIF" stroke={BUREAU_COLORS.CRIF} strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
+                          <Line type="monotone" dataKey="Equifax" stroke={BUREAU_COLORS.Equifax} strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
+                        </>
+                      ) : (
+                        <Line
+                          type="monotone"
+                          dataKey="score"
+                          stroke={BUREAU_COLORS[bureau]}
+                          strokeWidth={3}
+                          dot={{ r: 5, fill: BUREAU_COLORS[bureau] }}
+                          activeDot={{ r: 7 }}
+                        />
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </Card>
           )}
 
-          {/* TAB 3: WHAT-IF SIMULATOR */}
+          {/* TAB 4: WHAT-IF SIMULATOR */}
           {activeSubTab === "simulator" && (
             <CreditScoreSimulator
-              currentScore={activeLatest?.score || 720}
+              currentScore={activeLatest ? activeLatest.score : 750}
               creditCards={ownerScopedCards}
               loans={ownerScopedLoans}
             />
           )}
 
-          {/* TAB 4: AUDIT LOG & HISTORY */}
+          {/* TAB 5: AUDIT LOG */}
           {activeSubTab === "history" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {/* Toolbar */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-                <div style={{ position: "relative", minWidth: 260 }}>
-                  <Search
-                    size={15}
-                    style={{
-                      position: "absolute",
-                      left: 12,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: THEME.muted,
-                      pointerEvents: "none",
-                    }}
-                  />
+            <Card style={{ padding: "20px 22px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+                <div style={{ position: "relative", minWidth: 240 }}>
+                  <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: THEME.muted }} />
                   <input
-                    type="text"
+                    className="form-input"
+                    placeholder="Search bureau, score, source, notes..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search bureau, date, score, source…"
-                    style={{
-                      border: `1.5px solid ${THEME.line}`,
-                      borderRadius: 10,
-                      padding: `8px ${search ? 32 : 12}px 8px 34px`,
-                      fontSize: 12,
-                      color: THEME.ink,
-                      background: "var(--surface-0)",
-                      width: "100%",
-                    }}
+                    style={{ paddingLeft: 32, fontSize: 12 }}
                   />
-                  {search && (
-                    <button
-                      type="button"
-                      onClick={() => setSearch("")}
-                      style={{
-                        position: "absolute",
-                        right: 8,
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none",
-                        border: "none",
-                        color: THEME.muted,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Button variant="ghost" size="sm" icon={<Download size={13} />} onClick={handleExportCSV}>
-                    Export CSV
-                  </Button>
-                  <Button variant="accent" size="sm" icon={<Plus size={13} />} onClick={() => setModal({ bureau })}>
-                    Log New Entry
-                  </Button>
-                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<Plus size={13} />}
+                  onClick={() => setModal({ bureau, checkDate: today(), owner: ownerFilter !== "all" ? ownerFilter : "self" })}
+                >
+                  Add Score Entry
+                </Button>
               </div>
 
-              {/* Data Rows */}
               {historyList.length === 0 ? (
-                <Card style={{ padding: "30px", textAlign: "center", borderStyle: "dashed" }}>
-                  <div style={{ fontSize: 13, color: THEME.muted }}>No credit score records match your search criteria.</div>
-                </Card>
+                <div style={{ padding: "32px 0", textAlign: "center", color: THEME.muted, fontSize: 12 }}>
+                  No historical entries match your search criteria.
+                </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {historyList.map((s) => {
                     const grade = scoreGrade(s.score);
-                    const bColor = BUREAU_COLORS[s.bureau as BureauType] || THEME.accent;
+                    const bColor = BUREAU_COLORS[s.bureau];
+
                     return (
                       <div
                         key={s.id}
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 16,
-                          padding: "12px 18px",
-                          borderRadius: 12,
+                          justifyContent: "space-between",
+                          padding: "12px 14px",
+                          borderRadius: 10,
                           background: "var(--surface-0)",
-                          border: "1.5px solid var(--t-line)",
-                          transition: "all 0.2s",
+                          border: "1px solid var(--t-line)",
+                          gap: 12,
                         }}
                       >
-                        {/* Bureau Monogram + Score Badge */}
+                        {/* Score Tag */}
                         <div
                           style={{
-                            width: 52,
-                            height: 52,
-                            borderRadius: 10,
+                            width: 56,
+                            height: 48,
+                            borderRadius: 8,
+                            background: `color-mix(in srgb, ${grade.color} 10%, var(--surface-0))`,
                             border: `1.5px solid ${grade.color}`,
-                            background: `color-mix(in srgb, ${grade.color} 8%, var(--surface-0))`,
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
@@ -2202,36 +2868,36 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                           </div>
                         </div>
 
-                        {/* Owner Avatar */}
-                        <OwnerAvatar ownerId={s.owner} size={26} />
-
-                        {/* Action Buttons */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        {/* Owner Avatar & Actions */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <OwnerAvatar ownerId={s.owner} size={28} />
                           <button
+                            type="button"
                             onClick={() => setModal(s)}
-                            aria-label="Edit score entry"
                             style={{
                               background: "none",
                               border: "none",
-                              cursor: "pointer",
                               color: THEME.muted,
+                              cursor: "pointer",
                               padding: 6,
                               borderRadius: 6,
                             }}
+                            title="Edit entry"
                           >
                             <Edit3 size={14} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => setConfirmDeleteId(s.id)}
-                            aria-label="Delete score entry"
                             style={{
                               background: "none",
                               border: "none",
-                              cursor: "pointer",
                               color: THEME.rust,
+                              cursor: "pointer",
                               padding: 6,
                               borderRadius: 6,
                             }}
+                            title="Delete entry"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -2241,16 +2907,16 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                   })}
                 </div>
               )}
-            </div>
+            </Card>
           )}
 
-          {/* TAB 5: BUREAU DISPUTES & RESOLUTION */}
-          {activeSubTab === "disputes" && <BureauDisputeGuide />}
+          {/* TAB 6: DISPUTE & OMBUDSMAN GUIDE */}
+          {activeSubTab === "disputes" && <BureauDisputeCenter />}
         </>
       )}
 
-      {/* Modal Dialog */}
-      {modal !== null && (
+      {/* MODAL: ADD / EDIT SCORE */}
+      {modal && (
         <ScoreFormModal
           initial={modal}
           onSave={saveScore}
@@ -2259,10 +2925,21 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
         />
       )}
 
-      {/* Confirm Delete Dialog */}
+      {/* MODAL: SMART IMPORT & CONNECT HUB */}
+      {importModalOpen && (
+        <SmartCreditImportModal
+          onImport={saveScore}
+          onClose={() => setImportModalOpen(false)}
+          saving={savingScore}
+        />
+      )}
+
+      {/* CONFIRM DELETE DIALOG */}
       {confirmDeleteId && (
         <ConfirmDialog
-          message="Delete this credit score entry? This cannot be undone."
+          title="Delete Credit Score Entry?"
+          message="Are you sure you want to delete this credit score record? This action cannot be undone."
+          confirmLabel="Yes, Delete Score"
           onConfirm={() => {
             deleteScore(confirmDeleteId);
             setConfirmDeleteId(null);
@@ -2273,4 +2950,3 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
     </div>
   );
 }
-export default CreditScoreTab;

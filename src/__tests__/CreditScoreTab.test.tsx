@@ -169,7 +169,66 @@ describe("CreditScoreTab & Bureau Engine", () => {
     fireEvent.click(dispTab);
 
     expect(screen.getByText(/RBI Mandatory 30-Day Resolution Protocol/i)).toBeInTheDocument();
-    expect(screen.getByText(/TransUnion CIBIL/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/TransUnion CIBIL/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Formal Credit Report Dispute & Correction Request/i)).toBeInTheDocument();
+  });
+
+  it("switches to Score Target Roadmap tab and calculates point gap", () => {
+    const mockScores = [
+      {
+        id: "score-1",
+        score: 750,
+        bureau: "CIBIL" as const,
+        checkDate: "2026-08-15",
+        owner: "self",
+        source: "OneScore",
+      },
+    ];
+
+    render(
+      <CreditScoreTab
+        state={{ creditScores: mockScores, creditCards: [], loans: [] }}
+        addItem={vi.fn()}
+        removeItem={vi.fn()}
+        updateItem={vi.fn()}
+      />
+    );
+
+    const roadmapTab = screen.getByText(/Score Target Roadmap/i);
+    fireEvent.click(roadmapTab);
+
+    expect(screen.getByText(/Select Your Target Credit Milestone/i)).toBeInTheDocument();
+    expect(screen.getByText(/Prime Home Loan @ Lowest Spread/i)).toBeInTheDocument();
+    expect(screen.getByText("+50 Points")).toBeInTheDocument();
+  });
+
+  it("opens Smart Import & Zero-Entry Connect modal", () => {
+    const mockScores = [
+      {
+        id: "score-1",
+        score: 750,
+        bureau: "CIBIL" as const,
+        checkDate: "2026-08-15",
+        owner: "self",
+        source: "OneScore",
+      },
+    ];
+
+    render(
+      <CreditScoreTab
+        state={{ creditScores: mockScores, creditCards: [], loans: [] }}
+        addItem={vi.fn()}
+        removeItem={vi.fn()}
+        updateItem={vi.fn()}
+      />
+    );
+
+    const importBtn = screen.getByText(/Smart Import & Sync/i);
+    fireEvent.click(importBtn);
+
+    expect(screen.getByText(/Smart Bureau Import & Zero-Entry Connect Hub/i)).toBeInTheDocument();
+    expect(screen.getByText(/PDF Report Parser/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bureau Connectors/i)).toBeInTheDocument();
   });
 
   it("handles legacy and corrupt credit scores with missing or asOfDate without throwing errors", () => {
