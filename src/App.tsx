@@ -2275,6 +2275,19 @@ function FinanceDashboard() {
         finalItem.card_limit =
           item.cardLimit ?? item.limit ?? finalItem.card_limit ?? finalItem.limit ?? null;
         delete finalItem.limit;
+        delete finalItem.card_name;
+        delete finalItem.name;
+        delete finalItem.bank;
+        delete finalItem.opening_bal;
+      }
+      if (key === "prepaidCards") {
+        finalItem.card_name =
+          item.cardName || item.name || item.provider || item.bank || finalItem.card_name || "";
+        delete finalItem.name;
+        delete finalItem.provider;
+        delete finalItem.bank;
+        delete finalItem.opening_bal;
+        delete finalItem.issuer;
       }
       if (key === "taxPayments") {
         if (finalItem.tax_type && !finalItem.type) finalItem.type = finalItem.tax_type;
@@ -3358,6 +3371,13 @@ function FinanceDashboard() {
       const table = TABLE_MAP[key];
       if (table) {
         let finalPatch = camelToSnake(patch);
+
+        // Always strip metadata fields from update payload
+        delete finalPatch.id;
+        delete finalPatch.user_id;
+        delete finalPatch.created_at;
+        delete finalPatch.updated_at;
+
         if (key === "rentalProperties" || key === "rentedProperties") {
           if (patch.propertyType !== undefined) {
             finalPatch.property_type_detail = patch.propertyType;
@@ -3389,10 +3409,24 @@ function FinanceDashboard() {
           delete finalPatch.type;
         }
         if (key === "creditCards") {
-          if (patch.limit !== undefined) {
-            finalPatch.card_limit = patch.limit;
+          if (patch.limit !== undefined || patch.cardLimit !== undefined) {
+            finalPatch.card_limit = patch.cardLimit ?? patch.limit;
           }
           delete finalPatch.limit;
+          delete finalPatch.card_name;
+          delete finalPatch.name;
+          delete finalPatch.bank;
+          delete finalPatch.opening_bal;
+        }
+        if (key === "prepaidCards") {
+          if (patch.cardName !== undefined || patch.name !== undefined || patch.provider !== undefined || patch.bank !== undefined) {
+            finalPatch.card_name = patch.cardName || patch.name || patch.provider || patch.bank || finalPatch.card_name || "";
+          }
+          delete finalPatch.name;
+          delete finalPatch.provider;
+          delete finalPatch.bank;
+          delete finalPatch.opening_bal;
+          delete finalPatch.issuer;
         }
         if (key === "loansTaken" && patch.lender) {
           finalPatch.lender_borrower = patch.lender;

@@ -975,6 +975,13 @@ export function CreditTab({
                 }
               }}
               onAdd={() => setModal("cc")}
+              onAddPreset={async (preset: any) => {
+                try {
+                  await addItem("creditCards", { ...preset, status: "active", owner: "self", outstanding: "0" });
+                } catch (e: any) {
+                  showToast?.(`Failed to add preset card: ${e?.message || "Unknown error"}`, "error");
+                }
+              }}
               existingGroups={existingGroups}
             />
           </>
@@ -1789,6 +1796,7 @@ function CCList({
   onEdit,
   onUpdateCard,
   onAdd,
+  onAddPreset,
   existingGroups: _existingGroups,
 }: any) {
   const [selectedLedger, setSelectedLedger] = useState<string | null>(null);
@@ -1887,13 +1895,13 @@ function CCList({
     return (
       <CCEmptyState
         onAdd={onAdd}
-        onAddPreset={async (preset: any) => {
+        onAddPreset={onAddPreset || (async (preset: any) => {
           try {
             await onUpdateCard(uid(), { ...preset, status: "active", owner: "self", outstanding: "0" });
           } catch (e) {
             onAdd();
           }
-        }}
+        })}
       />
     );
   }
