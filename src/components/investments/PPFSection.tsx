@@ -65,7 +65,7 @@ import {
   Legend,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { useMasterData, formatProfileOption } from "../../utils/masterData";
+import { useMasterData } from "../../utils/masterData";
 import { Money } from "../ui/Money";
 import {
   fmtINRFull,
@@ -207,6 +207,12 @@ export function PPFSection({
   activeProfile = "all",
 }: PPFSectionProps) {
   const { familyProfiles } = useMasterData();
+
+  const getOwnerLabel = (owner?: string) => {
+    if (!owner) return "Primary";
+    const prof = familyProfiles?.find((x: any) => x.id === owner || x.name === owner);
+    return prof ? `${prof.name} (${prof.relation})` : owner;
+  };
 
   // State Management
   const [viewMode, setViewMode] = useState<
@@ -990,7 +996,7 @@ export function PPFSection({
               <option value="all">All Family Members</option>
               {uniqueOwners.map((owner) => (
                 <option key={owner} value={owner}>
-                  {formatProfileOption(owner, familyProfiles)}
+                  {getOwnerLabel(owner)}
                 </option>
               ))}
             </select>
@@ -1143,7 +1149,7 @@ export function PPFSection({
                         {p.owner && (
                           <Badge variant="neutral" style={{ fontSize: 10 }}>
                             <User size={10} style={{ marginRight: 3 }} />
-                            {formatProfileOption(p.owner, familyProfiles)}
+                            {getOwnerLabel(p.owner)}
                           </Badge>
                         )}
                       </div>
@@ -1547,7 +1553,7 @@ export function PPFSection({
                       {/* Owner */}
                       <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
                         <Badge variant="neutral" style={{ fontSize: 10 }}>
-                          {formatProfileOption(p.owner || "Primary", familyProfiles)}
+                          {getOwnerLabel(p.owner || "Primary")}
                         </Badge>
                       </td>
 

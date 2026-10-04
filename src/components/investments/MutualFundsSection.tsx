@@ -2200,11 +2200,9 @@ export function MutualFundsSection({
       {/* 6. Confirm Delete Dialog */}
       {confirmDeleteLot && (
         <ConfirmDialog
-          isOpen={true}
           title="Delete Mutual Fund Lot?"
           message={`Are you sure you want to delete this lot of ${confirmDeleteLot.label}? This action cannot be undone.`}
           confirmLabel="Delete Lot"
-          variant="danger"
           onConfirm={() => {
             removeItem("mutualFunds", confirmDeleteLot.lot.id);
             setConfirmDeleteLot(null);
