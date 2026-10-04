@@ -166,11 +166,14 @@ export const RealEstatePropertyCard: React.FC<RealEstatePropertyCardProps> = ({
         }}
       >
         <div style={{ display: "flex", gap: 16, flex: 1, alignItems: "flex-start" }}>
-          {property.developerName && (
-            <div style={{ flexShrink: 0, marginTop: 2 }}>
-              <BuilderLogo name={property.developerName} size={52} borderRadius={14} />
-            </div>
-          )}
+          <div style={{ flexShrink: 0, marginTop: 2 }}>
+            <BuilderLogo
+              developerName={property.developerName}
+              propertyName={property.name}
+              size={52}
+              borderRadius={14}
+            />
+          </div>
 
           <div style={{ flex: 1 }}>
             <div

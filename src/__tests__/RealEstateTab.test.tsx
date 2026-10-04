@@ -289,4 +289,21 @@ describe("RealEstateTab UI Redesign & Auto-Sync", () => {
     expect(screen.getByText("Add Real Estate Property")).toBeDefined();
     expect(screen.getByPlaceholderText(/Sky Villa/i)).toBeDefined();
   });
+
+  it("correctly resolves real estate builder and developer brand logos", async () => {
+    const { resolveBrand } = await import("../components/ui/BrandLogos");
+
+    expect(resolveBrand("Lodha")?.domain).toBe("lodhagroup.in");
+    expect(resolveBrand("Lodha Group")?.domain).toBe("lodhagroup.in");
+    expect(resolveBrand("DLF")?.domain).toBe("dlf.in");
+    expect(resolveBrand("DLF Homes")?.domain).toBe("dlf.in");
+    expect(resolveBrand("Godrej Properties")?.domain).toBe("godrejproperties.com");
+    expect(resolveBrand("Oberoi Realty")?.domain).toBe("oberoirealty.com");
+    expect(resolveBrand("Prestige Group")?.domain).toBe("prestigeconstructions.com");
+    expect(resolveBrand("Sobha")?.domain).toBe("sobha.com");
+    expect(resolveBrand("Brigade Group")?.domain).toBe("brigadegroup.com");
+    expect(resolveBrand("Hiranandani")?.domain).toBe("hiranandani.com");
+    expect(resolveBrand("L&T Realty")?.domain).toBe("ltrealty.com");
+    expect(resolveBrand("Sunteck Realty")?.domain).toBe("sunteckrealty.com");
+  });
 });

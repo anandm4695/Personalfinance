@@ -289,7 +289,173 @@ export const CANONICAL_BRANDS: Record<string, BrandInfo> = {
   yezdi: { domain: "jawamotorcycles.com", name: "Yezdi", color: "#b45309", isPrimaryInstitution: true },
   aprilia: { domain: "aprilia.com", name: "Aprilia", color: "#dc2626", isPrimaryInstitution: true },
   vespa: { domain: "vespa.com", name: "Vespa", color: "#0284c7", isPrimaryInstitution: true },
-  tata: { domain: "tatamotors.com", growwSym: "TATAMOTORS", name: "Tata Motors", color: "#1d2671", isPrimaryInstitution: true },
+  // ── Real Estate Developers & Builders (Priority 1) ───────────────────────
+  "lodha group": { domain: "lodhagroup.in", growwSym: "LODHA", name: "Lodha", color: "#1e40af", isPrimaryInstitution: true },
+  "macrotech developers": { domain: "lodhagroup.in", growwSym: "LODHA", name: "Lodha", color: "#1e40af", isPrimaryInstitution: true },
+  macrotech: { domain: "lodhagroup.in", growwSym: "LODHA", name: "Lodha", color: "#1e40af", isPrimaryInstitution: true },
+  lodha: { domain: "lodhagroup.in", growwSym: "LODHA", name: "Lodha", color: "#1e40af", isPrimaryInstitution: true },
+
+  "dlf limited": { domain: "dlf.in", growwSym: "DLF", name: "DLF", color: "#ea580c", isPrimaryInstitution: true },
+  "dlf homes": { domain: "dlf.in", growwSym: "DLF", name: "DLF", color: "#ea580c", isPrimaryInstitution: true },
+  dlf: { domain: "dlf.in", growwSym: "DLF", name: "DLF", color: "#ea580c", isPrimaryInstitution: true },
+
+  "godrej properties": { domain: "godrejproperties.com", growwSym: "GODREJPROP", name: "Godrej Properties", color: "#15803d", isPrimaryInstitution: true },
+  "godrej property": { domain: "godrejproperties.com", growwSym: "GODREJPROP", name: "Godrej Properties", color: "#15803d", isPrimaryInstitution: true },
+  "godrej realty": { domain: "godrejproperties.com", growwSym: "GODREJPROP", name: "Godrej Properties", color: "#15803d", isPrimaryInstitution: true },
+
+  "oberoi realty": { domain: "oberoirealty.com", growwSym: "OBEROIRLTY", name: "Oberoi Realty", color: "#334155", isPrimaryInstitution: true },
+  oberoi: { domain: "oberoirealty.com", growwSym: "OBEROIRLTY", name: "Oberoi Realty", color: "#334155", isPrimaryInstitution: true },
+
+  "prestige estates": { domain: "prestigeconstructions.com", growwSym: "PRESTIGE", name: "Prestige Group", color: "#7c3aed", isPrimaryInstitution: true },
+  "prestige group": { domain: "prestigeconstructions.com", growwSym: "PRESTIGE", name: "Prestige Group", color: "#7c3aed", isPrimaryInstitution: true },
+  "prestige constructions": { domain: "prestigeconstructions.com", growwSym: "PRESTIGE", name: "Prestige Group", color: "#7c3aed", isPrimaryInstitution: true },
+  prestige: { domain: "prestigeconstructions.com", growwSym: "PRESTIGE", name: "Prestige Group", color: "#7c3aed", isPrimaryInstitution: true },
+
+  "brigade enterprises": { domain: "brigadegroup.com", growwSym: "BRIGADE", name: "Brigade Group", color: "#0891b2", isPrimaryInstitution: true },
+  "brigade group": { domain: "brigadegroup.com", growwSym: "BRIGADE", name: "Brigade Group", color: "#0891b2", isPrimaryInstitution: true },
+  brigade: { domain: "brigadegroup.com", growwSym: "BRIGADE", name: "Brigade Group", color: "#0891b2", isPrimaryInstitution: true },
+
+  "sobha limited": { domain: "sobha.com", growwSym: "SOBHA", name: "Sobha", color: "#b45309", isPrimaryInstitution: true },
+  "sobha developers": { domain: "sobha.com", growwSym: "SOBHA", name: "Sobha", color: "#b45309", isPrimaryInstitution: true },
+  sobha: { domain: "sobha.com", growwSym: "SOBHA", name: "Sobha", color: "#b45309", isPrimaryInstitution: true },
+
+  "puravankara limited": { domain: "puravankara.com", growwSym: "PURVA", name: "Puravankara", color: "#dc2626", isPrimaryInstitution: true },
+  "puravankara projects": { domain: "puravankara.com", growwSym: "PURVA", name: "Puravankara", color: "#dc2626", isPrimaryInstitution: true },
+  puravankara: { domain: "puravankara.com", growwSym: "PURVA", name: "Puravankara", color: "#dc2626", isPrimaryInstitution: true },
+  purva: { domain: "puravankara.com", growwSym: "PURVA", name: "Puravankara", color: "#dc2626", isPrimaryInstitution: true },
+  "provident housing": { domain: "providenthousing.com", name: "Provident Housing", color: "#0284c7", isPrimaryInstitution: true },
+  provident: { domain: "providenthousing.com", name: "Provident Housing", color: "#0284c7", isPrimaryInstitution: true },
+
+  "mahindra lifespaces": { domain: "mahindralifespaces.com", growwSym: "MAHLIFE", name: "Mahindra Lifespaces", color: "#dc2626", isPrimaryInstitution: true },
+  "mahindra life spaces": { domain: "mahindralifespaces.com", growwSym: "MAHLIFE", name: "Mahindra Lifespaces", color: "#dc2626", isPrimaryInstitution: true },
+  "mahindra realty": { domain: "mahindralifespaces.com", growwSym: "MAHLIFE", name: "Mahindra Lifespaces", color: "#dc2626", isPrimaryInstitution: true },
+
+  "the phoenix mills": { domain: "phoenixmalls.com", growwSym: "PHOENIXLTD", name: "The Phoenix Mills", color: "#0f172a", isPrimaryInstitution: true },
+  "phoenix mills": { domain: "phoenixmalls.com", growwSym: "PHOENIXLTD", name: "The Phoenix Mills", color: "#0f172a", isPrimaryInstitution: true },
+  phoenix: { domain: "phoenixmalls.com", growwSym: "PHOENIXLTD", name: "The Phoenix Mills", color: "#0f172a", isPrimaryInstitution: true },
+
+  "kolte patil": { domain: "koltepatil.com", growwSym: "KOLTEPATIL", name: "Kolte-Patil", color: "#059669", isPrimaryInstitution: true },
+  "kolte-patil": { domain: "koltepatil.com", growwSym: "KOLTEPATIL", name: "Kolte-Patil", color: "#059669", isPrimaryInstitution: true },
+  kolte: { domain: "koltepatil.com", growwSym: "KOLTEPATIL", name: "Kolte-Patil", color: "#059669", isPrimaryInstitution: true },
+
+  "sunteck realty": { domain: "sunteckrealty.com", growwSym: "SUNTECK", name: "Sunteck Realty", color: "#c2410c", isPrimaryInstitution: true },
+  sunteck: { domain: "sunteckrealty.com", growwSym: "SUNTECK", name: "Sunteck Realty", color: "#c2410c", isPrimaryInstitution: true },
+
+  "anant raj": { domain: "anantraj.com", growwSym: "ANANTRAJ", name: "Anant Raj", color: "#1e3a8a", isPrimaryInstitution: true },
+  anantraj: { domain: "anantraj.com", growwSym: "ANANTRAJ", name: "Anant Raj", color: "#1e3a8a", isPrimaryInstitution: true },
+
+  "raymond realty": { domain: "raymond.in", growwSym: "RAYMOND", name: "Raymond Realty", color: "#b91c1c", isPrimaryInstitution: true },
+
+  "tata housing": { domain: "tatarealty.in", name: "Tata Housing", color: "#1d4ed8", isPrimaryInstitution: true },
+  "tata realty": { domain: "tatarealty.in", name: "Tata Realty", color: "#1d4ed8", isPrimaryInstitution: true },
+
+  "shapoorji pallonji": { domain: "shapoorjipallonji.com", name: "Shapoorji Pallonji", color: "#d97706", isPrimaryInstitution: true },
+  shapoorji: { domain: "shapoorjipallonji.com", name: "Shapoorji Pallonji", color: "#d97706", isPrimaryInstitution: true },
+  joyville: { domain: "joyvillehomes.com", name: "Joyville Homes", color: "#d97706", isPrimaryInstitution: true },
+
+  "house of hiranandani": { domain: "houseofhiranandani.com", name: "House of Hiranandani", color: "#7c3aed", isPrimaryInstitution: true },
+  "hiranandani group": { domain: "hiranandani.com", name: "Hiranandani Group", color: "#7c3aed", isPrimaryInstitution: true },
+  hiranandani: { domain: "hiranandani.com", name: "Hiranandani Group", color: "#7c3aed", isPrimaryInstitution: true },
+
+  "l&t realty": { domain: "ltrealty.com", growwSym: "LT", name: "L&T Realty", color: "#004c8f", isPrimaryInstitution: true },
+  "lnt realty": { domain: "ltrealty.com", growwSym: "LT", name: "L&T Realty", color: "#004c8f", isPrimaryInstitution: true },
+
+  "piramal realty": { domain: "piramalrealty.com", growwSym: "PEL", name: "Piramal Realty", color: "#0f766e", isPrimaryInstitution: true },
+  piramal: { domain: "piramalrealty.com", growwSym: "PEL", name: "Piramal Realty", color: "#0f766e", isPrimaryInstitution: true },
+
+  "keystone realtors": { domain: "rustomjee.com", growwSym: "KSL", name: "Rustomjee", color: "#0f172a", isPrimaryInstitution: true },
+  rustomjee: { domain: "rustomjee.com", growwSym: "KSL", name: "Rustomjee", color: "#0f172a", isPrimaryInstitution: true },
+
+  "kalpataru group": { domain: "kalpatarugroup.com", name: "Kalpataru", color: "#b45309", isPrimaryInstitution: true },
+  kalpataru: { domain: "kalpatarugroup.com", name: "Kalpataru", color: "#b45309", isPrimaryInstitution: true },
+
+  "runwal group": { domain: "runwalgroupindia.com", name: "Runwal Group", color: "#1e40af", isPrimaryInstitution: true },
+  runwal: { domain: "runwalgroupindia.com", name: "Runwal Group", color: "#1e40af", isPrimaryInstitution: true },
+
+  "embassy group": { domain: "embassyindia.com", growwSym: "EMBASSY", name: "Embassy Group", color: "#0f172a", isPrimaryInstitution: true },
+  embassy: { domain: "embassyindia.com", growwSym: "EMBASSY", name: "Embassy Group", color: "#0f172a", isPrimaryInstitution: true },
+
+  "the wadhwa group": { domain: "wadhwagroup.com", name: "The Wadhwa Group", color: "#b45309", isPrimaryInstitution: true },
+  wadhwa: { domain: "wadhwagroup.com", name: "The Wadhwa Group", color: "#b45309", isPrimaryInstitution: true },
+
+  "kanakia spaces": { domain: "kanakiaspaces.com", name: "Kanakia Spaces", color: "#1e3a8a", isPrimaryInstitution: true },
+  kanakia: { domain: "kanakiaspaces.com", name: "Kanakia Spaces", color: "#1e3a8a", isPrimaryInstitution: true },
+
+  "vtp realty": { domain: "vtprealty.com", name: "VTP Realty", color: "#dc2626", isPrimaryInstitution: true },
+  vtp: { domain: "vtprealty.com", name: "VTP Realty", color: "#dc2626", isPrimaryInstitution: true },
+
+  "sumadhura group": { domain: "sumadhura.com", name: "Sumadhura Group", color: "#d97706", isPrimaryInstitution: true },
+  sumadhura: { domain: "sumadhura.com", name: "Sumadhura Group", color: "#d97706", isPrimaryInstitution: true },
+
+  "century real estate": { domain: "centuryrealestate.in", name: "Century Real Estate", color: "#0284c7", isPrimaryInstitution: true },
+
+  "shriram properties": { domain: "shriramproperties.com", growwSym: "SHRIRAMPRP", name: "Shriram Properties", color: "#0284c7", isPrimaryInstitution: true },
+  "shriram property": { domain: "shriramproperties.com", growwSym: "SHRIRAMPRP", name: "Shriram Properties", color: "#0284c7", isPrimaryInstitution: true },
+
+  "rohan builders": { domain: "rohanbuilders.com", name: "Rohan Builders", color: "#ea580c", isPrimaryInstitution: true },
+  rohan: { domain: "rohanbuilders.com", name: "Rohan Builders", color: "#ea580c", isPrimaryInstitution: true },
+
+  "ekta world": { domain: "ektaworld.com", name: "Ekta World", color: "#16a34a", isPrimaryInstitution: true },
+  ekta: { domain: "ektaworld.com", name: "Ekta World", color: "#16a34a", isPrimaryInstitution: true },
+
+  "casa grande": { domain: "casagrand.co.in", name: "Casagrand", color: "#dc2626", isPrimaryInstitution: true },
+  casagrande: { domain: "casagrand.co.in", name: "Casagrand", color: "#dc2626", isPrimaryInstitution: true },
+  casagrand: { domain: "casagrand.co.in", name: "Casagrand", color: "#dc2626", isPrimaryInstitution: true },
+
+  "radiance realty": { domain: "radiancerealty.in", name: "Radiance Realty", color: "#0f766e", isPrimaryInstitution: true },
+  radiance: { domain: "radiancerealty.in", name: "Radiance Realty", color: "#0f766e", isPrimaryInstitution: true },
+
+  "chandak group": { domain: "chandakgroup.com", name: "Chandak Group", color: "#1d4ed8", isPrimaryInstitution: true },
+  chandak: { domain: "chandakgroup.com", name: "Chandak Group", color: "#1d4ed8", isPrimaryInstitution: true },
+
+  "omkar realtors": { domain: "omkarrealtors.com", name: "Omkar Realtors", color: "#0f172a", isPrimaryInstitution: true },
+  omkar: { domain: "omkarrealtors.com", name: "Omkar Realtors", color: "#0f172a", isPrimaryInstitution: true },
+
+  "aparna constructions": { domain: "aparnaconstructions.com", name: "Aparna Constructions", color: "#15803d", isPrimaryInstitution: true },
+  aparna: { domain: "aparnaconstructions.com", name: "Aparna Constructions", color: "#15803d", isPrimaryInstitution: true },
+
+  "signature global": { domain: "signatureglobal.in", growwSym: "SIGNATURE", name: "Signature Global", color: "#0f172a", isPrimaryInstitution: true },
+  signature: { domain: "signatureglobal.in", growwSym: "SIGNATURE", name: "Signature Global", color: "#0f172a", isPrimaryInstitution: true },
+
+  "omaxe limited": { domain: "omaxe.com", growwSym: "OMAXE", name: "Omaxe", color: "#1e3a8a", isPrimaryInstitution: true },
+  omaxe: { domain: "omaxe.com", growwSym: "OMAXE", name: "Omaxe", color: "#1e3a8a", isPrimaryInstitution: true },
+
+  "ashiana housing": { domain: "ashianahousing.com", growwSym: "ASHIANA", name: "Ashiana Housing", color: "#b45309", isPrimaryInstitution: true },
+  ashiana: { domain: "ashianahousing.com", growwSym: "ASHIANA", name: "Ashiana Housing", color: "#b45309", isPrimaryInstitution: true },
+
+  "eldeco group": { domain: "eldecogroup.com", growwSym: "ELDEHSG", name: "Eldeco Group", color: "#1e40af", isPrimaryInstitution: true },
+  eldeco: { domain: "eldecogroup.com", growwSym: "ELDEHSG", name: "Eldeco Group", color: "#1e40af", isPrimaryInstitution: true },
+
+  "gaur group": { domain: "gaursonsindia.com", name: "Gaur Group", color: "#ea580c", isPrimaryInstitution: true },
+  gaursons: { domain: "gaursonsindia.com", name: "Gaur Group", color: "#ea580c", isPrimaryInstitution: true },
+
+  "ats greens": { domain: "atsgreens.com", name: "ATS Greens", color: "#15803d", isPrimaryInstitution: true },
+  ats: { domain: "atsgreens.com", name: "ATS Greens", color: "#15803d", isPrimaryInstitution: true },
+
+  supertech: { domain: "supertechlimited.com", name: "Supertech", color: "#dc2626", isPrimaryInstitution: true },
+
+  "jaypee greens": { domain: "jaypeegreens.com", name: "Jaypee Greens", color: "#0f766e", isPrimaryInstitution: true },
+  jaypee: { domain: "jaypeegreens.com", name: "Jaypee Greens", color: "#0f766e", isPrimaryInstitution: true },
+
+  "dosti realty": { domain: "dostirealty.com", name: "Dosti Realty", color: "#0284c7", isPrimaryInstitution: true },
+  dosti: { domain: "dostirealty.com", name: "Dosti Realty", color: "#0284c7", isPrimaryInstitution: true },
+
+  "k raheja corp": { domain: "krahejacorp.com", name: "K Raheja Corp", color: "#0f172a", isPrimaryInstitution: true },
+  "k raheja": { domain: "krahejacorp.com", name: "K Raheja Corp", color: "#0f172a", isPrimaryInstitution: true },
+  raheja: { domain: "krahejacorp.com", name: "K Raheja Corp", color: "#0f172a", isPrimaryInstitution: true },
+
+  "ajmera realty": { domain: "ajmera.com", growwSym: "AJMERA", name: "Ajmera Realty", color: "#1e40af", isPrimaryInstitution: true },
+  ajmera: { domain: "ajmera.com", growwSym: "AJMERA", name: "Ajmera Realty", color: "#1e40af", isPrimaryInstitution: true },
+
+  hubtown: { domain: "hubtown.co.in", growwSym: "HUBTOWN", name: "Hubtown", color: "#0f766e", isPrimaryInstitution: true },
+
+  "indiabulls real estate": { domain: "indiabullsrealestate.com", growwSym: "IBREALEST", name: "Indiabulls Real Estate", color: "#b91c1c", isPrimaryInstitution: true },
+  indiabulls: { domain: "indiabullsrealestate.com", growwSym: "IBREALEST", name: "Indiabulls Real Estate", color: "#b91c1c", isPrimaryInstitution: true },
+
+  "marathon realty": { domain: "marathon.in", growwSym: "MARATHON", name: "Marathon Realty", color: "#15803d", isPrimaryInstitution: true },
+  marathon: { domain: "marathon.in", growwSym: "MARATHON", name: "Marathon Realty", color: "#15803d", isPrimaryInstitution: true },
+
+  unitech: { domain: "unitechgroup.com", growwSym: "UNITECH", name: "Unitech", color: "#0f172a", isPrimaryInstitution: true },
 
   // ── Subscriptions, OTT & Streaming ─────────────────────────────────────────
   netflix: { domain: "netflix.com", name: "Netflix", color: "#e50914" },
@@ -584,6 +750,14 @@ const WORD_BOUNDARY_KEYS = new Set([
   "ken",
   "oura",
   "cult",
+  "dlf",
+  "vtp",
+  "ats",
+  "kolte",
+  "dosti",
+  "rohan",
+  "ekta",
+  "omkar",
 ]);
 
 function escapeRegex(str: string): string {
@@ -849,13 +1023,29 @@ export const BrokerLogo = ({
 
 export const BuilderLogo = ({
   name,
+  developerName,
+  propertyName,
   size = 46,
   borderRadius,
+  className,
+  style,
 }: {
-  name: string;
+  name?: string;
+  developerName?: string;
+  propertyName?: string;
   size?: number;
   borderRadius?: number;
-}) => <BrandLogo name={name || "Builder"} size={size} borderRadius={borderRadius} />;
+  className?: string;
+  style?: React.CSSProperties;
+}) => (
+  <BrandLogo
+    name={developerName || name || propertyName || "Real Estate"}
+    size={size}
+    borderRadius={borderRadius}
+    className={className}
+    style={style}
+  />
+);
 
 /** Renders authentic vector SVG logos for card payment networks (Visa, Mastercard, RuPay, Amex, Diners Club) */
 export const CardNetworkLogo = ({

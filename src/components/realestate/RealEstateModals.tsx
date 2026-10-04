@@ -21,6 +21,7 @@ import {
   RealEstateProperty,
   RealEstateDemand,
 } from "./RealEstateTypes";
+import { BuilderLogo } from "../ui/BrandLogos";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -309,12 +310,22 @@ export function PropertyModal({
           />
         </Field>
         <Field label="Developer / Builder Name">
-          <input
-            style={inputStyle}
-            value={f.developerName}
-            onChange={(e) => set("developerName", e.target.value)}
-            placeholder="e.g. Lodha / DLF / Godrej"
-          />
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {(f.developerName || f.name) && (
+              <BuilderLogo
+                developerName={f.developerName}
+                propertyName={f.name}
+                size={36}
+                borderRadius={8}
+              />
+            )}
+            <input
+              style={{ ...inputStyle, flex: 1 }}
+              value={f.developerName}
+              onChange={(e) => set("developerName", e.target.value)}
+              placeholder="e.g. Lodha / DLF / Godrej"
+            />
+          </div>
         </Field>
         <Field label="Seller Name">
           <input
@@ -546,7 +557,7 @@ export function PropertyModal({
         </Field>
         <Field
           label="TDS Liability (₹)"
-          tooltip={agreeValNum >= 5000000 ? "Sec 194-IA mandates 1% TDS on properties ≥ ₹50L" : undefined}
+          hint={agreeValNum >= 5000000 ? "Sec 194-IA mandates 1% TDS on properties ≥ ₹50L" : undefined}
         >
           <div style={{ display: "flex", gap: 6 }}>
             <input

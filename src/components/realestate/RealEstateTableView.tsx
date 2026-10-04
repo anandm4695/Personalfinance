@@ -18,6 +18,7 @@ import {
   EXTERNAL_OWNER_ID,
   RealEstateProperty,
 } from "./RealEstateTypes";
+import { BuilderLogo } from "../ui/BrandLogos";
 
 interface RealEstateTableViewProps {
   properties: RealEstateProperty[];
@@ -164,12 +165,22 @@ export const RealEstateTableView: React.FC<RealEstateTableViewProps> = ({
               return (
                 <tr key={p.id} style={{ background: "var(--surface-0)", transition: "background 0.15s" }}>
                   <td style={tdStyle}>
-                    <div style={{ fontWeight: 700, color: THEME.ink, fontSize: 13 }}>{p.name}</div>
-                    {p.location && (
-                      <div style={{ fontSize: 11, color: THEME.muted, display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}>
-                        <MapPin size={10} color={THEME.accent} /> {p.location}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <BuilderLogo
+                        developerName={p.developerName}
+                        propertyName={p.name}
+                        size={32}
+                        borderRadius={8}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 700, color: THEME.ink, fontSize: 13 }}>{p.name}</div>
+                        {p.location && (
+                          <div style={{ fontSize: 11, color: THEME.muted, display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}>
+                            <MapPin size={10} color={THEME.accent} /> {p.location}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </td>
 
                   <td style={{ ...tdStyle, color: THEME.muted }}>
