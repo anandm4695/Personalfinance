@@ -1,4 +1,3 @@
-import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { SIPTrackerTab } from "../components/tabs/SIPTrackerTab";
@@ -99,8 +98,8 @@ describe("SIPTrackerTab UI/UX Redesign Suite", () => {
     expect(screen.getByText("Parag Parikh Flexi Cap Direct Growth")).toBeDefined();
 
     // Switch to Debit Schedule / Calendar View
-    const debitScheduleBtn = screen.getByRole("button", { name: /Debit Schedule/i });
-    fireEvent.click(debitScheduleBtn);
+    const debitScheduleBtns = screen.getAllByRole("button", { name: /Debit Schedule/i });
+    fireEvent.click(debitScheduleBtns[0]);
     expect(screen.getByText("Monthly Auto-Debit Schedule")).toBeDefined();
     expect(screen.getByText("Monthly Debit Calendar (Day 1 - 31)")).toBeDefined();
 

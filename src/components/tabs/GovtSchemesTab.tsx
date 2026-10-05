@@ -365,7 +365,7 @@ function SchemeForm({ initial, onSave, onClose, saving = false }: any) {
     if (form.schemeType === "PMJJBY" || form.schemeType === "PMSBY") {
       if (!form.coverageAmount) set("coverageAmount", "200000");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [form.schemeType]);
 
   const save = () => {

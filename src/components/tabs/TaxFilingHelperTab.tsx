@@ -8,37 +8,18 @@ import {
   Calendar,
   AlertTriangle,
   Info,
-  Download,
   TrendingUp,
-  Shield,
-  Layers,
   Sparkles,
-  Printer,
-  Copy,
   Plus,
   Trash2,
-  PieChart as PieChartIcon,
   Search,
-  CheckCircle2,
   Zap,
 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Legend,
-} from "recharts";
+
+
 import { THEME } from "../../utils/constants";
-import { getCurrentFY, getCurrentFYStartYear } from "../../utils/appConstants";
+import { getCurrentFY } from "../../utils/appConstants";
 import {
-  fmtINR,
   fmtINRFull,
   today,
   calcTaxNewByFY,
@@ -49,7 +30,6 @@ import {
 } from "../../utils/finance";
 import { useMasterData, isSeniorCitizen } from "../../utils/masterData";
 import { Card } from "../ui/Card";
-import { SectionTitle } from "../ui/SectionTitle";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Money } from "../ui/Money";

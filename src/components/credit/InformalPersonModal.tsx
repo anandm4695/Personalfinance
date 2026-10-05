@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { User, Phone, Tag, FileText, Sparkles, IndianRupee, Calendar, Landmark, Clock } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { today } from "../../utils/finance";

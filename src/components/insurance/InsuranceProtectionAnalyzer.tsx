@@ -1,15 +1,9 @@
 import React, { useState } from "react";
 import {
   ShieldCheck,
-  AlertCircle,
-  HelpCircle,
-  Sparkles,
-  TrendingUp,
   Receipt,
-  Calculator,
   PieChart as PieIcon,
   CheckCircle2,
-  Zap,
   Lightbulb,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";

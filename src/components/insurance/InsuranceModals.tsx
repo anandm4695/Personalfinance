@@ -1,22 +1,12 @@
 import React, { useState } from "react";
 import {
   AlertCircle,
-  Plus,
   Trash2,
   Sparkles,
-  ListOrdered,
-  Calendar,
-  Clock,
-  User,
-  Shield,
-  Zap,
-  TrendingUp,
-  Receipt,
-  FileCheck,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { uid, today, fmtINRExact } from "../../utils/finance";
+import { uid, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Button } from "../ui/Button";

@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  POPULAR_MERCHANTS,
-  CARD_PERK_RULES,
-  resolveMerchant,
   rankCardsForPayment,
   generateCategoryCardMatrix,
 } from "../utils/cardRewardEngine";

@@ -15,22 +15,16 @@ import {
   TrendingDown,
   Activity,
   IndianRupee,
-  Receipt,
   Upload,
   Download,
-  CheckCircle2,
   AlertCircle,
   List,
-  Clock,
-  Zap,
-  PiggyBank,
   Target,
   RefreshCw,
   ArrowDownRight,
   User,
 } from "lucide-react";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { getCurrentFY } from "../../utils/appConstants";
 import {
   fmtINRFull,
   fdMaturity,
@@ -63,8 +57,8 @@ import { PPFSection } from "../investments/PPFSection";
 import { NPSSection } from "../investments/NPSSection";
 import { EPFSection } from "../investments/EPFSection";
 import { MutualFundsSection } from "../investments/MutualFundsSection";
-import { DividendsSection, DividendTracker } from "../investments/DividendsSection";
-import { YieldTracker, YieldTrackerSection } from "../investments/YieldTrackerSection";
+import { DividendTracker } from "../investments/DividendsSection";
+import { YieldTracker } from "../investments/YieldTrackerSection";
 // Shared with CapitalGainsTab so LTCG/STCG shown here always agrees with the actual tax
 // report — see the isLongTerm doc comment there for the Section 2(42A) anniversary-date
 // rules (day-of-month aware, strict >, not a naive "> 365 days" count).

@@ -532,7 +532,7 @@ export function YieldTrackerSection({ state }: { state: any }) {
         label: "Bonds & Debentures",
         category: "cash",
         value: bondInterest,
-        postTaxValue: bondUnderlying.reduce((s, b) => s + b.postTaxYield, 0),
+        postTaxValue: bondUnderlying.reduce((s: number, b: any) => s + b.postTaxYield, 0),
         capital: bondPrincipal,
         rateBadge: bondEffectiveRate > 0 ? `${bondEffectiveRate.toFixed(2)}% coupon` : `Fixed Coupon`,
         effectiveRate: bondEffectiveRate,
@@ -542,14 +542,14 @@ export function YieldTrackerSection({ state }: { state: any }) {
         note: "Contractual annual coupon payout on face value",
         payoutFrequency: "Semi-Annual",
         underlyingItems: bondUnderlying,
-        isTaxFree: bondUnderlying.length > 0 && bondUnderlying.every((b) => b.isTaxFree),
+        isTaxFree: bondUnderlying.length > 0 && bondUnderlying.every((b: any) => b.isTaxFree),
       },
       {
         id: "govt",
         label: "Govt / Post Office Schemes",
         category: "cash",
         value: govtInterest,
-        postTaxValue: govtUnderlying.reduce((s, sc) => s + sc.postTaxYield, 0),
+        postTaxValue: govtUnderlying.reduce((s: number, sc: any) => s + sc.postTaxYield, 0),
         capital: govtPrincipal,
         rateBadge: govtEffectiveRate > 0 ? `${govtEffectiveRate.toFixed(2)}% p.a.` : "7.40–8.20%",
         effectiveRate: govtEffectiveRate,
@@ -586,7 +586,7 @@ export function YieldTrackerSection({ state }: { state: any }) {
         postTaxValue: dividendYield, // Net of TDS
         capital: stockPortfolioVal,
         rateBadge:
-          dividendEffectiveRate > 0
+            dividendEffectiveRate > 0
             ? `${dividendEffectiveRate.toFixed(2)}% div yield`
             : "Net of TDS",
         effectiveRate: dividendEffectiveRate,
@@ -603,7 +603,7 @@ export function YieldTrackerSection({ state }: { state: any }) {
         label: "Rental Income",
         category: "cash",
         value: rentalAnnualYield,
-        postTaxValue: rentalUnderlying.reduce((s, r) => s + r.postTaxYield, 0),
+        postTaxValue: rentalUnderlying.reduce((s: number, r: any) => s + r.postTaxYield, 0),
         capital: rentalCapital,
         rateBadge: rentalEffectiveRate > 0 ? `${rentalEffectiveRate.toFixed(2)}% gross yield` : "Active Leases",
         effectiveRate: rentalEffectiveRate,

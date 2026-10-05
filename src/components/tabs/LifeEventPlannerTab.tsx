@@ -12,35 +12,24 @@ import {
   Baby,
   Briefcase,
   TrendingUp,
-  TrendingDown,
   IndianRupee,
   AlertTriangle,
   CheckCircle,
   CheckCircle2,
   Sparkles,
-  Layers,
   LayoutGrid,
   Milestone,
   BarChart3,
-  Sliders,
   Table as TableIcon,
   Download,
   Copy,
   Check,
   Search,
-  Filter,
-  ArrowUpDown,
-  Clock,
-  Zap,
   Shield,
-  Coins,
-  Compass,
   Award,
   ChevronRight,
   Info,
-  DollarSign,
   User,
-  PieChart as PieChartIcon,
   RefreshCw,
   SlidersHorizontal,
 } from "lucide-react";
@@ -53,11 +42,6 @@ import {
   Tooltip,
   CartesianGrid,
   Legend,
-  AreaChart,
-  Area,
-  Cell,
-  Line,
-  ComposedChart,
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, today, uid } from "../../utils/finance";
@@ -78,7 +62,6 @@ import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
-import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 
 export interface LifeEventType {
   id: string;

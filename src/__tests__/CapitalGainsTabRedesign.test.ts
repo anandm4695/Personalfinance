@@ -1,7 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  getHoldingMonths,
-  isLongTerm,
   isEquityMF,
   computeScheduleCGQuarters,
   ClassifiedSell,

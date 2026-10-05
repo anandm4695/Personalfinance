@@ -1,52 +1,31 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Briefcase,
-  Shield,
-  ShieldCheck,
   TrendingUp,
-  TrendingDown,
-  Calendar,
   Layers,
-  BarChart3,
   PieChart as PieIcon,
   Search,
   Plus,
   Pencil,
   Trash2,
   RefreshCw,
-  Clock,
   Download,
   Upload,
   AlertTriangle,
-  Info,
   CheckCircle2,
   Copy,
   Check,
-  ChevronDown,
-  ChevronUp,
-  Percent,
-  IndianRupee,
   Sparkles,
-  ArrowUpRight,
   User,
   Calculator,
   Building,
-  SlidersHorizontal,
   FileSpreadsheet,
   Zap,
-  Tag,
-  Coins,
   Receipt,
-  HelpCircle,
-  ExternalLink,
-  Sliders,
-  DollarSign,
   Award,
   List,
-  Flame,
   Milestone,
   BookOpen,
-  Filter,
   Eye,
   EyeOff,
   Lightbulb,
@@ -56,8 +35,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   Tooltip,
@@ -66,21 +43,17 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { THEME, PIE_COLORS } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
 import { getCurrentFY } from "../../utils/appConstants";
-import { useMasterData, formatProfileOption } from "../../utils/masterData";
+import { useMasterData } from "../../utils/masterData";
 import { Money } from "../ui/Money";
 import {
   fmtINRFull,
   today,
-  monthsBetween,
-  addMonthsToDateStr,
   exportArrayToCSV,
   uid,
 } from "../../utils/finance";
-import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
-import { useAsyncAction } from "../../hooks/useAsyncAction";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
@@ -197,7 +170,7 @@ export function NPSSection({
   activeProfile = "All",
 }: NPSSectionProps) {
   const { profiles } = useMasterData();
-  const { hidden: isPrivacyActive } = usePrivacy();
+  const { privacyMode: isPrivacyActive } = usePrivacy();
 
   // State
   const [viewMode, setViewMode] = useState<
@@ -1026,7 +999,7 @@ function NPSAccountCard({
                   {unmaskedPran ? <EyeOff size={12} /> : <Eye size={12} />}
                 </button>
                 <button
-                  onClick={() => handleCopyPran(n.pran || "")}
+                  onClick={() => onCopyPran(n.pran || "")}
                   style={{
                     background: "none",
                     border: "none",

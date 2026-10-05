@@ -86,8 +86,8 @@ export function DividendsSection({
   marketData,
 }: {
   state: any;
-  addItem: (collection: string, item: any) => Promise<any>;
-  removeItem: (collection: string, id: string) => Promise<any>;
+  addItem: (collection: string, item: any) => Promise<any> | void;
+  removeItem: (collection: string, id: string) => Promise<any> | void;
   showToast?: (msg: string, type?: "success" | "error" | "info") => void;
   marketData?: Record<string, any>;
 }) {

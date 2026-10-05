@@ -1,21 +1,13 @@
 import React from "react";
 import {
-  Shield,
-  Heart,
-  Zap,
-  TrendingUp,
   Clock,
   User,
   Pencil,
   Trash2,
   ListOrdered,
   Calendar,
-  CheckCircle2,
-  AlertTriangle,
-  Sparkles,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINRExact } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Money } from "../ui/Money";

@@ -1,48 +1,27 @@
 import React, { useState, useMemo } from "react";
 import {
   FileText,
-  TrendingUp,
   Activity,
   Calendar,
   Layers,
   Shield,
   ShieldCheck,
-  ShieldAlert,
   BarChart3,
   PieChart as PieIcon,
   Search,
   Plus,
   Pencil,
   Trash2,
-  RefreshCw,
-  Clock,
   Download,
   AlertTriangle,
-  Info,
-  CheckCircle2,
   Copy,
   Check,
-  ChevronDown,
-  ChevronUp,
   Percent,
   IndianRupee,
-  Sparkles,
-  ArrowUpRight,
-  User,
   Calculator,
-  Building,
-  SlidersHorizontal,
   FileSpreadsheet,
-  Zap,
-  Tag,
   Coins,
-  Receipt,
-  HelpCircle,
-  ExternalLink,
-  Sliders,
   DollarSign,
-  Briefcase,
-  Award,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -54,12 +33,9 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  AreaChart,
-  Area,
   CartesianGrid,
-  Legend,
 } from "recharts";
-import { THEME, PIE_COLORS } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Money } from "../ui/Money";
 import {
@@ -69,7 +45,6 @@ import {
   addMonthsToDateStr,
   exportArrayToCSV,
 } from "../../utils/finance";
-import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";

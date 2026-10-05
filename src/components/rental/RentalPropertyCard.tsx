@@ -7,18 +7,13 @@ import {
   Calendar,
   AlertTriangle,
   Plus,
-  ArrowUpRight,
   Shield,
   User,
-  Users,
   Store,
   Home,
-  FileCheck2,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
-  fmtINRFull,
-  fmtINRExact,
   today,
   getEffectiveRent,
   getCurrentTierIndex,

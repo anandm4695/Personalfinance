@@ -1,46 +1,28 @@
 import React, { useState, useMemo } from "react";
 import {
-  Shield,
   AlertTriangle,
   CheckCircle2,
   TrendingUp,
-  Landmark,
   Wallet,
-  Info,
   IndianRupee,
   Target,
-  PieChart,
   CreditCard,
   Home,
   RefreshCw,
   ClipboardList,
   HeartPulse,
   Lock,
-  Calendar,
   Zap,
   Sliders,
   Flame,
-  Activity,
-  ArrowRight,
   ShieldCheck,
   ShieldAlert,
-  ChevronDown,
-  ChevronUp,
   SlidersHorizontal,
-  Plus,
   FileText,
   Printer,
-  Sparkles,
-  Layers,
   ArrowUpRight,
-  HelpCircle,
-  Clock,
   Check,
-  X,
   Smartphone,
-  Building2,
-  AlertCircle,
-  Share2,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
@@ -50,7 +32,6 @@ import {
   annualizePremium,
   getSubscriptionMonthlyEquivalent,
   loanOutstanding,
-  EMERGENCY_FUND_TARGET_MONTHS,
 } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -210,7 +191,7 @@ export const EmergencyFundTab: React.FC<EmergencyFundTabProps> = ({
     );
 
     // Active Monthly Expense based on Burn Mode
-    let activeExpense = burnMode === "survival" ? baseSurvivalExpense : baseStandardExpense;
+    const activeExpense = burnMode === "survival" ? baseSurvivalExpense : baseStandardExpense;
 
     // Apply "What-If" Trimmer modifications
     let trimmedExpense = activeExpense;

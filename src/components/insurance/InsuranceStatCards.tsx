@@ -1,12 +1,10 @@
 import React from "react";
 import {
   Shield,
-  Heart,
   Zap,
   Wallet,
   TrendingUp,
   AlertCircle,
-  Clock,
   ShieldCheck,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";

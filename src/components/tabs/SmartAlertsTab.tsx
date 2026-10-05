@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Bell,
   AlertTriangle,
@@ -6,50 +6,34 @@ import {
   TrendingDown,
   Clock,
   Zap,
-  Filter,
   CheckCircle,
   XCircle,
   Info,
   Calendar,
-  IndianRupee,
   Target,
   Search,
   SlidersHorizontal,
   ArrowUpRight,
-  Shield,
   CreditCard,
   Wallet,
   Sparkles,
-  FileSpreadsheet,
   Copy,
   Check,
-  RefreshCw,
-  Eye,
-  EyeOff,
-  Percent,
-  Activity,
-  Layers,
-  HelpCircle,
-  ChevronRight,
   RotateCcw,
   Download,
-  Flame,
   ShieldAlert,
   ArrowUpDown,
-  Coins,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { today, monthsBetween, fmtINRFull } from "../../utils/finance";
+import { today, monthsBetween } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
-import { Badge } from "../ui/Badge";
 import { Money } from "../ui/Money";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { Modal } from "../ui/Modal";
 import { Field } from "../ui/Form";
-import { Prv } from "../../context/PrivacyContext";
 
 const DISMISSED_ALERTS_KEY = "finance-dismissed-alerts";
 const PREFS_STORAGE_KEY = "finance-smart-alerts-preferences";

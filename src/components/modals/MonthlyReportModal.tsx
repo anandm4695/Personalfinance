@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   Printer,
   Download,
@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Bell,
-  BarChart2,
 } from "lucide-react";
 import { THEME, PIE_COLORS } from "../../utils/constants";
 import { getCCDueDate, loanOutstanding } from "../../utils/finance";

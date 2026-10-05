@@ -7,7 +7,6 @@ import {
   CheckCircle,
   AlertTriangle,
   Database,
-  Clock,
   CloudOff,
   CloudCheck,
   Search,
@@ -30,13 +29,8 @@ import {
   ChevronDown,
   ChevronUp,
   Code,
-  Eye,
-  CheckSquare,
-  Square,
   ArrowRight,
-  Filter,
   FileCode,
-  CheckCircle2,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { today } from "../../utils/finance";

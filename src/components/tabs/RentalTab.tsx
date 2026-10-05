@@ -4,20 +4,13 @@ import {
   Building2,
   TrendingUp,
   Plus,
-  Home,
-  Receipt,
-  Shield,
   Layers,
-  Sparkles,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
-  fmtINRFull,
-  fmtINRExact,
   today,
   getEffectiveRent,
 } from "../../utils/finance";
-import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";

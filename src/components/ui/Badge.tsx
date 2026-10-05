@@ -17,7 +17,9 @@ interface BadgeProps {
     | "info"
     | "outline"
     | "primary"
-    | "secondary";
+    | "secondary"
+    | "blue"
+    | "green";
   /** "xs" is for tight inline tags, "sm" is compact, "md" is default. */
   size?: "xs" | "sm" | "md" | "lg";
   className?: string;
@@ -42,6 +44,8 @@ const VARIANT_MAP: Record<string, string> = {
   primary: "badge-accent",
   secondary: "badge-muted",
   info: "badge-cyan",
+  blue: "badge-cyan",
+  green: "badge-sage",
 };
 
 export const Badge: React.FC<BadgeProps> = ({

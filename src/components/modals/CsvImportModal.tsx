@@ -3,9 +3,9 @@ import { Download, Upload, Zap, FileText, CheckCircle, AlertTriangle, Loader2 } 
 import { Modal, ModalActions } from "../ui/Modal";
 import { SkeletonTableRows } from "../ui/Skeleton";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, uid } from "../../utils/finance";
+import { fmtINRFull } from "../../utils/finance";
 import { Money } from "../ui/Money";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
 
 interface CsvImportModalProps {
   accounts: any[];

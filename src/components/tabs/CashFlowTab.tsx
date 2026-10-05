@@ -20,23 +20,13 @@ import {
   PiggyBank,
   Sliders,
   Info,
-  Check,
-  ExternalLink,
   AlertCircle,
   FileText,
   Sparkles,
-  RefreshCw,
   SlidersHorizontal,
-  Layers,
   Calendar,
-  Filter,
-  Search,
   Zap,
   RotateCcw,
-  CheckCircle2,
-  AlertTriangle,
-  ArrowRight,
-  SlidersVertical,
 } from "lucide-react";
 import {
   Bar,
@@ -55,7 +45,6 @@ import {
 import { THEME } from "../../utils/constants";
 import {
   fmtINRFull,
-  fmtINRExact,
   getEffectiveRent,
   nextAnnualOccurrence,
   annualizePremium,

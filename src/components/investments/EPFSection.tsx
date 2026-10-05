@@ -1,9 +1,7 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Shield,
-  ShieldCheck,
   TrendingUp,
-  Calendar,
   Layers,
   BarChart3,
   PieChart as PieIcon,
@@ -11,45 +9,20 @@ import {
   Plus,
   Pencil,
   Trash2,
-  RefreshCw,
-  Clock,
   Download,
   Upload,
   AlertTriangle,
-  Info,
   CheckCircle2,
   Copy,
   Check,
-  ChevronDown,
-  ChevronUp,
-  Percent,
-  IndianRupee,
   Sparkles,
-  ArrowUpRight,
-  User,
   Calculator,
   Building,
-  SlidersHorizontal,
-  FileSpreadsheet,
-  Zap,
-  Tag,
   Coins,
-  Receipt,
   HelpCircle,
-  ExternalLink,
-  Sliders,
-  DollarSign,
-  Briefcase,
-  Award,
-  List,
-  Flame,
-  Milestone,
   BookOpen,
-  Filter,
-  ArrowRight,
   Repeat,
   History,
-  FileText,
   Scale,
 } from "lucide-react";
 import {
@@ -67,22 +40,18 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { THEME, PIE_COLORS } from "../../utils/constants";
+import { THEME } from "../../utils/constants";
 import { getCurrentFY } from "../../utils/appConstants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Money } from "../ui/Money";
 import {
   fmtINRFull,
   today,
-  monthsBetween,
-  addMonthsToDateStr,
   exportArrayToCSV,
   uid,
 } from "../../utils/finance";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
-import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Modal, ModalActions } from "../ui/Modal";

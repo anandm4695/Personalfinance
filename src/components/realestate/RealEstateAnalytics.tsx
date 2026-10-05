@@ -15,7 +15,6 @@ import {
 import { THEME } from "../../utils/constants";
 import { fmtINRFull } from "../../utils/finance";
 import { Card } from "../ui/Card";
-import { Money } from "../ui/Money";
 import {
   RealEstateProperty,
   TYPE_LABELS,

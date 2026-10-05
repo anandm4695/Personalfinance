@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Users, User, AlertCircle, CheckCircle2, TrendingUp, Landmark, Info } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { today, fmtINRFull, getEffectiveRent } from "../../utils/finance";
+import { today, getEffectiveRent } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Money } from "../ui/Money";

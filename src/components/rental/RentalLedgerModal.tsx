@@ -5,8 +5,6 @@ import {
 } from "../ui/Modal";
 import { THEME } from "../../utils/constants";
 import {
-  fmtINRFull,
-  fmtINRExact,
   today,
 } from "../../utils/finance";
 import {
@@ -19,15 +17,10 @@ import {
   Pencil,
   Trash2,
   AlertCircle,
-  CheckCircle2,
-  Calendar,
-  User,
   Copy,
   Check,
   Building2,
-  DollarSign,
   ArrowDownRight,
-  ArrowUpRight,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";

@@ -10,7 +10,6 @@ import {
   Table as TableIcon,
   Milestone,
   PieChart as PieChartIcon,
-  Building,
   Layers,
   Sparkles,
 } from "lucide-react";

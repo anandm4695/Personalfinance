@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Calendar,
   CreditCard,
@@ -30,7 +30,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { fmtINR, fmtINRFull, fmtINRExact, today, getCCDueDate, uid, annualizePremium } from "../../utils/finance";
+import { fmtINR, fmtINRFull, fmtINRExact, today, uid } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
@@ -42,7 +42,6 @@ import { Money } from "../ui/Money";
 // Reuses BillPaymentTab's exact "is this bill paid for its current cycle" formula
 // (cross-referenced against billPaymentHistory) instead of re-deriving a second,
 // inevitably-divergent version of the same logic here. This is the same shared
-import { dueStatus } from "../../utils/dueStatus";
 import { useRecurringPayments } from "../../hooks/useFinancialEvents";
 
 const MONTH_NAMES = [

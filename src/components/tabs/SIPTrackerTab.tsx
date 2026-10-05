@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Activity,
   Repeat,
@@ -19,32 +19,19 @@ import {
   CalendarDays,
   Table as TableIcon,
   Download,
-  Sliders,
-  Percent,
-  Check,
   Building2,
-  Wallet,
   Target,
-  ArrowUpRight,
-  ShieldCheck,
   PieChart as PieChartIcon,
   Copy,
   Printer,
-  ChevronRight,
   Flame,
-  Calendar,
-  Layers,
-  ArrowRight,
-  Info,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
   fmtINRFull,
-  fmtINRExact,
   today,
   monthsBetween,
   getLocalDateString,
-  uid,
 } from "../../utils/finance";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -54,7 +41,6 @@ import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
-import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
@@ -64,17 +50,12 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   Tooltip,
   Legend,
-  Cell,
-  PieChart,
-  Pie,
 } from "recharts";
-import { MFLogo, BankLogo, BrokerLogo } from "../ui/BrandLogos";
+import { MFLogo } from "../ui/BrandLogos";
 
 const BROKERS = [
   "Zerodha (Coin)",

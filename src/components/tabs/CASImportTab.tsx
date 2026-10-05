@@ -1,11 +1,10 @@
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Upload,
   UploadCloud,
   FileText,
   CheckCircle,
   AlertTriangle,
-  AlertCircle,
   TrendingUp,
   Briefcase,
   IndianRupee,
@@ -14,23 +13,15 @@ import {
   ShieldCheck,
   Download,
   Sparkles,
-  Layers,
-  ArrowRight,
   ArrowUpRight,
   Check,
   X,
   Edit3,
   HelpCircle,
-  ExternalLink,
   PieChart,
-  ChevronDown,
-  ChevronUp,
   Copy,
-  SlidersHorizontal,
   Building2,
-  Calendar,
   CheckSquare,
-  Square,
   Lightbulb,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";

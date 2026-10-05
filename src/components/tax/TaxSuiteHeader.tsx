@@ -5,7 +5,6 @@ import {
   TrendingUp,
   Award,
   FileCheck,
-  ChevronRight,
   Sparkles,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";

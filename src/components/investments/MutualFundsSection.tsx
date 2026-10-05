@@ -13,36 +13,22 @@ import {
   Upload,
   Search,
   ChevronDown,
-  ChevronUp,
   IndianRupee,
-  Calendar,
-  Layers,
   Sparkles,
-  SlidersHorizontal,
   FileSpreadsheet,
   ArrowDownRight,
-  ArrowUpRight,
   ShieldCheck,
   Zap,
   CheckCircle2,
   AlertTriangle,
-  Info,
   Clock,
-  ExternalLink,
   Lock,
   Unlock,
   Coins,
   Receipt,
-  Tag,
-  Filter,
-  Check,
-  Copy,
-  Percent,
   Calculator,
   Grid,
   List,
-  Flame,
-  ArrowRight,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -57,10 +43,8 @@ import {
   AreaChart,
   Area,
   CartesianGrid,
-  Legend,
 } from "recharts";
 import { THEME, PIE_COLORS } from "../../utils/constants";
-import { getCurrentFY } from "../../utils/appConstants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Money } from "../ui/Money";
 import {
@@ -72,7 +56,6 @@ import {
   exportArrayToCSV,
   uid,
 } from "../../utils/finance";
-import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Card } from "../ui/Card";
@@ -155,9 +138,9 @@ const inputStyle: React.CSSProperties = {
 export interface MutualFundsSectionProps {
   items: any[];
   mfSells?: any[];
-  addItem: (collection: string, item: any) => Promise<any>;
-  removeItem: (collection: string, id: string) => Promise<any>;
-  updateItem: (collection: string, id: string, patch: any) => Promise<any>;
+  addItem: (collection: string, item: any) => Promise<any> | void;
+  removeItem: (collection: string, id: string) => Promise<any> | void;
+  updateItem: (collection: string, id: string, patch: any) => Promise<any> | void;
   onAdd?: () => void;
   activeProfile?: string;
   mfMarketData?: Record<string, any>;

@@ -1,15 +1,9 @@
 import React, { useState, useMemo } from "react";
 import {
-  Milestone,
   Calendar,
-  AlertTriangle,
-  CheckCircle2,
   Clock,
   Building2,
   Receipt,
-  Plus,
-  ArrowRight,
-  Filter,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { Money } from "../ui/Money";

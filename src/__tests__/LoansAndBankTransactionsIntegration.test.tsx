@@ -1,5 +1,4 @@
 import { describe, it, expect, vi } from "vitest";
-import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { InformalPersonModal } from "../components/credit/InformalPersonModal";
 import { LoanTakenModal } from "../components/credit/LoanTakenModal";

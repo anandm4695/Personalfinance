@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Coins,
   Plus,
@@ -6,44 +6,22 @@ import {
   Trash2,
   TrendingUp,
   IndianRupee,
-  Calendar,
   Award,
-  RefreshCw,
   Download,
-  ArrowUpDown,
   Search,
   LayoutGrid,
   Table as TableIcon,
-  Sparkles,
   ShieldCheck,
   Zap,
-  Sliders,
-  Clock,
-  Flame,
   Landmark,
   BarChart3,
   PieChart as PieChartIcon,
-  Filter,
-  Layers,
   Lock,
   Scale,
-  HelpCircle,
-  CheckCircle2,
-  AlertCircle,
-  Info,
-  ChevronRight,
-  Gem,
-  ArrowUpRight,
-  Check,
-  Shield,
   Calculator,
-  FileSpreadsheet,
   Building2,
   CalendarClock,
   BadgePercent,
-  SlidersHorizontal,
-  Milestone,
-  BookOpen,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -56,7 +34,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Legend,
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { useMasterData } from "../../utils/masterData";

@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 import React, { useState, useMemo } from "react";
 import {
   BarChart3,
@@ -45,6 +45,7 @@ import {
   exportArrayToCSV,
 } from "../../utils/finance";
 import { INDEX_BENCHMARKS, OTHER_BENCHMARKS, BENCHMARK_DATA_ASOF } from "../../utils/benchmarkData";
+import { flattenAssets } from "../../utils/nomineeTracker";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Prv } from "../../context/PrivacyContext";
@@ -242,10 +243,19 @@ export const PerformanceBenchmarkTab: React.FC<{
 }> = ({ state, metrics = {}, marketData = {} }) => {
   const [period, setPeriod] = useState<"1y" | "3y" | "5y" | "10y">("1y");
   const [activeTab, setActiveTab] = useState<
-    "macro" | "attribution" | "simulator" | "health" | "custom"
+    "macro" | "attribution" | "simulator" | "health" | "stresstest" | "custom"
   >("macro");
   const [matrixSearch, setMatrixSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  // Stress Test Lab State
+  const [stressScenario, setStressScenario] = useState<
+    "gfc2008" | "covid2020" | "stagflation" | "bear3yr" | "incomeloss" | "custom"
+  >("gfc2008");
+  const [shockEquity, setShockEquity] = useState<number>(-50);
+  const [shockDebt, setShockDebt] = useState<number>(6);
+  const [shockGold, setShockGold] = useState<number>(28);
+  const [shockRealEstate, setShockRealEstate] = useState<number>(-20);
 
   // Custom Target Benchmark Builder Weights
   const [customWeights, setCustomWeights] = useState({
@@ -576,9 +586,64 @@ export const PerformanceBenchmarkTab: React.FC<{
     return list.filter((a) => a.current > 0 || a.yours !== 0);
   }, [portfolioReturns, periodKey]);
 
-  // Financial Health Radar
+  // Financial Health Radar & CFO Audit Suite
   const fdReferenceRate =
-    portfolioReturns.fd.rate > 0 ? portfolioReturns.fd.rate : BENCHMARKS.fdRate.return1Y;
+    portfolioReturns.fd.rate > 0 ? portfolioReturns.fd.rate : OTHER_BENCHMARKS.fdRate["1Y"];
+
+  // Nominee & Estate Audit
+  const nomineeAudit = useMemo(() => {
+    const flat = flattenAssets(state);
+    const covered = flat.filter((f) => f.covered).length;
+    const total = flat.length;
+    const pct = total > 0 ? Math.round((covered / total) * 100) : 100;
+    const uncoveredItems = flat.filter((f) => !f.covered);
+    return { covered, total, pct, uncoveredItems };
+  }, [state]);
+
+  // Insurance Protection Adequacy
+  const insuranceAudit = useMemo(() => {
+    const lifePolicies = (state.insurance || []).filter((i: any) =>
+      (i.type || "").toLowerCase().includes("term") || (i.type || "").toLowerCase().includes("life")
+    );
+    const totalLifeCover = lifePolicies.reduce(
+      (s: number, i: any) => s + (Number(i.sumInsured || i.coverageAmount) || 0),
+      0
+    );
+    const healthPolicies = (state.healthInsurance || []).concat(
+      (state.insurance || []).filter(
+        (i: any) =>
+          (i.type || "").toLowerCase().includes("health") ||
+          (i.type || "").toLowerCase().includes("mediclaim")
+      )
+    );
+    const totalHealthCover = healthPolicies.reduce(
+      (s: number, i: any) => s + (Number(i.sumInsured || i.coverageAmount) || 0),
+      0
+    );
+    const annualExp = (metrics.monthExpense || 0) * 12;
+    const targetLifeCover = annualExp * 10;
+    const lifeScore =
+      targetLifeCover > 0
+        ? Math.min(100, (totalLifeCover / targetLifeCover) * 100)
+        : totalLifeCover > 0
+        ? 100
+        : 50;
+    const healthScoreVal =
+      totalHealthCover >= 1000000
+        ? 100
+        : totalHealthCover >= 500000
+        ? 75
+        : totalHealthCover > 0
+        ? 50
+        : 20;
+    const protectionScore = Math.round((lifeScore + healthScoreVal) / 2);
+    return {
+      totalLifeCover,
+      totalHealthCover,
+      targetLifeCover,
+      protectionScore,
+    };
+  }, [state.insurance, state.healthInsurance, metrics.monthExpense]);
 
   const healthScore = useMemo(() => {
     const savingsRate =
@@ -633,8 +698,20 @@ export const PerformanceBenchmarkTab: React.FC<{
         fullMark: 100,
         tip: "Track your long-term milestones and rebalance periodically.",
       },
+      {
+        metric: "Nominee Safety",
+        score: nomineeAudit.pct,
+        fullMark: 100,
+        tip: "Ensure 100% of your bank accounts, deposits, and demat folios have registered nominees.",
+      },
+      {
+        metric: "Insurance Cover",
+        score: insuranceAudit.protectionScore,
+        fullMark: 100,
+        tip: "Maintain 10x-15x annual expense in term life cover and >=₹10L family health cover.",
+      },
     ];
-  }, [metrics, portfolioReturns, fdReferenceRate]);
+  }, [metrics, portfolioReturns, fdReferenceRate, nomineeAudit.pct, insuranceAudit.protectionScore]);
 
   const overallScore = Math.round(
     healthScore.reduce((s, h) => s + h.score, 0) / healthScore.length
@@ -941,6 +1018,12 @@ export const PerformanceBenchmarkTab: React.FC<{
             label: "Financial Health Radar",
             icon: Target,
             desc: "6-factor resilience radar",
+          },
+          {
+            id: "stresstest",
+            label: "Crash & Stress Test Lab",
+            icon: AlertTriangle,
+            desc: "Crisis & macro shock simulator",
           },
           {
             id: "custom",
@@ -2005,7 +2088,7 @@ export const PerformanceBenchmarkTab: React.FC<{
                     letterSpacing: "-0.015em",
                   }}
                 >
-                  Score Breakdown & Optimization
+                  8-Pillar Score Breakdown & Diagnostics
                 </h3>
                 <div style={{ fontSize: 12, color: THEME.muted }}>
                   Detailed health metrics and actionable recommendations
@@ -2071,10 +2154,511 @@ export const PerformanceBenchmarkTab: React.FC<{
               </div>
             </Card>
           </div>
+
+          {/* CFO EXECUTIVE AUDIT COMMAND TILES */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+            <Card style={{ padding: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>🛡️ Nominee Audit</span>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: nomineeAudit.pct === 100 ? "color-mix(in srgb, var(--t-sage) 15%, transparent)" : "color-mix(in srgb, var(--t-rust) 15%, transparent)", color: nomineeAudit.pct === 100 ? THEME.sage : THEME.rust }}>
+                  {nomineeAudit.pct}% Safe
+                </span>
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
+                {nomineeAudit.covered} / {nomineeAudit.total} <span style={{ fontSize: 12, fontWeight: 500, color: THEME.muted }}>Assets</span>
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+                {nomineeAudit.uncoveredItems.length > 0 ? `⚠️ ${nomineeAudit.uncoveredItems.length} accounts missing registered nominee` : "✅ 100% nominee coverage across all accounts"}
+              </div>
+            </Card>
+
+            <Card style={{ padding: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>🚑 Protection Cover</span>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: insuranceAudit.protectionScore >= 70 ? "color-mix(in srgb, var(--t-sage) 15%, transparent)" : "color-mix(in srgb, var(--t-gold) 15%, transparent)", color: insuranceAudit.protectionScore >= 70 ? THEME.sage : THEME.gold }}>
+                  {insuranceAudit.protectionScore >= 70 ? "Adequate" : "Attention"}
+                </span>
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
+                <Prv>{fmtINRFull(insuranceAudit.totalLifeCover)}</Prv> <span style={{ fontSize: 12, fontWeight: 500, color: THEME.muted }}>Life</span>
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+                Health cover: <Prv>{fmtINRFull(insuranceAudit.totalHealthCover)}</Prv> (Target: 10x-15x expense)
+              </div>
+            </Card>
+
+            <Card style={{ padding: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>🏦 Cash Runway</span>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: (metrics.emergencyFund?.monthsCovered || 0) >= 6 ? "color-mix(in srgb, var(--t-sage) 15%, transparent)" : "color-mix(in srgb, var(--t-rust) 15%, transparent)", color: (metrics.emergencyFund?.monthsCovered || 0) >= 6 ? THEME.sage : THEME.rust }}>
+                  {(metrics.emergencyFund?.monthsCovered || 0) >= 6 ? "Resilient" : "Low Buffer"}
+                </span>
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
+                {(metrics.emergencyFund?.monthsCovered || 0).toFixed(1)} <span style={{ fontSize: 12, fontWeight: 500, color: THEME.muted }}>Months</span>
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+                Liquid buffer against income stoppage (Standard: 6–12 months)
+              </div>
+            </Card>
+
+            <Card style={{ padding: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>💳 Debt Service Ratio</span>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: (metrics.debtToAssetRatio || 0) <= 30 ? "color-mix(in srgb, var(--t-sage) 15%, transparent)" : "color-mix(in srgb, var(--t-rust) 15%, transparent)", color: (metrics.debtToAssetRatio || 0) <= 30 ? THEME.sage : THEME.rust }}>
+                  {(metrics.debtToAssetRatio || 0) <= 30 ? "Low Risk" : "Elevated"}
+                </span>
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
+                {(metrics.debtToAssetRatio || 0).toFixed(1)}% <span style={{ fontSize: 12, fontWeight: 500, color: THEME.muted }}>DSR</span>
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4 }}>
+                Total liabilities as percentage of total assets
+              </div>
+            </Card>
+          </div>
+
+          {/* CFO STRATEGIC ACTION ROADMAP */}
+          <Card style={{ padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <Sparkles size={20} color="var(--accent)" />
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: THEME.ink }}>
+                CFO Audit & Strategic Wealth Roadmap
+              </h3>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {nomineeAudit.uncoveredItems.length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 10, background: "color-mix(in srgb, var(--t-rust) 8%, var(--surface-0))", border: `1px solid ${THEME.rust}` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <AlertTriangle size={16} color={THEME.rust} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                      Estate Safety: Assign nominees to {nomineeAudit.uncoveredItems.length} accounts to prevent legal probate hurdles.
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: THEME.rust, padding: "2px 8px", borderRadius: 4, background: "color-mix(in srgb, var(--t-rust) 15%, transparent)" }}>High Priority</span>
+                </div>
+              )}
+              {(metrics.emergencyFund?.monthsCovered || 0) < 6 && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 10, background: "color-mix(in srgb, var(--t-gold) 8%, var(--surface-0))", border: `1px solid ${THEME.gold}` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <AlertTriangle size={16} color={THEME.gold} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                      Liquidity Buffer: Increase liquid savings from {(metrics.emergencyFund?.monthsCovered || 0).toFixed(1)} months to at least 6 months.
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: THEME.gold, padding: "2px 8px", borderRadius: 4, background: "color-mix(in srgb, var(--t-gold) 15%, transparent)" }}>Medium Priority</span>
+                </div>
+              )}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 10, background: "color-mix(in srgb, var(--t-sage) 8%, var(--surface-0))", border: `1px solid ${THEME.sage}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <CheckCircle2 size={16} color={THEME.sage} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                    Quarterly Advance Tax: Verify Section 208/234C compliance under Tax Tools before every installment deadline.
+                  </span>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 800, color: THEME.sage, padding: "2px 8px", borderRadius: 4, background: "color-mix(in srgb, var(--t-sage) 15%, transparent)" }}>Compliance</span>
+              </div>
+            </div>
+          </Card>
         </div>
       )}
 
-      {/* SUB-VIEW 5: CUSTOM TARGET BENCHMARK BUILDER */}
+      {/* SUB-VIEW 5: CRASH & MACRO STRESS-TEST LAB */}
+      {activeTab === "stresstest" && (() => {
+        const equityPre = portfolioReturns.equity.current + portfolioReturns.mf.current;
+        const debtPre =
+          portfolioReturns.fd.value +
+          portfolioReturns.bonds.current +
+          portfolioReturns.ppf.value +
+          portfolioReturns.epf.value +
+          portfolioReturns.nps.value;
+        const goldPre = portfolioReturns.gold.value;
+        const rePre = portfolioReturns.realEstate.value;
+        const cashPre = portfolioReturns.cash.value;
+        const totalPre = equityPre + debtPre + goldPre + rePre + cashPre;
+
+        const equityPost = equityPre * (1 + shockEquity / 100);
+        const debtPost = debtPre * (1 + shockDebt / 100);
+        const goldPost = goldPre * (1 + shockGold / 100);
+        const rePost = rePre * (1 + shockRealEstate / 100);
+        const cashPost = cashPre; // Cash nominal value holds
+        const totalPost = Math.max(0, equityPost + debtPost + goldPost + rePost + cashPost);
+
+        const netLoss = totalPre - totalPost;
+        const netLossPct = totalPre > 0 ? (netLoss / totalPre) * 100 : 0;
+
+        const monthlyExpenses = metrics.emergencyFund?.monthlyExpenses || 50000;
+        const liquidPost = cashPost + (portfolioReturns.fd.value * Math.max(0, 1 + shockDebt / 100));
+        const postRunwayMonths = monthlyExpenses > 0 ? liquidPost / monthlyExpenses : 0;
+
+        const recoveryYears =
+          totalPost > 0 && totalPre > totalPost
+            ? Math.log(totalPre / totalPost) / Math.log(1.12)
+            : 0;
+
+        const presets = [
+          {
+            id: "gfc2008",
+            label: "2008 GFC Subprime Crash",
+            desc: "Equity -50%, Debt +6%, Gold +28%, RE -20%",
+            shocks: { equity: -50, debt: 6, gold: 28, re: -20 },
+          },
+          {
+            id: "covid2020",
+            label: "2020 Covid Flash Shock",
+            desc: "Equity -38%, Debt +4%, Gold +32%, RE -10%",
+            shocks: { equity: -38, debt: 4, gold: 32, re: -10 },
+          },
+          {
+            id: "stagflation",
+            label: "Stagflation & Rate Spike",
+            desc: "Equity -22%, Debt -12%, Gold +45%, RE +8%",
+            shocks: { equity: -22, debt: -12, gold: 45, re: 8 },
+          },
+          {
+            id: "bear3yr",
+            label: "3-Year Grinding Bear Market",
+            desc: "Equity -35%, Debt +7%, Gold +15%, RE -5%",
+            shocks: { equity: -35, debt: 7, gold: 15, re: -5 },
+          },
+          {
+            id: "incomeloss",
+            label: "12-Month Job Loss Shock",
+            desc: "Equity -10%, Debt -5%, Gold 0%, RE 0%",
+            shocks: { equity: -10, debt: -5, gold: 0, re: 0 },
+          },
+        ];
+
+        const comparisonChartData = [
+          {
+            name: "Equity",
+            "Pre-Shock (₹)": Math.round(equityPre),
+            "Post-Shock (₹)": Math.round(equityPost),
+          },
+          {
+            name: "Debt & Fixed Inc",
+            "Pre-Shock (₹)": Math.round(debtPre),
+            "Post-Shock (₹)": Math.round(debtPost),
+          },
+          {
+            name: "Gold & SGB",
+            "Pre-Shock (₹)": Math.round(goldPre),
+            "Post-Shock (₹)": Math.round(goldPost),
+          },
+          {
+            name: "Real Estate",
+            "Pre-Shock (₹)": Math.round(rePre),
+            "Post-Shock (₹)": Math.round(rePost),
+          },
+          {
+            name: "Cash & Liquid",
+            "Pre-Shock (₹)": Math.round(cashPre),
+            "Post-Shock (₹)": Math.round(cashPost),
+          },
+        ].filter((d) => d["Pre-Shock (₹)"] > 0 || d["Post-Shock (₹)"] > 0);
+
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {/* Executive Shock Preset Bar */}
+            <Card style={{ padding: 22 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+                    <AlertTriangle size={18} color="var(--t-rust)" />
+                    Crisis Stress-Test & Black Swan Simulator
+                  </h3>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
+                    Simulate extreme macro dislocations, market crashes, and stagflationary shocks to test portfolio resilience and liquid survival runway.
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 8, background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>
+                  Dynamic Scenario Engine
+                </div>
+              </div>
+
+              {/* Scenario Preset Buttons */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 20 }}>
+                {presets.map((p) => {
+                  const active = stressScenario === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setStressScenario(p.id as any);
+                        setShockEquity(p.shocks.equity);
+                        setShockDebt(p.shocks.debt);
+                        setShockGold(p.shocks.gold);
+                        setShockRealEstate(p.shocks.re);
+                      }}
+                      className="card-lift"
+                      style={{
+                        padding: "12px 14px",
+                        borderRadius: 12,
+                        textAlign: "left",
+                        background: active
+                          ? "color-mix(in srgb, var(--t-rust) 12%, var(--surface-0))"
+                          : "var(--surface-0)",
+                        border: `1.5px solid ${active ? "var(--t-rust)" : THEME.line}`,
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <div style={{ fontSize: 12, fontWeight: 800, color: active ? "var(--t-rust)" : THEME.ink, marginBottom: 4 }}>
+                        {p.label}
+                      </div>
+                      <div style={{ fontSize: 10, color: THEME.muted, lineHeight: 1.3 }}>
+                        {p.desc}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Interactive Shock Sliders */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, background: "var(--surface-1)", padding: 16, borderRadius: 14, border: `1px solid ${THEME.line}` }}>
+                {/* Equity Slider */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+                    <span style={{ color: THEME.ink }}>Equities & Equity MFs</span>
+                    <span style={{ color: shockEquity < 0 ? "var(--t-rust)" : "var(--t-sage)" }}>
+                      {shockEquity > 0 ? `+${shockEquity}%` : `${shockEquity}%`}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-80}
+                    max={50}
+                    step={1}
+                    value={shockEquity}
+                    onChange={(e) => {
+                      setShockEquity(Number(e.target.value));
+                      setStressScenario("custom");
+                    }}
+                    style={{ width: "100%", accentColor: shockEquity < 0 ? "var(--t-rust)" : "var(--t-sage)" }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, marginTop: 2 }}>
+                    <span>-80%</span>
+                    <span>0%</span>
+                    <span>+50%</span>
+                  </div>
+                </div>
+
+                {/* Debt Slider */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+                    <span style={{ color: THEME.ink }}>Debt & Fixed Income</span>
+                    <span style={{ color: shockDebt < 0 ? "var(--t-rust)" : "var(--t-sage)" }}>
+                      {shockDebt > 0 ? `+${shockDebt}%` : `${shockDebt}%`}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-30}
+                    max={30}
+                    step={1}
+                    value={shockDebt}
+                    onChange={(e) => {
+                      setShockDebt(Number(e.target.value));
+                      setStressScenario("custom");
+                    }}
+                    style={{ width: "100%", accentColor: shockDebt < 0 ? "var(--t-rust)" : "var(--t-sage)" }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, marginTop: 2 }}>
+                    <span>-30%</span>
+                    <span>0%</span>
+                    <span>+30%</span>
+                  </div>
+                </div>
+
+                {/* Gold Slider */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+                    <span style={{ color: THEME.ink }}>Gold & Precious Metals</span>
+                    <span style={{ color: shockGold < 0 ? "var(--t-rust)" : "var(--t-gold)" }}>
+                      {shockGold > 0 ? `+${shockGold}%` : `${shockGold}%`}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-40}
+                    max={80}
+                    step={1}
+                    value={shockGold}
+                    onChange={(e) => {
+                      setShockGold(Number(e.target.value));
+                      setStressScenario("custom");
+                    }}
+                    style={{ width: "100%", accentColor: "var(--t-gold)" }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, marginTop: 2 }}>
+                    <span>-40%</span>
+                    <span>0%</span>
+                    <span>+80%</span>
+                  </div>
+                </div>
+
+                {/* Real Estate Slider */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+                    <span style={{ color: THEME.ink }}>Real Estate</span>
+                    <span style={{ color: shockRealEstate < 0 ? "var(--t-rust)" : "var(--t-sage)" }}>
+                      {shockRealEstate > 0 ? `+${shockRealEstate}%` : `${shockRealEstate}%`}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-50}
+                    max={50}
+                    step={1}
+                    value={shockRealEstate}
+                    onChange={(e) => {
+                      setShockRealEstate(Number(e.target.value));
+                      setStressScenario("custom");
+                    }}
+                    style={{ width: "100%", accentColor: shockRealEstate < 0 ? "var(--t-rust)" : "var(--t-sage)" }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: THEME.muted, marginTop: 2 }}>
+                    <span>-50%</span>
+                    <span>0%</span>
+                    <span>+50%</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Shock Impact Stat Tiles */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+              {/* Pre vs Post Total Net Worth */}
+              <Card style={{ padding: 18 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                  Pre-Crash Net Worth
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: THEME.ink, fontFamily: "var(--font-mono)" }}>
+                  <Prv>{fmtINRFull(totalPre)}</Prv>
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+                  Baseline nominal asset value
+                </div>
+              </Card>
+
+              <Card style={{ padding: 18, border: `1.5px solid ${netLoss > 0 ? "var(--t-rust)" : "var(--t-sage)"}` }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                  Post-Shock Net Worth
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: netLoss > 0 ? "var(--t-rust)" : "var(--t-sage)", fontFamily: "var(--font-mono)" }}>
+                  <Prv>{fmtINRFull(totalPost)}</Prv>
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: netLoss > 0 ? "var(--t-rust)" : "var(--t-sage)", marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                  {netLoss > 0 ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+                  <span>{netLoss > 0 ? `Drawdown: -₹${fmtINRFull(netLoss)} (-${netLossPct.toFixed(1)}%)` : `Gain: +₹${fmtINRFull(Math.abs(netLoss))} (+${Math.abs(netLossPct).toFixed(1)}%)`}</span>
+                </div>
+              </Card>
+
+              {/* Post-Shock Survival Runway */}
+              <Card style={{ padding: 18 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                  Post-Crash Liquid Runway
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: postRunwayMonths >= 12 ? "var(--t-sage)" : postRunwayMonths >= 6 ? "var(--t-gold)" : "var(--t-rust)", fontFamily: "var(--font-mono)" }}>
+                  {postRunwayMonths.toFixed(1)} Months
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+                  Liquid cash + FDs (<Prv>{fmtINRFull(liquidPost)}</Prv>) vs monthly burn (<Prv>{fmtINRFull(monthlyExpenses)}</Prv>)
+                </div>
+              </Card>
+
+              {/* Est. Recovery Time */}
+              <Card style={{ padding: 18 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                  Est. Recovery Time
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: recoveryYears > 3 ? "var(--t-rust)" : recoveryYears > 1 ? "var(--t-gold)" : "var(--t-sage)", fontFamily: "var(--font-mono)" }}>
+                  {netLoss <= 0 ? "0 Months" : recoveryYears >= 1 ? `${recoveryYears.toFixed(1)} Years` : `${Math.round(recoveryYears * 12)} Months`}
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+                  Time to reclaim pre-crash peak @ 12% p.a. recovery
+                </div>
+              </Card>
+            </div>
+
+            {/* Before vs After Asset Breakdown Chart */}
+            <Card style={{ padding: 22 }}>
+              <SectionTitle sub="Side-by-side asset valuation across asset classes under simulated shock conditions">
+                Pre-Shock vs Post-Shock Asset Distribution
+              </SectionTitle>
+              <div style={{ width: "100%", height: 320, marginTop: 16 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={comparisonChartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} vertical={false} />
+                    <XAxis dataKey="name" stroke={THEME.muted} tick={{ fontSize: 12, fill: THEME.muted }} />
+                    <YAxis
+                      stroke={THEME.muted}
+                      tick={{ fontSize: 11, fill: THEME.muted }}
+                      tickFormatter={(v) => `₹${(v / 100000).toFixed(0)}L`}
+                    />
+                    <Tooltip
+                      formatter={(val: any) => [`₹${fmtINRFull(Number(val))}`, ""]}
+                      contentStyle={{
+                        background: "var(--surface-0)",
+                        border: `1px solid ${THEME.line}`,
+                        borderRadius: 10,
+                        color: THEME.ink,
+                        fontSize: 12,
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
+                    <Bar dataKey="Pre-Shock (₹)" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Post-Shock (₹)" fill={netLoss > 0 ? "var(--t-rust)" : "var(--t-sage)"} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+
+            {/* Strategic Stress-Test Audit & Playbook */}
+            <Card style={{ padding: 22 }}>
+              <h4 style={{ margin: "0 0 14px 0", fontSize: 15, fontWeight: 800, color: THEME.ink, display: "flex", alignItems: "center", gap: 8 }}>
+                <Shield size={18} color="var(--accent)" />
+                CFO Stress-Test Audit & Crisis Defense Playbook
+              </h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {postRunwayMonths < 6 && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 10, background: "color-mix(in srgb, var(--t-rust) 8%, var(--surface-0))", border: `1px solid ${THEME.rust}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <AlertTriangle size={16} color={THEME.rust} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                        Critical Liquidity Vulnerability: Liquid runway drops to {postRunwayMonths.toFixed(1)} months during crisis. Allocate at least 6-12 months expenses into high-yield sweep FDs or liquid funds immediately.
+                      </span>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: THEME.rust, padding: "2px 8px", borderRadius: 4, background: "color-mix(in srgb, var(--t-rust) 15%, transparent)" }}>High Vulnerability</span>
+                  </div>
+                )}
+                {equityPre / (totalPre || 1) > 0.65 && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 10, background: "color-mix(in srgb, var(--t-gold) 8%, var(--surface-0))", border: `1px solid ${THEME.gold}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <AlertTriangle size={16} color={THEME.gold} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                        High Equity Drawdown Exposure: Equity allocation is {((equityPre / (totalPre || 1)) * 100).toFixed(0)}% of total net worth. Consider building a 10-15% sovereign gold (SGB) and short-duration debt hedge to soften major market corrections.
+                      </span>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: THEME.gold, padding: "2px 8px", borderRadius: 4, background: "color-mix(in srgb, var(--t-gold) 15%, transparent)" }}>Hedging Alert</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 10, background: "color-mix(in srgb, var(--t-sage) 8%, var(--surface-0))", border: `1px solid ${THEME.sage}` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <CheckCircle2 size={16} color={THEME.sage} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                      Automatic Rebalancing Protocol: Under severe equity pullbacks (-35% or more), deploy dry powder from debt/liquid assets to acquire undervalued equity indices systematically.
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: THEME.sage, padding: "2px 8px", borderRadius: 4, background: "color-mix(in srgb, var(--t-sage) 15%, transparent)" }}>Tactical Rule</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+        );
+      })()}
+
+      {/* SUB-VIEW 6: CUSTOM TARGET BENCHMARK BUILDER */}
       {activeTab === "custom" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <Card style={{ padding: 24 }}>

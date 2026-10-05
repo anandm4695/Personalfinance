@@ -8,8 +8,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Users,
-  Calendar,
-  ClipboardList,
   ChevronDown,
   ChevronUp,
   X,
@@ -17,11 +15,7 @@ import {
   Clock,
   AlertTriangle,
   HeartPulse,
-  Activity,
   Hospital,
-  Building2,
-  Sparkles,
-  TrendingUp,
   Search,
   LayoutGrid,
   Table as TableIcon,
@@ -30,20 +24,12 @@ import {
   Copy,
   Check,
   Printer,
-  Download,
-  Filter,
-  ArrowRight,
-  ShieldAlert,
   UserCheck,
-  RefreshCw,
-  PhoneCall,
   SlidersHorizontal,
-  ExternalLink,
-  Layers,
   FileSpreadsheet,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { useMasterData, formatProfileOption, calculateAge, formatAge } from "../../utils/masterData";
+import { useMasterData, formatProfileOption, calculateAge } from "../../utils/masterData";
 import { fmtINRFull, uid, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";

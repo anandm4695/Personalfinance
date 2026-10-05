@@ -620,7 +620,17 @@ export const RebalancingTab: React.FC<RebalancingTabProps> = ({ state, metrics, 
   }, [newMoneyAmount, allocation, target]);
 
   // ── Multi-Strategy 3: Systematic SIP Rebalancer ──
-  const sipPlan = useMemo(() => {
+  const sipPlan = useMemo<
+    Array<{
+      name: string;
+      color: string;
+      amount: number;
+      sharePct: number;
+      monthsToRebalance?: number;
+      currentPct?: number;
+      targetPct?: number;
+    }>
+  >(() => {
     const sip = Number(monthlySipAmount) || 0;
     if (!sip || !allocation.total) return [];
 

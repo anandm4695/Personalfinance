@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { GoldSGBTab } from "../components/tabs/GoldSGBTab";
 import { PrivacyProvider } from "../context/PrivacyContext";

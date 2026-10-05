@@ -1,15 +1,12 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Repeat,
   TrendingUp,
   Activity,
   Calendar,
   Layers,
-  Shield,
   ShieldCheck,
-  ShieldAlert,
   BarChart3,
-  PieChart as PieIcon,
   Search,
   Plus,
   Pencil,
@@ -17,28 +14,16 @@ import {
   RefreshCw,
   Clock,
   Download,
-  AlertTriangle,
-  Info,
-  CheckCircle2,
   Copy,
   Check,
-  ChevronDown,
-  ChevronUp,
   Percent,
   IndianRupee,
   Sparkles,
-  ArrowUpRight,
-  User,
   Calculator,
   Building,
-  SlidersHorizontal,
   FileSpreadsheet,
   Zap,
   Target,
-  ArrowDownRight,
-  HelpCircle,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -54,7 +39,7 @@ import {
   Area,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { useMasterData, formatProfileOption } from "../../utils/masterData";
+import { useMasterData } from "../../utils/masterData";
 import { Money } from "../ui/Money";
 import {
   fmtINRFull,
@@ -64,7 +49,6 @@ import {
   addMonthsToDateStr,
   exportArrayToCSV,
 } from "../../utils/finance";
-import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";

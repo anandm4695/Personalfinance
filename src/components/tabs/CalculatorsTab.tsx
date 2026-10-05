@@ -35,9 +35,6 @@ import {
   Zap,
   RotateCcw,
   X,
-  Layers,
-  Filter,
-  SlidersHorizontal,
 } from "lucide-react";
 import {
   AreaChart,

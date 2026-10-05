@@ -1,4 +1,3 @@
-import React from "react";
 import { BrandMark } from "../ui/BrandMark";
 
 export function LoadingScreen() {

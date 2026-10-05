@@ -1,12 +1,10 @@
 import { describe, it, expect } from "vitest";
-import React from "react";
 import { renderToString } from "react-dom/server";
 import {
   PPFSection,
   calculatePPFMaturityDate,
   getPPFElapsedYears,
   getFinancialYear,
-  getCurrentFinancialYear,
   getFinancialYearDates,
   PPFItem,
 } from "../components/investments/PPFSection";

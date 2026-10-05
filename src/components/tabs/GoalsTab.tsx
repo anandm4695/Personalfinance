@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import {
@@ -20,9 +20,7 @@ import {
   CheckCircle2,
   Sparkles,
   TrendingUp,
-  Sliders,
   Clock,
-  ArrowUpDown,
   Zap,
   Home,
   Car,
@@ -30,26 +28,20 @@ import {
   Shield,
   Plane,
   Heart,
-  Briefcase,
   Palmtree,
-  Calculator,
-  Layers,
   ChevronDown,
   ChevronUp,
-  X,
   User,
   Compass,
-  Award,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, today, monthsBetween } from "../../utils/finance";
 import { Money } from "../ui/Money";
 import { ConfirmDialog } from "../ui/Feedback";
-import { GoalModal, Goal } from "../modals/GoalModal";
+import { GoalModal } from "../modals/GoalModal";
 import { SectionTitle } from "../ui/SectionTitle";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { Modal } from "../ui/Modal";

@@ -12,46 +12,31 @@ import {
   Clock,
   IndianRupee,
   TrendingDown,
-  TrendingUp,
   FileText,
   User,
   Calendar,
-  Coins,
   Shield,
   Activity,
   Hash,
   Gauge,
   Milestone,
   Search,
-  Settings,
-  Lightbulb,
-  Building2,
   BarChart3,
   Download,
   Calculator,
   SlidersHorizontal,
-  Layers,
   Table,
-  Filter,
   Sparkles,
   ArrowUpRight,
-  Check,
   Fuel,
   Zap,
-  ExternalLink,
   Eye,
-  RefreshCw,
   Cog,
-  Camera,
-  Palette,
   ShieldCheck,
   Award,
   Landmark,
   CheckCircle2,
-  Info,
   X,
-  BadgePercent,
-  Flame,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -65,16 +50,11 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
-  CartesianGrid,
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import {
-  fmtINR,
   fmtINRFull,
-  fmtINRExact,
-  maskCurrencyInText,
   today as todayFn,
 } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
@@ -91,11 +71,8 @@ import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import {
   VehicleLogo,
-  VehicleMakeLogo as BrandVehicleMakeLogo,
   InsurerLogo,
-  BankLogo,
   ServiceLogo,
-  BrandLogo,
 } from "../ui/BrandLogos";
 
 // ─────────────────────────────────────────────────────────────────────────────

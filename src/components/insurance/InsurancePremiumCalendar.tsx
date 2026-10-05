@@ -1,19 +1,10 @@
 import React from "react";
 import {
-  Calendar,
   Clock,
-  AlertTriangle,
-  CheckCircle2,
   TrendingUp,
-  Sparkles,
-  Wallet,
-  ArrowRight,
-  Shield,
-  Zap,
-  Heart,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, fmtINRExact, fmtDate } from "../../utils/finance";
+import { fmtDate } from "../../utils/finance";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Money } from "../ui/Money";

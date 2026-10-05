@@ -145,15 +145,15 @@ export const MFCasPanel: React.FC<MFCasPanelProps> = ({
       const parseDate = (dStr: string) => {
         const m = dStr.match(dateRegex);
         if (!m) return null;
-        let day = m[1].padStart(2, "0");
-        let monthStr = m[2].toLowerCase();
+        const day = m[1].padStart(2, "0");
+        const monthStr = m[2].toLowerCase();
         let year = m[3];
 
         if (year.length === 2) {
           year = "20" + year; // assume 20xx
         }
 
-        let month = MONTHS[monthStr] || monthStr.padStart(2, "0");
+        const month = MONTHS[monthStr] || monthStr.padStart(2, "0");
         return `${year}-${month}-${day}`;
       };
 

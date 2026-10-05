@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { THEME } from "../../utils/constants";
-import { fmtINRFull, uid } from "../../utils/finance";
+import { uid } from "../../utils/finance";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { ConfirmDialog } from "../ui/Feedback";
 import { EmptyState } from "../ui/EmptyState";
-import { Shield, Plus } from "lucide-react";
-import { Button } from "../ui/Button";
+import { Shield } from "lucide-react";
 
 // Sub-components
 import {

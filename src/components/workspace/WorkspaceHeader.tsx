@@ -15,7 +15,6 @@ import {
   ChevronRight,
   Settings,
   Command,
-  Sparkles,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { formatProfileOption } from "../../utils/masterData";

@@ -82,7 +82,7 @@ const WILL_STATUS_OPTIONS = [
 ];
 
 type FilterMode = "all" | "missing" | "covered" | "highValue";
-type ViewMode = "asset" | "table" | "nominee" | "guide";
+type ViewMode = "asset" | "table" | "nominee" | "blueprint" | "guide";
 
 export const NomineeTrackerTab = ({
   state,
@@ -1057,6 +1057,7 @@ export const NomineeTrackerTab = ({
               { id: "asset", label: "By Category", icon: Layers },
               { id: "table", label: "Asset Register", icon: CheckSquare },
               { id: "nominee", label: "By Nominee", icon: Users },
+              { id: "blueprint", label: "Succession Blueprint & Claims Dossier", icon: Award },
               { id: "guide", label: "Succession Guide", icon: BookOpen },
             ].map((v) => {
               const Icon = v.icon;
@@ -1972,7 +1973,363 @@ export const NomineeTrackerTab = ({
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          VIEW MODE 4: SUCCESSION GUIDE & 6-POINT READINESS CHECKLIST
+          VIEW MODE 4: EXECUTIVE SUCCESSION BLUEPRINT & CLAIMS DOSSIER
+          ───────────────────────────────────────────────────────────── */}
+      {viewMode === "blueprint" && (() => {
+        // Compute Nominee Distribution Map
+        const nomineeMap = new Map<
+          string,
+          { name: string; relation: string; totalValue: number; assets: typeof allAssets }
+        >();
+
+        coveredAssets.forEach((a) => {
+          const key = a.nominee.trim().toLowerCase() || "unspecified";
+          const existing = nomineeMap.get(key);
+          if (existing) {
+            existing.totalValue += a.value;
+            existing.assets.push(a);
+          } else {
+            nomineeMap.set(key, {
+              name: a.nominee.trim() || "Unspecified",
+              relation: a.nomineeRelation || "Spouse",
+              totalValue: a.value,
+              assets: [a],
+            });
+          }
+        });
+
+        const nomineeDistribution = Array.from(nomineeMap.values()).sort(
+          (a, b) => b.totalValue - a.totalValue
+        );
+
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {/* Executive Header Banner */}
+            <Card style={{ padding: 24, border: `1.5px solid ${THEME.accent}` }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 16,
+                  marginBottom: 16,
+                }}
+              >
+                <div>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 18,
+                      fontWeight: 900,
+                      color: THEME.ink,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <Award size={22} color={THEME.accent} />
+                    Executive Succession Blueprint & Emergency Survivor Dossier
+                  </h3>
+                  <div style={{ fontSize: 13, color: THEME.muted, marginTop: 4 }}>
+                    Official single-page distribution map, statutory claim roadmaps, and physical asset location registry for your legal heirs.
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => window.print()}
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <Printer size={14} />
+                    <span>Print Dossier</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Top 4 KPI Tiles */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    background: "var(--surface-1)",
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" }}>
+                    Total Estate Valuation
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink, marginTop: 4 }}>
+                    <Money value={totalAssetValue} variant="full" />
+                  </div>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                    Across {totalAssets} total financial & real assets
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    background: "color-mix(in srgb, var(--t-sage) 10%, var(--surface-0))",
+                    border: `1px solid ${THEME.sage}`,
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.sage, textTransform: "uppercase" }}>
+                    Legally Protected Value
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: THEME.sage, marginTop: 4 }}>
+                    <Money value={valueProtected} variant="full" />
+                  </div>
+                  <div style={{ fontSize: 11, color: THEME.sage, marginTop: 2 }}>
+                    {protectedPercent}% with active nominees registered
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    background:
+                      valueAtRisk > 0
+                        ? "color-mix(in srgb, var(--t-rust) 10%, var(--surface-0))"
+                        : "color-mix(in srgb, var(--t-sage) 10%, var(--surface-0))",
+                    border: `1px solid ${valueAtRisk > 0 ? THEME.rust : THEME.sage}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: valueAtRisk > 0 ? THEME.rust : THEME.sage,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Unallocated Estate at Risk
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 20,
+                      fontWeight: 900,
+                      color: valueAtRisk > 0 ? THEME.rust : THEME.sage,
+                      marginTop: 4,
+                    }}
+                  >
+                    <Money value={valueAtRisk} variant="full" />
+                  </div>
+                  <div style={{ fontSize: 11, color: valueAtRisk > 0 ? THEME.rust : THEME.sage, marginTop: 2 }}>
+                    {missingAssets.length} assets without nominee designation
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    background: "var(--surface-1)",
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" }}>
+                    Will & Testament Status
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginTop: 4 }}>
+                    {willDocs.length > 0 ? willDocs[0].status || "Executed" : "No Will on Record"}
+                  </div>
+                  <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                    {willDocs.length > 0
+                      ? `Location: ${willDocs[0].location || "Home Safe / Bank Locker"}`
+                      : "Drafting a formal Will is recommended"}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Legal Heir Allocation Matrix */}
+            <Card style={{ padding: 24 }}>
+              <SectionTitle sub="Summary of estate distribution by legal heir / nominee designation">
+                Legal Heir & Nominee Allocation Summary
+              </SectionTitle>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gap: 16,
+                  marginTop: 16,
+                }}
+              >
+                {nomineeDistribution.map((nom) => {
+                  const sharePct = totalAssetValue > 0 ? (nom.totalValue / totalAssetValue) * 100 : 0;
+                  return (
+                    <div
+                      key={nom.name}
+                      style={{
+                        padding: 16,
+                        borderRadius: 14,
+                        background: "var(--surface-1)",
+                        border: `1px solid ${THEME.line}`,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink }}>
+                            {nom.name}
+                          </div>
+                          <Badge variant="blue" style={{ marginTop: 4, fontSize: 10 }}>
+                            {nom.relation}
+                          </Badge>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 16, fontWeight: 900, color: THEME.ink, fontFamily: "var(--font-mono)" }}>
+                            <Money value={nom.totalValue} variant="full" />
+                          </div>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--accent)" }}>
+                            {sharePct.toFixed(1)}% of Estate
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Share progress bar */}
+                      <div
+                        style={{
+                          height: 6,
+                          width: "100%",
+                          borderRadius: 3,
+                          background: "var(--surface-0)",
+                          overflow: "hidden",
+                          margin: "12px 0 8px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: "100%",
+                            width: `${Math.min(100, sharePct)}%`,
+                            background: "var(--accent)",
+                            borderRadius: 3,
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ fontSize: 11, color: THEME.muted }}>
+                        Designated across <strong>{nom.assets.length}</strong> accounts/holdings
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            {/* Statutory Claim Roadmap Guide for Legal Heirs */}
+            <Card style={{ padding: 24 }}>
+              <SectionTitle sub="Step-by-step statutory transmission procedures under Indian law for survivor claimants">
+                Statutory Asset Transmission & Claim Roadmap
+              </SectionTitle>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                  gap: 16,
+                  marginTop: 16,
+                }}
+              >
+                {/* 1. Bank Accounts */}
+                <div
+                  style={{
+                    padding: 16,
+                    borderRadius: 12,
+                    background: "var(--surface-1)",
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <Building2 size={16} color="var(--accent)" />
+                    <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                      Bank Accounts & Fixed Deposits (RBI Rule)
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 11.5, color: THEME.muted, lineHeight: 1.5, margin: 0 }}>
+                    Under RBI Master Circular, banks must settle deceased depositor claims to the registered nominee within <strong>15 days</strong> of receiving the death certificate and claim form. No succession certificate is required for nominated accounts.
+                  </p>
+                </div>
+
+                {/* 2. Demat & Mutual Funds */}
+                <div
+                  style={{
+                    padding: 16,
+                    borderRadius: 12,
+                    background: "var(--surface-1)",
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <Layers size={16} color="var(--t-sage)" />
+                    <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                      Demat Shares & Mutual Funds (SEBI Single Window)
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 11.5, color: THEME.muted, lineHeight: 1.5, margin: 0 }}>
+                    Nominees can submit <strong>Form ISR-5 (Transmission Request)</strong> along with a notarized death certificate and Client Master Report (CMR) to the Depository Participant (Zerodha, Groww, NSDL/CDSL) or MFCentral portal for online single-window transmission.
+                  </p>
+                </div>
+
+                {/* 3. EPFO & Pension */}
+                <div
+                  style={{
+                    padding: 16,
+                    borderRadius: 12,
+                    background: "var(--surface-1)",
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <ShieldCheck size={16} color="var(--t-gold)" />
+                    <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                      EPFO Provident Fund & EDLI Life Insurance
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 11.5, color: THEME.muted, lineHeight: 1.5, margin: 0 }}>
+                    Nominees submit <strong>Form 20</strong> for PF balance withdrawal, <strong>Form 10D</strong> for monthly widow/children pension, and <strong>Form 5IF</strong> to claim up to ₹7,00,000 under the Employees' Deposit Linked Insurance (EDLI) scheme.
+                  </p>
+                </div>
+
+                {/* 4. Real Estate & Physical Gold */}
+                <div
+                  style={{
+                    padding: 16,
+                    borderRadius: 12,
+                    background: "var(--surface-1)",
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <Award size={16} color="var(--t-violet)" />
+                    <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                      Real Estate Mutation & Physical Gold
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 11.5, color: THEME.muted, lineHeight: 1.5, margin: 0 }}>
+                    Nominees and legal heirs apply for revenue/municipal property mutation using the registered Will or Legal Heir Certificate. For physical gold and lockers, joint operation or survivor nomination with bank branch manager enables seamless access.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        );
+      })()}
+
+      {/* ─────────────────────────────────────────────────────────────
+          VIEW MODE 5: SUCCESSION GUIDE & 6-POINT READINESS CHECKLIST
           ───────────────────────────────────────────────────────────── */}
       {viewMode === "guide" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>

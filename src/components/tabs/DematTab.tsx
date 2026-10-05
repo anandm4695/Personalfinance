@@ -6,8 +6,6 @@ import {
   YAxis,
   Tooltip,
   Area,
-  PieChart,
-  Pie,
   Cell,
   BarChart,
   Bar,
@@ -34,31 +32,25 @@ import {
   X,
   Upload,
   AlertTriangle,
-  Lightbulb,
-  CheckCircle2,
   Target,
   Download,
   ArrowUpRight,
   ArrowDownRight,
   Copy,
   Check,
-  Building,
   ShieldCheck,
-  Layers,
   Sparkles,
   Award,
-  SlidersHorizontal,
   History,
-  Info,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
-import { fmtINRFull, calcCAGR, today, calcXIRR, exportArrayToCSV } from "../../utils/finance";
+import { calcCAGR, today, calcXIRR, exportArrayToCSV } from "../../utils/finance";
 import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
-import { INDEX_BENCHMARKS, BENCHMARK_DATA_ASOF } from "../../utils/benchmarkData";
+import { INDEX_BENCHMARKS } from "../../utils/benchmarkData";
 import { isLongTerm } from "./CapitalGainsTab";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";

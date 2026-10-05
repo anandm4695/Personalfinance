@@ -1,38 +1,24 @@
 import React, { useState, useMemo } from "react";
 import {
   TrendingUp,
-  TrendingDown,
   Download,
   FileText,
   Calendar,
   Clock,
   AlertTriangle,
-  Lightbulb,
-  ChevronDown,
-  ChevronUp,
   BarChart3,
   Scissors,
   Shield,
   IndianRupee,
-  ArrowRight,
   Info,
   Search,
   Filter,
-  PieChart as PieChartIcon,
   Calculator,
   BookOpen,
-  CheckCircle2,
-  HelpCircle,
   Sparkles,
   Layers,
-  ArrowUpRight,
-  ArrowDownRight,
-  RefreshCw,
   Copy,
   Check,
-  Percent,
-  Sliders,
-  Wallet,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -41,10 +27,6 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
-  Cell,
-  PieChart,
-  Pie,
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, today, exportArrayToCSV } from "../../utils/finance";
@@ -387,7 +369,7 @@ const computeGainTotals = (classified: ClassifiedSell[], fyStartYear: number) =>
   const stclAvailable = rawEqSTCG < 0 ? Math.abs(rawEqSTCG) : 0;
   const ltclAvailable = rawEqLTCG < 0 ? Math.abs(rawEqLTCG) : 0;
 
-  let netSTCG = Math.max(0, rawEqSTCG);
+  const netSTCG = Math.max(0, rawEqSTCG);
   let stclRemaining = stclAvailable;
 
   let netEqLTCG = Math.max(0, rawEqLTCG);

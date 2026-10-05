@@ -4,10 +4,8 @@ import { flattenAssets } from "../utils/nomineeTracker";
 import {
   calcTaxNewByFY,
   calcTaxOldByFY,
-  getGoldPricePerGram,
   computeFireTarget,
   getEmergencyFundLiquidAssets,
-  getEmergencyFundMonthlyExpense,
 } from "../utils/finance";
 
 describe("Executive CFO, CEO & Senior Accountant Calculation Audit", () => {

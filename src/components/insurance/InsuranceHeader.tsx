@@ -11,11 +11,7 @@ import {
   Search,
   LayoutGrid,
   Table as TableIcon,
-  Filter,
   User,
-  CheckCircle2,
-  Clock,
-  Sparkles,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { Button } from "../ui/Button";

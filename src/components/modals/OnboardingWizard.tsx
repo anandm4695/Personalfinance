@@ -5,7 +5,6 @@ import {
   TrendingUp,
   Target,
   Bot,
-  ChevronRight,
   ChevronLeft,
   Check,
   Eye,

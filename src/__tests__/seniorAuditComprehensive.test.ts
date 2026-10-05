@@ -7,7 +7,6 @@ import {
   calcTaxNewByFY,
   getNextSubscriptionRenewal,
   getAutoDetectedDeductions,
-  getTaxDueForDashboard,
 } from "../utils/finance";
 import { computeNetWorthAsOf } from "../utils/netWorthAsOf";
 

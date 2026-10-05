@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getCCDueDate } from "../utils/finance";
-import type { CreditCardEntity, CardVariant, CreditCardTransaction } from "../types/finance";
+import type { CreditCardEntity } from "../types/finance";
 
 describe("Credit Card Dual & Multi-Variant Account Support", () => {
   it("models Federal Bank Scapia (Visa + RuPay UPI) with 1 unified limit and statement", () => {

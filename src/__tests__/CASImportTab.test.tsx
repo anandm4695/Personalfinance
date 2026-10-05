@@ -1,6 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import React from "react";
 import { CASImportTab } from "../components/tabs/CASImportTab";
 
 // Mock useMasterData

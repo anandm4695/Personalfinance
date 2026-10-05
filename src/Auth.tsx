@@ -20,11 +20,6 @@ import {
   X,
   ArrowLeft,
   Users,
-  ChevronRight,
-  Cpu,
-  Layers,
-  Award,
-  Globe2,
   Zap,
 } from "lucide-react";
 import { BrandMark } from "./components/ui/BrandMark";

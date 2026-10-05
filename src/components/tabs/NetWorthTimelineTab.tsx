@@ -9,7 +9,6 @@ import {
   ChevronUp,
   Check,
   Award,
-  Sliders,
   ArrowUpRight,
   ArrowDownRight,
   Clock,
@@ -19,8 +18,6 @@ import {
   Percent,
   Activity,
   Compass,
-  DollarSign,
-  Calculator,
 } from "lucide-react";
 import {
   ResponsiveContainer,

@@ -1,32 +1,14 @@
 import "./styles.css";
 import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from "react";
 import {
-  Search,
   X,
-  Sun,
-  Moon,
-  LogOut,
   RefreshCw,
   Loader2,
-  CheckCheck,
-  Clock,
-  Download,
-  Bell,
-  Eye,
-  EyeOff,
-  Trash2,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Settings,
-  Command,
-  Sparkles,
   AlertTriangle,
-  RotateCcw,
 } from "lucide-react";
 import {
   supabase,
-  isSupabaseReady,
   capturedUrlHash,
 } from "./supabaseClient";
 import Auth from "./Auth";
@@ -35,16 +17,13 @@ import { getDemoState, DEMO_USER_SESSION, isDemoSession } from "./utils/demoData
 
 // Modular Imports
 import { THEME, DENSITY } from "./utils/constants";
-import { DEFAULT_MASTER_DATA, MasterDataContext, formatProfileOption } from "./utils/masterData";
+import { DEFAULT_MASTER_DATA, MasterDataContext } from "./utils/masterData";
 import {
-  fmtINRFull,
   uid,
   today,
   loadState,
   saveStateLocal,
-  getLocalDateString,
   addMonthsToDateStr,
-  alertDismissKey,
   loanOutstanding,
 } from "./utils/finance";
 import {
@@ -53,8 +32,6 @@ import {
   TABLE_MAP,
   camelToSnake,
   snakeToCamel as snakeToCamelUtil,
-  NAV_GROUPS,
-  getNavBreadcrumb,
 } from "./utils/appConstants";
 
 // Extracted hooks
@@ -1278,7 +1255,7 @@ function FinanceDashboard() {
     }
     // stocksRef keeps stocks current — removing state.stocks from deps prevents re-creation
     // after every metadata sync which would cause the useEffect below to re-fire unnecessarily
-  }, [session?.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);  
 
   // Initial price fetch
   useEffect(() => {
@@ -2151,7 +2128,7 @@ function FinanceDashboard() {
     (key: string, item: any, userId: string, explicitId?: string) => {
       const ownerVal = item.owner || (activeProfile !== "all" ? activeProfile : "self");
       const itemWithOwner = { ...item, owner: ownerVal };
-      let finalItem = camelToSnake(itemWithOwner);
+      const finalItem = camelToSnake(itemWithOwner);
 
       if (key === "ppf" || key === "nps" || key === "epf") finalItem.type = key.toUpperCase();
       if (key === "ppf") {
@@ -2498,7 +2475,7 @@ function FinanceDashboard() {
           }, 8000);
         } else if (isMissingColErr(firstErr)) {
           // Column missing in DB schema — strip the bad column(s) and retry
-          let retryItem: any = { ...cleanItem };
+          const retryItem: any = { ...cleanItem };
           let currentErr: any = firstErr;
           const stripped: string[] = [];
           while (isMissingColErr(currentErr)) {
@@ -2818,7 +2795,7 @@ function FinanceDashboard() {
       }
 
       // 2. Batch-sync missing transactions
-      let cleanItems = missingTxns.map((item: any) =>
+      const cleanItems = missingTxns.map((item: any) =>
         prepareItemForDb("transactions", item, userId, item.id)
       );
 
@@ -3370,7 +3347,7 @@ function FinanceDashboard() {
     if (userId && userId !== "offline-user") {
       const table = TABLE_MAP[key];
       if (table) {
-        let finalPatch = camelToSnake(patch);
+        const finalPatch = camelToSnake(patch);
 
         // Always strip metadata fields from update payload
         delete finalPatch.id;
@@ -3666,7 +3643,7 @@ function FinanceDashboard() {
             }, 8000);
           } else if (isMissingColErr(error)) {
             // Column missing in DB schema — strip bad column(s) and retry
-            let retryPatch: any = { ...finalPatch };
+            const retryPatch: any = { ...finalPatch };
             let currentErr: any = error;
             const strippedU: string[] = [];
             while (isMissingColErr(currentErr)) {

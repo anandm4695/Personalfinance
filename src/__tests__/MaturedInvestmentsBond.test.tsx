@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import React from "react";
 import { renderToString } from "react-dom/server";
 import { InvestmentsTab } from "../components/tabs/InvestmentsTab";
 import { InvestmentStatementTab } from "../components/tabs/InvestmentStatementTab";

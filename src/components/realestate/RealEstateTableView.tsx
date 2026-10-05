@@ -3,10 +3,8 @@ import {
   Pencil,
   Trash2,
   ArrowUpDown,
-  User,
   Building2,
   MapPin,
-  ExternalLink,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { Card } from "../ui/Card";
@@ -14,7 +12,6 @@ import { Money } from "../ui/Money";
 import { useMasterData } from "../../utils/masterData";
 import {
   STATUS_HEX,
-  TYPE_LABELS,
   EXTERNAL_OWNER_ID,
   RealEstateProperty,
 } from "./RealEstateTypes";

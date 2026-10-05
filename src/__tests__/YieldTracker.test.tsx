@@ -1,8 +1,7 @@
 import { describe, it, expect } from "vitest";
-import React from "react";
 import { renderToString } from "react-dom/server";
 import { InvestmentsTab } from "../components/tabs/InvestmentsTab";
-import { YieldTrackerSection, YieldTracker } from "../components/investments/YieldTrackerSection";
+import { YieldTrackerSection } from "../components/investments/YieldTrackerSection";
 
 describe("Investments Portfolio — Yield Tracker Accounting & Calculation Audit", () => {
   const mockState = {

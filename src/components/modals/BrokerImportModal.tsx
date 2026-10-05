@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from "react";
-import { Upload, CheckCircle, AlertTriangle, FileText, ChevronRight, Loader2 } from "lucide-react";
+import { Upload, CheckCircle, AlertTriangle, ChevronRight, Loader2 } from "lucide-react";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -256,7 +256,7 @@ export function BrokerImportModal({
 
       // Auto-detect broker
       let broker = "";
-      let autoMap: Record<MappingKey, number> = {
+      const autoMap: Record<MappingKey, number> = {
         symbol: -1,
         exchange: -1,
         date: -1,

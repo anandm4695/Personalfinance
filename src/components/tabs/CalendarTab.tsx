@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { CalendarClock, Milestone } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { SectionTitle } from "../ui/SectionTitle";

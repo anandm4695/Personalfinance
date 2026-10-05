@@ -1,16 +1,13 @@
-import React, { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import {
   CreditCard,
   Plus,
   Trash2,
   TrendingUp,
-  TrendingDown,
-  Minus,
   Award,
   AlertCircle,
   Search,
   Download,
-  X,
   ShieldCheck,
   Activity,
   Sparkles,
@@ -32,9 +29,6 @@ import {
   FileCheck,
   Printer,
   Copy,
-  Sliders,
-  ChevronRight,
-  AlertTriangle,
   Lock,
 } from "lucide-react";
 import {
@@ -59,7 +53,6 @@ import { Button } from "../ui/Button";
 import { SectionTitle } from "../ui/SectionTitle";
 import { EmptyState } from "../ui/EmptyState";
 import { Badge } from "../ui/Badge";
-import { StatCard } from "../ui/StatCard";
 import { Prv } from "../../context/PrivacyContext";
 import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";

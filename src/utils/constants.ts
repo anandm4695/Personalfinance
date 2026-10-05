@@ -26,6 +26,7 @@ export const THEME = {
   // slice) — fixed hues, not accent-preset-driven, but theme (light/dark)
   // aware via the CSS var.
   violet: "var(--t-violet)",
+  purple: "var(--t-violet)",
   pink: "var(--t-pink)",
   cyan: "var(--t-cyan)",
   teal: "var(--t-teal, #0D9488)",

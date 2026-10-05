@@ -11,14 +11,11 @@ import {
   ShieldCheck,
   ArrowRight,
   Bookmark,
-  MessageSquare,
   TrendingDown,
-  TrendingUp,
   Shield,
   Target,
   PieChart,
   Wallet,
-  BarChart3,
   AlertCircle,
   Lightbulb,
   ChevronRight,
@@ -27,7 +24,7 @@ import {
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { THEME } from "../../utils/constants";
 import { fmtINRFull, getEffectiveRent, today, getAutoDetectedDeductions } from "../../utils/finance";
-import { getCurrentFY, getCurrentFYStartYear } from "../../utils/appConstants";
+import { getCurrentFY } from "../../utils/appConstants";
 import { computeNetWorthAsOf, getEarliestNetWorthMonth, nextYm } from "../../utils/netWorthAsOf";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";

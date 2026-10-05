@@ -1,15 +1,10 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   PieChart,
   Pie,
   Cell,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
 } from "recharts";
 import {
   Plus,
@@ -47,22 +42,13 @@ import {
   RefreshCw,
   Percent,
   BarChart3,
-  SlidersHorizontal,
   ArrowUpDown,
-  Filter,
-  Check,
-  Calendar,
-  Layers,
-  Sparkle,
-  ShieldCheck,
   User,
-  Users,
   RotateCw,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import {
   fmtINRFull,
-  fmtINRExact,
   today,
   getSubscriptionMonthlyEquivalent,
   getSubscriptionCycleStep,

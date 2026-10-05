@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 import React from "react";
 import { renderToString } from "react-dom/server";
 import { createRoot } from "react-dom/client";

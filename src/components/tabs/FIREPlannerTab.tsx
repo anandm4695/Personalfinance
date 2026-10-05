@@ -1,14 +1,11 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Flame,
   TrendingUp,
-  IndianRupee,
   Calendar,
   Target,
   Clock,
-  Shield,
   Zap,
-  CheckCircle,
   AlertTriangle,
   Sparkles,
   Sliders,
@@ -16,24 +13,17 @@ import {
   Gem,
   Compass,
   CheckCircle2,
-  PieChart as PieChartIcon,
-  ArrowRight,
   Download,
   Printer,
   Copy,
   Check,
   Layers,
-  BarChart3,
-  Info,
   ShieldCheck,
   ShieldAlert,
   Percent,
-  SlidersHorizontal,
-  RefreshCw,
   Wallet,
   Building2,
   Coins,
-  ChevronRight,
   TrendingDown,
   FileSpreadsheet,
   Activity,
@@ -44,15 +34,11 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   Tooltip,
   CartesianGrid,
-  Legend,
   ReferenceLine,
-  Cell,
 } from "recharts";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, computeFireTarget } from "../../utils/finance";
@@ -147,8 +133,17 @@ export const FIREPlannerTab = ({ state, metrics }: any) => {
 
   // Active Tab Mode
   const [activeTab, setActiveTab] = useState<
-    "cockpit" | "studio" | "trajectory" | "stress" | "bucket" | "playbook"
+    "cockpit" | "studio" | "trajectory" | "stress" | "montecarlo" | "bucket" | "playbook"
   >("cockpit");
+
+  // Monte Carlo Simulation Engine State
+  const [mcReturnMean, setMcReturnMean] = useState<number>(savedInputs.postRetireReturn ?? 9.5);
+  const [mcReturnVol, setMcReturnVol] = useState<number>(14.0); // 14% portfolio standard deviation
+  const [mcInflationMean, setMcInflationMean] = useState<number>(savedInputs.inflationRate ?? 6.0);
+  const [mcInflationVol, setMcInflationVol] = useState<number>(1.5);
+  const [mcSwrRate, setMcSwrRate] = useState<number>(savedInputs.swr ?? 4.0);
+  const [mcStrategy, setMcStrategy] = useState<"constant" | "guyton" | "vpw" | "collar">("constant");
+  const [mcIterationSeed, setMcIterationSeed] = useState<number>(1);
 
   // Core Inputs State
   const [archetype, setArchetype] = useState<FireArchetype>(
@@ -1058,6 +1053,7 @@ Generated via Personal Finance by Anand Mohta`;
           { id: "studio", label: "Scenario Studio & Archetypes", icon: <Sliders size={14} /> },
           { id: "trajectory", label: "Trajectory & Cashflow Table", icon: <TrendingUp size={14} /> },
           { id: "stress", label: "Stress Testing & SRR", icon: <ShieldAlert size={14} /> },
+          { id: "montecarlo", label: "Monte Carlo Longevity Engine", icon: <Sparkles size={14} /> },
           { id: "bucket", label: "3-Bucket & Tax-Smart SWP", icon: <Layers size={14} /> },
           { id: "playbook", label: "Acceleration Playbook", icon: <Zap size={14} /> },
         ].map((tab) => {
@@ -2069,7 +2065,810 @@ Generated via Personal Finance by Anand Mohta`;
         </div>
       )}
 
-      {/* TAB 5: 3-BUCKET & TAX-SMART SWP */}
+      {/* TAB 5: MONTE CARLO LONGEVITY & SWR ENGINE */}
+      {activeTab === "montecarlo" && (() => {
+        const startingCorpus = fireCalc.activeFireNumber || 10000000;
+        const horizonYears = Math.max(15, Math.min(50, lifeExpectancy - targetAge));
+        const initialAnnualExpense =
+          monthlyExpense * 12 * Math.pow(1 + inflationRate / 100, Math.max(0, targetAge - currentAge));
+        const baseInitialWithdrawal = startingCorpus * (mcSwrRate / 100);
+
+        // Fast seeded Gaussian for deterministic rendering & re-run capability
+        const generateGaussian = (mean: number, stdDev: number, seedVal: number) => {
+          const u1 = Math.abs(Math.sin(seedVal * 12.9898 + 78.233)) % 1 || 0.0001;
+          const u2 = Math.abs(Math.cos(seedVal * 4.898 + 12.33)) % 1 || 0.0001;
+          const z = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+          return mean + z * stdDev;
+        };
+
+        const NUM_TRIALS = 1000;
+        const simulationTrajectories: number[][] = [];
+        let successfulTrials = 0;
+        const failureAges: number[] = [];
+
+        for (let trial = 0; trial < NUM_TRIALS; trial++) {
+          let corpus = startingCorpus;
+          let annualWithdrawal = baseInitialWithdrawal;
+          const trajectory: number[] = [corpus];
+          let failed = false;
+
+          for (let yr = 1; yr <= horizonYears; yr++) {
+            if (corpus <= 0) {
+              if (!failed) {
+                failed = true;
+                failureAges.push(targetAge + yr - 1);
+              }
+              trajectory.push(0);
+              continue;
+            }
+
+            const seedR = mcIterationSeed * 100000 + trial * 100 + yr * 2;
+            const seedI = mcIterationSeed * 100000 + trial * 100 + yr * 2 + 1;
+            const nominalReturn = generateGaussian(mcReturnMean / 100, mcReturnVol / 100, seedR);
+            const inflation = generateGaussian(mcInflationMean / 100, mcInflationVol / 100, seedI);
+
+            // Dynamic Withdrawal Policy Execution
+            if (mcStrategy === "constant") {
+              if (yr > 1) annualWithdrawal *= 1 + inflation;
+            } else if (mcStrategy === "guyton") {
+              // Guyton-Klinger Guardrails
+              if (nominalReturn >= 0) {
+                annualWithdrawal *= 1 + inflation;
+              }
+              const currentRate = (annualWithdrawal / corpus) * 100;
+              if (currentRate > mcSwrRate * 1.2) {
+                annualWithdrawal *= 0.9; // 10% Capital Preservation trim
+              } else if (currentRate < mcSwrRate * 0.8) {
+                annualWithdrawal *= 1.1; // 10% Prosperity distribution
+              }
+            } else if (mcStrategy === "collar") {
+              const boundedInf = Math.min(0.05, Math.max(-0.03, inflation));
+              if (yr > 1) annualWithdrawal *= 1 + boundedInf;
+            } else if (mcStrategy === "vpw") {
+              const remYears = Math.max(1, horizonYears - yr + 1);
+              const vpwRate = 1 / remYears + mcReturnMean / 200;
+              annualWithdrawal = Math.max(initialAnnualExpense * 0.5, corpus * vpwRate);
+            }
+
+            corpus = (corpus - annualWithdrawal) * (1 + nominalReturn);
+            if (corpus < 0) corpus = 0;
+            trajectory.push(Math.round(corpus));
+          }
+
+          if (corpus > 0) {
+            successfulTrials++;
+          }
+          simulationTrajectories.push(trajectory);
+        }
+
+        const successProbability = (successfulTrials / NUM_TRIALS) * 100;
+        const earliestDepletionAge = failureAges.length > 0 ? Math.min(...failureAges) : null;
+        const avgFailureAge =
+          failureAges.length > 0
+            ? Math.round(failureAges.reduce((a, b) => a + b, 0) / failureAges.length)
+            : null;
+
+        // Percentiles data for chart
+        const chartPercentileData = [];
+        for (let yr = 0; yr <= horizonYears; yr++) {
+          const yearValues = simulationTrajectories.map((t) => t[yr]).sort((a, b) => a - b);
+          chartPercentileData.push({
+            age: `Age ${targetAge + yr}`,
+            "Worst 10% (P10)": yearValues[Math.floor(NUM_TRIALS * 0.1)],
+            "Median (P50)": yearValues[Math.floor(NUM_TRIALS * 0.5)],
+            "Top 10% (P90)": yearValues[Math.floor(NUM_TRIALS * 0.9)],
+          });
+        }
+
+        const p50FinalCorpus =
+          simulationTrajectories.map((t) => t[horizonYears]).sort((a, b) => a - b)[
+            Math.floor(NUM_TRIALS * 0.5)
+          ] || 0;
+        const p10FinalCorpus =
+          simulationTrajectories.map((t) => t[horizonYears]).sort((a, b) => a - b)[
+            Math.floor(NUM_TRIALS * 0.1)
+          ] || 0;
+
+        // SWR Sensitivity Matrix (SWR vs Retirement Duration)
+        const swrList = [3.0, 3.5, 4.0, 4.5, 5.0];
+        const horizonList = [25, 30, 35, 40, 45];
+        const sensitivityMatrix = swrList.map((testSwr) => {
+          const row: Record<string, any> = { swr: testSwr };
+          horizonList.forEach((testH) => {
+            let pass = 0;
+            const QUICK_TRIALS = 250;
+            for (let t = 0; t < QUICK_TRIALS; t++) {
+              let c = startingCorpus;
+              let w = startingCorpus * (testSwr / 100);
+              for (let y = 1; y <= testH; y++) {
+                if (c <= 0) break;
+                const r = generateGaussian(mcReturnMean / 100, mcReturnVol / 100, t * 100 + y);
+                const inf = generateGaussian(mcInflationMean / 100, mcInflationVol / 100, t * 100 + y + 1);
+                if (y > 1) w *= 1 + inf;
+                c = (c - w) * (1 + r);
+                if (c < 0) c = 0;
+              }
+              if (c > 0) pass++;
+            }
+            row[`h_${testH}`] = Math.round((pass / QUICK_TRIALS) * 100);
+          });
+          return row;
+        });
+
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {/* Top Control Card */}
+            <Card style={{ padding: 22 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <div>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 16,
+                      fontWeight: 800,
+                      color: THEME.ink,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <Sparkles size={18} color="var(--accent)" />
+                    Monte Carlo Longevity & Sequence-of-Returns (SRR) Simulator
+                  </h3>
+                  <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
+                    Simulates 1,000 independent lifetime market return and inflation sequences to calculate the true mathematical survival probability of your FIRE corpus.
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMcIterationSeed((prev) => prev + 1)}
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <Sparkles size={13} />
+                    <span>Re-run 1,000 Trials</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Dynamic Strategy Selector */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
+                  Withdrawal Rule & Guardrail Strategy:
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  {[
+                    {
+                      id: "constant",
+                      label: "Constant Inflation-Adjusted",
+                      desc: "Traditional Trinity Rule. Rigid annual inflation raises.",
+                    },
+                    {
+                      id: "guyton",
+                      label: "Guyton-Klinger Guardrails",
+                      desc: "Cuts 10% during drawdowns; freezes raises in down markets.",
+                    },
+                    {
+                      id: "collar",
+                      label: "Dynamic 5% Cap & Collar",
+                      desc: "Real spending bounded between -3% floor and +5% cap.",
+                    },
+                    {
+                      id: "vpw",
+                      label: "Variable Percentage (VPW)",
+                      desc: "Dynamically rebalances spending based on remaining lifespan.",
+                    },
+                  ].map((strat) => {
+                    const active = mcStrategy === strat.id;
+                    return (
+                      <button
+                        key={strat.id}
+                        onClick={() => setMcStrategy(strat.id as any)}
+                        className="card-lift"
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 12,
+                          textAlign: "left",
+                          background: active
+                            ? "color-mix(in srgb, var(--accent) 12%, var(--surface-0))"
+                            : "var(--surface-0)",
+                          border: `1.5px solid ${active ? "var(--accent)" : THEME.line}`,
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            color: active ? "var(--accent)" : THEME.ink,
+                            marginBottom: 4,
+                          }}
+                        >
+                          {strat.label}
+                        </div>
+                        <div style={{ fontSize: 10, color: THEME.muted, lineHeight: 1.3 }}>
+                          {strat.desc}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Sliders Grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 16,
+                  background: "var(--surface-1)",
+                  padding: 16,
+                  borderRadius: 14,
+                  border: `1px solid ${THEME.line}`,
+                }}
+              >
+                {/* Mean Nominal Return */}
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      marginBottom: 6,
+                    }}
+                  >
+                    <span style={{ color: THEME.ink }}>Expected Mean Return (μ)</span>
+                    <span style={{ color: "var(--accent)" }}>{mcReturnMean.toFixed(1)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={6.0}
+                    max={15.0}
+                    step={0.25}
+                    value={mcReturnMean}
+                    onChange={(e) => setMcReturnMean(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: "var(--accent)" }}
+                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 10,
+                      color: THEME.muted,
+                      marginTop: 2,
+                    }}
+                  >
+                    <span>6.0%</span>
+                    <span>9.5%</span>
+                    <span>15.0%</span>
+                  </div>
+                </div>
+
+                {/* Return Volatility */}
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      marginBottom: 6,
+                    }}
+                  >
+                    <span style={{ color: THEME.ink }}>Market Volatility (σ)</span>
+                    <span style={{ color: "var(--t-gold)" }}>{mcReturnVol.toFixed(1)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={8.0}
+                    max={22.0}
+                    step={0.5}
+                    value={mcReturnVol}
+                    onChange={(e) => setMcReturnVol(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: "var(--t-gold)" }}
+                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 10,
+                      color: THEME.muted,
+                      marginTop: 2,
+                    }}
+                  >
+                    <span>8% (Debt)</span>
+                    <span>14% (Blended)</span>
+                    <span>22% (Equities)</span>
+                  </div>
+                </div>
+
+                {/* SWR Slider */}
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      marginBottom: 6,
+                    }}
+                  >
+                    <span style={{ color: THEME.ink }}>Initial Withdrawal (SWR)</span>
+                    <span
+                      style={{
+                        color:
+                          mcSwrRate <= 3.5
+                            ? "var(--t-sage)"
+                            : mcSwrRate <= 4.2
+                              ? "var(--t-gold)"
+                              : "var(--t-rust)",
+                      }}
+                    >
+                      {mcSwrRate.toFixed(2)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={2.5}
+                    max={6.0}
+                    step={0.1}
+                    value={mcSwrRate}
+                    onChange={(e) => setMcSwrRate(Number(e.target.value))}
+                    style={{
+                      width: "100%",
+                      accentColor:
+                        mcSwrRate <= 3.5
+                          ? "var(--t-sage)"
+                          : mcSwrRate <= 4.2
+                            ? "var(--t-gold)"
+                            : "var(--t-rust)",
+                    }}
+                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 10,
+                      color: THEME.muted,
+                      marginTop: 2,
+                    }}
+                  >
+                    <span>2.5%</span>
+                    <span>4.0%</span>
+                    <span>6.0%</span>
+                  </div>
+                </div>
+
+                {/* Inflation Mean */}
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      marginBottom: 6,
+                    }}
+                  >
+                    <span style={{ color: THEME.ink }}>Inflation Baseline</span>
+                    <span style={{ color: THEME.ink }}>{mcInflationMean.toFixed(1)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={4.0}
+                    max={9.0}
+                    step={0.25}
+                    value={mcInflationMean}
+                    onChange={(e) => setMcInflationMean(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: "var(--accent)" }}
+                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 10,
+                      color: THEME.muted,
+                      marginTop: 2,
+                    }}
+                  >
+                    <span>4.0%</span>
+                    <span>6.0%</span>
+                    <span>9.0%</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Success Probability KPI Command Tiles */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 14,
+              }}
+            >
+              {/* Success Probability */}
+              <Card
+                style={{
+                  padding: 18,
+                  border: `1.5px solid ${
+                    successProbability >= 95
+                      ? "var(--t-sage)"
+                      : successProbability >= 85
+                        ? "var(--accent)"
+                        : successProbability >= 70
+                          ? "var(--t-gold)"
+                          : "var(--t-rust)"
+                  }`,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    marginBottom: 6,
+                  }}
+                >
+                  Portfolio Success Rate
+                </div>
+                <div
+                  style={{
+                    fontSize: 26,
+                    fontWeight: 900,
+                    fontFamily: "var(--font-mono)",
+                    color:
+                      successProbability >= 95
+                        ? "var(--t-sage)"
+                        : successProbability >= 85
+                          ? "var(--accent)"
+                          : successProbability >= 70
+                            ? "var(--t-gold)"
+                            : "var(--t-rust)",
+                  }}
+                >
+                  {successProbability.toFixed(1)}%
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, marginTop: 6 }}>
+                  {successProbability >= 95
+                    ? "🛡️ Fortress Survival (1,000 Trials)"
+                    : successProbability >= 85
+                      ? "✨ Safe & Highly Sustainable"
+                      : successProbability >= 70
+                        ? "⚠️ Moderate Sequence Risk"
+                        : "🚨 Critical Early Depletion Risk"}
+                </div>
+              </Card>
+
+              {/* Median Terminal Wealth */}
+              <Card style={{ padding: 18 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    marginBottom: 6,
+                  }}
+                >
+                  Median (P50) Final Wealth
+                </div>
+                <div
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 900,
+                    fontFamily: "var(--font-mono)",
+                    color: THEME.ink,
+                  }}
+                >
+                  <Money value={p50FinalCorpus} variant="full" />
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+                  Projected legacy estate at Age {lifeExpectancy}
+                </div>
+              </Card>
+
+              {/* Worst 10% Preservation */}
+              <Card style={{ padding: 18 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    marginBottom: 6,
+                  }}
+                >
+                  Worst 10% (P10) Floor
+                </div>
+                <div
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 900,
+                    fontFamily: "var(--font-mono)",
+                    color: p10FinalCorpus > 0 ? "var(--t-sage)" : "var(--t-rust)",
+                  }}
+                >
+                  <Money value={p10FinalCorpus} variant="full" />
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+                  {p10FinalCorpus > 0 ? "Preserved even in bottom 10% sequence" : "Depleted in worst 10% sequences"}
+                </div>
+              </Card>
+
+              {/* Earliest Depletion Timing */}
+              <Card style={{ padding: 18 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: THEME.muted,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    marginBottom: 6,
+                  }}
+                >
+                  Earliest Depletion Point
+                </div>
+                <div
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 900,
+                    fontFamily: "var(--font-mono)",
+                    color: earliestDepletionAge ? "var(--t-rust)" : "var(--t-sage)",
+                  }}
+                >
+                  {earliestDepletionAge ? `Age ${earliestDepletionAge}` : "Never (Age 100+)"}
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6 }}>
+                  {earliestDepletionAge
+                    ? `Average failure age: ${avgFailureAge || earliestDepletionAge}`
+                    : "Zero trials depleted within lifetime horizon"}
+                </div>
+              </Card>
+            </div>
+
+            {/* Percentile Trajectory Area Chart */}
+            <Card style={{ padding: 22 }}>
+              <SectionTitle sub="P10 (Stress sequence), P50 (Median expected), and P90 (Boom sequence) wealth bands">
+                1,000-Trial Percentile Wealth Longevity Trajectory
+              </SectionTitle>
+              <div style={{ width: "100%", height: 340, marginTop: 16 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartPercentileData} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
+                    <defs>
+                      <linearGradient id="p90Grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="var(--accent)" stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="p50Grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--t-sage)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="var(--t-sage)" stopOpacity={0.05} />
+                      </linearGradient>
+                      <linearGradient id="p10Grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--t-gold)" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="var(--t-gold)" stopOpacity={0.05} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={THEME.line} vertical={false} />
+                    <XAxis dataKey="age" stroke={THEME.muted} tick={{ fontSize: 11, fill: THEME.muted }} />
+                    <YAxis
+                      stroke={THEME.muted}
+                      tick={{ fontSize: 11, fill: THEME.muted }}
+                      tickFormatter={(v) => `₹${(v / 10000000).toFixed(1)}Cr`}
+                    />
+                    <Tooltip
+                      formatter={(val: any) => [`₹${fmtINRFull(Number(val))}`, ""]}
+                      contentStyle={{
+                        background: "var(--surface-0)",
+                        border: `1px solid ${THEME.line}`,
+                        borderRadius: 10,
+                        color: THEME.ink,
+                        fontSize: 12,
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="Top 10% (P90)"
+                      stroke="var(--accent)"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#p90Grad)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="Median (P50)"
+                      stroke="var(--t-sage)"
+                      strokeWidth={2.5}
+                      fillOpacity={1}
+                      fill="url(#p50Grad)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="Worst 10% (P10)"
+                      stroke="var(--t-gold)"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#p10Grad)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+
+            {/* SWR Sensitivity Heatmap Matrix */}
+            <Card style={{ padding: 22 }}>
+              <SectionTitle sub="Success probability matrix across Safe Withdrawal Rates vs Retirement Horizon Years">
+                Safe Withdrawal Rate (SWR) Sensitivity Matrix
+              </SectionTitle>
+              <div style={{ overflowX: "auto", marginTop: 16 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${THEME.line}`, background: "var(--surface-1)" }}>
+                      <th style={{ padding: "10px 14px", textAlign: "left", color: THEME.ink }}>
+                        Initial SWR (%)
+                      </th>
+                      {horizonList.map((h) => (
+                        <th key={h} style={{ padding: "10px 14px", textAlign: "center", color: THEME.ink }}>
+                          {h} Years Span
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sensitivityMatrix.map((row) => (
+                      <tr key={row.swr} style={{ borderBottom: `1px solid ${THEME.line}` }}>
+                        <td style={{ padding: "10px 14px", fontWeight: 800, color: THEME.ink }}>
+                          {row.swr.toFixed(1)}% Annual SWR
+                        </td>
+                        {horizonList.map((h) => {
+                          const val = row[`h_${h}`];
+                          const bg =
+                            val >= 95
+                              ? "color-mix(in srgb, var(--t-sage) 20%, var(--surface-0))"
+                              : val >= 85
+                                ? "color-mix(in srgb, var(--accent) 15%, var(--surface-0))"
+                                : val >= 70
+                                  ? "color-mix(in srgb, var(--t-gold) 20%, var(--surface-0))"
+                                  : "color-mix(in srgb, var(--t-rust) 20%, var(--surface-0))";
+                          const textColor =
+                            val >= 95
+                              ? "var(--t-sage)"
+                              : val >= 85
+                                ? "var(--accent)"
+                                : val >= 70
+                                  ? "var(--t-gold)"
+                                  : "var(--t-rust)";
+                          return (
+                            <td
+                              key={h}
+                              style={{
+                                padding: "10px 14px",
+                                textAlign: "center",
+                                fontWeight: 800,
+                                background: bg,
+                                color: textColor,
+                              }}
+                            >
+                              {val}%
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+
+            {/* CFO Retirement Longevity Playbook */}
+            <Card style={{ padding: 22 }}>
+              <h4
+                style={{
+                  margin: "0 0 14px 0",
+                  fontSize: 15,
+                  fontWeight: 800,
+                  color: THEME.ink,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <CheckCircle2 size={18} color="var(--accent)" />
+                CFO Sequence-of-Returns Protection Playbook
+              </h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 16px",
+                    borderRadius: 10,
+                    background: "color-mix(in srgb, var(--accent) 8%, var(--surface-0))",
+                    border: `1px solid ${THEME.accent}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <ShieldCheck size={16} color="var(--accent)" />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                      3-Year Cash Buffer Shield: Maintain 36 months of living expenses in short-term liquid funds & sweep FDs to avoid selling equities during market downturns.
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: "var(--accent)",
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      background: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                    }}
+                  >
+                    Buffer Rule
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 16px",
+                    borderRadius: 10,
+                    background: "color-mix(in srgb, var(--t-sage) 8%, var(--surface-0))",
+                    border: `1px solid ${THEME.sage}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <CheckCircle2 size={16} color={THEME.sage} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: THEME.ink }}>
+                      Dynamic Guardrails Adoption: Adopting the Guyton-Klinger rule boosts your sustainable withdrawal rate by +0.5% without increasing ruin risk.
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: THEME.sage,
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      background: "color-mix(in srgb, var(--t-sage) 15%, transparent)",
+                    }}
+                  >
+                    Strategy Rule
+                  </span>
+                </div>
+              </div>
+            </Card>
+          </div>
+        );
+      })()}
+
+      {/* TAB 6: 3-BUCKET & TAX-SMART SWP */}
       {activeTab === "bucket" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {/* 3-Bucket Visualizer Card */}

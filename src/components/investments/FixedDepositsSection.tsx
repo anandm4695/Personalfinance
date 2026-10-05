@@ -7,8 +7,6 @@ import {
   Layers,
   Shield,
   ShieldCheck,
-  ShieldAlert,
-  BarChart3,
   PieChart as PieIcon,
   Search,
   Plus,
@@ -22,18 +20,12 @@ import {
   CheckCircle2,
   Copy,
   Check,
-  ChevronDown,
-  ChevronUp,
   Percent,
   IndianRupee,
   Sparkles,
-  ArrowUpRight,
   User,
   Calculator,
-  Building,
-  SlidersHorizontal,
   FileSpreadsheet,
-  Zap,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -45,11 +37,9 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  AreaChart,
-  Area,
 } from "recharts";
 import { THEME } from "../../utils/constants";
-import { useMasterData, formatProfileOption } from "../../utils/masterData";
+import { useMasterData } from "../../utils/masterData";
 import { Money } from "../ui/Money";
 import {
   fmtINRFull,
@@ -59,7 +49,6 @@ import {
   addMonthsToDateStr,
   exportArrayToCSV,
 } from "../../utils/finance";
-import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";

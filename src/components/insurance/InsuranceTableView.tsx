@@ -1,15 +1,10 @@
 import React, { useState } from "react";
 import {
-  Shield,
-  Heart,
-  Zap,
-  TrendingUp,
   Pencil,
   Trash2,
   ListOrdered,
   Clock,
   ArrowUpDown,
-  User,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { Money } from "../ui/Money";
@@ -51,8 +46,8 @@ export const InsuranceTableView: React.FC<InsuranceTableViewProps> = ({
   };
 
   const sortedPolicies = [...policies].sort((a, b) => {
-    let vA = a[sortField];
-    let vB = b[sortField];
+    const vA = a[sortField];
+    const vB = b[sortField];
     if (typeof vA === "string") {
       return sortAsc
         ? (vA as string).localeCompare(vB as string)

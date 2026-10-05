@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 // Focused calculation tests for the credit-card annual-fee due-date math
 // (CreditTab.tsx) and the utility-bill due-date math (BillPaymentTab.tsx).
 // Both compute "next occurrence of day-of-month N" and must clamp N to the

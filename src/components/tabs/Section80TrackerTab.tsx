@@ -3,7 +3,6 @@ import {
   Shield,
   CheckCircle,
   CheckCircle2,
-  AlertTriangle,
   IndianRupee,
   Heart,
   Home,
@@ -21,7 +20,6 @@ import {
   FileText,
   Layers,
   Award,
-  HelpCircle,
   Clock,
   HeartPulse,
   GraduationCap,
@@ -61,7 +59,6 @@ import { annualizeContribution } from "../../utils/govtSchemes";
 import { Card } from "../ui/Card";
 import { SectionTitle } from "../ui/SectionTitle";
 import { StatCard } from "../ui/StatCard";
-import { EmptyState } from "../ui/EmptyState";
 import { Money } from "../ui/Money";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";

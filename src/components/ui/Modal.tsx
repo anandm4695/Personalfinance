@@ -25,14 +25,15 @@ export const Modal: React.FC<ModalProps> = ({
   width,
   isOpen = true,
 }) => {
-  if (!isOpen) return null;
-  const effectiveMaxWidth = width || maxWidth || 560;
   const panelRef = React.useRef<HTMLDivElement>(null);
   const onCloseRef = React.useRef(onClose);
   onCloseRef.current = onClose;
+  const mouseDownOnBackdrop = React.useRef(false);
 
   // Escape-to-close, body scroll lock, and initial focus.
   React.useEffect(() => {
+    if (!isOpen) return;
+
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -71,14 +72,10 @@ export const Modal: React.FC<ModalProps> = ({
       document.body.style.overflow = previousOverflow;
       previouslyFocused?.focus?.();
     };
-  }, []);
+  }, [isOpen]);
 
-  // Only close on a genuine click on the backdrop itself: both mousedown and
-  // mouseup/click must start and end on the backdrop. This prevents the
-  // common case of a user clicking/drag-selecting text inside the form and
-  // the pointer drifting past the panel edge before release, which would
-  // otherwise register as a backdrop click and silently discard the form.
-  const mouseDownOnBackdrop = React.useRef(false);
+  if (!isOpen) return null;
+  const effectiveMaxWidth = width || maxWidth || 560;
 
   const content = (
     <div

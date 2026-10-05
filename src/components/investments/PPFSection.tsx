@@ -1,14 +1,10 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Shield,
-  ShieldCheck,
-  ShieldAlert,
   TrendingUp,
   TrendingDown,
-  Calendar,
   Layers,
   BarChart3,
-  PieChart as PieIcon,
   Search,
   Plus,
   Pencil,
@@ -18,30 +14,16 @@ import {
   Download,
   Upload,
   AlertTriangle,
-  Info,
   CheckCircle2,
   Copy,
   Check,
-  ChevronDown,
-  ChevronUp,
-  Percent,
-  IndianRupee,
   Sparkles,
   ArrowUpRight,
   User,
   Calculator,
-  Building,
-  SlidersHorizontal,
   FileSpreadsheet,
-  Zap,
-  Tag,
   Coins,
   Receipt,
-  HelpCircle,
-  ExternalLink,
-  Sliders,
-  DollarSign,
-  Briefcase,
   Award,
   List,
   Flame,
@@ -54,8 +36,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   Tooltip,
@@ -68,20 +48,14 @@ import { THEME, PIE_COLORS } from "../../utils/constants";
 import { useMasterData } from "../../utils/masterData";
 import { Money } from "../ui/Money";
 import {
-  fmtINRFull,
   today,
-  monthsBetween,
-  addMonthsToDateStr,
   exportArrayToCSV,
 } from "../../utils/finance";
-import { useAnimatedNumber } from "../../hooks/useAnimatedNumber";
-import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { Card } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
-import { StatCard } from "../ui/StatCard";
 import { ConfirmDialog } from "../ui/Feedback";
 import { BankLogo } from "../ui/BrandLogos";
 

@@ -5,7 +5,6 @@ import {
   Plus,
   Trash2,
   User,
-  Info,
   Sparkles,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
@@ -13,7 +12,6 @@ import { useMasterData, formatProfileOption } from "../../utils/masterData";
 import { fmtINRFull, today } from "../../utils/finance";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
-import { Money } from "../ui/Money";
 import { usePrivacy } from "../../context/PrivacyContext";
 import {
   EXTERNAL_OWNER_ID,

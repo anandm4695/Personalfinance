@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { THEME } from "../../utils/constants";
 import { today, autoCateg } from "../../utils/finance";
 import { useMasterData } from "../../utils/masterData";

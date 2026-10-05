@@ -1,4 +1,3 @@
-import React from "react";
 import { renderToString } from "react-dom/server";
 import { describe, it, expect, vi } from "vitest";
 import { InsuranceSummaryTab } from "../components/tabs/InsuranceSummaryTab";

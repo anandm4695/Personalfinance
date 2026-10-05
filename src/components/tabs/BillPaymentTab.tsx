@@ -23,7 +23,6 @@ import {
   ChevronDown,
   ChevronUp,
   IndianRupee,
-  ClipboardList,
   Search,
   LayoutGrid,
   CalendarDays,
@@ -31,29 +30,17 @@ import {
   Flame,
   ShieldCheck,
   CreditCard,
-  Sparkles,
-  ArrowRight,
-  TrendingDown,
-  TrendingUp,
   Copy,
   Check,
   ExternalLink,
   Calendar,
-  Filter,
   PieChart as PieIcon,
-  RefreshCw,
-  Layers,
   CheckCheck,
   Landmark,
-  FileText,
-  DollarSign,
-  Info,
-  ArrowUpRight,
-  ZapOff,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption } from "../../utils/masterData";
-import { fmtINR, fmtINRFull, fmtINRExact, uid, today } from "../../utils/finance";
+import { fmtINRFull, uid, today } from "../../utils/finance";
 import { dueStatus } from "../../utils/dueStatus";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -66,7 +53,7 @@ import { Badge } from "../ui/Badge";
 import { StatCard } from "../ui/StatCard";
 import { Money } from "../ui/Money";
 import { ConfirmDialog } from "../ui/Feedback";
-import { Prv, usePrivacy } from "../../context/PrivacyContext";
+import { usePrivacy } from "../../context/PrivacyContext";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 
 export interface UtilityCategory {

@@ -6,6 +6,8 @@ import { describe, it, expect, vi } from "vitest";
 import { BudgetTab } from "../components/tabs/BudgetTab";
 import { PrivacyProvider } from "../context/PrivacyContext";
 
+import { today } from "../utils/finance";
+
 // Mock Recharts ResponsiveContainer to avoid jsdom zero-dimension rendering issues
 vi.mock("recharts", async () => {
   const actual: any = await vi.importActual("recharts");
@@ -15,13 +17,15 @@ vi.mock("recharts", async () => {
   };
 });
 
+const curMonth = today().slice(0, 7);
+
 const mockState = {
   budgets: [
     {
       id: "b1",
       category: "Groceries",
       monthly: 10000,
-      budgetMonth: "2026-09",
+      budgetMonth: curMonth,
       owner: "self",
       rollover: true,
     },
@@ -29,7 +33,7 @@ const mockState = {
       id: "b2",
       category: "Dining",
       monthly: 5000,
-      budgetMonth: "2026-09",
+      budgetMonth: curMonth,
       owner: "self",
       rollover: false,
     },
@@ -45,7 +49,7 @@ const mockState = {
   transactions: [
     {
       id: "t1",
-      date: "2026-09-05",
+      date: `${curMonth}-05`,
       type: "debit",
       category: "Groceries",
       amount: 4500,
@@ -54,7 +58,7 @@ const mockState = {
     },
     {
       id: "t2",
-      date: "2026-09-10",
+      date: `${curMonth}-10`,
       type: "debit",
       category: "Dining",
       amount: 5500,
@@ -63,7 +67,7 @@ const mockState = {
     },
     {
       id: "t3",
-      date: "2026-09-02",
+      date: `${curMonth}-02`,
       type: "debit",
       category: "Entertainment",
       amount: 1200,
@@ -72,7 +76,7 @@ const mockState = {
     },
     {
       id: "t4",
-      date: "2026-09-01",
+      date: `${curMonth}-01`,
       type: "credit",
       category: "Salary",
       amount: 150000,
