@@ -2439,7 +2439,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 12,
+              gap: 14,
             }}
           >
             {BUREAUS.map((b) => {
@@ -2468,71 +2468,117 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                     borderRadius: "var(--radius-lg, 12px)",
                     border: `1.5px solid ${isSelected ? bColor : "var(--t-line)"}`,
                     background: isSelected
-                      ? `color-mix(in srgb, ${bColor} 6%, var(--surface-0))`
+                      ? `color-mix(in srgb, ${bColor} 5%, var(--surface-0))`
                       : "var(--surface-0)",
-                    padding: "14px 16px",
+                    padding: "16px 18px",
                     cursor: "pointer",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 8,
-                    transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-                    boxShadow: isSelected ? `0 4px 16px color-mix(in srgb, ${bColor} 18%, transparent)` : "var(--shadow-sm)",
+                    gap: 10,
+                    transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                    boxShadow: isSelected
+                      ? `0 6px 20px color-mix(in srgb, ${bColor} 18%, transparent), 0 1px 3px rgba(0,0,0,0.04)`
+                      : "var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.04))",
                     position: "relative",
                   }}
                 >
+                  {/* Top Bar: Bureau Identifier & Momentum Delta */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: bColor }}>{b}</span>
-                      {data.count > 0 && (
-                        <Badge variant="muted" style={{ fontSize: 9, padding: "1px 5px" }}>
-                          {data.count}
-                        </Badge>
-                      )}
-                    </div>
-                    {delta !== null && delta !== 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                       <span
                         style={{
-                          fontSize: 10,
-                          fontWeight: 700,
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          background: bColor,
+                          boxShadow: isSelected ? `0 0 8px ${bColor}` : "none",
+                          display: "inline-block",
+                        }}
+                      />
+                      <span style={{ fontSize: 13, fontWeight: 800, color: bColor, letterSpacing: "-0.01em" }}>
+                        {b}
+                      </span>
+                      {data.count > 0 && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: THEME.muted,
+                            background: "var(--surface-2)",
+                            padding: "1px 6px",
+                            borderRadius: 10,
+                          }}
+                        >
+                          {data.count}
+                        </span>
+                      )}
+                    </div>
+
+                    {delta !== null && delta !== 0 ? (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
                           color: delta > 0 ? THEME.sage : THEME.rust,
-                          display: "flex",
+                          background: delta > 0 ? "color-mix(in srgb, var(--t-sage) 12%, transparent)" : "color-mix(in srgb, var(--t-rust) 12%, transparent)",
+                          padding: "2px 6px",
+                          borderRadius: 6,
+                          display: "inline-flex",
                           alignItems: "center",
                           gap: 2,
                         }}
                       >
                         {delta > 0 ? `+${delta}` : delta}
                       </span>
-                    )}
+                    ) : null}
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
+                  {/* Middle Row: Large Score Readout & Grade Pill */}
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "2px 0" }}>
                     <span
                       style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: 24,
-                        fontWeight: 700,
+                        fontFamily: "var(--font-display, inherit)",
+                        fontSize: 26,
+                        fontWeight: 800,
                         color: latestScore ? THEME.ink : THEME.muted,
                         letterSpacing: "-0.03em",
+                        lineHeight: 1.1,
                       }}
                     >
                       {latestScore ? <Prv>{latestScore}</Prv> : "—"}
                     </span>
                     {grade && (
-                      <Badge
+                      <span
                         style={{
                           background: grade.bg,
                           color: grade.color,
-                          fontSize: 9,
+                          fontSize: 10,
                           fontWeight: 800,
-                          padding: "2px 6px",
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          border: `1px solid color-mix(in srgb, ${grade.color} 25%, transparent)`,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.04em",
                         }}
                       >
                         {grade.label}
-                      </Badge>
+                      </span>
                     )}
                   </div>
 
-                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  {/* Bottom Row: Last Checked Date & + Add Action */}
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: THEME.muted,
+                      marginTop: "auto",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      paddingTop: 6,
+                      borderTop: "1px solid var(--t-line)",
+                    }}
+                  >
                     <span>
                       {data.latest && data.latest.checkDate
                         ? (() => {
@@ -2545,7 +2591,7 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                                 })
                               : data.latest.checkDate;
                           })()
-                        : "No logs"}
+                        : "No logs yet"}
                     </span>
                     <button
                       type="button"
@@ -2554,14 +2600,20 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
                         setModal({ bureau: b });
                       }}
                       style={{
-                        background: "none",
+                        background: `color-mix(in srgb, ${bColor} 10%, transparent)`,
                         border: "none",
-                        padding: 0,
+                        padding: "3px 8px",
+                        borderRadius: 6,
                         cursor: "pointer",
                         color: bColor,
-                        fontSize: 10,
+                        fontSize: 11,
                         fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 2,
+                        transition: "all 0.15s ease",
                       }}
+                      title={`Log new ${b} score`}
                     >
                       + Add
                     </button>
@@ -2571,52 +2623,68 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
             })}
           </div>
 
-          {/* Sub-Navigation Tabs */}
+          {/* Sub-Navigation Tabs (Enterprise Pill Deck) */}
           <div
+            className="exec-subnav-bar no-scrollbar"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              borderBottom: "1px solid var(--t-line)",
-              paddingBottom: 6,
-              overflowX: "auto",
+              marginTop: 4,
+              marginBottom: 4,
             }}
           >
             <button
-              className={`subnav-pill-btn ${activeSubTab === "overview" ? "active" : ""}`}
+              type="button"
+              className={`exec-subnav-pill ${activeSubTab === "overview" ? "active" : ""}`}
               onClick={() => setActiveSubTab("overview")}
             >
-              <PieChart size={14} /> Overview & 5 Pillars
+              <PieChart size={15} /> Overview & 5 Pillars
             </button>
             <button
-              className={`subnav-pill-btn ${activeSubTab === "roadmap" ? "active" : ""}`}
+              type="button"
+              className={`exec-subnav-pill ${activeSubTab === "roadmap" ? "active" : ""}`}
               onClick={() => setActiveSubTab("roadmap")}
             >
-              <Target size={14} /> Score Target Roadmap
+              <Target size={15} /> Score Target Roadmap
             </button>
             <button
-              className={`subnav-pill-btn ${activeSubTab === "trends" ? "active" : ""}`}
+              type="button"
+              className={`exec-subnav-pill ${activeSubTab === "trends" ? "active" : ""}`}
               onClick={() => setActiveSubTab("trends")}
             >
-              <TrendingUp size={14} /> Score Trends & Comparison
+              <TrendingUp size={15} /> Score Trends & Comparison
             </button>
             <button
-              className={`subnav-pill-btn ${activeSubTab === "simulator" ? "active" : ""}`}
+              type="button"
+              className={`exec-subnav-pill ${activeSubTab === "simulator" ? "active" : ""}`}
               onClick={() => setActiveSubTab("simulator")}
             >
-              <Calculator size={14} /> What-If Simulator
+              <Calculator size={15} /> What-If Simulator
             </button>
             <button
-              className={`subnav-pill-btn ${activeSubTab === "history" ? "active" : ""}`}
+              type="button"
+              className={`exec-subnav-pill ${activeSubTab === "history" ? "active" : ""}`}
               onClick={() => setActiveSubTab("history")}
             >
-              <History size={14} /> Audit Log ({historyList.length})
+              <History size={15} />
+              <span>Audit Log</span>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  background: activeSubTab === "history" ? "color-mix(in srgb, var(--t-accent) 15%, transparent)" : "var(--surface-2)",
+                  color: activeSubTab === "history" ? "var(--t-accent)" : "var(--t-muted)",
+                  padding: "1px 6px",
+                  borderRadius: 999,
+                }}
+              >
+                {historyList.length}
+              </span>
             </button>
             <button
-              className={`subnav-pill-btn ${activeSubTab === "disputes" ? "active" : ""}`}
+              type="button"
+              className={`exec-subnav-pill ${activeSubTab === "disputes" ? "active" : ""}`}
               onClick={() => setActiveSubTab("disputes")}
             >
-              <ShieldCheck size={14} /> Bureau Dispute Guide & Ombudsman
+              <ShieldCheck size={15} /> Bureau Dispute Guide & Ombudsman
             </button>
           </div>
 
