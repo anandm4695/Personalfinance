@@ -27,6 +27,9 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Scale,
+  ShieldAlert,
+  FileCheck,
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { getLocalDateString, maskCurrencyInText } from "../../utils/finance";
@@ -39,6 +42,17 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 import { SkeletonTableRows } from "../ui/Skeleton";
+import { DoubleEntryTrialBalance } from "../audit/DoubleEntryTrialBalance";
+import { SftTaxRadar } from "../audit/SftTaxRadar";
+import { SolvencyScorecard } from "../audit/SolvencyScorecard";
+
+export interface AuditLogTabProps {
+  session?: any;
+  state?: any;
+  metrics?: any;
+  setTab?: (tab: string) => void;
+  showToast?: (msg: string, type?: string) => void;
+}
 
 // Action Colors using theme tokens with graceful fallbacks
 const ACTION_COLORS: Record<string, string> = {
@@ -362,8 +376,15 @@ const getMetadataSummary = (
   return pairs.length ? pairs.slice(0, 3).join("  •  ") : null;
 };
 
-export const AuditLogTab = ({ session }: { session?: any }) => {
+export const AuditLogTab: React.FC<AuditLogTabProps> = ({
+  session,
+  state = {},
+  metrics = {},
+  setTab,
+  showToast,
+}) => {
   const { privacyMode } = usePrivacy();
+  const [auditSubTab, setAuditSubTab] = useState<"trail" | "trial_balance" | "sft_radar" | "solvency">("trail");
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -976,40 +997,89 @@ export const AuditLogTab = ({ session }: { session?: any }) => {
 
         {/* Global Action Bar */}
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={exportCSV}
-            disabled={!filteredLogs.length || loading}
-            title="Download CSV report of filtered logs"
-          >
-            <FileSpreadsheet size={14} /> Export CSV
-          </Button>
+          {auditSubTab === "trail" && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={exportCSV}
+                disabled={!filteredLogs.length || loading}
+                title="Download CSV report of filtered logs"
+              >
+                <FileSpreadsheet size={14} /> Export CSV
+              </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={exportJSON}
-            disabled={!filteredLogs.length || loading}
-            title="Export JSON audit package for compliance/auditors"
-          >
-            <FileJson size={14} /> Export JSON
-          </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={exportJSON}
+                disabled={!filteredLogs.length || loading}
+                title="Export JSON audit package for compliance/auditors"
+              >
+                <FileJson size={14} /> Export JSON
+              </Button>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={fetchLogs}
-            disabled={loading}
-            title="Fetch latest audit updates from Supabase"
-          >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            {loading ? "Syncing…" : "Refresh"}
-          </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={fetchLogs}
+                disabled={loading}
+                title="Fetch latest audit updates from Supabase"
+              >
+                <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+                {loading ? "Syncing…" : "Refresh"}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Toast Notice */}
+      {/* Executive Subnav Tabs */}
+      <div className="demat-portfolio-bar no-scrollbar" style={{ gap: 8, overflowX: "auto" }}>
+        {[
+          { key: "trail", label: "Activity & Audit Trail", icon: Clock },
+          { key: "trial_balance", label: "Double-Entry Trial Balance", icon: Scale },
+          { key: "sft_radar", label: "SFT & Tax Compliance Radar", icon: ShieldAlert },
+          { key: "solvency", label: "Solvency & Financial Health", icon: FileCheck },
+        ].map((tabItem) => {
+          const Icon = tabItem.icon;
+          const active = auditSubTab === tabItem.key;
+          return (
+            <button
+              key={tabItem.key}
+              onClick={() => setAuditSubTab(tabItem.key as any)}
+              className={`demat-portfolio-pill ${active ? "active" : ""}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 14px",
+                fontSize: 13,
+                fontWeight: active ? 700 : 500,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Icon size={15} /> {tabItem.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {auditSubTab === "trial_balance" && (
+        <DoubleEntryTrialBalance state={state} metrics={metrics} setTab={setTab} showToast={showToast} />
+      )}
+
+      {auditSubTab === "sft_radar" && (
+        <SftTaxRadar state={state} metrics={metrics} showToast={showToast} />
+      )}
+
+      {auditSubTab === "solvency" && (
+        <SolvencyScorecard state={state} metrics={metrics} showToast={showToast} />
+      )}
+
+      {auditSubTab === "trail" && (
+        <>
+          {/* Toast Notice */}
       {exportNotice && (
         <div
           style={{
@@ -1826,6 +1896,8 @@ export const AuditLogTab = ({ session }: { session?: any }) => {
           />
         )}
       </Card>
+      </>
+      )}
     </div>
   );
 };

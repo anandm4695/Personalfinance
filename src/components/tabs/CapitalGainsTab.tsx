@@ -702,7 +702,9 @@ export const CapitalGainsTab = ({
   >("ALL");
 
   // Tax-Loss Harvesting Simulator selection
+  const [harvestMode, setHarvestMode] = useState<"loss" | "gain">("loss");
   const [selectedHarvestIds, setSelectedHarvestIds] = useState<Set<string>>(new Set());
+  const [selectedGainHarvestIds, setSelectedGainHarvestIds] = useState<Set<string>>(new Set());
 
   // What-If Simulator Inputs
   const [simAssetType, setSimAssetType] = useState<"Stock" | "Mutual Fund">("Stock");
@@ -954,6 +956,78 @@ export const CapitalGainsTab = ({
     };
   }, [lossCandidates, selectedHarvestIds, currentFYTotals]);
 
+  /* ── Section 112A Tax-Free LTCG Gain Harvesting ────────────────── */
+  const gainCandidates = useMemo(
+    () => unrealized.filter((h) => h.unrealizedPL > 0 && h.wouldBeType === "EQUITY_LTCG"),
+    [unrealized]
+  );
+
+  React.useEffect(() => {
+    if (gainCandidates.length > 0 && selectedGainHarvestIds.size === 0) {
+      setSelectedGainHarvestIds(new Set(gainCandidates.map((c) => c.id || c.name)));
+    }
+  }, [gainCandidates]);
+
+  const gainHarvestingCalculations = useMemo(() => {
+    const remainingHeadroom = Math.max(
+      0,
+      currentFYTotals.ltcgExemptionLimit - Math.max(0, currentFYTotals.byType.totals.EQUITY_LTCG)
+    );
+
+    let currentUnused = remainingHeadroom;
+    const sorted = [...gainCandidates].sort((a, b) => b.unrealizedPL - a.unrealizedPL);
+
+    const activeList = sorted.map((h) => {
+      const isSelected = selectedGainHarvestIds.has(h.id || h.name);
+      const totalPL = h.unrealizedPL;
+      const profitPerUnit = h.qty > 0 ? totalPL / h.qty : 0;
+
+      let harvestableGain = 0;
+      let unitsToSell = 0;
+      let saleValue = 0;
+      let futureTaxSaved = 0;
+
+      if (isSelected && currentUnused > 0 && profitPerUnit > 0) {
+        harvestableGain = Math.min(totalPL, currentUnused);
+        unitsToSell = Math.min(h.qty, Math.ceil(harvestableGain / profitPerUnit));
+        saleValue = unitsToSell * (h.currentPrice || 0);
+        futureTaxSaved = Math.round(harvestableGain * currentFYTotals.ltcgRate);
+        currentUnused -= harvestableGain;
+      }
+
+      return {
+        ...h,
+        isSelected,
+        harvestableGain,
+        unitsToSell,
+        saleValue,
+        futureTaxSaved,
+        profitPerUnit,
+      };
+    });
+
+    const totalHarvestedGain = activeList
+      .filter((h) => h.isSelected)
+      .reduce((sum, h) => sum + h.harvestableGain, 0);
+
+    const totalFutureSavings = activeList
+      .filter((h) => h.isSelected)
+      .reduce((sum, h) => sum + h.futureTaxSaved, 0);
+
+    const totalSaleValueRequired = activeList
+      .filter((h) => h.isSelected)
+      .reduce((sum, h) => sum + h.saleValue, 0);
+
+    return {
+      activeList,
+      remainingHeadroom,
+      totalHarvestedGain,
+      totalFutureSavings,
+      totalSaleValueRequired,
+      unusedHeadroomAfterHarvest: Math.max(0, remainingHeadroom - totalHarvestedGain),
+    };
+  }, [gainCandidates, selectedGainHarvestIds, currentFYTotals]);
+
   /* ── Filtered & Sorted Ledger ──────────────────────────────────── */
   const filteredLedger = useMemo(() => {
     let list = [...classified];
@@ -1186,7 +1260,27 @@ export const CapitalGainsTab = ({
     navigator.clipboard.writeText(text);
     setCopiedPlan(true);
     setTimeout(() => setCopiedPlan(false), 2500);
-    showToast?.("Harvesting plan copied to clipboard!", "success");
+    showToast?.("Loss harvesting plan copied to clipboard!", "success");
+  };
+
+  const handleCopyGainHarvestPlan = () => {
+    const selectedRows = gainHarvestingCalculations.activeList.filter((h) => h.isSelected);
+    if (!selectedRows.length) return;
+
+    let text = `SECTION 112A TAX-FREE LTCG GAIN HARVESTING PLAN — ${today()}\n`;
+    text += `Exemption Headroom: ₹${gainHarvestingCalculations.remainingHeadroom.toLocaleString("en-IN")}\n`;
+    text += `Harvested Tax-Free Gain: ₹${gainHarvestingCalculations.totalHarvestedGain.toLocaleString("en-IN")} (0% Tax)\n`;
+    text += `Future Tax Saved (12.5%): ₹${gainHarvestingCalculations.totalFutureSavings.toLocaleString("en-IN")}\n`;
+    text += `Total Sale Value: ₹${Math.round(gainHarvestingCalculations.totalSaleValueRequired).toLocaleString("en-IN")}\n\n`;
+    text += `POSITIONS TO SELL & REBUY (COST BASIS STEP-UP):\n`;
+    selectedRows.forEach((r, idx) => {
+      text += `${idx + 1}. ${r.name} (${r.assetType}) | Units to Sell: ${r.unitsToSell} of ${r.qty} | Sale Value: ₹${Math.round(r.saleValue).toLocaleString("en-IN")} | Tax-Free Gain: ₹${Math.round(r.harvestableGain).toLocaleString("en-IN")} | Future Tax Saved: ₹${r.futureTaxSaved.toLocaleString("en-IN")}\n`;
+    });
+
+    navigator.clipboard.writeText(text);
+    setCopiedPlan(true);
+    setTimeout(() => setCopiedPlan(false), 2500);
+    showToast?.("Section 112A gain harvesting plan copied to clipboard!", "success");
   };
 
   /* ── Derived Metrics & Visual Charts Data ──────────────────────── */
@@ -2422,272 +2516,565 @@ export const CapitalGainsTab = ({
       )}
 
       {/* ═════════════════════════════════════════════════════════════
-         VIEW 4: TAX-LOSS HARVESTING STUDIO
+         VIEW 4: TAX-LOSS & SECTION 112A GAIN HARVESTING STUDIO
          ═════════════════════════════════════════════════════════════ */}
       {activeView === "harvesting" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* Harvesting Studio Overview */}
-          <div
-            style={{
-              padding: "16px 20px",
-              borderRadius: 12,
-              background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <Scissors size={24} color={THEME.gold} style={{ marginTop: 2 }} />
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>
-                  Tax-Loss Harvesting Studio & Offset Planner
-                </div>
-                <div style={{ fontSize: 12, color: THEME.muted, maxWidth: 580 }}>
-                  Realize losses on underperforming holdings to legally wipe out capital gains tax
-                  in {currentFYLabel}. You can immediately reinvest proceeds into similar index funds
-                  or alternative securities to keep your portfolio allocation intact.
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 8 }}>
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={copiedPlan ? <Check size={14} /> : <Copy size={14} />}
-                onClick={handleCopyHarvestPlan}
-              >
-                {copiedPlan ? "Copied!" : "Copy Harvest Plan"}
-              </Button>
-            </div>
-          </div>
-
-          {/* Interactive Impact Simulator Bar */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 14,
-            }}
-          >
-            <Card style={{ padding: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
-                Realized Gains to Offset ({currentFYLabel})
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink }}>
-                <Money
-                  value={
-                    Math.max(0, currentFYTotals.byType.totals.EQUITY_STCG) +
-                    Math.max(
-                      0,
-                      currentFYTotals.byType.totals.EQUITY_LTCG -
-                        currentFYTotals.ltcgExemptionLimit
-                    )
-                  }
-                  variant="full"
-                />
-              </div>
-              <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
-                Taxable STCG + LTCG above ₹1.25L
-              </div>
-            </Card>
-
-            <Card style={{ padding: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
-                Selected Losses to Harvest
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: THEME.rust }}>
-                <Money value={harvestingCalculations.totalHarvestedLoss} variant="full" />
-              </div>
-              <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
-                Usable: <Money value={harvestingCalculations.totalUsableLoss} variant="full" />
-              </div>
-            </Card>
-
-            <Card
-              style={{
-                padding: 16,
-                background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
-                border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
-              }}
-            >
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.sage, marginBottom: 4 }}>
-                Immediate Tax Savings
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: THEME.sage }}>
-                <Money value={harvestingCalculations.totalPotentialSavings} variant="full" />
-              </div>
-              <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
-                Direct reduction in current FY tax
-              </div>
-            </Card>
-          </div>
-
-          {/* Harvesting Table with Checkboxes */}
-          <Card style={{ padding: 16 }}>
-            <div
+          {/* Strategy Mode Switcher Pills */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => setHarvestMode("loss")}
+              className={`demat-portfolio-pill ${harvestMode === "loss" ? "active" : ""}`}
               style={{
                 display: "flex",
-                justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: 12,
+                gap: 6,
+                padding: "8px 16px",
+                fontSize: 13,
+                fontWeight: harvestMode === "loss" ? 700 : 500,
+                cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
-                Select Positions to Harvest ({harvestingCalculations.activeList.length} opportunities)
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSelectedHarvestIds(
-                      new Set(harvestingCalculations.activeList.map((h) => h.id || h.name))
-                    )
-                  }
-                  className="button-ghost"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: THEME.accent,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Select All
-                </button>
-                <span style={{ color: THEME.line }}>|</span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedHarvestIds(new Set())}
-                  className="button-ghost"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: THEME.muted,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Clear All
-                </button>
-              </div>
-            </div>
+              <Scissors size={15} />
+              Tax-Loss Harvesting (Offset Realized Gains)
+            </button>
+            <button
+              type="button"
+              onClick={() => setHarvestMode("gain")}
+              className={`demat-portfolio-pill ${harvestMode === "gain" ? "active" : ""}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 16px",
+                fontSize: 13,
+                fontWeight: harvestMode === "gain" ? 700 : 500,
+                cursor: "pointer",
+              }}
+            >
+              <TrendingUp size={15} />
+              Section 112A Tax-Free Gain Harvesting (₹1.25L Exemption)
+            </button>
+          </div>
 
-            {harvestingCalculations.activeList.length > 0 ? (
+          {harvestMode === "loss" ? (
+            <>
+              {/* Harvesting Studio Overview */}
               <div
                 style={{
-                  overflowX: "auto",
-                  borderRadius: 10,
-                  border: `1px solid ${THEME.line}`,
+                  padding: "16px 20px",
+                  borderRadius: 12,
+                  background: `color-mix(in srgb, ${THEME.gold} 6%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.gold} 20%, transparent)`,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 12,
                 }}
               >
-                <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ ...thStyle, width: 40, textAlign: "center" }}>Harvest</th>
-                      <th style={{ ...thStyle, textAlign: "left" }}>Asset</th>
-                      <th style={{ ...thStyle, textAlign: "left" }}>Type</th>
-                      <th style={{ ...thStyle, textAlign: "right" }}>Invested</th>
-                      <th style={{ ...thStyle, textAlign: "right" }}>Current Value</th>
-                      <th style={{ ...thStyle, textAlign: "right" }}>Unrealized Loss</th>
-                      <th style={{ ...thStyle, textAlign: "right" }}>Usable Loss</th>
-                      <th style={{ ...thStyle, textAlign: "right" }}>Tax Savings</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {harvestingCalculations.activeList.map((h) => {
-                      const id = h.id || h.name;
-                      return (
-                        <tr
-                          key={id}
-                          className="table-row-hover"
-                          onClick={() => {
-                            const next = new Set(selectedHarvestIds);
-                            if (next.has(id)) next.delete(id);
-                            else next.add(id);
-                            setSelectedHarvestIds(next);
-                          }}
-                          style={{ cursor: "pointer" }}
-                        >
-                          <td style={{ ...tdStyle, textAlign: "center" }}>
-                            <input
-                              type="checkbox"
-                              checked={h.isSelected}
-                              onChange={(e) => {
-                                e.stopPropagation();
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <Scissors size={24} color={THEME.gold} style={{ marginTop: 2 }} />
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>
+                      Tax-Loss Harvesting Studio & Offset Planner
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.muted, maxWidth: 580 }}>
+                      Realize losses on underperforming holdings to legally wipe out capital gains tax
+                      in {currentFYLabel}. You can immediately reinvest proceeds into similar index funds
+                      or alternative securities to keep your portfolio allocation intact.
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={copiedPlan ? <Check size={14} /> : <Copy size={14} />}
+                    onClick={handleCopyHarvestPlan}
+                  >
+                    {copiedPlan ? "Copied!" : "Copy Harvest Plan"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Interactive Impact Simulator Bar */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                <Card style={{ padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
+                    Realized Gains to Offset ({currentFYLabel})
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink }}>
+                    <Money
+                      value={
+                        Math.max(0, currentFYTotals.byType.totals.EQUITY_STCG) +
+                        Math.max(
+                          0,
+                          currentFYTotals.byType.totals.EQUITY_LTCG -
+                            currentFYTotals.ltcgExemptionLimit
+                        )
+                      }
+                      variant="full"
+                    />
+                  </div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                    Taxable STCG + LTCG above ₹1.25L
+                  </div>
+                </Card>
+
+                <Card style={{ padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
+                    Selected Losses to Harvest
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: THEME.rust }}>
+                    <Money value={harvestingCalculations.totalHarvestedLoss} variant="full" />
+                  </div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                    Usable: <Money value={harvestingCalculations.totalUsableLoss} variant="full" />
+                  </div>
+                </Card>
+
+                <Card
+                  style={{
+                    padding: 16,
+                    background: `color-mix(in srgb, ${THEME.sage} 6%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.sage, marginBottom: 4 }}>
+                    Immediate Tax Savings
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: THEME.sage }}>
+                    <Money value={harvestingCalculations.totalPotentialSavings} variant="full" />
+                  </div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                    Direct reduction in current FY tax
+                  </div>
+                </Card>
+              </div>
+
+              {/* Harvesting Table with Checkboxes */}
+              <Card style={{ padding: 16 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 12,
+                  }}
+                >
+                  <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                    Select Loss Positions to Harvest ({harvestingCalculations.activeList.length} opportunities)
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedHarvestIds(
+                          new Set(harvestingCalculations.activeList.map((h) => h.id || h.name))
+                        )
+                      }
+                      className="button-ghost"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: THEME.accent,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Select All
+                    </button>
+                    <span style={{ color: THEME.line }}>|</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedHarvestIds(new Set())}
+                      className="button-ghost"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: THEME.muted,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+
+                {harvestingCalculations.activeList.length > 0 ? (
+                  <div
+                    style={{
+                      overflowX: "auto",
+                      borderRadius: 10,
+                      border: `1px solid ${THEME.line}`,
+                    }}
+                  >
+                    <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          <th style={{ ...thStyle, width: 40, textAlign: "center" }}>Harvest</th>
+                          <th style={{ ...thStyle, textAlign: "left" }}>Asset</th>
+                          <th style={{ ...thStyle, textAlign: "left" }}>Type</th>
+                          <th style={{ ...thStyle, textAlign: "right" }}>Invested</th>
+                          <th style={{ ...thStyle, textAlign: "right" }}>Current Value</th>
+                          <th style={{ ...thStyle, textAlign: "right" }}>Unrealized Loss</th>
+                          <th style={{ ...thStyle, textAlign: "right" }}>Usable Loss</th>
+                          <th style={{ ...thStyle, textAlign: "right" }}>Tax Savings</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {harvestingCalculations.activeList.map((h) => {
+                          const id = h.id || h.name;
+                          return (
+                            <tr
+                              key={id}
+                              className="table-row-hover"
+                              onClick={() => {
                                 const next = new Set(selectedHarvestIds);
-                                if (e.target.checked) next.add(id);
-                                else next.delete(id);
+                                if (next.has(id)) next.delete(id);
+                                else next.add(id);
                                 setSelectedHarvestIds(next);
                               }}
-                              style={{ cursor: "pointer", accentColor: THEME.accent }}
-                            />
-                          </td>
-                          <td
-                            style={{
-                              ...tdStyle,
-                              fontWeight: 600,
-                              color: THEME.ink,
-                              maxWidth: 180,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {h.name}
-                          </td>
-                          <td style={tdStyle}>
-                            <Badge variant="muted">{h.assetType}</Badge>
-                          </td>
-                          <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                            <Money value={h.buyPrice} variant="full" />
-                          </td>
-                          <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                            <Money value={h.currentPrice} variant="full" />
-                          </td>
-                          <td
-                            style={{
-                              ...tdStyle,
-                              textAlign: "right",
-                              fontWeight: 700,
-                              color: THEME.rust,
-                            }}
-                          >
-                            <Money value={h.unrealizedPL} variant="full" />
-                          </td>
-                          <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
-                            <Money value={h.usableLoss} variant="full" />
-                          </td>
-                          <td
-                            style={{
-                              ...tdStyle,
-                              textAlign: "right",
-                              fontWeight: 700,
-                              color: h.potentialSaving > 0 ? THEME.sage : THEME.muted,
-                            }}
-                          >
-                            <Money value={h.potentialSaving} variant="full" />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                              style={{ cursor: "pointer" }}
+                            >
+                              <td style={{ ...tdStyle, textAlign: "center" }}>
+                                <input
+                                  type="checkbox"
+                                  checked={h.isSelected}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    const next = new Set(selectedHarvestIds);
+                                    if (e.target.checked) next.add(id);
+                                    else next.delete(id);
+                                    setSelectedHarvestIds(next);
+                                  }}
+                                  style={{ cursor: "pointer", accentColor: THEME.accent }}
+                                />
+                              </td>
+                              <td
+                                style={{
+                                  ...tdStyle,
+                                  fontWeight: 600,
+                                  color: THEME.ink,
+                                  maxWidth: 180,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {h.name}
+                              </td>
+                              <td style={tdStyle}>
+                                <Badge variant="muted">{h.assetType}</Badge>
+                              </td>
+                              <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
+                                <Money value={h.buyPrice} variant="full" />
+                              </td>
+                              <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
+                                <Money value={h.currentPrice} variant="full" />
+                              </td>
+                              <td
+                                style={{
+                                  ...tdStyle,
+                                  textAlign: "right",
+                                  fontWeight: 700,
+                                  color: THEME.rust,
+                                }}
+                              >
+                                <Money value={h.unrealizedPL} variant="full" />
+                              </td>
+                              <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
+                                <Money value={h.usableLoss} variant="full" />
+                              </td>
+                              <td
+                                style={{
+                                  ...tdStyle,
+                                  textAlign: "right",
+                                  fontWeight: 700,
+                                  color: h.potentialSaving > 0 ? THEME.sage : THEME.muted,
+                                }}
+                              >
+                                <Money value={h.potentialSaving} variant="full" />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={Scissors}
+                    title="No unrealized losses found"
+                    description="All your current holdings are in profit. No tax loss harvesting opportunities currently exist."
+                  />
+                )}
+              </Card>
+            </>
+          ) : (
+            <>
+              {/* Section 112A Tax-Free LTCG Gain Harvester Overview */}
+              <div
+                style={{
+                  padding: "16px 20px",
+                  borderRadius: 12,
+                  background: `color-mix(in srgb, ${THEME.sage} 8%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <TrendingUp size={24} color="var(--t-sage)" style={{ marginTop: 2 }} />
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink }}>
+                      Section 112A Tax-Free LTCG Gain Harvester (₹1.25L Exemption)
+                    </div>
+                    <div style={{ fontSize: 12, color: THEME.muted, maxWidth: 580 }}>
+                      Under Section 112A, long-term capital gains up to ₹1,25,000 per financial year are completely tax-free (0% tax). Sell and immediately repurchase winning positions to step up your cost basis to today's market price without paying any tax, locking in future tax savings!
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={copiedPlan ? <Check size={14} /> : <Copy size={14} />}
+                    onClick={handleCopyGainHarvestPlan}
+                  >
+                    {copiedPlan ? "Copied!" : "Copy Execution Orders"}
+                  </Button>
+                </div>
               </div>
-            ) : (
-              <EmptyState
-                icon={Scissors}
-                title="No unrealized losses found"
-                description="All your current holdings are in profit. No tax loss harvesting opportunities currently exist."
-              />
-            )}
-          </Card>
+
+              {/* Gain Harvesting KPI Ribbon */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                <Card style={{ padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
+                    Remaining 0%-Tax Headroom ({currentFYLabel})
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink }}>
+                    <Money value={gainHarvestingCalculations.remainingHeadroom} variant="full" />
+                  </div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                    Annual ₹1.25L Exemption u/s 112A
+                  </div>
+                </Card>
+
+                <Card style={{ padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
+                    Tax-Free Gain to Harvest (0% Tax)
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "var(--t-sage)" }}>
+                    <Money value={gainHarvestingCalculations.totalHarvestedGain} variant="full" />
+                  </div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                    Resets cost basis at ₹0 current tax
+                  </div>
+                </Card>
+
+                <Card
+                  style={{
+                    padding: 16,
+                    background: `color-mix(in srgb, ${THEME.accent} 6%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.accent} 25%, transparent)`,
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.accent, marginBottom: 4 }}>
+                    Future Tax Saved (12.5%)
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: THEME.accent }}>
+                    <Money value={gainHarvestingCalculations.totalFutureSavings} variant="full" />
+                  </div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                    Direct future capital gains tax protection
+                  </div>
+                </Card>
+
+                <Card style={{ padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 4 }}>
+                    Total Trade Value to Execute
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink }}>
+                    <Money value={gainHarvestingCalculations.totalSaleValueRequired} variant="full" />
+                  </div>
+                  <div style={{ fontSize: 10, color: THEME.muted, marginTop: 4 }}>
+                    Sell & Rebuy volume needed
+                  </div>
+                </Card>
+              </div>
+
+              {/* Gain Harvesting Table */}
+              <Card style={{ padding: 16 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 12,
+                  }}
+                >
+                  <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink }}>
+                    Select Profitable LTCG Positions ({gainHarvestingCalculations.activeList.length} candidates)
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedGainHarvestIds(
+                          new Set(gainHarvestingCalculations.activeList.map((h) => h.id || h.name))
+                        )
+                      }
+                      className="button-ghost"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: THEME.accent,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Select All
+                    </button>
+                    <span style={{ color: THEME.line }}>|</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGainHarvestIds(new Set())}
+                      className="button-ghost"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: THEME.muted,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+
+                {gainHarvestingCalculations.activeList.length > 0 ? (
+                  <div
+                    style={{
+                      overflowX: "auto",
+                      borderRadius: 10,
+                      border: `1px solid ${THEME.line}`,
+                    }}
+                  >
+                    <table style={{ width: "100%", minWidth: 780, borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          <th style={{ ...thStyle, width: 40, textAlign: "center" }}>Harvest</th>
+                          <th style={{ ...thStyle, textAlign: "left" }}>Asset</th>
+                          <th style={{ ...thStyle, textAlign: "left" }}>Category</th>
+                          <th style={{ ...thStyle, textAlign: "right" }}>Total LTCG Profit</th>
+                          <th style={{ ...thStyle, textAlign: "right" }}>Units to Sell</th>
+                          <th style={{ ...thStyle, textAlign: "right" }}>Execution Value</th>
+                          <th style={{ ...thStyle, textAlign: "right" }}>Tax-Free Gain</th>
+                          <th style={{ ...thStyle, textAlign: "right" }}>Future Tax Saved</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {gainHarvestingCalculations.activeList.map((h) => {
+                          const id = h.id || h.name;
+                          return (
+                            <tr
+                              key={id}
+                              className="table-row-hover"
+                              onClick={() => {
+                                const next = new Set(selectedGainHarvestIds);
+                                if (next.has(id)) next.delete(id);
+                                else next.add(id);
+                                setSelectedGainHarvestIds(next);
+                              }}
+                              style={{ cursor: "pointer" }}
+                            >
+                              <td style={{ ...tdStyle, textAlign: "center" }}>
+                                <input
+                                  type="checkbox"
+                                  checked={h.isSelected}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    const next = new Set(selectedGainHarvestIds);
+                                    if (e.target.checked) next.add(id);
+                                    else next.delete(id);
+                                    setSelectedGainHarvestIds(next);
+                                  }}
+                                  style={{ cursor: "pointer", accentColor: THEME.accent }}
+                                />
+                              </td>
+                              <td
+                                style={{
+                                  ...tdStyle,
+                                  fontWeight: 600,
+                                  color: THEME.ink,
+                                  maxWidth: 200,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {h.name}
+                              </td>
+                              <td style={tdStyle}>
+                                <Badge variant="muted">{h.assetType}</Badge>
+                              </td>
+                              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700, color: "var(--t-sage)" }}>
+                                <Money value={h.unrealizedPL} variant="full" />
+                              </td>
+                              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 600, color: THEME.ink }}>
+                                {h.unitsToSell} / {h.qty}
+                              </td>
+                              <td style={{ ...tdStyle, textAlign: "right", color: THEME.ink }}>
+                                <Money value={h.saleValue} variant="full" />
+                              </td>
+                              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700, color: "var(--t-sage)" }}>
+                                <Money value={h.harvestableGain} variant="full" />
+                              </td>
+                              <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800, color: THEME.accent }}>
+                                <Money value={h.futureTaxSaved} variant="full" />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={TrendingUp}
+                    title="No qualifying long-term gain holdings"
+                    description="No holdings have crossed the 365-day holding period with unrealized LTCG profits to harvest."
+                  />
+                )}
+              </Card>
+            </>
+          )}
         </div>
       )}
 

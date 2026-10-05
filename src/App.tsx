@@ -4723,7 +4723,15 @@ function FinanceDashboard() {
                   showToast={showToast}
                 />
               )}
-              {tab === "auditlog" && <AuditLogTab session={session} />}
+              {tab === "auditlog" && (
+                <AuditLogTab
+                  session={session}
+                  state={filteredState}
+                  metrics={metrics}
+                  setTab={setTab}
+                  showToast={showToast}
+                />
+              )}
               {tab === "benchmark" && (
                 <PerformanceBenchmarkTab
                   state={filteredState}
