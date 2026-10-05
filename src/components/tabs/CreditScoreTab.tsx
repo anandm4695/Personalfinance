@@ -441,6 +441,9 @@ function ScoreFormModal({ initial, onSave, onClose, saving = false }: ScoreFormM
 // -----------------------------------------------------------------------------
 // SMART IMPORT & ZERO-MANUAL-ENTRY CONNECT HUB MODAL
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// SMART IMPORT & ZERO-MANUAL-ENTRY CONNECT HUB MODAL (SENIOR UI/UX)
+// -----------------------------------------------------------------------------
 interface SmartCreditImportModalProps {
   onImport: (entry: CreditScoreEntry) => Promise<void> | void;
   onClose: () => void;
@@ -454,8 +457,10 @@ function SmartCreditImportModal({ onImport, onClose, saving = false }: SmartCred
   
   // PDF state
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfPassword, setPdfPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [needsPassword, setNeedsPassword] = useState(false);
   const [extractError, setExtractError] = useState("");
   const [parsedPreview, setParsedPreview] = useState<ParsedCreditReport | null>(null);
@@ -478,12 +483,12 @@ function SmartCreditImportModal({ onImport, onClose, saving = false }: SmartCred
       setIsExtracting(false);
       setNeedsPassword(false);
       if (!text.trim()) {
-        setExtractError("The PDF has no readable digital text. Please make sure it is an official digital statement.");
+        setExtractError("The PDF has no readable digital text. Please make sure it is an official digital statement rather than a scanned image.");
         return;
       }
       const parsed = parseCreditReportText(text, selectedOwner);
       if (!parsed) {
-        setExtractError("Could not automatically locate your credit score in this PDF. You can switch to the Paste Text tab to copy & paste your report text.");
+        setExtractError("Could not automatically detect your credit score in this PDF. You can switch to the 'Paste Text / SMS' tab to paste your report summary directly.");
         return;
       }
       setParsedPreview(parsed);
@@ -491,7 +496,7 @@ function SmartCreditImportModal({ onImport, onClose, saving = false }: SmartCred
       setIsExtracting(false);
       if (e instanceof PdfPasswordRequiredError) {
         setNeedsPassword(true);
-        if (pwd) setExtractError("Incorrect PDF password. CIBIL/Experian PDFs typically use your PAN (uppercase) or DOB (DDMMYYYY).");
+        if (pwd) setExtractError("Incorrect PDF password. CIBIL & Experian PDFs typically use your PAN (in uppercase) or Date of Birth (DDMMYYYY).");
       } else {
         setExtractError(e?.message || "Failed to read PDF file.");
       }
@@ -556,69 +561,112 @@ function SmartCreditImportModal({ onImport, onClose, saving = false }: SmartCred
   };
 
   return (
-    <Modal title="Smart Bureau Import & Zero-Entry Connect Hub" onClose={onClose} maxWidth={640}>
-      {/* Subtab Header */}
-      <div style={{ display: "flex", gap: 6, borderBottom: "1px solid var(--t-line)", paddingBottom: 10, marginBottom: 16 }}>
+    <Modal title="Smart Bureau Import & Zero-Entry Connect Hub" onClose={onClose} maxWidth={660}>
+      {/* Executive Subtab Navigation */}
+      <div className="exec-subnav-bar no-scrollbar" style={{ marginBottom: 16 }}>
         <button
           type="button"
           onClick={() => setTab("pdf")}
-          className={`subnav-pill-btn ${tab === "pdf" ? "active" : ""}`}
+          className={`exec-subnav-pill ${tab === "pdf" ? "active" : ""}`}
         >
-          <Upload size={13} /> PDF Report Parser
+          <Upload size={14} /> PDF Report Parser
         </button>
         <button
           type="button"
           onClick={() => setTab("paste")}
-          className={`subnav-pill-btn ${tab === "paste" ? "active" : ""}`}
+          className={`exec-subnav-pill ${tab === "paste" ? "active" : ""}`}
         >
-          <FileText size={13} /> Paste Text / SMS
+          <FileText size={14} /> Paste Text / SMS
         </button>
         <button
           type="button"
           onClick={() => setTab("connectors")}
-          className={`subnav-pill-btn ${tab === "connectors" ? "active" : ""}`}
+          className={`exec-subnav-pill ${tab === "connectors" ? "active" : ""}`}
         >
-          <Zap size={13} /> Bureau Connectors
+          <Zap size={14} /> Bureau Connectors
         </button>
         <button
           type="button"
           onClick={() => setTab("csv")}
-          className={`subnav-pill-btn ${tab === "csv" ? "active" : ""}`}
+          className={`exec-subnav-pill ${tab === "csv" ? "active" : ""}`}
         >
-          <Download size={13} /> CSV Paste
+          <Download size={14} /> CSV Paste
         </button>
       </div>
 
-      {/* Profile Selector */}
-      <div style={{ marginBottom: 16 }}>
-        <Field label="Assign Report To Family Member">
-          <select
-            className="form-input"
-            value={selectedOwner}
-            onChange={(e) => setSelectedOwner(e.target.value)}
-          >
-            {familyProfiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {formatProfileOption(p)}
-              </option>
-            ))}
-          </select>
-        </Field>
+      {/* Target Member Selector Bar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "10px 14px",
+          background: "var(--surface-1)",
+          borderRadius: "var(--radius-md, 8px)",
+          border: "1px solid var(--t-line)",
+          marginBottom: 16,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <OwnerAvatar ownerId={selectedOwner} size={28} />
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+              Assign Report To Member
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
+              Selected Profile Record
+            </div>
+          </div>
+        </div>
+
+        <select
+          className="form-input"
+          value={selectedOwner}
+          onChange={(e) => setSelectedOwner(e.target.value)}
+          style={{ maxWidth: 220, fontSize: 12, padding: "6px 10px", fontWeight: 600 }}
+        >
+          {familyProfiles.map((p) => (
+            <option key={p.id} value={p.id}>
+              {formatProfileOption(p)}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* TAB 1: PDF REPORT PARSER */}
       {tab === "pdf" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* High-Fidelity Drag & Drop Zone */}
           <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file && file.type === "application/pdf") {
+                handlePdfFileSelect(file);
+              }
+            }}
             onClick={() => fileInputRef.current?.click()}
             style={{
-              border: "2px dashed var(--t-line)",
-              borderRadius: "var(--radius-lg)",
-              padding: "28px 20px",
+              border: `2px dashed ${isDragging ? "var(--t-accent)" : "var(--t-line)"}`,
+              borderRadius: "var(--radius-lg, 12px)",
+              padding: "32px 24px",
               textAlign: "center",
               cursor: "pointer",
-              background: "var(--surface-1)",
-              transition: "border-color 0.2s, background 0.2s",
+              background: isDragging
+                ? "color-mix(in srgb, var(--t-accent) 8%, var(--surface-0))"
+                : "var(--surface-1)",
+              transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 12,
             }}
           >
             <input
@@ -631,30 +679,65 @@ function SmartCreditImportModal({ onImport, onClose, saving = false }: SmartCred
                 if (f) handlePdfFileSelect(f);
               }}
             />
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "50%",
-                  background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
-                  color: THEME.accent,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {isExtracting ? <RefreshCw size={22} className="spin" /> : <Upload size={22} />}
+
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                background: "color-mix(in srgb, var(--t-accent) 12%, transparent)",
+                color: THEME.accent,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+              }}
+            >
+              {isExtracting ? <RefreshCw size={24} className="spin" /> : <Upload size={24} />}
+            </div>
+
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: THEME.ink }}>
+                {pdfFile ? pdfFile.name : "Drop your official Credit Report PDF here"}
               </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
-                  {pdfFile ? pdfFile.name : "Drop your official Credit Report PDF here"}
-                </div>
-                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>
-                  Supports CIBIL CIR, Experian, CRIF High Mark, Equifax & OneScore / CRED statements
-                </div>
+              <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}>
+                Supports <strong>CIBIL CIR</strong>, <strong>Experian</strong>, <strong>CRIF High Mark</strong>, <strong>Equifax</strong>, <strong>OneScore</strong> & <strong>CRED</strong>
               </div>
             </div>
+
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Upload size={13} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              style={{ marginTop: 4 }}
+            >
+              Browse PDF File
+            </Button>
+          </div>
+
+          {/* Zero-Server Privacy Callout */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "8px 12px",
+              borderRadius: 8,
+              background: "color-mix(in srgb, var(--t-sage) 8%, var(--surface-0))",
+              border: "1px solid color-mix(in srgb, var(--t-sage) 20%, transparent)",
+              fontSize: 11,
+              color: THEME.sage,
+              fontWeight: 600,
+            }}
+          >
+            <Lock size={14} style={{ flexShrink: 0 }} />
+            <span>
+              <strong>100% Client-Side Privacy:</strong> Your report is parsed directly in your browser memory and never uploaded to any external server.
+            </span>
           </div>
 
           {/* Password Prompt if Encrypted */}
@@ -662,34 +745,40 @@ function SmartCreditImportModal({ onImport, onClose, saving = false }: SmartCred
             <div
               style={{
                 background: "color-mix(in srgb, var(--t-gold) 10%, var(--surface-0))",
-                border: "1px solid var(--t-gold)",
-                borderRadius: 8,
-                padding: "12px 14px",
+                border: "1.5px solid var(--t-gold)",
+                borderRadius: 10,
+                padding: "14px 16px",
                 display: "flex",
                 flexDirection: "column",
-                gap: 8,
+                gap: 10,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: THEME.ink }}>
-                <Lock size={14} color={THEME.gold} />
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                <Lock size={15} color={THEME.gold} />
                 <span>Password Protected Credit Report</span>
               </div>
-              <div style={{ fontSize: 11, color: THEME.muted }}>
-                Credit bureaus usually encrypt reports with your <strong>PAN number</strong> (e.g. ABCDE1234F) or <strong>Date of Birth (DDMMYYYY)</strong>.
+              <div style={{ fontSize: 11.5, color: THEME.muted, lineHeight: 1.4 }}>
+                Credit bureaus encrypt PDF statements with your <strong>PAN Number</strong> (e.g. ABCDE1234F in uppercase) or <strong>Date of Birth (DDMMYYYY)</strong>.
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   className="form-input"
                   placeholder="Enter PDF password (e.g. PAN or DOB)"
                   value={pdfPassword}
                   onChange={(e) => setPdfPassword(e.target.value)}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, fontSize: 12 }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && pdfFile) {
+                      handlePdfFileSelect(pdfFile, pdfPassword);
+                    }
+                  }}
                 />
                 <Button
                   size="sm"
                   variant="primary"
                   onClick={() => pdfFile && handlePdfFileSelect(pdfFile, pdfPassword)}
+                  disabled={isExtracting}
                 >
                   Unlock & Extract
                 </Button>
@@ -698,8 +787,21 @@ function SmartCreditImportModal({ onImport, onClose, saving = false }: SmartCred
           )}
 
           {extractError && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: THEME.rust, fontWeight: 600 }}>
-              <AlertCircle size={14} />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 12,
+                color: THEME.rust,
+                fontWeight: 600,
+                padding: "8px 12px",
+                background: "color-mix(in srgb, var(--t-rust) 8%, var(--surface-0))",
+                borderRadius: 8,
+                border: "1px solid color-mix(in srgb, var(--t-rust) 20%, transparent)",
+              }}
+            >
+              <AlertCircle size={15} style={{ flexShrink: 0 }} />
               <span>{extractError}</span>
             </div>
           )}
@@ -720,7 +822,7 @@ function SmartCreditImportModal({ onImport, onClose, saving = false }: SmartCred
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <FileCheck size={18} color={THEME.sage} />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
                     Report Extracted Successfully!
                   </span>
                 </div>
@@ -731,28 +833,28 @@ function SmartCreditImportModal({ onImport, onClose, saving = false }: SmartCred
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
                 <div style={{ background: "var(--surface-0)", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
-                  <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>PARSED SCORE</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: scoreGrade(parsedPreview.score).color, fontFamily: "var(--font-display)" }}>
+                  <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>PARSED SCORE</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: scoreGrade(parsedPreview.score).color, fontFamily: "var(--font-display, inherit)", marginTop: 2 }}>
                     {parsedPreview.score}
                   </div>
                 </div>
 
                 <div style={{ background: "var(--surface-0)", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
-                  <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>REPORT DATE</div>
+                  <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>REPORT DATE</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginTop: 4 }}>
                     {parsedPreview.checkDate}
                   </div>
                 </div>
 
                 <div style={{ background: "var(--surface-0)", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
-                  <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>SOURCE</div>
+                  <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 700 }}>SOURCE</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginTop: 4 }}>
                     {parsedPreview.source}
                   </div>
                 </div>
               </div>
 
-              {parsedPreview.summary && (
+              {parsedPreview.notes && (
                 <div style={{ fontSize: 11, color: THEME.muted }}>
                   {parsedPreview.notes}
                 </div>
