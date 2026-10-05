@@ -920,68 +920,87 @@ function SmartCreditImportModal({ onImport, onClose, saving = false }: SmartCred
 }
 
 // -----------------------------------------------------------------------------
-// LUXURY SPEEDOMETER GAUGE
+// LUXURY SPEEDOMETER GAUGE (SENIOR UI/UX PRECISION DIAL)
 // -----------------------------------------------------------------------------
-function CreditGaugeVisual({ score, size = 220 }: { score: number; size?: number }) {
+function CreditGaugeVisual({ score, size = 260 }: { score: number; size?: number }) {
   const grade = scoreGrade(score);
   const pct = Math.min(1, Math.max(0, (score - 300) / 600));
-  const angle = pct * 180;
   const animatedScore = useAnimatedNumber(score);
+  const animatedPct = Math.min(1, Math.max(0, (animatedScore - 300) / 600));
+
+  // Geometry: 180° semi-circle from left (25, 105) through top (100, 30) to right (175, 105)
+  const cx = 100;
+  const cy = 105;
+  const r = 75;
+  const arcLength = Math.PI * r; // ~235.62
+  const strokeOffset = arcLength * (1 - animatedPct);
+
+  // Orbit indicator thumb position on arc perimeter
+  const thumbAngle = Math.PI * (1 - animatedPct); // radians from 0 to PI
+  const thumbX = cx - r * Math.cos(animatedPct * Math.PI);
+  const thumbY = cy - r * Math.sin(animatedPct * Math.PI);
+
+  // Key scale milestone ticks
+  const ticks = [
+    { label: "300", t: 0 },
+    { label: "600", t: 0.5 },
+    { label: "750", t: 0.75 },
+    { label: "900", t: 1.0 },
+  ];
 
   return (
-    <div style={{ textAlign: "center", padding: "10px 0" }}>
-      <div style={{ position: "relative", display: "inline-block", width: size, height: Math.round(size * 0.62) }}>
+    <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
+      <div style={{ position: "relative", width: size, maxWidth: "100%", height: Math.round(size * 0.58) }}>
         <svg
-          width={size}
-          height={Math.round(size * 0.62)}
-          viewBox="0 0 140 86"
-          style={{ overflow: "visible" }}
+          width="100%"
+          height="100%"
+          viewBox="0 0 200 120"
+          style={{ overflow: "visible", display: "block" }}
         >
           <defs>
-            <linearGradient id="luxury-gauge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor={THEME.rust} />
-              <stop offset="25%" stopColor={THEME.gold} />
-              <stop offset="60%" stopColor={THEME.cyan} />
-              <stop offset="100%" stopColor={THEME.sage} />
+            {/* Gradient strictly oriented: Left=Red (300) -> Center=Gold/Cyan -> Right=Emerald (900) */}
+            <linearGradient id="luxury-credit-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#dc2626" />
+              <stop offset="28%" stopColor="#ea580c" />
+              <stop offset="55%" stopColor="#ca8a04" />
+              <stop offset="75%" stopColor="#0891b2" />
+              <stop offset="100%" stopColor="#059669" />
             </linearGradient>
+
+            {/* Ambient halo glow filter */}
+            <filter id="thumb-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.25)" />
+            </filter>
           </defs>
 
-          {/* Background Arc Track */}
-          <circle
-            cx={70}
-            cy={70}
-            r={52}
+          {/* Background Arc Track (Full 180°) */}
+          <path
+            d="M 25 105 A 75 75 0 0 1 175 105"
             fill="none"
             stroke="var(--surface-2)"
-            strokeWidth={9}
-            strokeDasharray="163.36 163.36"
-            transform="rotate(-180 70 70)"
+            strokeWidth={11}
             strokeLinecap="round"
           />
 
-          {/* Active Gradient Arc Track */}
-          <circle
-            cx={70}
-            cy={70}
-            r={52}
+          {/* Active Colored Arc (fills from Left to Right according to score) */}
+          <path
+            d="M 25 105 A 75 75 0 0 1 175 105"
             fill="none"
-            stroke="url(#luxury-gauge-grad)"
-            strokeWidth={9}
-            strokeDasharray="163.36 163.36"
-            strokeDashoffset={163.36 - pct * 163.36}
-            transform="rotate(-180 70 70)"
+            stroke="url(#luxury-credit-grad)"
+            strokeWidth={11}
             strokeLinecap="round"
-            style={{ transition: "stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1)" }}
+            strokeDasharray={`${arcLength} ${arcLength}`}
+            strokeDashoffset={strokeOffset}
+            style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1)" }}
           />
 
-          {/* Milestone Ticks */}
-          {[0, 0.25, 0.5, 0.75, 1].map((t) => {
-            const tickAngle = -180 + t * 180;
-            const rad = (tickAngle * Math.PI) / 180;
-            const x1 = 70 + 58 * Math.cos(rad);
-            const y1 = 70 + 58 * Math.sin(rad);
-            const x2 = 70 + 63 * Math.cos(rad);
-            const y2 = 70 + 63 * Math.sin(rad);
+          {/* Outer Perimeter Milestone Ticks */}
+          {[0.25, 0.5, 0.75].map((t) => {
+            const rad = Math.PI * (1 - t);
+            const x1 = cx - (r + 7) * Math.cos(t * Math.PI);
+            const y1 = cy - (r + 7) * Math.sin(t * Math.PI);
+            const x2 = cx - (r + 13) * Math.cos(t * Math.PI);
+            const y2 = cy - (r + 13) * Math.sin(t * Math.PI);
             return (
               <line
                 key={t}
@@ -990,73 +1009,123 @@ function CreditGaugeVisual({ score, size = 220 }: { score: number; size?: number
                 x2={x2}
                 y2={y2}
                 stroke="var(--t-muted)"
-                strokeWidth={1.5}
-                opacity={0.5}
+                strokeWidth={1.2}
+                opacity={0.35}
+                strokeLinecap="round"
               />
             );
           })}
 
-          {/* Needle */}
-          <line
-            x1={70}
-            y1={70}
-            x2={24}
-            y2={70}
-            stroke={grade.color}
-            strokeWidth={3.8}
-            strokeLinecap="round"
-            transform={`rotate(${angle} 70 70)`}
-            style={{ transition: "transform 1.4s cubic-bezier(0.16, 1, 0.3, 1)" }}
-          />
+          {/* Scale Boundary Labels (300 and 900) */}
+          <text
+            x={18}
+            y={118}
+            fill="var(--t-muted)"
+            fontSize={9}
+            fontWeight={700}
+            textAnchor="middle"
+            fontFamily="var(--font-sans, system-ui)"
+          >
+            300
+          </text>
+          <text
+            x={182}
+            y={118}
+            fill="var(--t-muted)"
+            fontSize={9}
+            fontWeight={700}
+            textAnchor="middle"
+            fontFamily="var(--font-sans, system-ui)"
+          >
+            900
+          </text>
 
-          {/* Center Pivot Caps */}
-          <circle cx={70} cy={70} r={8} fill={grade.color} stroke="var(--surface-0)" strokeWidth={2.5} />
-          <circle cx={70} cy={70} r={3} fill="var(--surface-0)" />
+          {/* Orbit Indicator Beacon on Arc Track (Zero collision with center text) */}
+          <g filter="url(#thumb-glow)" style={{ transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+            <circle
+              cx={thumbX}
+              cy={thumbY}
+              r={9}
+              fill={grade.color}
+              opacity={0.3}
+            />
+            <circle
+              cx={thumbX}
+              cy={thumbY}
+              r={6.5}
+              fill="var(--surface-0, #ffffff)"
+              stroke={grade.color}
+              strokeWidth={2.5}
+            />
+            <circle
+              cx={thumbX}
+              cy={thumbY}
+              r={2.2}
+              fill={grade.color}
+            />
+          </g>
         </svg>
 
-        {/* Big Digit Readout & Status */}
+        {/* Unobstructed Center Readout & Pill */}
         <div
           style={{
             position: "absolute",
-            bottom: 0,
+            bottom: 6,
             left: 0,
             right: 0,
             textAlign: "center",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            justifyContent: "flex-end",
-            height: 60,
+            justifyContent: "center",
+            pointerEvents: "none",
           }}
         >
-          <span
+          <div
             style={{
-              fontFamily: "var(--font-display)",
-              fontSize: Math.round(size * 0.17),
-              fontWeight: 700,
+              fontFamily: "var(--font-display, inherit)",
+              fontSize: Math.round(size * 0.16),
+              fontWeight: 800,
               color: THEME.ink,
               letterSpacing: "-0.04em",
               lineHeight: 1,
             }}
           >
             <Prv>{Math.round(animatedScore)}</Prv>
-          </span>
-          <span
+          </div>
+          <div
             style={{
-              fontSize: 11,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              background: grade.bg,
+              color: grade.color,
+              border: `1px solid color-mix(in srgb, ${grade.color} 30%, transparent)`,
+              fontSize: 10,
               fontWeight: 800,
               textTransform: "uppercase",
               letterSpacing: "0.08em",
-              color: grade.color,
+              padding: "2px 8px",
+              borderRadius: 999,
               marginTop: 4,
             }}
           >
+            <span
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: "50%",
+                background: grade.color,
+                display: "inline-block",
+              }}
+            />
             {grade.label}
-          </span>
+          </div>
         </div>
       </div>
 
-      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 6, fontWeight: 500 }}>
+      {/* Descriptive Status line */}
+      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4, fontWeight: 500 }}>
         Scale: <strong>300</strong> to <strong>900</strong> • {grade.desc}
       </div>
     </div>
@@ -2555,56 +2624,125 @@ export function CreditScoreTab({ state, addItem, removeItem, updateItem, showToa
           {activeSubTab === "overview" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               {activeLatest ? (
-                <div style={{ display: "grid", gridTemplateColumns: "1.2fr 2fr", gap: 20 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1.15fr 1.85fr", gap: 20, alignItems: "stretch" }}>
                   {/* Left Hero Speedometer Card */}
-                  <Card style={{ padding: "24px 20px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: BUREAU_COLORS[bureau] }}>
-                        {bureau} Score
-                      </span>
-                      <span style={{ fontSize: 11, color: THEME.muted }}>• Latest Check</span>
-                    </div>
-
-                    <CreditGaugeVisual score={activeLatest.score} size={230} />
-
-                    <div style={{ fontSize: 11, color: THEME.muted, textAlign: "center", marginTop: 8 }}>
-                      Checked on{" "}
-                      <strong>
-                        {activeLatest.checkDate
-                          ? (() => {
-                              const dt = new Date(activeLatest.checkDate);
-                              return !isNaN(dt.getTime())
-                                ? dt.toLocaleDateString("en-IN", {
-                                    day: "2-digit",
-                                    month: "short",
-                                    year: "numeric",
-                                  })
-                                : activeLatest.checkDate;
-                            })()
-                          : "Unknown"}
-                      </strong>
-                      {activeLatest.source && ` via ${activeLatest.source}`}
-                    </div>
-
-                    {activeDelta !== null && (
-                      <div
-                        style={{
-                          marginTop: 12,
-                          padding: "4px 12px",
-                          borderRadius: 20,
-                          background: activeDelta > 0 ? "color-mix(in srgb, var(--t-sage) 12%, transparent)" : activeDelta < 0 ? "color-mix(in srgb, var(--t-rust) 12%, transparent)" : "var(--surface-2)",
-                          color: activeDelta > 0 ? THEME.sage : activeDelta < 0 ? THEME.rust : THEME.muted,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        {activeDelta > 0 ? <TrendingUp size={12} /> : activeDelta < 0 ? <TrendingDown size={12} /> : <Minus size={12} />}
-                        <span>{activeDelta > 0 ? `+${activeDelta}` : activeDelta} points since prior check</span>
+                  <Card style={{ padding: "20px 22px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                    {/* Header */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: "50%",
+                            background: BUREAU_COLORS[bureau],
+                            boxShadow: `0 0 8px ${BUREAU_COLORS[bureau]}`,
+                            display: "inline-block",
+                          }}
+                        />
+                        <span style={{ fontSize: 14, fontWeight: 800, color: BUREAU_COLORS[bureau] }}>
+                          {bureau} Bureau Score
+                        </span>
                       </div>
-                    )}
+                      <Badge variant="neutral" style={{ fontSize: 10, fontWeight: 600 }}>
+                        {activeLatest.source || "Official Record"}
+                      </Badge>
+                    </div>
+
+                    {/* Gauge Display */}
+                    <div style={{ padding: "8px 0 12px", display: "flex", justifyContent: "center" }}>
+                      <CreditGaugeVisual score={activeLatest.score} size={250} />
+                    </div>
+
+                    {/* 3-Column Micro-Stats Grid */}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(3, 1fr)",
+                        gap: 8,
+                        background: "var(--surface-1)",
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                        border: "1px solid var(--t-line)",
+                        marginTop: 10,
+                      }}
+                    >
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" }}>Checked</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.ink, marginTop: 2 }}>
+                          {activeLatest.checkDate
+                            ? (() => {
+                                const dt = new Date(activeLatest.checkDate);
+                                return !isNaN(dt.getTime())
+                                  ? dt.toLocaleDateString("en-IN", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    })
+                                  : activeLatest.checkDate;
+                              })()
+                            : "Unknown"}
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: "center", borderLeft: "1px solid var(--t-line)", borderRight: "1px solid var(--t-line)" }}>
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" }}>Momentum</div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            color: activeDelta !== null && activeDelta > 0 ? THEME.sage : activeDelta !== null && activeDelta < 0 ? THEME.rust : THEME.muted,
+                            marginTop: 2,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 2,
+                          }}
+                        >
+                          {activeDelta !== null ? (
+                            <>
+                              {activeDelta > 0 ? `+${activeDelta} pts` : activeDelta < 0 ? `${activeDelta} pts` : "Stable"}
+                            </>
+                          ) : (
+                            "Baseline"
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 10, color: THEME.muted, fontWeight: 600, textTransform: "uppercase" }}>Approval Odds</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.sage, marginTop: 2 }}>
+                          {activeLatest.score >= 750 ? "99% Prime" : activeLatest.score >= 700 ? "85% High" : activeLatest.score >= 650 ? "60% Fair" : "<35% Low"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Action Footer */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--t-line)" }}>
+                      <span style={{ fontSize: 11, color: THEME.muted }}>
+                        Official Portal: <strong style={{ color: THEME.ink }}>{BUREAU_INFO[bureau].fullName}</strong>
+                      </span>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <a
+                          href={BUREAU_INFO[bureau].portal}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: BUREAU_COLORS[bureau],
+                            textDecoration: "none",
+                            padding: "4px 8px",
+                            borderRadius: 6,
+                            background: `color-mix(in srgb, ${BUREAU_COLORS[bureau]} 10%, transparent)`,
+                          }}
+                        >
+                          <ExternalLink size={11} /> Launch Portal
+                        </a>
+                      </div>
+                    </div>
                   </Card>
 
                   {/* Right 5 Pillars Engine */}
