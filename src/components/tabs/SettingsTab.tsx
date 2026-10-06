@@ -54,6 +54,7 @@ import {
   Activity,
   Sun,
   Moon,
+  Pencil,
 } from "lucide-react";
 import { THEME, ACCENT_PALETTES, THEME_PRESETS } from "../../utils/constants";
 import {
@@ -322,9 +323,57 @@ function EditableList({ listKey, items, onUpdate }: any) {
   const [pendingRemove, setPendingRemove] = useState<string | null>(null);
   const [pendingReset, setPendingReset] = useState(false);
   const [dupWarning, setDupWarning] = useState(false);
+  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [editVal, setEditVal] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
   const defaultItems: string[] = (DEFAULT_MASTER_DATA as Record<string, any>)[listKey] || [];
   const isDirty = JSON.stringify([...items].sort()) !== JSON.stringify([...defaultItems].sort());
+
+  useEffect(() => {
+    if (editingItem && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingItem]);
+
+  const startEdit = (item: string) => {
+    setEditingItem(item);
+    setEditVal(item);
+    setEditError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingItem(null);
+    setEditVal("");
+    setEditError(null);
+  };
+
+  const saveEdit = () => {
+    if (!editingItem) return;
+    const trimmed = editVal.trim();
+    if (!trimmed) {
+      setEditError("Name cannot be empty");
+      return;
+    }
+    if (trimmed === editingItem) {
+      cancelEdit();
+      return;
+    }
+    const isDuplicate = items.some(
+      (x: string) =>
+        x.toLowerCase() === trimmed.toLowerCase() &&
+        x.toLowerCase() !== editingItem.toLowerCase()
+    );
+    if (isDuplicate) {
+      setEditError(`"${trimmed}" already exists in this list (case-insensitive).`);
+      return;
+    }
+    const nextItems = items.map((x: string) => (x === editingItem ? trimmed : x));
+    onUpdate(listKey, nextItems);
+    cancelEdit();
+  };
 
   const sortAZ = () => {
     onUpdate(
@@ -356,6 +405,9 @@ function EditableList({ listKey, items, onUpdate }: any) {
 
   const confirmRemove = () => {
     if (!pendingRemove) return;
+    if (editingItem === pendingRemove) {
+      cancelEdit();
+    }
     onUpdate(
       listKey,
       items.filter((x: string) => x !== pendingRemove)
@@ -364,6 +416,7 @@ function EditableList({ listKey, items, onUpdate }: any) {
   };
 
   const confirmReset = () => {
+    cancelEdit();
     onUpdate(listKey, [...defaultItems]);
     setSortDir("");
     setPendingReset(false);
@@ -559,8 +612,9 @@ function EditableList({ listKey, items, onUpdate }: any) {
           padding: "14px 18px",
           display: "flex",
           flexWrap: "wrap",
-          gap: 7,
+          gap: 8,
           minHeight: 56,
+          alignItems: "center",
         }}
       >
         {items.length === 0 && (
@@ -587,46 +641,190 @@ function EditableList({ listKey, items, onUpdate }: any) {
             No items match "{query}"
           </span>
         )}
-        {visibleItems.map((item: string) => (
-          <span
-            key={item}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "5px 9px 5px 12px",
-              borderRadius: "var(--t-radius, 8px)",
-              fontSize: 13,
-              fontWeight: 500,
-              background: `color-mix(in srgb, ${THEME.accent} 8%, var(--surface-0))`,
-              border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
-              color: THEME.ink,
-              transition: "transform 0.15s ease",
-            }}
-          >
-            <span>{item}</span>
-            <button
-              onClick={() => setPendingRemove(item)}
+        {visibleItems.map((item: string) => {
+          const isEditing = editingItem === item;
+          const listName = MD_LABELS[listKey] || listKey;
+
+          if (isEditing) {
+            return (
+              <div
+                key={item}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "3px 6px 3px 10px",
+                  borderRadius: "var(--t-radius, 8px)",
+                  background: "var(--surface-0)",
+                  border: `1.5px solid ${editError ? THEME.rust : THEME.accent}`,
+                  boxShadow: `0 0 0 3px color-mix(in srgb, ${editError ? THEME.rust : THEME.accent} 15%, transparent)`,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <input
+                  ref={editInputRef}
+                  value={editVal}
+                  onChange={(e) => {
+                    setEditVal(e.target.value);
+                    if (editError) setEditError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      saveEdit();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      cancelEdit();
+                    }
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    outline: "none",
+                    color: THEME.ink,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    padding: "3px 0",
+                    width: Math.min(260, Math.max(120, (editVal.length + 3) * 8.5)) + "px",
+                    fontFamily: "inherit",
+                  }}
+                  placeholder="Rename option..."
+                  aria-label={`Rename ${item} in ${listName}`}
+                />
+                <button
+                  type="button"
+                  onClick={saveEdit}
+                  title="Save rename (Enter)"
+                  aria-label={`Save rename for ${item} in ${listName}`}
+                  style={{
+                    background: THEME.accent,
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#fff",
+                    padding: "4px 6px",
+                    lineHeight: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    borderRadius: 4,
+                    transition: "all 0.15s",
+                  }}
+                >
+                  <Check size={11} strokeWidth={2.5} />
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  title="Cancel (Esc)"
+                  aria-label={`Cancel editing ${item} in ${listName}`}
+                  style={{
+                    background: `color-mix(in srgb, ${THEME.muted} 15%, transparent)`,
+                    border: "none",
+                    cursor: "pointer",
+                    color: THEME.muted,
+                    padding: "4px 6px",
+                    lineHeight: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    borderRadius: 4,
+                    transition: "all 0.15s",
+                  }}
+                >
+                  <XIcon size={11} />
+                </button>
+              </div>
+            );
+          }
+
+          return (
+            <span
+              key={item}
               style={{
-                background: `color-mix(in srgb, ${THEME.muted} 12%, transparent)`,
-                border: "none",
-                cursor: "pointer",
-                color: THEME.muted,
-                padding: 3,
-                lineHeight: 1,
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
-                borderRadius: "50%",
-                transition: "all 0.15s",
+                gap: 6,
+                padding: "5px 8px 5px 12px",
+                borderRadius: "var(--t-radius, 8px)",
+                fontSize: 13,
+                fontWeight: 500,
+                background: `color-mix(in srgb, ${THEME.accent} 8%, var(--surface-0))`,
+                border: `1px solid color-mix(in srgb, ${THEME.accent} 20%, transparent)`,
+                color: THEME.ink,
+                transition: "transform 0.15s ease",
               }}
-              title={`Remove ${item}`}
-              aria-label={`Remove ${item}`}
             >
-              <XIcon size={10} />
-            </button>
-          </span>
-        ))}
+              <span
+                onDoubleClick={() => startEdit(item)}
+                title="Double-click or click edit icon to rename"
+                style={{ cursor: "pointer", userSelect: "none" }}
+              >
+                {item}
+              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <button
+                  type="button"
+                  onClick={() => startEdit(item)}
+                  style={{
+                    background: `color-mix(in srgb, ${THEME.muted} 12%, transparent)`,
+                    border: "none",
+                    cursor: "pointer",
+                    color: THEME.muted,
+                    padding: 3.5,
+                    lineHeight: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    borderRadius: "50%",
+                    transition: "all 0.15s",
+                  }}
+                  title={`Rename ${item}`}
+                  aria-label={`Rename ${item} in ${listName}`}
+                >
+                  <Pencil size={10} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPendingRemove(item)}
+                  style={{
+                    background: `color-mix(in srgb, ${THEME.muted} 12%, transparent)`,
+                    border: "none",
+                    cursor: "pointer",
+                    color: THEME.muted,
+                    padding: 3.5,
+                    lineHeight: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    borderRadius: "50%",
+                    transition: "all 0.15s",
+                  }}
+                  title={`Remove ${item}`}
+                  aria-label={`Remove ${item} from ${listName}`}
+                >
+                  <XIcon size={10} />
+                </button>
+              </div>
+            </span>
+          );
+        })}
       </div>
+
+      {editError && (
+        <div
+          style={{
+            margin: "0 18px 10px",
+            padding: "8px 12px",
+            borderRadius: 8,
+            background: `color-mix(in srgb, ${THEME.rust} 10%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${THEME.rust} 27%, transparent)`,
+            fontSize: 12,
+            color: THEME.rust,
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <AlertCircle size={14} /> {editError}
+        </div>
+      )}
 
       {dupWarning && (
         <div
