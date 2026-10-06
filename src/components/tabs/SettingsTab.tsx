@@ -315,7 +315,7 @@ function OptionRow({
 }
 
 // ─── EditableList for Master Data ─────────────────────────────────────────────
-function EditableList({ listKey, items, onUpdate }: any) {
+function EditableList({ listKey, items, onUpdate, onRename }: any) {
   const [val, setVal] = useState("");
   const [focused, setFocused] = useState(false);
   const [sortDir, setSortDir] = useState<"" | "asc" | "desc">("");
@@ -370,8 +370,12 @@ function EditableList({ listKey, items, onUpdate }: any) {
       setEditError(`"${trimmed}" already exists in this list (case-insensitive).`);
       return;
     }
-    const nextItems = items.map((x: string) => (x === editingItem ? trimmed : x));
-    onUpdate(listKey, nextItems);
+    if (typeof onRename === "function") {
+      onRename(listKey, editingItem, trimmed);
+    } else {
+      const nextItems = items.map((x: string) => (x === editingItem ? trimmed : x));
+      onUpdate(listKey, nextItems);
+    }
     cancelEdit();
   };
 
@@ -3148,7 +3152,7 @@ function FamilyProfilesSection({ masterData, updateMasterData }: any) {
 }
 
 // ─── Section: Master Data ─────────────────────────────────────────────────────
-function MasterDataSection({ masterData, updateMasterData }: any) {
+function MasterDataSection({ masterData, updateMasterData, renameMasterDataItem }: any) {
   const md = masterData || DEFAULT_MASTER_DATA;
   const [mdTab, setMdTab] = useState("transactions");
 
@@ -3179,7 +3183,7 @@ function MasterDataSection({ masterData, updateMasterData }: any) {
         <div>
           <strong style={{ color: THEME.accent }}>Master Data Command Hub:</strong> Customize every
           single dropdown option across transaction forms, bank ledgers, credit cards, mutual funds,
-          and loan categories. Changes reflect in real-time everywhere.
+          and loan categories. Changes cascade and rename across all existing historical records automatically.
         </div>
       </div>
 
@@ -3192,6 +3196,7 @@ function MasterDataSection({ masterData, updateMasterData }: any) {
             listKey={key}
             items={md[key] || []}
             onUpdate={updateMasterData}
+            onRename={renameMasterDataItem}
           />
         ))}
       </div>
@@ -5026,6 +5031,7 @@ export function SettingsTab({
   setAnimSpeed,
   masterData,
   updateMasterData,
+  renameMasterDataItem,
   emailSettings,
   updateEmailSettings,
   session,
@@ -5189,7 +5195,11 @@ export function SettingsTab({
 
       {tab === "masterdata" && (
         <div key="masterdata" className="tab-content-enter">
-          <MasterDataSection masterData={masterData} updateMasterData={updateMasterData} />
+          <MasterDataSection
+            masterData={masterData}
+            updateMasterData={updateMasterData}
+            renameMasterDataItem={renameMasterDataItem}
+          />
         </div>
       )}
 

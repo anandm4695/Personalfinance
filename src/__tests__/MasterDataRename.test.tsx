@@ -13,6 +13,13 @@ describe("SettingsTab Master Data Renaming", () => {
       ...DEFAULT_MASTER_DATA,
       transactionCategories: ["Food", "Rent", "Transport"],
     },
+    transactions: [
+      { id: "tx-1", desc: "Lunch", category: "Food", amount: 250 },
+      { id: "tx-2", desc: "Train ticket", category: "Transport", amount: 50 },
+    ],
+    budgets: [
+      { id: "b-1", category: "Food", limit: 5000 },
+    ],
     settings: {},
   };
 
@@ -58,7 +65,8 @@ describe("SettingsTab Master Data Renaming", () => {
     expect(renameFoodBtn).toBeDefined();
   });
 
-  it("allows renaming an item and invokes updateMasterData on save", () => {
+  it("calls renameMasterDataItem when provided on saving rename", () => {
+    const renameMasterDataItem = vi.fn();
     const updateMasterData = vi.fn();
 
     render(
@@ -71,6 +79,7 @@ describe("SettingsTab Master Data Renaming", () => {
           updateProfile={vi.fn()}
           updateSettings={vi.fn()}
           updateMasterData={updateMasterData}
+          renameMasterDataItem={renameMasterDataItem}
           showToast={vi.fn()}
           onSignOut={vi.fn()}
         />
@@ -103,15 +112,15 @@ describe("SettingsTab Master Data Renaming", () => {
     });
     fireEvent.click(saveBtn);
 
-    // Verify updateMasterData was called with new array
-    expect(updateMasterData).toHaveBeenCalledWith("transactionCategories", [
-      "Groceries & Food",
-      "Rent",
-      "Transport",
-    ]);
+    // Verify renameMasterDataItem was called with listKey, oldName, newName
+    expect(renameMasterDataItem).toHaveBeenCalledWith(
+      "transactionCategories",
+      "Food",
+      "Groceries & Food"
+    );
   });
 
-  it("prevents saving duplicate item names when renaming", () => {
+  it("falls back to updateMasterData if renameMasterDataItem is not provided", () => {
     const updateMasterData = vi.fn();
 
     render(
@@ -143,21 +152,23 @@ describe("SettingsTab Master Data Renaming", () => {
     const editInput = screen.getByRole("textbox", {
       name: "Rename Food in Transaction & Budget Categories",
     });
-    // Try to rename "Food" to "Rent" (which already exists in the same list)
-    fireEvent.change(editInput, { target: { value: "Rent" } });
+    fireEvent.change(editInput, { target: { value: "Groceries & Food" } });
 
     const saveBtn = screen.getByRole("button", {
       name: "Save rename for Food in Transaction & Budget Categories",
     });
     fireEvent.click(saveBtn);
 
-    // Should not call updateMasterData due to duplicate
-    expect(updateMasterData).not.toHaveBeenCalled();
-    expect(screen.getByText(/"Rent" already exists in this list/i)).toBeDefined();
+    expect(updateMasterData).toHaveBeenCalledWith("transactionCategories", [
+      "Groceries & Food",
+      "Rent",
+      "Transport",
+    ]);
   });
 
-  it("cancels renaming on cancel button click or Escape key", () => {
+  it("prevents saving duplicate item names when renaming", () => {
     const updateMasterData = vi.fn();
+    const renameMasterDataItem = vi.fn();
 
     render(
       <PrivacyProvider>
@@ -169,6 +180,55 @@ describe("SettingsTab Master Data Renaming", () => {
           updateProfile={vi.fn()}
           updateSettings={vi.fn()}
           updateMasterData={updateMasterData}
+          renameMasterDataItem={renameMasterDataItem}
+          showToast={vi.fn()}
+          onSignOut={vi.fn()}
+        />
+      </PrivacyProvider>
+    );
+
+    // Switch to Master Data tab
+    const mdTabBtn = screen.getByRole("button", { name: /Master Data/i });
+    fireEvent.click(mdTabBtn);
+
+    // Click rename on "Food" in Transaction & Budget Categories
+    const renameFoodBtn = screen.getByRole("button", {
+      name: "Rename Food in Transaction & Budget Categories",
+    });
+    fireEvent.click(renameFoodBtn);
+
+    const editInput = screen.getByRole("textbox", {
+      name: "Rename Food in Transaction & Budget Categories",
+    });
+    // Try to rename "Food" to "Rent" (which already exists in the same list)
+    fireEvent.change(editInput, { target: { value: "Rent" } });
+
+    const saveBtn = screen.getByRole("button", {
+      name: "Save rename for Food in Transaction & Budget Categories",
+    });
+    fireEvent.click(saveBtn);
+
+    // Should not call updateMasterData or renameMasterDataItem due to duplicate
+    expect(renameMasterDataItem).not.toHaveBeenCalled();
+    expect(updateMasterData).not.toHaveBeenCalled();
+    expect(screen.getByText(/"Rent" already exists in this list/i)).toBeDefined();
+  });
+
+  it("cancels renaming on cancel button click or Escape key", () => {
+    const updateMasterData = vi.fn();
+    const renameMasterDataItem = vi.fn();
+
+    render(
+      <PrivacyProvider>
+        <SettingsTab
+          state={mockState}
+          session={mockSession}
+          darkMode={true}
+          masterData={mockState.masterData}
+          updateProfile={vi.fn()}
+          updateSettings={vi.fn()}
+          updateMasterData={updateMasterData}
+          renameMasterDataItem={renameMasterDataItem}
           showToast={vi.fn()}
           onSignOut={vi.fn()}
         />
@@ -197,6 +257,7 @@ describe("SettingsTab Master Data Renaming", () => {
       })
     ).toBeNull();
     expect(screen.getAllByText("Transport").length).toBeGreaterThan(0);
+    expect(renameMasterDataItem).not.toHaveBeenCalled();
     expect(updateMasterData).not.toHaveBeenCalled();
   });
 });

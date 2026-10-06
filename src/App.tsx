@@ -3682,6 +3682,485 @@ function FinanceDashboard() {
     );
   };
 
+  // Helper to rename a Master Data option and cascade the update across all historical records
+  const renameMasterDataItem = useCallback(
+    async (listKey: string, oldName: string, newName: string) => {
+      if (!oldName || !newName || oldName === newName) return;
+
+      let mergedMasterData: any = null;
+      const cascadedUpdates: Record<string, any[]> = {};
+      let updatedCount = 0;
+
+      setState((s: any) => {
+        const currentList = s.masterData?.[listKey] || (DEFAULT_MASTER_DATA as Record<string, any>)[listKey] || [];
+        const nextList = currentList.map((x: string) => (x === oldName ? newName : x));
+        mergedMasterData = { ...(s.masterData || DEFAULT_MASTER_DATA), [listKey]: nextList };
+        masterDataRef.current = mergedMasterData;
+
+        const nextState: any = { ...s, masterData: mergedMasterData };
+
+        // 1. Transaction & Budget categories
+        if (listKey === "transactionCategories") {
+          // Transactions
+          if (Array.isArray(s.transactions)) {
+            let txChanged = false;
+            const updatedTxns = s.transactions.map((t: any) => {
+              let tChanged = false;
+              let nextT = { ...t };
+              if (nextT.category === oldName) {
+                nextT.category = newName;
+                tChanged = true;
+              }
+              if (Array.isArray(nextT.splits)) {
+                const nextSplits = nextT.splits.map((sp: any) =>
+                  sp.category === oldName ? { ...sp, category: newName } : sp
+                );
+                if (JSON.stringify(nextSplits) !== JSON.stringify(nextT.splits)) {
+                  nextT.splits = nextSplits;
+                  tChanged = true;
+                }
+              }
+              if (tChanged) {
+                txChanged = true;
+                updatedCount++;
+                return nextT;
+              }
+              return t;
+            });
+            if (txChanged) {
+              nextState.transactions = updatedTxns;
+              cascadedUpdates.transactions = updatedTxns.filter(
+                (t: any, idx: number) => t !== s.transactions[idx]
+              );
+            }
+          }
+
+          // Budgets
+          if (Array.isArray(s.budgets)) {
+            let bChanged = false;
+            const updatedBudgets = s.budgets.map((b: any) => {
+              if (b.category === oldName) {
+                bChanged = true;
+                updatedCount++;
+                return { ...b, category: newName };
+              }
+              return b;
+            });
+            if (bChanged) {
+              nextState.budgets = updatedBudgets;
+              cascadedUpdates.budgets = updatedBudgets.filter(
+                (b: any, idx: number) => b !== s.budgets[idx]
+              );
+            }
+          }
+
+          // Recurring Expenses
+          if (Array.isArray(s.recurringExpenses)) {
+            let rChanged = false;
+            const updatedRec = s.recurringExpenses.map((r: any) => {
+              if (r.category === oldName) {
+                rChanged = true;
+                updatedCount++;
+                return { ...r, category: newName };
+              }
+              return r;
+            });
+            if (rChanged) {
+              nextState.recurringExpenses = updatedRec;
+              cascadedUpdates.recurringExpenses = updatedRec.filter(
+                (r: any, idx: number) => r !== s.recurringExpenses[idx]
+              );
+            }
+          }
+
+          // Bill Payments
+          if (Array.isArray(s.billPayments)) {
+            let bpChanged = false;
+            const updatedBP = s.billPayments.map((bp: any) => {
+              if (bp.category === oldName) {
+                bpChanged = true;
+                updatedCount++;
+                return { ...bp, category: newName };
+              }
+              return bp;
+            });
+            if (bpChanged) {
+              nextState.billPayments = updatedBP;
+              cascadedUpdates.billPayments = updatedBP.filter(
+                (bp: any, idx: number) => bp !== s.billPayments[idx]
+              );
+            }
+          }
+
+          // Subscriptions
+          if (Array.isArray(s.subscriptions)) {
+            let subChanged = false;
+            const updatedSubs = s.subscriptions.map((sub: any) => {
+              if (sub.category === oldName) {
+                subChanged = true;
+                updatedCount++;
+                return { ...sub, category: newName };
+              }
+              return sub;
+            });
+            if (subChanged) {
+              nextState.subscriptions = updatedSubs;
+              cascadedUpdates.subscriptions = updatedSubs.filter(
+                (sub: any, idx: number) => sub !== s.subscriptions[idx]
+              );
+            }
+          }
+        }
+
+        // 2. Credit Card Transaction Categories
+        if (listKey === "ccTransactionCategories") {
+          if (Array.isArray(s.creditCards)) {
+            let ccChanged = false;
+            const updatedCards = s.creditCards.map((card: any) => {
+              if (!Array.isArray(card.transactions)) return card;
+              let txsChanged = false;
+              const newTxs = card.transactions.map((tx: any) => {
+                if (tx.category === oldName) {
+                  txsChanged = true;
+                  updatedCount++;
+                  return { ...tx, category: newName };
+                }
+                return tx;
+              });
+              if (txsChanged) {
+                ccChanged = true;
+                return { ...card, transactions: newTxs };
+              }
+              return card;
+            });
+            if (ccChanged) {
+              nextState.creditCards = updatedCards;
+              cascadedUpdates.creditCards = updatedCards.filter(
+                (c: any, idx: number) => c !== s.creditCards[idx]
+              );
+            }
+          }
+        }
+
+        // 3. Prepaid Categories
+        if (listKey === "prepaidCategories") {
+          if (Array.isArray(s.prepaidCards)) {
+            let ppChanged = false;
+            const updatedCards = s.prepaidCards.map((card: any) => {
+              if (!Array.isArray(card.transactions)) return card;
+              let txsChanged = false;
+              const newTxs = card.transactions.map((tx: any) => {
+                if (tx.category === oldName) {
+                  txsChanged = true;
+                  updatedCount++;
+                  return { ...tx, category: newName };
+                }
+                return tx;
+              });
+              if (txsChanged) {
+                ppChanged = true;
+                return { ...card, transactions: newTxs };
+              }
+              return card;
+            });
+            if (ppChanged) {
+              nextState.prepaidCards = updatedCards;
+              cascadedUpdates.prepaidCards = updatedCards.filter(
+                (c: any, idx: number) => c !== s.prepaidCards[idx]
+              );
+            }
+          }
+        }
+
+        // 4. Card Networks
+        if (listKey === "ccNetworks") {
+          if (Array.isArray(s.creditCards)) {
+            let ccChanged = false;
+            const updatedCards = s.creditCards.map((card: any) => {
+              let cChanged = false;
+              let nextCard = { ...card };
+              if (nextCard.network === oldName) {
+                nextCard.network = newName;
+                cChanged = true;
+                updatedCount++;
+              }
+              if (Array.isArray(nextCard.variants)) {
+                const newVariants = nextCard.variants.map((v: any) => {
+                  if (v.network === oldName) {
+                    cChanged = true;
+                    updatedCount++;
+                    return { ...v, network: newName };
+                  }
+                  return v;
+                });
+                if (cChanged) nextCard.variants = newVariants;
+              }
+              if (cChanged) {
+                ccChanged = true;
+                return nextCard;
+              }
+              return card;
+            });
+            if (ccChanged) {
+              nextState.creditCards = updatedCards;
+              cascadedUpdates.creditCards = updatedCards.filter(
+                (c: any, idx: number) => c !== s.creditCards[idx]
+              );
+            }
+          }
+        }
+
+        // 5. Prepaid Card Types
+        if (listKey === "prepaidCardTypes") {
+          if (Array.isArray(s.prepaidCards)) {
+            let ppChanged = false;
+            const updatedCards = s.prepaidCards.map((card: any) => {
+              let cChanged = false;
+              let nextCard = { ...card };
+              if (nextCard.cardType === oldName) {
+                nextCard.cardType = newName;
+                cChanged = true;
+                updatedCount++;
+              }
+              if (nextCard.type === oldName) {
+                nextCard.type = newName;
+                cChanged = true;
+                updatedCount++;
+              }
+              if (cChanged) {
+                ppChanged = true;
+                return nextCard;
+              }
+              return card;
+            });
+            if (ppChanged) {
+              nextState.prepaidCards = updatedCards;
+              cascadedUpdates.prepaidCards = updatedCards.filter(
+                (c: any, idx: number) => c !== s.prepaidCards[idx]
+              );
+            }
+          }
+        }
+
+        // 6. Bank Account Types
+        if (listKey === "bankAccountTypes") {
+          if (Array.isArray(s.bankAccounts)) {
+            let baChanged = false;
+            const updatedAccs = s.bankAccounts.map((acc: any) => {
+              let aChanged = false;
+              let nextAcc = { ...acc };
+              if (nextAcc.type === oldName) {
+                nextAcc.type = newName;
+                aChanged = true;
+                updatedCount++;
+              }
+              if (nextAcc.accountType === oldName) {
+                nextAcc.accountType = newName;
+                aChanged = true;
+                updatedCount++;
+              }
+              if (aChanged) {
+                baChanged = true;
+                return nextAcc;
+              }
+              return acc;
+            });
+            if (baChanged) {
+              nextState.bankAccounts = updatedAccs;
+              cascadedUpdates.bankAccounts = updatedAccs.filter(
+                (a: any, idx: number) => a !== s.bankAccounts[idx]
+              );
+            }
+          }
+        }
+
+        // 7. Mutual Fund / SIP Categories
+        if (listKey === "mfCategories") {
+          if (Array.isArray(s.mutualFunds)) {
+            let mfChanged = false;
+            const updatedMFs = s.mutualFunds.map((mf: any) => {
+              let mChanged = false;
+              let nextMf = { ...mf };
+              if (nextMf.category === oldName) {
+                nextMf.category = newName;
+                mChanged = true;
+                updatedCount++;
+              }
+              if (nextMf.type === oldName) {
+                nextMf.type = newName;
+                mChanged = true;
+                updatedCount++;
+              }
+              if (nextMf.assetClass === oldName) {
+                nextMf.assetClass = newName;
+                mChanged = true;
+                updatedCount++;
+              }
+              if (mChanged) {
+                mfChanged = true;
+                return nextMf;
+              }
+              return mf;
+            });
+            if (mfChanged) {
+              nextState.mutualFunds = updatedMFs;
+              cascadedUpdates.mutualFunds = updatedMFs.filter(
+                (m: any, idx: number) => m !== s.mutualFunds[idx]
+              );
+            }
+          }
+
+          if (Array.isArray(s.sips)) {
+            let sipChanged = false;
+            const updatedSips = s.sips.map((sip: any) => {
+              let spChanged = false;
+              let nextSip = { ...sip };
+              if (nextSip.fundType === oldName) {
+                nextSip.fundType = newName;
+                spChanged = true;
+                updatedCount++;
+              }
+              if (nextSip.category === oldName) {
+                nextSip.category = newName;
+                spChanged = true;
+                updatedCount++;
+              }
+              if (spChanged) {
+                sipChanged = true;
+                return nextSip;
+              }
+              return sip;
+            });
+            if (sipChanged) {
+              nextState.sips = updatedSips;
+              cascadedUpdates.sips = updatedSips.filter(
+                (sp: any, idx: number) => sp !== s.sips[idx]
+              );
+            }
+          }
+        }
+
+        // 8. Loan Types
+        if (listKey === "loanTypes") {
+          if (Array.isArray(s.loansTaken)) {
+            let ltChanged = false;
+            const updatedLT = s.loansTaken.map((l: any) => {
+              let lChanged = false;
+              let nextL = { ...l };
+              if (nextL.type === oldName) {
+                nextL.type = newName;
+                lChanged = true;
+                updatedCount++;
+              }
+              if (nextL.loanType === oldName) {
+                nextL.loanType = newName;
+                lChanged = true;
+                updatedCount++;
+              }
+              if (lChanged) {
+                ltChanged = true;
+                return nextL;
+              }
+              return l;
+            });
+            if (ltChanged) {
+              nextState.loansTaken = updatedLT;
+              cascadedUpdates.loansTaken = updatedLT.filter(
+                (l: any, idx: number) => l !== s.loansTaken[idx]
+              );
+            }
+          }
+
+          if (Array.isArray(s.loansGiven)) {
+            let lgChanged = false;
+            const updatedLG = s.loansGiven.map((l: any) => {
+              let lChanged = false;
+              let nextL = { ...l };
+              if (nextL.type === oldName) {
+                nextL.type = newName;
+                lChanged = true;
+                updatedCount++;
+              }
+              if (nextL.loanType === oldName) {
+                nextL.loanType = newName;
+                lChanged = true;
+                updatedCount++;
+              }
+              if (lChanged) {
+                lgChanged = true;
+                return nextL;
+              }
+              return l;
+            });
+            if (lgChanged) {
+              nextState.loansGiven = updatedLG;
+              cascadedUpdates.loansGiven = updatedLG.filter(
+                (l: any, idx: number) => l !== s.loansGiven[idx]
+              );
+            }
+          }
+        }
+
+        // 9. Financial Goal Categories
+        if (listKey === "goalCategories") {
+          if (Array.isArray(s.goals)) {
+            let gChanged = false;
+            const updatedGoals = s.goals.map((g: any) => {
+              if (g.category === oldName) {
+                gChanged = true;
+                updatedCount++;
+                return { ...g, category: newName };
+              }
+              return g;
+            });
+            if (gChanged) {
+              nextState.goals = updatedGoals;
+              cascadedUpdates.goals = updatedGoals.filter(
+                (g: any, idx: number) => g !== s.goals[idx]
+              );
+            }
+          }
+        }
+
+        return nextState;
+      });
+
+      // Sync master data and modified records to Supabase
+      const userId = session?.user?.id;
+      if (userId && userId !== "offline-user") {
+        if (mergedMasterData) {
+          await supabase
+            .from("user_settings")
+            .upsert({ user_id: userId, master_data: mergedMasterData });
+        }
+        for (const [key, changedItems] of Object.entries(cascadedUpdates)) {
+          const table = TABLE_MAP[key];
+          if (table && Array.isArray(changedItems) && changedItems.length > 0) {
+            for (const item of changedItems) {
+              const cleanItem = prepareItemForDb(key, item, userId);
+              await supabase.from(table).upsert(cleanItem, { onConflict: "id" });
+            }
+          }
+        }
+      }
+
+      logActivity(
+        "RENAME_MASTER_DATA",
+        `Renamed "${oldName}" to "${newName}" in ${listKey} (updated ${updatedCount} existing records)`
+      );
+
+      if (showToast) {
+        showToast(
+          updatedCount > 0
+            ? `Renamed "${oldName}" to "${newName}" across ${updatedCount} existing record${updatedCount === 1 ? "" : "s"}`
+            : `Renamed option to "${newName}"`,
+          "success"
+        );
+      }
+    },
+    [session, prepareItemForDb, logActivity, showToast]
+  );
+
   // ================== EXPORT / IMPORT ==================
   const exportJSON = () => {
     // Never write the Gemini API key (or other secrets) into a downloadable backup file —
@@ -4771,6 +5250,7 @@ function FinanceDashboard() {
                   setAnimSpeed={(v: any) => updateSettings({ animSpeed: v })}
                   masterData={state.masterData || DEFAULT_MASTER_DATA}
                   updateMasterData={updateMasterData}
+                  renameMasterDataItem={renameMasterDataItem}
                   emailSettings={settings}
                   updateEmailSettings={updateSettings}
                   lastBackupTs={lastBackupTs}
