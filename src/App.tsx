@@ -335,6 +335,7 @@ function FinanceDashboard() {
   }, [sidebarMinimized]);
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const isSidebarCompact = sidebarMinimized && !sidebarHovered;
+  const { toasts, showToast } = useToast();
 
   const [state, setState] = useState<any>(() => {
     // 1. If we just reset, start with default state
@@ -553,7 +554,6 @@ function FinanceDashboard() {
   );
 
   const [activeProfile, setActiveProfile] = useState<string>("all");
-  const { toasts, showToast } = useToast();
   const [confirmDialog, setConfirmDialog] = useState<{
     message: string;
     onConfirm: () => void;
