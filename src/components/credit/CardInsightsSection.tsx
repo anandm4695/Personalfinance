@@ -195,6 +195,141 @@ export const getCardBankName = (c: any): string => {
   return "Bank";
 };
 
+export const resolveCardPaymentNetwork = (card: {
+  network?: string;
+  cardName?: string;
+  issuer?: string;
+  bank?: string;
+  cardType?: string;
+  last4?: string;
+  variants?: any[];
+  variantName?: string;
+}): string => {
+  // 1. Direct explicit network on card or variant
+  const raw = (card.network || "").trim();
+  const rawLower = raw.toLowerCase();
+  if (rawLower && rawLower !== "other" && rawLower !== "unknown" && rawLower !== "none" && rawLower !== "card") {
+    if (rawLower.includes("visa")) return "Visa";
+    if (rawLower.includes("master")) return "Mastercard";
+    if (rawLower.includes("rupay")) return "RuPay";
+    if (rawLower.includes("amex") || rawLower.includes("american express")) return "Amex";
+    if (rawLower.includes("diners")) return "Diners Club";
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }
+
+  // 2. Check if variant name matches a variant network
+  if (card.variantName && Array.isArray(card.variants)) {
+    const vMatch = card.variants.find(
+      (v: any) =>
+        (v.name && v.name.toLowerCase() === card.variantName?.toLowerCase()) ||
+        (v.network && v.network.toLowerCase() === card.variantName?.toLowerCase())
+    );
+    if (vMatch?.network) {
+      return resolveCardPaymentNetwork({ network: vMatch.network });
+    }
+  }
+
+  // 3. Search card name, issuer, bank, variantName for keywords
+  const combined = `${card.cardName || ""} ${card.issuer || ""} ${card.bank || ""} ${card.variantName || ""} ${card.cardType || ""}`.toLowerCase();
+
+  // RuPay checks (Tata Neu, Scapia RuPay UPI, Coral RuPay, Rubyx, Sapphiro UPI, etc.)
+  if (
+    combined.includes("rupay") ||
+    combined.includes("tata neu") ||
+    combined.includes("coral rupay") ||
+    combined.includes("rubyx rupay") ||
+    combined.includes("sapphiro rupay") ||
+    combined.includes("upi") ||
+    combined.includes("bhim")
+  ) {
+    return "RuPay";
+  }
+
+  // Amex checks (American Express, MRCC, SmartEarn, Platinum Travel, Gold Card, Centurion, etc.)
+  if (
+    combined.includes("amex") ||
+    combined.includes("american express") ||
+    combined.includes("mrcc") ||
+    combined.includes("smart earn") ||
+    combined.includes("smartearn") ||
+    combined.includes("platinum travel") ||
+    combined.includes("membership rewards")
+  ) {
+    return "Amex";
+  }
+
+  // Diners Club checks
+  if (combined.includes("diners") || combined.includes("diners club") || combined.includes("black metal diners")) {
+    return "Diners Club";
+  }
+
+  // Mastercard checks (Magnus, Flipkart Axis, Citi, World Safari, Swiggy HDFC, Airtel Axis, etc.)
+  if (
+    combined.includes("mastercard") ||
+    combined.includes("master card") ||
+    combined.includes("magnus") ||
+    combined.includes("flipkart") ||
+    combined.includes("citi") ||
+    combined.includes("citibank") ||
+    combined.includes("world safari") ||
+    combined.includes("swiggy") ||
+    combined.includes("airtel") ||
+    combined.includes("titan sbi")
+  ) {
+    return "Mastercard";
+  }
+
+  // Visa checks (Amazon Pay ICICI, Infinia, Regalia, Millennia, SimplyClick, SimplySave, Scapia, OneCard, Axis Ace, Niyo, etc.)
+  if (
+    combined.includes("visa") ||
+    combined.includes("amazon pay") ||
+    combined.includes("amazon icici") ||
+    combined.includes("infinia") ||
+    combined.includes("regalia") ||
+    combined.includes("millennia") ||
+    combined.includes("simplyclick") ||
+    combined.includes("simplysave") ||
+    combined.includes("scapia") ||
+    combined.includes("onecard") ||
+    combined.includes("one card") ||
+    combined.includes("axis ace") ||
+    combined.includes("hsbc cashback") ||
+    combined.includes("idfc") ||
+    combined.includes("zenith") ||
+    combined.includes("ixigo") ||
+    combined.includes("niyo") ||
+    combined.includes("forex")
+  ) {
+    return "Visa";
+  }
+
+  // 4. Prepaid cards and wallets
+  if (
+    card.cardType === "prepaid" ||
+    combined.includes("wallet") ||
+    combined.includes("prepaid") ||
+    combined.includes("sodexo") ||
+    combined.includes("pluxee") ||
+    combined.includes("zeta") ||
+    combined.includes("zaggle") ||
+    combined.includes("paytm")
+  ) {
+    if (combined.includes("sodexo") || combined.includes("pluxee") || combined.includes("zeta")) return "RuPay";
+    return "Prepaid & Wallet";
+  }
+
+  // 5. Check last4 / card number pattern
+  const digits = (card.last4 || "").replace(/\D/g, "");
+  if (digits.startsWith("4")) return "Visa";
+  if (digits.startsWith("5") || digits.startsWith("2")) return "Mastercard";
+  if (digits.startsWith("34") || digits.startsWith("37")) return "Amex";
+  if (digits.startsWith("60") || digits.startsWith("65") || digits.startsWith("35")) return "RuPay";
+  if (digits.startsWith("36") || digits.startsWith("38")) return "Diners Club";
+
+  // 6. Default to Visa for standard credit cards
+  return "Visa";
+};
+
 interface CardInsightsSectionProps {
   state: any;
   onNavigateTab?: (subTab: string) => void;
@@ -239,6 +374,16 @@ export function CardInsightsSection({
 
       if (txs.length === 0 && Number(c.outstanding) > 0) {
         const fyInfo = getFYDetails(today());
+        const cardNetwork = resolveCardPaymentNetwork({
+          network: c.network,
+          cardName,
+          issuer: c.issuer,
+          bank,
+          last4: c.last4,
+          cardType: "credit",
+          variants: c.variants,
+          variantName: "Primary",
+        });
         list.push({
           id: `cc-ob-${c.id}`,
           date: today(),
@@ -250,7 +395,7 @@ export function CardInsightsSection({
           cardId: c.id,
           cardName,
           bank,
-          network: c.network,
+          network: cardNetwork,
           last4: c.last4,
           variantName: "Primary",
           fy: fyInfo.fy,
@@ -279,6 +424,17 @@ export function CardInsightsSection({
           ? dateObj.toLocaleDateString("en-IN", { month: "short", year: "numeric" })
           : monthKey;
 
+        const txnNetwork = resolveCardPaymentNetwork({
+          network: t.network || c.network,
+          cardName,
+          issuer: c.issuer,
+          bank,
+          last4: c.last4,
+          cardType: "credit",
+          variants: c.variants,
+          variantName: t.variantName || "Primary",
+        });
+
         list.push({
           id: t.id || `cctx-${c.id}-${Math.random()}`,
           date: txDate,
@@ -290,7 +446,7 @@ export function CardInsightsSection({
           cardId: c.id,
           cardName,
           bank,
-          network: c.network,
+          network: txnNetwork,
           last4: c.last4,
           variantName: t.variantName || "Primary",
           fy: fyInfo.fy,
@@ -330,6 +486,15 @@ export function CardInsightsSection({
         else if (tType === "refund") normalizedType = "refund";
         else normalizedType = "charge";
 
+        const pNetwork = resolveCardPaymentNetwork({
+          network: p.network,
+          cardName,
+          issuer: p.issuer,
+          bank,
+          last4: p.last4,
+          cardType: p.cardType || "prepaid",
+        });
+
         list.push({
           id: t.id || `ptx-${p.id}-${Math.random()}`,
           date: txDate,
@@ -341,7 +506,7 @@ export function CardInsightsSection({
           cardId: p.id,
           cardName,
           bank,
-          network: p.network,
+          network: pNetwork,
           last4: p.last4,
           variantName: "Prepaid",
           fy: fyInfo.fy,
@@ -661,7 +826,14 @@ export function CardInsightsSection({
     const networkMap: Record<string, number> = {};
     filteredTransactions.forEach((t) => {
       if (t.type === "charge") {
-        const net = (t.network || "Other").toUpperCase();
+        const net = resolveCardPaymentNetwork({
+          network: t.network,
+          cardName: t.cardName,
+          bank: t.bank,
+          last4: t.last4,
+          cardType: t.cardType,
+          variantName: t.variantName,
+        });
         networkMap[net] = (networkMap[net] || 0) + t.amount;
       }
     });

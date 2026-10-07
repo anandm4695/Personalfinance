@@ -7,9 +7,29 @@ import {
   getFYDetails,
   getCategoryIcon,
   getCategoryColor,
+  resolveCardPaymentNetwork,
 } from "../components/credit/CardInsightsSection";
 
-describe("CardInsightsSection - Fiscal Year (FY) & Assessment Year (AY) Math", () => {
+describe("CardInsightsSection - Payment Network Resolver", () => {
+  it("resolves explicit networks properly", () => {
+    expect(resolveCardPaymentNetwork({ network: "visa" })).toBe("Visa");
+    expect(resolveCardPaymentNetwork({ network: "Mastercard" })).toBe("Mastercard");
+    expect(resolveCardPaymentNetwork({ network: "rupay" })).toBe("RuPay");
+    expect(resolveCardPaymentNetwork({ network: "amex" })).toBe("Amex");
+    expect(resolveCardPaymentNetwork({ network: "diners" })).toBe("Diners Club");
+  });
+
+  it("infers network from card and issuer names when network is missing or unspecified", () => {
+    expect(resolveCardPaymentNetwork({ cardName: "Flipkart Axis Bank", network: "" })).toBe("Mastercard");
+    expect(resolveCardPaymentNetwork({ cardName: "HDFC Tata Neu Infinity", network: "Other" })).toBe("RuPay");
+    expect(resolveCardPaymentNetwork({ cardName: "Amazon Pay ICICI", network: "" })).toBe("Visa");
+    expect(resolveCardPaymentNetwork({ cardName: "American Express Platinum Travel", network: "" })).toBe("Amex");
+    expect(resolveCardPaymentNetwork({ cardName: "Niyo Global Forex", cardType: "prepaid" })).toBe("Visa");
+    expect(resolveCardPaymentNetwork({ cardName: "Sodexo Meal Card", cardType: "prepaid" })).toBe("RuPay");
+  });
+});
+
+describe("CardInsightsSection Component UI & Calculations", () => {
   it("correctly computes FY and AY for April-December dates", () => {
     const res1 = getFYDetails("2024-04-01");
     expect(res1.fy).toBe("FY 2024-25");

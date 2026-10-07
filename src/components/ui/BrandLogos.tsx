@@ -1231,6 +1231,31 @@ export const CardNetworkLogo = ({
     );
   }
 
+  // Prepaid & Digital Wallets
+  if (
+    n.includes("wallet") ||
+    n.includes("prepaid") ||
+    n.includes("sodexo") ||
+    n.includes("pluxee") ||
+    n.includes("paytm") ||
+    n.includes("zaggle")
+  ) {
+    return (
+      <svg
+        height={height}
+        viewBox="0 0 32 22"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+        style={{ display: "inline-block", verticalAlign: "middle", ...style }}
+      >
+        <rect x="1" y="2" width="30" height="18" rx="4" fill="#0D9488" />
+        <path d="M1 6h30" stroke="#FFFFFF" strokeWidth="1.5" opacity="0.4" />
+        <circle cx="23" cy="11" r="2.5" fill="#FACC15" />
+      </svg>
+    );
+  }
+
   // Fallback Generic Card Network Icon
   return (
     <svg
