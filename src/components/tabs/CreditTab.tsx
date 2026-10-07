@@ -47,7 +47,7 @@ import {
 import { THEME } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
 import { fmtINRFull, fmtINRExact, today, uid, getCCDueDate, loanOutstanding } from "../../utils/finance";
-import { useMasterData, formatProfileOption } from "../../utils/masterData";
+import { useMasterData, formatProfileOption, DEFAULT_MASTER_DATA } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
 import { Badge } from "../ui/Badge";
@@ -3231,7 +3231,8 @@ function CCList({
 }
 
 function CCTransactionLedger({ card, onClose, onUpdate }: any) {
-  const { ccTransactionCategories: cats } = useMasterData();
+  const { ccTransactionCategories: rawCats } = useMasterData();
+  const cats = Array.isArray(rawCats) && rawCats.length > 0 ? rawCats : DEFAULT_MASTER_DATA.ccTransactionCategories;
   const [confirmDeleteTx, setConfirmDeleteTx] = useState<any>(null);
 
   const variantOptions = React.useMemo(() => {
@@ -4534,7 +4535,8 @@ function CCTransactionLedger({ card, onClose, onUpdate }: any) {
 }
 
 function PrepaidQuickModal({ card, mode = "load", onClose, onSave }: any) {
-  const { prepaidCategories: cats } = useMasterData();
+  const { prepaidCategories: rawCats } = useMasterData();
+  const cats = Array.isArray(rawCats) && rawCats.length > 0 ? rawCats : DEFAULT_MASTER_DATA.prepaidCategories;
   const [txType, setTxType] = useState<"load" | "spend">(mode);
   const [date, setDate] = useState(today());
   const [amount, setAmount] = useState("");
@@ -5877,7 +5879,8 @@ function PrepaidTransactionLedger({ prepaid, onClose, onUpdate }: any) {
   const [filterType, setFilterType] = useState<"all" | "load" | "spend">("all");
   const [filterCategory, setFilterCategory] = useState("all");
 
-  const { prepaidCategories: cats } = useMasterData();
+  const { prepaidCategories: rawCats } = useMasterData();
+  const cats = Array.isArray(rawCats) && rawCats.length > 0 ? rawCats : DEFAULT_MASTER_DATA.prepaidCategories;
   const totalLoaded = txs
     .filter((t) => t.type === "load")
     .reduce((s, t) => s + Number(t.amount), 0);

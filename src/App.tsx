@@ -396,6 +396,12 @@ function FinanceDashboard() {
     mutualFundsRef.current = state.mutualFunds || [];
   }, [state.mutualFunds]);
 
+  useEffect(() => {
+    if (state.masterData) {
+      masterDataRef.current = state.masterData;
+    }
+  }, [state.masterData]);
+
   // Derived settings from state for easier access
   const settings = state.settings || DEFAULT_STATE.settings;
   const { darkMode, accentKey, density, radiusKey, fontKey, bgStyle, animSpeed } = settings;
@@ -468,18 +474,24 @@ function FinanceDashboard() {
     async (key: string, newValue: any) => {
       let merged: any = null;
       setState((s: any) => {
-        merged = { ...(s.masterData || DEFAULT_MASTER_DATA), [key]: newValue };
+        const currentMaster = s.masterData || DEFAULT_MASTER_DATA;
+        merged = { ...currentMaster, [key]: newValue };
+        masterDataRef.current = merged;
         return { ...s, masterData: merged };
       });
+      masterDataRef.current = merged;
       const userId = session?.user?.id;
       if (userId && userId !== "offline-user" && merged) {
         const { error } = await supabase
           .from("user_settings")
           .upsert({ user_id: userId, master_data: merged });
-        if (error) console.error("[updateMasterData] DB upsert failed:", error.message);
+        if (error) {
+          console.error("[updateMasterData] DB upsert failed:", error.message);
+          if (showToast) showToast(`Failed to sync category changes: ${error.message}`, "error");
+        }
       }
     },
-    [session]
+    [session, showToast]
   );
 
   // Helper to update profile
@@ -517,13 +529,16 @@ function FinanceDashboard() {
     async (newDismissed: Record<string, number>) => {
       let mergedMaster: any = null;
       setState((s: any) => {
-        mergedMaster = { ...(s.masterData || DEFAULT_MASTER_DATA), _dismissedAlerts: newDismissed };
+        const currentMaster = s.masterData || DEFAULT_MASTER_DATA;
+        mergedMaster = { ...currentMaster, _dismissedAlerts: newDismissed };
+        masterDataRef.current = mergedMaster;
         return {
           ...s,
           dismissedAlerts: newDismissed,
           masterData: mergedMaster,
         };
       });
+      masterDataRef.current = mergedMaster;
 
       const userId = session?.user?.id;
       if (userId && userId !== "offline-user" && mergedMaster) {
@@ -877,30 +892,57 @@ function FinanceDashboard() {
           // Always merge ALL loaded transaction IDs into reconciledTxnIds so pre-fix transactions
           // never trigger the Sync button (which caused balance doubling on repeated clicks).
           masterData: (() => {
+            const rawCloud = sett.data?.master_data;
             const base =
-              (sett.data?.master_data
-                ? { ...DEFAULT_MASTER_DATA, ...sett.data.master_data }
+              (rawCloud
+                ? { ...DEFAULT_MASTER_DATA, ...rawCloud }
                 : null) ||
               currentState.masterData ||
               DEFAULT_MASTER_DATA;
+            // Ensure all array fields are preserved from DB if present, or from currentState, or fallback to defaults
+            const arrayKeys = [
+              "transactionCategories",
+              "ccTransactionCategories",
+              "prepaidCategories",
+              "goalCategories",
+              "mfCategories",
+              "bankAccountTypes",
+              "loanTypes",
+              "prepaidCardTypes",
+              "ccNetworks",
+              "familyProfiles",
+            ] as const;
+            const preservedArrays: Record<string, any> = {};
+            arrayKeys.forEach((k) => {
+              if (Array.isArray(rawCloud?.[k]) && rawCloud[k].length > 0) {
+                preservedArrays[k] = rawCloud[k];
+              } else if (Array.isArray(currentState.masterData?.[k]) && currentState.masterData[k].length > 0) {
+                preservedArrays[k] = currentState.masterData[k];
+              } else {
+                preservedArrays[k] = (DEFAULT_MASTER_DATA as any)[k] || [];
+              }
+            });
+
             // A saved transactionCategories list shallow-overrides DEFAULT_MASTER_DATA above,
             // so accounts saved before "Credit Card"/"Real Estate" were added as defaults never
-            // see them. Backfill in-place here (not a separate one-time effect — that races this
-            // same fetch, which lands after and stomps the fix straight back out).
-            const baseCats = base.transactionCategories || [];
+            // see them. Backfill in-place here.
+            const baseCats = preservedArrays.transactionCategories || [];
             const missingCats = ["Credit Card", "Real Estate"].filter(
-              (c) => !baseCats.includes(c)
+              (c: string) => !baseCats.includes(c)
             );
             const patchedCats = missingCats.length > 0 ? [...baseCats, ...missingCats] : baseCats;
             const allTxnIds =
               !txns.error && txns.data != null ? txns.data.map((t: any) => t.id) : [];
-            return {
+            const finalMaster = {
               ...base,
+              ...preservedArrays,
               transactionCategories: patchedCats,
               reconciledTxnIds: Array.from(
                 new Set([...(base.reconciledTxnIds || []), ...allTxnIds])
               ),
             };
+            masterDataRef.current = finalMaster;
+            return finalMaster;
           })(),
           ...(sett.data?.master_data?._dismissedAlerts
             ? { dismissedAlerts: sett.data.master_data._dismissedAlerts }
@@ -1637,17 +1679,20 @@ function FinanceDashboard() {
           )
           .then(() => {});
 
-        const newMaster = { ...(s.masterData || {}), _nwBackfillV2: true };
+        const newMaster = { ...(s.masterData || DEFAULT_MASTER_DATA), _nwBackfillV2: true };
+        masterDataRef.current = newMaster;
         supabase
           .from("user_settings")
           .upsert({ user_id: uid3, master_data: newMaster })
           .then(() => {});
         return { ...s, netWorthHistory: corrected, masterData: newMaster };
       }
+      const newMasterLocal = { ...(s.masterData || DEFAULT_MASTER_DATA), _nwBackfillV2: true };
+      masterDataRef.current = newMasterLocal;
       return {
         ...s,
         netWorthHistory: corrected,
-        masterData: { ...(s.masterData || {}), _nwBackfillV2: true },
+        masterData: newMasterLocal,
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1688,17 +1733,20 @@ function FinanceDashboard() {
               .then(() => {});
           }
         }
-        const newMaster = { ...(s.masterData || {}), _nwCleanV1: true };
+        const newMaster = { ...(s.masterData || DEFAULT_MASTER_DATA), _nwCleanV1: true };
+        masterDataRef.current = newMaster;
         supabase
           .from("user_settings")
           .upsert({ user_id: uid4, master_data: newMaster })
           .then(() => {});
         return { ...s, netWorthHistory: cleaned, masterData: newMaster };
       }
+      const newMasterLocalClean = { ...(s.masterData || DEFAULT_MASTER_DATA), _nwCleanV1: true };
+      masterDataRef.current = newMasterLocalClean;
       return {
         ...s,
         netWorthHistory: cleaned,
-        masterData: { ...(s.masterData || {}), _nwCleanV1: true },
+        masterData: newMasterLocalClean,
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1712,7 +1760,11 @@ function FinanceDashboard() {
     if (state.masterData?._caRoundingFixV1) return;
     const actions = state.corporateActions || [];
     if (actions.length === 0) {
-      setState((s: any) => ({ ...s, masterData: { ...(s.masterData || {}), _caRoundingFixV1: true } }));
+      setState((s: any) => {
+        const nm = { ...(s.masterData || DEFAULT_MASTER_DATA), _caRoundingFixV1: true };
+        masterDataRef.current = nm;
+        return { ...s, masterData: nm };
+      });
       return;
     }
 
@@ -1782,14 +1834,17 @@ function FinanceDashboard() {
             .eq("id", u.id)
             .then(() => {});
         }
-        const newMaster = { ...(s.masterData || {}), _caRoundingFixV1: true };
+        const newMaster = { ...(s.masterData || DEFAULT_MASTER_DATA), _caRoundingFixV1: true };
+        masterDataRef.current = newMaster;
         supabase
           .from("user_settings")
           .upsert({ user_id: uid5, master_data: newMaster })
           .then(() => {});
         return { ...s, stocks, masterData: newMaster };
       }
-      return { ...s, stocks, masterData: { ...(s.masterData || {}), _caRoundingFixV1: true } };
+      const newMasterLocalCa = { ...(s.masterData || DEFAULT_MASTER_DATA), _caRoundingFixV1: true };
+      masterDataRef.current = newMasterLocalCa;
+      return { ...s, stocks, masterData: newMasterLocalCa };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
