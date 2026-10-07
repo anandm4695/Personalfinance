@@ -55,6 +55,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";
+import { Modal } from "../ui/Modal";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
 import { getNextFeeDate } from "../tabs/CreditTab";
@@ -990,8 +991,8 @@ export function CardInsightsSection({
       {/* 1. Header Banner & View Pills */}
       <div
         style={{
-          background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 12%, var(--t-surface)) 0%, color-mix(in srgb, var(--t-card) 95%, transparent) 100%)",
-          border: "1px solid color-mix(in srgb, var(--t-accent) 25%, var(--t-border))",
+          background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 12%, var(--surface-1)) 0%, color-mix(in srgb, var(--t-card-bg) 95%, transparent) 100%)",
+          border: "1px solid color-mix(in srgb, var(--t-accent) 25%, var(--t-line))",
           borderRadius: 16,
           padding: "20px 24px",
           boxShadow: "0 4px 20px -2px rgba(0,0,0,0.06)",
@@ -1113,7 +1114,7 @@ export function CardInsightsSection({
                   border: isSelected ? "1px solid var(--t-accent)" : "1px solid transparent",
                   background: isSelected
                     ? "var(--t-accent)"
-                    : "color-mix(in srgb, var(--t-surface) 60%, transparent)",
+                    : "color-mix(in srgb, var(--surface-1) 60%, transparent)",
                   color: isSelected ? "#ffffff" : THEME.muted,
                   cursor: "pointer",
                   transition: "all 0.15s ease",
@@ -1139,7 +1140,7 @@ export function CardInsightsSection({
               alignItems: "center",
               gap: 12,
               justifyContent: "space-between",
-              background: "var(--t-card)",
+              background: "var(--t-card-bg)",
             }}
           >
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, flex: 1 }}>
@@ -1157,7 +1158,7 @@ export function CardInsightsSection({
                     fontSize: 13,
                     fontWeight: 500,
                     border: "1px solid var(--t-line)",
-                    background: "var(--t-input-bg, var(--t-surface))",
+                    background: "var(--t-input-bg, var(--surface-1))",
                     color: THEME.ink,
                     outline: "none",
                     cursor: "pointer",
@@ -1198,7 +1199,7 @@ export function CardInsightsSection({
                     fontSize: 13,
                     fontWeight: 500,
                     border: "1px solid var(--t-line)",
-                    background: "var(--t-input-bg, var(--t-surface))",
+                    background: "var(--t-input-bg, var(--surface-1))",
                     color: THEME.ink,
                     outline: "none",
                     cursor: "pointer",
@@ -1229,7 +1230,7 @@ export function CardInsightsSection({
                     fontSize: 13,
                     fontWeight: 600,
                     border: "1px solid var(--t-accent)",
-                    background: "color-mix(in srgb, var(--t-accent) 8%, var(--t-surface))",
+                    background: "color-mix(in srgb, var(--t-accent) 8%, var(--surface-1))",
                     color: "var(--t-accent)",
                     outline: "none",
                     cursor: "pointer",
@@ -1254,7 +1255,7 @@ export function CardInsightsSection({
                     fontSize: 13,
                     fontWeight: 600,
                     border: "1px solid var(--t-accent)",
-                    background: "color-mix(in srgb, var(--t-accent) 8%, var(--t-surface))",
+                    background: "color-mix(in srgb, var(--t-accent) 8%, var(--surface-1))",
                     color: "var(--t-accent)",
                     outline: "none",
                     cursor: "pointer",
@@ -1282,7 +1283,7 @@ export function CardInsightsSection({
                     fontSize: 13,
                     fontWeight: 500,
                     border: "1px solid var(--t-line)",
-                    background: "var(--t-input-bg, var(--t-surface))",
+                    background: "var(--t-input-bg, var(--surface-1))",
                     color: THEME.ink,
                     outline: "none",
                     cursor: "pointer",
@@ -1322,7 +1323,7 @@ export function CardInsightsSection({
                   borderRadius: 8,
                   fontSize: 12.5,
                   border: "1px solid var(--t-line)",
-                  background: "var(--t-input-bg, var(--t-surface))",
+                  background: "var(--t-input-bg, var(--surface-1))",
                   color: THEME.ink,
                   outline: "none",
                   boxSizing: "border-box",
@@ -1423,10 +1424,10 @@ export function CardInsightsSection({
               borderRadius: 12,
               fontSize: 13,
               background: sftCompliance.isExceeded
-                ? "color-mix(in srgb, var(--t-rust) 8%, var(--t-surface))"
+                ? "color-mix(in srgb, var(--t-rust) 8%, var(--surface-1))"
                 : sftCompliance.isWarning
-                ? "color-mix(in srgb, var(--t-gold) 8%, var(--t-surface))"
-                : "color-mix(in srgb, var(--t-accent) 6%, var(--t-surface))",
+                ? "color-mix(in srgb, var(--t-gold) 8%, var(--surface-1))"
+                : "color-mix(in srgb, var(--t-accent) 6%, var(--surface-1))",
               border: `1px solid ${
                 sftCompliance.isExceeded
                   ? "color-mix(in srgb, var(--t-rust) 25%, transparent)"
@@ -1503,7 +1504,7 @@ export function CardInsightsSection({
           {/* Smart Payment & Reward Maximizer Spotlight Card */}
           <div
             style={{
-              background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 12%, var(--t-card)) 0%, color-mix(in srgb, var(--t-surface) 95%, transparent) 100%)",
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 12%, var(--t-card-bg)) 0%, color-mix(in srgb, var(--surface-1) 95%, transparent) 100%)",
               border: "1.5px solid color-mix(in srgb, var(--t-accent) 30%, var(--t-line))",
               borderRadius: 14,
               padding: "16px 20px",
@@ -1713,7 +1714,7 @@ export function CardInsightsSection({
                           cursor: "pointer",
                           transition: "background 0.15s ease",
                         }}
-                        onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "var(--t-surface)")}
+                        onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "var(--surface-1)")}
                         onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "transparent")}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1969,7 +1970,7 @@ export function CardInsightsSection({
                     })}
                   </tbody>
                   <tfoot>
-                    <tr style={{ borderTop: "2px solid var(--t-line)", fontWeight: 700, background: "var(--t-surface)" }}>
+                    <tr style={{ borderTop: "2px solid var(--t-line)", fontWeight: 700, background: "var(--surface-1)" }}>
                       <td style={{ padding: "14px 10px", color: THEME.ink }}>Grand Total</td>
                       <td style={{ padding: "14px 10px", textAlign: "right", color: THEME.rust }}>
                         <Prv>{fmtINRFull(metrics.totalCharges)}</Prv>
@@ -2077,7 +2078,7 @@ export function CardInsightsSection({
                             fontSize: 11,
                             padding: "2px 8px",
                             borderRadius: 6,
-                            background: "var(--t-surface)",
+                            background: "var(--surface-1)",
                             color: THEME.muted,
                             border: "1px solid var(--t-line)",
                           }}
@@ -2161,7 +2162,7 @@ export function CardInsightsSection({
           </Card>
 
           {/* Tax Compliance Rules Card */}
-          <Card style={{ padding: 20, background: "var(--t-surface)" }}>
+          <Card style={{ padding: 20, background: "var(--surface-1)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <Info size={18} color={THEME.accent} />
               <span style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
@@ -2169,19 +2170,19 @@ export function CardInsightsSection({
               </span>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, fontSize: 12.5, color: THEME.muted, lineHeight: 1.5 }}>
-              <div style={{ background: "var(--t-card)", padding: 14, borderRadius: 10, border: "1px solid var(--t-line)" }}>
+              <div style={{ background: "var(--t-card-bg)", padding: 14, borderRadius: 10, border: "1px solid var(--t-line)" }}>
                 <strong style={{ color: THEME.ink, display: "block", marginBottom: 4 }}>
                   1. ₹10 Lakhs Annual Aggregate (Rule 114E)
                 </strong>
                 If your total credit card bills or purchases across all accounts of a bank aggregate to ₹10 Lakhs or more in an FY, the bank must report this to the Tax Department via SFT Form 61A.
               </div>
-              <div style={{ background: "var(--t-card)", padding: 14, borderRadius: 10, border: "1px solid var(--t-line)" }}>
+              <div style={{ background: "var(--t-card-bg)", padding: 14, borderRadius: 10, border: "1px solid var(--t-line)" }}>
                 <strong style={{ color: THEME.ink, display: "block", marginBottom: 4 }}>
                   2. ₹1 Lakh Cash Payment Threshold
                 </strong>
                 Any cash payment of ₹1,00,000 or more made toward credit card bill settlement is automatically reported to the Income Tax Department.
               </div>
-              <div style={{ background: "var(--t-card)", padding: 14, borderRadius: 10, border: "1px solid var(--t-line)" }}>
+              <div style={{ background: "var(--t-card-bg)", padding: 14, borderRadius: 10, border: "1px solid var(--t-line)" }}>
                 <strong style={{ color: THEME.ink, display: "block", marginBottom: 4 }}>
                   3. AIS / TIS Verification
                 </strong>
@@ -2293,7 +2294,7 @@ export function CardInsightsSection({
                             gap: 8,
                             padding: "10px 12px",
                             borderRadius: 10,
-                            background: "var(--t-surface)",
+                            background: "var(--surface-1)",
                             border: "1px solid var(--t-line)",
                           }}
                         >
@@ -2304,7 +2305,7 @@ export function CardInsightsSection({
                                   width: 52,
                                   height: 28,
                                   borderRadius: 6,
-                                  background: "var(--t-card)",
+                                  background: "var(--t-card-bg)",
                                   border: "1px solid var(--t-line)",
                                   display: "flex",
                                   alignItems: "center",
@@ -2337,7 +2338,7 @@ export function CardInsightsSection({
                   Spending Habit: Weekday vs Weekend
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div style={{ background: "var(--t-surface)", padding: 14, borderRadius: 10, textAlign: "center" }}>
+                  <div style={{ background: "var(--surface-1)", padding: 14, borderRadius: 10, textAlign: "center" }}>
                     <div style={{ fontSize: 12, color: THEME.muted }}>Weekday Spends (Mon-Fri)</div>
                     <div style={{ fontSize: 17, fontWeight: 700, color: THEME.ink, marginTop: 4 }}>
                       <Prv>{fmtINRFull(metrics.weekdaySpend)}</Prv>
@@ -2346,7 +2347,7 @@ export function CardInsightsSection({
                       {metrics.totalCharges > 0 ? Math.round((metrics.weekdaySpend / metrics.totalCharges) * 100) : 0}%
                     </div>
                   </div>
-                  <div style={{ background: "var(--t-surface)", padding: 14, borderRadius: 10, textAlign: "center" }}>
+                  <div style={{ background: "var(--surface-1)", padding: 14, borderRadius: 10, textAlign: "center" }}>
                     <div style={{ fontSize: 12, color: THEME.muted }}>Weekend Spends (Sat-Sun)</div>
                     <div style={{ fontSize: 17, fontWeight: 700, color: THEME.rust, marginTop: 4 }}>
                       <Prv>{fmtINRFull(metrics.weekendSpend)}</Prv>
@@ -2444,7 +2445,7 @@ export function CardInsightsSection({
                       fontSize: 13.5,
                       fontWeight: 600,
                       border: "1.5px solid var(--t-line)",
-                      background: "var(--t-input-bg, var(--t-surface))",
+                      background: "var(--t-input-bg, var(--surface-1))",
                       color: THEME.ink,
                       outline: "none",
                       boxSizing: "border-box",
@@ -2497,7 +2498,7 @@ export function CardInsightsSection({
                     fontSize: 13.5,
                     fontWeight: 600,
                     border: "1.5px solid var(--t-line)",
-                    background: "var(--t-input-bg, var(--t-surface))",
+                    background: "var(--t-input-bg, var(--surface-1))",
                     color: THEME.ink,
                     outline: "none",
                     boxSizing: "border-box",
@@ -2544,7 +2545,7 @@ export function CardInsightsSection({
                       fontSize: 14,
                       fontWeight: 700,
                       border: "1.5px solid var(--t-line)",
-                      background: "var(--t-input-bg, var(--t-surface))",
+                      background: "var(--t-input-bg, var(--surface-1))",
                       color: THEME.ink,
                       outline: "none",
                       boxSizing: "border-box",
@@ -2571,7 +2572,7 @@ export function CardInsightsSection({
                       borderRadius: 8,
                       fontSize: 12,
                       fontWeight: isActive ? 700 : 500,
-                      background: isActive ? "var(--t-accent)" : "color-mix(in srgb, var(--t-surface) 90%, transparent)",
+                      background: isActive ? "var(--t-accent)" : "color-mix(in srgb, var(--surface-1) 90%, transparent)",
                       color: isActive ? "#ffffff" : THEME.ink,
                       border: isActive ? "1px solid var(--t-accent)" : "1px solid var(--t-line)",
                       cursor: "pointer",
@@ -2611,7 +2612,7 @@ export function CardInsightsSection({
                         borderRadius: 20,
                         fontSize: 12.5,
                         fontWeight: isSelected ? 700 : 500,
-                        background: isSelected ? "color-mix(in srgb, var(--t-accent) 15%, var(--t-card))" : "var(--t-surface)",
+                        background: isSelected ? "color-mix(in srgb, var(--t-accent) 15%, var(--t-card-bg))" : "var(--surface-1)",
                         color: isSelected ? "var(--t-accent)" : THEME.ink,
                         border: isSelected ? "1.5px solid var(--t-accent)" : "1px solid var(--t-line)",
                         cursor: "pointer",
@@ -2654,7 +2655,7 @@ export function CardInsightsSection({
               {paymentRecommendation.topCard && (
                 <div
                   style={{
-                    background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 14%, var(--t-card)) 0%, color-mix(in srgb, var(--t-surface) 95%, transparent) 100%)",
+                    background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 14%, var(--t-card-bg)) 0%, color-mix(in srgb, var(--surface-1) 95%, transparent) 100%)",
                     border: "2px solid var(--t-accent)",
                     borderRadius: 16,
                     padding: 24,
@@ -2718,7 +2719,7 @@ export function CardInsightsSection({
                       {/* Profit Callout Box */}
                       <div
                         style={{
-                          background: "var(--t-card)",
+                          background: "var(--t-card-bg)",
                           border: "1.5px solid color-mix(in srgb, var(--t-sage) 40%, var(--t-line))",
                           borderRadius: 12,
                           padding: "12px 18px",
@@ -2741,7 +2742,7 @@ export function CardInsightsSection({
                     {/* Detailed Rationale Banner */}
                     <div
                       style={{
-                        background: "var(--t-surface)",
+                        background: "var(--surface-1)",
                         borderRadius: 12,
                         padding: "14px 16px",
                         fontSize: 13,
@@ -2763,7 +2764,7 @@ export function CardInsightsSection({
 
                     {/* Snapshot Grid of Safety & Runway */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
-                      <div style={{ background: "var(--t-card)", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--t-line)" }}>
+                      <div style={{ background: "var(--t-card-bg)", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--t-line)" }}>
                         <div style={{ fontSize: 11, color: THEME.muted }}>Interest-Free Runway</div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t-accent)", marginTop: 2 }}>
                           ~{paymentRecommendation.topCard.interestFreeDays} Days
@@ -2773,7 +2774,7 @@ export function CardInsightsSection({
                         </div>
                       </div>
 
-                      <div style={{ background: "var(--t-card)", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--t-line)" }}>
+                      <div style={{ background: "var(--t-card-bg)", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--t-line)" }}>
                         <div style={{ fontSize: 11, color: THEME.muted }}>Available Credit Limit</div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: THEME.sage, marginTop: 2 }}>
                           <Prv>{fmtINRFull(paymentRecommendation.topCard.availableLimit)}</Prv>
@@ -2783,7 +2784,7 @@ export function CardInsightsSection({
                         </div>
                       </div>
 
-                      <div style={{ background: "var(--t-card)", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--t-line)" }}>
+                      <div style={{ background: "var(--t-card-bg)", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--t-line)" }}>
                         <div style={{ fontSize: 11, color: THEME.muted }}>Reward Structure</div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 2 }}>
                           {paymentRecommendation.topCard.badge || `${paymentRecommendation.topCard.returnPct}% Return`}
@@ -2793,7 +2794,7 @@ export function CardInsightsSection({
                         </div>
                       </div>
 
-                      <div style={{ background: "var(--t-card)", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--t-line)" }}>
+                      <div style={{ background: "var(--t-card-bg)", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--t-line)" }}>
                         <div style={{ fontSize: 11, color: THEME.muted }}>Spend Target</div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 2 }}>
                           {paymentRecommendation.merchantName}
@@ -2920,7 +2921,7 @@ export function CardInsightsSection({
               {paymentRecommendation.bestMarketAlternative && (
                 <div
                   style={{
-                    background: "linear-gradient(135deg, color-mix(in srgb, var(--t-gold) 12%, var(--t-card)) 0%, var(--t-card) 100%)",
+                    background: "linear-gradient(135deg, color-mix(in srgb, var(--t-gold) 12%, var(--t-card-bg)) 0%, var(--t-card-bg) 100%)",
                     border: "1.5px solid color-mix(in srgb, var(--t-gold) 40%, var(--t-line))",
                     borderRadius: 14,
                     padding: "16px 20px",
@@ -2997,7 +2998,7 @@ export function CardInsightsSection({
                         style={{
                           padding: 16,
                           borderRadius: 12,
-                          background: "var(--t-surface)",
+                          background: "var(--surface-1)",
                           border: "1px solid var(--t-line)",
                           display: "flex",
                           flexDirection: "column",
@@ -3029,7 +3030,7 @@ export function CardInsightsSection({
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 10,
-                                background: "var(--t-card)",
+                                background: "var(--t-card-bg)",
                                 padding: "10px 12px",
                                 borderRadius: 10,
                                 border: "1px solid var(--t-line)",
@@ -3140,7 +3141,7 @@ export function CardInsightsSection({
                   return (
                     <div
                       style={{
-                        background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 14%, var(--t-card)) 0%, color-mix(in srgb, var(--t-surface) 95%, transparent) 100%)",
+                        background: "linear-gradient(135deg, color-mix(in srgb, var(--t-accent) 14%, var(--t-card-bg)) 0%, color-mix(in srgb, var(--surface-1) 95%, transparent) 100%)",
                         border: "2px solid var(--t-accent)",
                         borderRadius: 14,
                         padding: 20,
@@ -3181,7 +3182,7 @@ export function CardInsightsSection({
                       {/* Explanation note */}
                       <div
                         style={{
-                          background: "var(--t-surface)",
+                          background: "var(--surface-1)",
                           borderRadius: 10,
                           padding: "12px 14px",
                           fontSize: 12.5,
@@ -3205,25 +3206,25 @@ export function CardInsightsSection({
 
                       {/* Quick Snapshot Metrics */}
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
-                        <div style={{ background: "var(--t-card)", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
+                        <div style={{ background: "var(--t-card-bg)", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
                           <div style={{ fontSize: 11, color: THEME.muted }}>Statement Date</div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginTop: 2 }}>
                             {topPick.hasBillDate ? `${topPick.billDateNum}th of month (${topPick.nextBillDateStr})` : "Not set"}
                           </div>
                         </div>
-                        <div style={{ background: "var(--t-card)", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
+                        <div style={{ background: "var(--t-card-bg)", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
                           <div style={{ fontSize: 11, color: THEME.muted }}>Payment Due Date</div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginTop: 2 }}>
                             {topPick.hasDueDay ? `${topPick.dueDayNum}th of month (${topPick.nextDueDateStr})` : "Not set"}
                           </div>
                         </div>
-                        <div style={{ background: "var(--t-card)", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
+                        <div style={{ background: "var(--t-card-bg)", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
                           <div style={{ fontSize: 11, color: THEME.muted }}>Available Limit</div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: THEME.sage, marginTop: 2 }}>
                             <Prv>{fmtINRFull(topPick.availableLimit)}</Prv>
                           </div>
                         </div>
-                        <div style={{ background: "var(--t-card)", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
+                        <div style={{ background: "var(--t-card-bg)", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--t-line)" }}>
                           <div style={{ fontSize: 11, color: THEME.muted }}>Utilization</div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: topPick.utilPct > 30 ? THEME.gold : THEME.sage, marginTop: 2 }}>
                             {topPick.utilPct}% ({fmtINR(topPick.outstanding)} used)
@@ -3390,7 +3391,7 @@ export function CardInsightsSection({
                         style={{
                           padding: 16,
                           borderRadius: 12,
-                          background: "var(--t-surface)",
+                          background: "var(--surface-1)",
                           border: "1px solid var(--t-line)",
                         }}
                       >
@@ -3475,7 +3476,7 @@ export function CardInsightsSection({
                   borderRadius: 8,
                   fontSize: 12.5,
                   border: "1px solid var(--t-line)",
-                  background: "var(--t-surface)",
+                  background: "var(--surface-1)",
                   color: THEME.ink,
                   outline: "none",
                 }}
@@ -3566,111 +3567,92 @@ export function CardInsightsSection({
       )}
 
       {/* Category Drill-Down Modal */}
-      {selectedCategoryModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0,0,0,0.6)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: 16,
-          }}
-          onClick={() => setSelectedCategoryModal(null)}
-        >
-          <div
-            style={{
-              background: "var(--t-card)",
-              borderRadius: 16,
-              maxWidth: 600,
-              width: "100%",
-              maxHeight: "80vh",
-              overflowY: "auto",
-              padding: 24,
-              boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
-              border: "1px solid var(--t-line)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      {selectedCategoryModal && (() => {
+        const categoryTransactions = allNormalizedTransactions.filter(
+          (t) => t.category === selectedCategoryModal && t.type === "charge"
+        );
+        const totalAmount = categoryTransactions.reduce((acc, t) => acc + t.amount, 0);
+        const catColor = getCategoryColor(selectedCategoryModal);
+
+        return (
+          <Modal
+            isOpen={true}
+            onClose={() => setSelectedCategoryModal(null)}
+            width={620}
+            title={
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div
                   style={{
-                    width: 36,
-                    height: 36,
+                    width: 40,
+                    height: 40,
                     borderRadius: 10,
-                    background: `color-mix(in srgb, ${getCategoryColor(selectedCategoryModal)} 20%, transparent)`,
-                    color: getCategoryColor(selectedCategoryModal),
+                    background: `color-mix(in srgb, ${catColor} 18%, transparent)`,
+                    color: catColor,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    flexShrink: 0,
                   }}
                 >
                   {getCategoryIcon(selectedCategoryModal)}
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: THEME.ink }}>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: THEME.ink, lineHeight: 1.2 }}>
                     {selectedCategoryModal} Expenses
-                  </h3>
-                  <div style={{ fontSize: 12.5, color: THEME.muted }}>
-                    All transactions in this category.
+                  </div>
+                  <div style={{ fontSize: 12.5, color: THEME.muted, fontWeight: 400, marginTop: 2 }}>
+                    {categoryTransactions.length} transaction{categoryTransactions.length !== 1 ? "s" : ""} · Total Spend: <strong style={{ color: THEME.ink }}><Prv>{fmtINRFull(totalAmount)}</Prv></strong>
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedCategoryModal(null)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: THEME.muted,
-                  cursor: "pointer",
-                  padding: 4,
-                }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {allNormalizedTransactions
-                .filter((t) => t.category === selectedCategoryModal && t.type === "charge")
-                .map((t) => (
+            }
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "60vh", overflowY: "auto", padding: "4px 2px" }}>
+              {categoryTransactions.length === 0 ? (
+                <div style={{ padding: "40px 20px", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
+                  No expense transactions recorded in this category.
+                </div>
+              ) : (
+                categoryTransactions.map((t) => (
                   <div
                     key={t.id}
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
-                      padding: "10px 12px",
-                      borderRadius: 8,
-                      background: "var(--t-surface)",
+                      padding: "12px 14px",
+                      borderRadius: 10,
+                      background: "var(--surface-1)",
                       border: "1px solid var(--t-line)",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <BankLogo bankName={t.bank || t.cardName} size={28} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <BankLogo bankName={t.bank || t.cardName} size={32} />
                       <div>
-                        <div style={{ fontWeight: 600, color: THEME.ink }}>{t.merchant}</div>
-                        <div style={{ fontSize: 11, color: THEME.muted }}>
+                        <div style={{ fontWeight: 600, color: THEME.ink, fontSize: 13.5 }}>
+                          {t.merchant || "Expense"}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: THEME.muted, marginTop: 2 }}>
                           {fmtDate(t.date)} · {t.cardName} {t.last4 ? `(•••• ${t.last4})` : ""}
                         </div>
                       </div>
                     </div>
-                    <div style={{ fontWeight: 700, color: THEME.rust, fontSize: 14 }}>
-                      <Prv>{fmtINRFull(t.amount)}</Prv>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontWeight: 700, color: THEME.rust, fontSize: 14.5 }}>
+                        <Prv>{fmtINRFull(t.amount)}</Prv>
+                      </div>
+                      <Badge variant="neutral" style={{ fontSize: 10, padding: "1px 6px", marginTop: 2 }}>
+                        {t.cardType === "credit" ? "Credit Card" : "Prepaid"}
+                      </Badge>
                     </div>
                   </div>
-                ))}
+                ))
+              )}
             </div>
-          </div>
-        </div>
-      )}
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
