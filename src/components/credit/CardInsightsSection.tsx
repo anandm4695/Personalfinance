@@ -110,34 +110,97 @@ export const MONTH_NAMES_SHORT = [
 
 export const FY_MONTH_ORDER = [3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1, 2]; // Apr to Mar
 
-export const getFYDetails = (dateStr: string) => {
-  if (!dateStr) {
-    const currentFYStart = getCurrentFYStartYear();
-    return {
-      fy: `FY ${currentFYStart}-${String(currentFYStart + 1).slice(-2)}`,
-      fyStartYear: currentFYStart,
-      ay: `AY ${currentFYStart + 1}-${String(currentFYStart + 2).slice(-2)}`,
-    };
-  }
-  try {
-    const parts = dateStr.split("-");
-    const y = parseInt(parts[0], 10);
-    const m = parseInt(parts[1], 10) - 1;
+export const parseDateDetails = (rawDate: any) => {
+  if (!rawDate) {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const day = d.getDate();
+    const mm = m + 1;
     const startYear = m >= 3 ? y : y - 1;
     const endYear = startYear + 1;
     return {
+      isoDate: `${y}-${String(mm).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+      year: y,
+      monthIdx: m,
+      day,
+      dayOfWeek: d.getDay(),
+      monthKey: `${y}-${String(mm).padStart(2, "0")}`,
+      monthLabel: `${MONTH_NAMES_SHORT[m]} ${y}`,
+      monthShort: MONTH_NAMES_SHORT[m] || "Jan",
       fy: `FY ${startYear}-${String(endYear).slice(-2)}`,
-      fyStartYear: startYear,
       ay: `AY ${endYear}-${String(endYear + 1).slice(-2)}`,
-    };
-  } catch {
-    const currentFYStart = getCurrentFYStartYear();
-    return {
-      fy: `FY ${currentFYStart}-${String(currentFYStart + 1).slice(-2)}`,
-      fyStartYear: currentFYStart,
-      ay: `AY ${currentFYStart + 1}-${String(currentFYStart + 2).slice(-2)}`,
+      fyStartYear: startYear,
     };
   }
+
+  let y = NaN;
+  let m = NaN;
+  let day = NaN;
+
+  if (typeof rawDate === "string") {
+    const s = rawDate.trim();
+    // 1. YYYY-MM-DD or YYYY/MM/DD or ISO timestamp
+    const isoMatch = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (isoMatch) {
+      y = parseInt(isoMatch[1], 10);
+      m = parseInt(isoMatch[2], 10) - 1;
+      day = parseInt(isoMatch[3], 10);
+    } else {
+      // 2. DD-MM-YYYY or DD/MM/YYYY
+      const dmyMatch = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+      if (dmyMatch) {
+        day = parseInt(dmyMatch[1], 10);
+        m = parseInt(dmyMatch[2], 10) - 1;
+        y = parseInt(dmyMatch[3], 10);
+      }
+    }
+  }
+
+  // Fallback to Date object parsing
+  if (isNaN(y) || isNaN(m) || isNaN(day)) {
+    const d = new Date(rawDate);
+    if (!isNaN(d.getTime())) {
+      y = d.getFullYear();
+      m = d.getMonth();
+      day = d.getDate();
+    } else {
+      const now = new Date();
+      y = now.getFullYear();
+      m = now.getMonth();
+      day = now.getDate();
+    }
+  }
+
+  const mm = m + 1;
+  const startYear = m >= 3 ? y : y - 1;
+  const endYear = startYear + 1;
+  const dateObj = new Date(y, m, day);
+  const dow = !isNaN(dateObj.getTime()) ? dateObj.getDay() : 0;
+  const mShort = MONTH_NAMES_SHORT[m] || "Jan";
+
+  return {
+    isoDate: `${y}-${String(mm).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+    year: y,
+    monthIdx: m,
+    day,
+    dayOfWeek: dow,
+    monthKey: `${y}-${String(mm).padStart(2, "0")}`,
+    monthLabel: `${mShort} ${y}`,
+    monthShort: mShort,
+    fy: `FY ${startYear}-${String(endYear).slice(-2)}`,
+    ay: `AY ${endYear}-${String(endYear + 1).slice(-2)}`,
+    fyStartYear: startYear,
+  };
+};
+
+export const getFYDetails = (dateStr: string) => {
+  const details = parseDateDetails(dateStr);
+  return {
+    fy: details.fy,
+    fyStartYear: details.fyStartYear,
+    ay: details.ay,
+  };
 };
 
 export const getCategoryIcon = (cat: string) => {
@@ -356,6 +419,8 @@ export function CardInsightsSection({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "amt_desc" | "amt_asc">("date_desc");
   const [selectedCategoryModal, setSelectedCategoryModal] = useState<string | null>(null);
+  const [selectedMonthModal, setSelectedMonthModal] = useState<string | null>(null);
+  const [expandedMonthKey, setExpandedMonthKey] = useState<string | null>(null);
 
   // Smart "Which Card to Use?" (Payment & Reward Maximizer) States
   const [matcherMerchant, setMatcherMerchant] = useState<string>("Swiggy");
@@ -373,7 +438,7 @@ export function CardInsightsSection({
       const txs = Array.isArray(c.transactions) ? c.transactions : [];
 
       if (txs.length === 0 && Number(c.outstanding) > 0) {
-        const fyInfo = getFYDetails(today());
+        const dateDetails = parseDateDetails(today());
         const cardNetwork = resolveCardPaymentNetwork({
           network: c.network,
           cardName,
@@ -386,7 +451,7 @@ export function CardInsightsSection({
         });
         list.push({
           id: `cc-ob-${c.id}`,
-          date: today(),
+          date: dateDetails.isoDate,
           amount: Number(c.outstanding),
           type: "charge",
           merchant: "Opening Balance",
@@ -398,14 +463,14 @@ export function CardInsightsSection({
           network: cardNetwork,
           last4: c.last4,
           variantName: "Primary",
-          fy: fyInfo.fy,
-          fyStartYear: fyInfo.fyStartYear,
-          ay: fyInfo.ay,
-          monthKey: today().slice(0, 7),
-          monthLabel: new Date().toLocaleDateString("en-IN", { month: "short", year: "numeric" }),
-          monthShort: MONTH_NAMES_SHORT[new Date().getMonth()],
-          year: new Date().getFullYear(),
-          dayOfWeek: new Date().getDay(),
+          fy: dateDetails.fy,
+          fyStartYear: dateDetails.fyStartYear,
+          ay: dateDetails.ay,
+          monthKey: dateDetails.monthKey,
+          monthLabel: dateDetails.monthLabel,
+          monthShort: dateDetails.monthShort,
+          year: dateDetails.year,
+          dayOfWeek: dateDetails.dayOfWeek,
         });
       }
 
@@ -414,15 +479,7 @@ export function CardInsightsSection({
         const isCharge = rawAmt >= 0;
         const absAmt = Math.abs(rawAmt);
         const txDate = t.date || today();
-        const fyInfo = getFYDetails(txDate);
-        const dateObj = new Date(txDate);
-        const mIdx = !isNaN(dateObj.getTime()) ? dateObj.getMonth() : new Date().getMonth();
-        const yr = !isNaN(dateObj.getTime()) ? dateObj.getFullYear() : new Date().getFullYear();
-        const dow = !isNaN(dateObj.getTime()) ? dateObj.getDay() : 0;
-        const monthKey = txDate.slice(0, 7);
-        const monthLabel = !isNaN(dateObj.getTime())
-          ? dateObj.toLocaleDateString("en-IN", { month: "short", year: "numeric" })
-          : monthKey;
+        const dateDetails = parseDateDetails(txDate);
 
         const txnNetwork = resolveCardPaymentNetwork({
           network: t.network || c.network,
@@ -437,7 +494,7 @@ export function CardInsightsSection({
 
         list.push({
           id: t.id || `cctx-${c.id}-${Math.random()}`,
-          date: txDate,
+          date: dateDetails.isoDate,
           amount: absAmt,
           type: isCharge ? "charge" : "payment",
           merchant: t.merchant || t.note || (isCharge ? "Card Charge" : "Card Payment"),
@@ -449,14 +506,14 @@ export function CardInsightsSection({
           network: txnNetwork,
           last4: c.last4,
           variantName: t.variantName || "Primary",
-          fy: fyInfo.fy,
-          fyStartYear: fyInfo.fyStartYear,
-          ay: fyInfo.ay,
-          monthKey,
-          monthLabel,
-          monthShort: MONTH_NAMES_SHORT[mIdx] || "Jan",
-          year: yr,
-          dayOfWeek: dow,
+          fy: dateDetails.fy,
+          fyStartYear: dateDetails.fyStartYear,
+          ay: dateDetails.ay,
+          monthKey: dateDetails.monthKey,
+          monthLabel: dateDetails.monthLabel,
+          monthShort: dateDetails.monthShort,
+          year: dateDetails.year,
+          dayOfWeek: dateDetails.dayOfWeek,
         });
       });
     });
@@ -471,15 +528,7 @@ export function CardInsightsSection({
         const amt = Number(t.amount || 0);
         const tType = (t.type || "spend").toLowerCase();
         const txDate = t.date || today();
-        const fyInfo = getFYDetails(txDate);
-        const dateObj = new Date(txDate);
-        const mIdx = !isNaN(dateObj.getTime()) ? dateObj.getMonth() : new Date().getMonth();
-        const yr = !isNaN(dateObj.getTime()) ? dateObj.getFullYear() : new Date().getFullYear();
-        const dow = !isNaN(dateObj.getTime()) ? dateObj.getDay() : 0;
-        const monthKey = txDate.slice(0, 7);
-        const monthLabel = !isNaN(dateObj.getTime())
-          ? dateObj.toLocaleDateString("en-IN", { month: "short", year: "numeric" })
-          : monthKey;
+        const dateDetails = parseDateDetails(txDate);
 
         let normalizedType: "charge" | "payment" | "load" | "refund" = "charge";
         if (tType === "load") normalizedType = "load";
@@ -497,7 +546,7 @@ export function CardInsightsSection({
 
         list.push({
           id: t.id || `ptx-${p.id}-${Math.random()}`,
-          date: txDate,
+          date: dateDetails.isoDate,
           amount: Math.abs(amt),
           type: normalizedType,
           merchant: t.merchant || t.note || (normalizedType === "load" ? "Card Top-Up" : "Prepaid Spend"),
@@ -509,14 +558,14 @@ export function CardInsightsSection({
           network: pNetwork,
           last4: p.last4,
           variantName: "Prepaid",
-          fy: fyInfo.fy,
-          fyStartYear: fyInfo.fyStartYear,
-          ay: fyInfo.ay,
-          monthKey,
-          monthLabel,
-          monthShort: MONTH_NAMES_SHORT[mIdx] || "Jan",
-          year: yr,
-          dayOfWeek: dow,
+          fy: dateDetails.fy,
+          fyStartYear: dateDetails.fyStartYear,
+          ay: dateDetails.ay,
+          monthKey: dateDetails.monthKey,
+          monthLabel: dateDetails.monthLabel,
+          monthShort: dateDetails.monthShort,
+          year: dateDetails.year,
+          dayOfWeek: dateDetails.dayOfWeek,
         });
       });
     });
@@ -674,41 +723,67 @@ export function CardInsightsSection({
         monthIdx: number;
         charges: number;
         payments: number;
+        loads: number;
+        refunds: number;
         net: number;
         count: number;
         topCategory: string;
         catTotals: Record<string, number>;
+        cardTotals: Record<string, { cardName: string; bank: string; amount: number; count: number; cardType: string }>;
+        transactions: NormalizedCardTxn[];
       }
     > = {};
 
     filteredTransactions.forEach((t) => {
       if (!monthMap[t.monthKey]) {
-        const d = new Date(t.date);
         monthMap[t.monthKey] = {
           key: t.monthKey,
           label: t.monthLabel,
           short: t.monthShort,
           year: t.year,
-          monthIdx: !isNaN(d.getTime()) ? d.getMonth() : 0,
+          monthIdx: t.monthShort ? MONTH_NAMES_SHORT.indexOf(t.monthShort) : 0,
           charges: 0,
           payments: 0,
+          loads: 0,
+          refunds: 0,
           net: 0,
           count: 0,
           topCategory: "General",
           catTotals: {},
+          cardTotals: {},
+          transactions: [],
         };
       }
+      monthMap[t.monthKey].transactions.push(t);
+
       if (t.type === "charge") {
         monthMap[t.monthKey].charges += t.amount;
         monthMap[t.monthKey].count += 1;
         monthMap[t.monthKey].catTotals[t.category] =
           (monthMap[t.monthKey].catTotals[t.category] || 0) + t.amount;
+
+        const cardKey = t.cardId || t.cardName;
+        if (!monthMap[t.monthKey].cardTotals[cardKey]) {
+          monthMap[t.monthKey].cardTotals[cardKey] = {
+            cardName: t.cardName,
+            bank: t.bank,
+            amount: 0,
+            count: 0,
+            cardType: t.cardType,
+          };
+        }
+        monthMap[t.monthKey].cardTotals[cardKey].amount += t.amount;
+        monthMap[t.monthKey].cardTotals[cardKey].count += 1;
       } else if (t.type === "payment") {
         monthMap[t.monthKey].payments += t.amount;
+      } else if (t.type === "load") {
+        monthMap[t.monthKey].loads += t.amount;
+      } else if (t.type === "refund") {
+        monthMap[t.monthKey].refunds += t.amount;
       }
     });
 
-    // Compute top category per month
+    // Compute top category per month & sort transactions within month
     Object.values(monthMap).forEach((m) => {
       m.net = m.charges - m.payments;
       let topCat = "General";
@@ -720,6 +795,7 @@ export function CardInsightsSection({
         }
       });
       m.topCategory = topCat;
+      m.transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     });
 
     const sortedMonths = Object.values(monthMap).sort((a, b) => a.key.localeCompare(b.key));
@@ -1743,13 +1819,18 @@ export function CardInsightsSection({
             {/* Monthly Trend Mini Visual */}
             <Card style={{ padding: 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div
+                  onClick={() => setActiveView("monthly")}
+                  style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+                  title="Click to view Month-by-Month Card Spends & Flow Ledger"
+                >
                   <Calendar size={16} color={THEME.accent} />
                   <span style={{ fontWeight: 700, fontSize: 14, color: THEME.ink }}>
                     Monthly Spends Trend
                   </span>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setActiveView("monthly")}
                   style={{
                     background: "none",
@@ -1792,6 +1873,10 @@ export function CardInsightsSection({
                       return (
                         <div
                           key={m.key}
+                          onClick={() => {
+                            setExpandedMonthKey(m.key);
+                            setActiveView("monthly");
+                          }}
                           style={{
                             flex: 1,
                             display: "flex",
@@ -1800,13 +1885,16 @@ export function CardInsightsSection({
                             height: "100%",
                             justifyContent: "flex-end",
                             gap: 4,
+                            cursor: "pointer",
+                            borderRadius: "8px 8px 0 0",
+                            transition: "all 0.2s ease",
                           }}
+                          title={`${m.label}: ${fmtINRFull(m.charges)} spends (${m.count} txns) — Click to view in Month-by-Month Flow Ledger`}
                         >
                           <div style={{ fontSize: 10, fontWeight: 600, color: THEME.muted }}>
                             <Prv>{fmtINR(m.charges)}</Prv>
                           </div>
                           <div
-                            title={`${m.label}: ${fmtINRFull(m.charges)} (${m.count} txns)`}
                             style={{
                               width: "100%",
                               height: `${heightPct}%`,
@@ -1814,8 +1902,8 @@ export function CardInsightsSection({
                                 ? "linear-gradient(180deg, var(--t-rust) 0%, color-mix(in srgb, var(--t-rust) 70%, transparent) 100%)"
                                 : "linear-gradient(180deg, var(--t-accent) 0%, color-mix(in srgb, var(--t-accent) 60%, transparent) 100%)",
                               borderRadius: "6px 6px 0 0",
-                              transition: "height 0.3s ease",
-                              cursor: "pointer",
+                              transition: "all 0.3s ease",
+                              boxShadow: isPeak ? "0 2px 8px color-mix(in srgb, var(--t-rust) 35%, transparent)" : undefined,
                             }}
                           />
                           <div style={{ fontSize: 11, fontWeight: 600, color: isPeak ? THEME.rust : THEME.ink, marginTop: 4 }}>
@@ -1826,11 +1914,16 @@ export function CardInsightsSection({
                     })}
                   </div>
                   {metrics.peakMonth && (
-                    <div style={{ marginTop: 10, fontSize: 12, color: THEME.muted, display: "flex", justifyContent: "space-between" }}>
+                    <div style={{ marginTop: 10, fontSize: 12, color: THEME.muted, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
                       <span>
-                        Highest spend month: <strong>{metrics.peakMonth.label}</strong> (<Prv>{fmtINRFull(metrics.peakMonth.charges)}</Prv>)
+                        Highest spend month: <strong style={{ color: THEME.ink }}>{metrics.peakMonth.label}</strong> (<Prv>{fmtINRFull(metrics.peakMonth.charges)}</Prv>)
                       </span>
-                      <span>{metrics.sortedMonths.length} active months</span>
+                      <span
+                        onClick={() => setActiveView("monthly")}
+                        style={{ color: "var(--t-accent)", fontWeight: 600, cursor: "pointer" }}
+                      >
+                        {metrics.sortedMonths.length} active months &rarr;
+                      </span>
                     </div>
                   )}
                 </div>
@@ -2034,6 +2127,205 @@ export function CardInsightsSection({
       {/* VIEW 2: MONTH-WISE BREAKDOWN & TRENDS */}
       {activeView === "monthly" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Top Period Filter Scope Notice (if filtered) */}
+          {periodFilter !== "all" && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 16px",
+                borderRadius: 12,
+                background: "color-mix(in srgb, var(--t-accent) 10%, var(--surface-1))",
+                border: "1px solid color-mix(in srgb, var(--t-accent) 30%, transparent)",
+                fontSize: 12.5,
+                color: THEME.ink,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Calendar size={15} color="var(--t-accent)" />
+                <span>
+                  Currently filtered by period: <strong>{periodFilter.replace(/_/g, " ").toUpperCase()}</strong> ({metrics.sortedMonths.length} month{metrics.sortedMonths.length !== 1 ? "s" : ""} visible)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPeriodFilter("all")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--t-accent)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                }}
+              >
+                Reset to All Time (View All Months)
+              </button>
+            </div>
+          )}
+
+          {/* Interactive Visual Spend & Repayment Trend Chart */}
+          <Card style={{ padding: 22 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Calendar size={18} color={THEME.accent} />
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: THEME.ink }}>
+                    Monthly Spends & Repayment Trend Visualizer
+                  </h3>
+                </div>
+                <div style={{ fontSize: 12.5, color: THEME.muted, marginTop: 3 }}>
+                  Click any month bar to explore its card breakdown and transaction ledger below.
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: THEME.muted }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 2, background: "var(--t-accent)" }} /> Spends
+                  <div style={{ width: 10, height: 10, borderRadius: 2, background: THEME.sage, marginLeft: 6 }} /> Settlements
+                </div>
+                <Badge variant="accent">
+                  {metrics.sortedMonths.length} Months Tracked
+                </Badge>
+              </div>
+            </div>
+
+            {metrics.sortedMonths.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "30px 0", color: THEME.muted, fontSize: 13 }}>
+                No monthly transactions recorded for the selected filter criteria.
+              </div>
+            ) : (
+              <div>
+                {/* Visual Bar Graph with hover & click */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-end",
+                    gap: 12,
+                    height: 160,
+                    paddingTop: 14,
+                    paddingBottom: 8,
+                    borderBottom: "1px solid var(--t-line)",
+                    overflowX: "auto",
+                  }}
+                >
+                  {metrics.sortedMonths.map((m) => {
+                    const maxSpend = Math.max(...metrics.sortedMonths.map((x) => x.charges), 1);
+                    const heightPct = Math.max(10, Math.round((m.charges / maxSpend) * 100));
+                    const isPeak = metrics.peakMonth?.key === m.key;
+                    const isExpanded = expandedMonthKey === m.key;
+
+                    return (
+                      <div
+                        key={m.key}
+                        onClick={() => setExpandedMonthKey(isExpanded ? null : m.key)}
+                        style={{
+                          flex: 1,
+                          minWidth: 54,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          height: "100%",
+                          justifyContent: "flex-end",
+                          gap: 4,
+                          cursor: "pointer",
+                          padding: "4px 2px",
+                          borderRadius: 8,
+                          background: isExpanded ? "color-mix(in srgb, var(--t-accent) 10%, transparent)" : "transparent",
+                          transition: "all 0.2s ease",
+                        }}
+                        title={`${m.label}\nSpends: ${fmtINRFull(m.charges)}\nPayments: ${fmtINRFull(m.payments)}\nNet Outflow: ${fmtINRFull(m.net)}\nTxns: ${m.count}\nClick to toggle ledger details`}
+                      >
+                        <div style={{ fontSize: 10, fontWeight: 700, color: isPeak ? THEME.rust : THEME.ink }}>
+                          <Prv>{fmtINR(m.charges)}</Prv>
+                        </div>
+                        <div
+                          style={{
+                            width: "80%",
+                            height: `${heightPct}%`,
+                            background: isPeak
+                              ? "linear-gradient(180deg, var(--t-rust) 0%, color-mix(in srgb, var(--t-rust) 75%, transparent) 100%)"
+                              : isExpanded
+                              ? "var(--t-accent)"
+                              : "linear-gradient(180deg, var(--t-accent) 0%, color-mix(in srgb, var(--t-accent) 60%, transparent) 100%)",
+                            borderRadius: "6px 6px 0 0",
+                            transition: "all 0.3s ease",
+                            boxShadow: isExpanded || isPeak ? "0 2px 10px color-mix(in srgb, var(--t-accent) 40%, transparent)" : undefined,
+                            border: isExpanded ? "1.5px solid var(--t-accent)" : "none",
+                          }}
+                        />
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: isExpanded || isPeak ? 700 : 500,
+                            color: isPeak ? THEME.rust : isExpanded ? "var(--t-accent)" : THEME.ink,
+                            marginTop: 4,
+                          }}
+                        >
+                          {m.short}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Key Monthly KPI Metrics Strip */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                    gap: 12,
+                    marginTop: 16,
+                  }}
+                >
+                  <div style={{ padding: "10px 14px", borderRadius: 10, background: "var(--surface-1)", border: "1px solid var(--t-line)" }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", fontWeight: 600 }}>
+                      Highest Spend Month
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.rust, marginTop: 3 }}>
+                      {metrics.peakMonth ? `${metrics.peakMonth.label}` : "—"}
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>
+                      <Prv>{metrics.peakMonth ? fmtINRFull(metrics.peakMonth.charges) : "—"}</Prv>
+                    </div>
+                  </div>
+
+                  <div style={{ padding: "10px 14px", borderRadius: 10, background: "var(--surface-1)", border: "1px solid var(--t-line)" }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", fontWeight: 600 }}>
+                      Monthly Average Spend
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.ink, marginTop: 3 }}>
+                      <Prv>{fmtINRFull(metrics.monthlyAverageSpend)}</Prv>
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>Across active months</div>
+                  </div>
+
+                  <div style={{ padding: "10px 14px", borderRadius: 10, background: "var(--surface-1)", border: "1px solid var(--t-line)" }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", fontWeight: 600 }}>
+                      Total Charges
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.rust, marginTop: 3 }}>
+                      <Prv>{fmtINRFull(metrics.totalCharges)}</Prv>
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>{metrics.chargeCount} transactions</div>
+                  </div>
+
+                  <div style={{ padding: "10px 14px", borderRadius: 10, background: "var(--surface-1)", border: "1px solid var(--t-line)" }}>
+                    <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", fontWeight: 600 }}>
+                      Settlements / Repayments
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: THEME.sage, marginTop: 3 }}>
+                      <Prv>{fmtINRFull(metrics.totalPayments)}</Prv>
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted }}>Net flow: <Prv>{fmtINRFull(metrics.netSpend)}</Prv></div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </Card>
+
+          {/* Month-by-Month Card Spends & Flow Ledger Table */}
           <Card style={{ padding: 22 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
               <div>
@@ -2041,11 +2333,11 @@ export function CardInsightsSection({
                   Month-by-Month Card Spends & Flow Ledger
                 </h3>
                 <div style={{ fontSize: 13, color: THEME.muted, marginTop: 3 }}>
-                  Detailed breakdown of charges, repayments, net outflow, and primary spend drivers across each month.
+                  Click any month row or "Drill Down" to expand cards used, top categories, and full transactions.
                 </div>
               </div>
               <Badge variant="accent">
-                {metrics.sortedMonths.length} Months Tracked
+                {metrics.sortedMonths.length} Months
               </Badge>
             </div>
 
@@ -2058,91 +2350,286 @@ export function CardInsightsSection({
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
                     <tr style={{ borderBottom: "2px solid var(--t-line)", color: THEME.muted, fontSize: 11, textTransform: "uppercase" }}>
+                      <th style={{ padding: "12px 10px", textAlign: "left", width: 40 }}></th>
                       <th style={{ padding: "12px 10px", textAlign: "left" }}>Month</th>
                       <th style={{ padding: "12px 10px", textAlign: "right" }}>Charges / Spends</th>
                       <th style={{ padding: "12px 10px", textAlign: "right" }}>Payments / Settlements</th>
                       <th style={{ padding: "12px 10px", textAlign: "right" }}>Net Outflow</th>
                       <th style={{ padding: "12px 10px", textAlign: "center" }}>Transactions</th>
                       <th style={{ padding: "12px 10px", textAlign: "left" }}>Top Expense Category</th>
-                      <th style={{ padding: "12px 10px", textAlign: "right" }}>Annual Share</th>
+                      <th style={{ padding: "12px 10px", textAlign: "right" }}>Share</th>
+                      <th style={{ padding: "12px 10px", textAlign: "center" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {metrics.sortedMonths.map((m, idx) => {
                       const sharePct = metrics.totalCharges > 0 ? Math.round((m.charges / metrics.totalCharges) * 100) : 0;
                       const isPeak = metrics.peakMonth?.key === m.key;
+                      const isExpanded = expandedMonthKey === m.key;
                       const prevMonth = idx > 0 ? metrics.sortedMonths[idx - 1] : null;
                       const momDiff = prevMonth && prevMonth.charges > 0
                         ? Math.round(((m.charges - prevMonth.charges) / prevMonth.charges) * 100)
                         : null;
 
                       return (
-                        <tr
-                          key={m.key}
-                          style={{
-                            borderBottom: "1px solid var(--t-line)",
-                            background: isPeak ? "color-mix(in srgb, var(--t-rust) 4%, transparent)" : "transparent",
-                          }}
-                        >
-                          <td style={{ padding: "14px 10px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <span style={{ fontWeight: 700, color: THEME.ink }}>{m.label}</span>
-                              {isPeak && (
-                                <Badge variant="danger" style={{ fontSize: 10, padding: "1px 5px" }}>
-                                  Peak
-                                </Badge>
+                        <React.Fragment key={m.key}>
+                          <tr
+                            onClick={() => setExpandedMonthKey(isExpanded ? null : m.key)}
+                            style={{
+                              borderBottom: isExpanded ? "none" : "1px solid var(--t-line)",
+                              background: isExpanded
+                                ? "color-mix(in srgb, var(--t-accent) 6%, var(--surface-1))"
+                                : isPeak
+                                ? "color-mix(in srgb, var(--t-rust) 4%, transparent)"
+                                : "transparent",
+                              cursor: "pointer",
+                              transition: "background 0.15s ease",
+                            }}
+                          >
+                            <td style={{ padding: "14px 10px", textAlign: "center", color: THEME.muted }}>
+                              {isExpanded ? <ChevronUp size={16} color="var(--t-accent)" /> : <ChevronDown size={16} />}
+                            </td>
+                            <td style={{ padding: "14px 10px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ fontWeight: 700, color: THEME.ink }}>{m.label}</span>
+                                {isPeak && (
+                                  <Badge variant="danger" style={{ fontSize: 10, padding: "1px 5px" }}>
+                                    Peak
+                                  </Badge>
+                                )}
+                              </div>
+                              {momDiff !== null && (
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    marginTop: 2,
+                                    color: momDiff > 0 ? THEME.rust : THEME.sage,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 2,
+                                  }}
+                                >
+                                  {momDiff > 0 ? <ArrowUpRight size={12} /> : <ArrowDownLeft size={12} />}
+                                  {momDiff > 0 ? `+${momDiff}%` : `${momDiff}%`} vs prev month
+                                </div>
                               )}
-                            </div>
-                            {momDiff !== null && (
-                              <div
-                                style={{
-                                  fontSize: 11,
-                                  marginTop: 2,
-                                  color: momDiff > 0 ? THEME.rust : THEME.sage,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 2,
-                                }}
-                              >
-                                {momDiff > 0 ? <ArrowUpRight size={12} /> : <ArrowDownLeft size={12} />}
-                                {momDiff > 0 ? `+${momDiff}%` : `${momDiff}%`} vs prev month
+                            </td>
+                            <td style={{ padding: "14px 10px", textAlign: "right", fontWeight: 700, color: THEME.rust }}>
+                              <Prv>{fmtINRFull(m.charges)}</Prv>
+                            </td>
+                            <td style={{ padding: "14px 10px", textAlign: "right", fontWeight: 600, color: THEME.sage }}>
+                              <Prv>{fmtINRFull(m.payments)}</Prv>
+                            </td>
+                            <td style={{ padding: "14px 10px", textAlign: "right", fontWeight: 700, color: m.net > 0 ? THEME.ink : THEME.sage }}>
+                              <Prv>{fmtINRFull(m.net)}</Prv>
+                            </td>
+                            <td style={{ padding: "14px 10px", textAlign: "center", color: THEME.muted, fontWeight: 600 }}>
+                              {m.count}
+                            </td>
+                            <td style={{ padding: "14px 10px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <div style={{ color: getCategoryColor(m.topCategory) }}>
+                                  {getCategoryIcon(m.topCategory)}
+                                </div>
+                                <span style={{ fontWeight: 500, color: THEME.ink }}>{m.topCategory}</span>
                               </div>
-                            )}
-                          </td>
-                          <td style={{ padding: "14px 10px", textAlign: "right", fontWeight: 700, color: THEME.rust }}>
-                            <Prv>{fmtINRFull(m.charges)}</Prv>
-                          </td>
-                          <td style={{ padding: "14px 10px", textAlign: "right", fontWeight: 600, color: THEME.sage }}>
-                            <Prv>{fmtINRFull(m.payments)}</Prv>
-                          </td>
-                          <td style={{ padding: "14px 10px", textAlign: "right", fontWeight: 700, color: m.net > 0 ? THEME.ink : THEME.sage }}>
-                            <Prv>{fmtINRFull(m.net)}</Prv>
-                          </td>
-                          <td style={{ padding: "14px 10px", textAlign: "center", color: THEME.muted }}>
-                            {m.count}
-                          </td>
-                          <td style={{ padding: "14px 10px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <div style={{ color: getCategoryColor(m.topCategory) }}>
-                                {getCategoryIcon(m.topCategory)}
+                            </td>
+                            <td style={{ padding: "14px 10px", textAlign: "right" }}>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+                                <span style={{ fontWeight: 600, color: THEME.ink }}>{sharePct}%</span>
+                                <div style={{ width: 45, height: 5, background: "var(--t-line)", borderRadius: 3, overflow: "hidden" }}>
+                                  <div style={{ height: "100%", width: `${sharePct}%`, background: THEME.accent, borderRadius: 3 }} />
+                                </div>
                               </div>
-                              <span style={{ fontWeight: 500, color: THEME.ink }}>{m.topCategory}</span>
-                            </div>
-                          </td>
-                          <td style={{ padding: "14px 10px", textAlign: "right" }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
-                              <span style={{ fontWeight: 600, color: THEME.ink }}>{sharePct}%</span>
-                              <div style={{ width: 45, height: 5, background: "var(--t-line)", borderRadius: 3, overflow: "hidden" }}>
-                                <div style={{ height: "100%", width: `${sharePct}%`, background: THEME.accent, borderRadius: 3 }} />
+                            </td>
+                            <td style={{ padding: "14px 10px", textAlign: "center" }}>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedMonthKey(isExpanded ? null : m.key);
+                                  }}
+                                  style={{
+                                    padding: "4px 8px",
+                                    borderRadius: 6,
+                                    fontSize: 11.5,
+                                    fontWeight: 600,
+                                    border: "1px solid var(--t-line)",
+                                    background: isExpanded ? "var(--t-accent)" : "var(--surface-1)",
+                                    color: isExpanded ? "#ffffff" : THEME.ink,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  {isExpanded ? "Collapse" : "Expand"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedMonthModal(m.key);
+                                  }}
+                                  style={{
+                                    padding: "4px 8px",
+                                    borderRadius: 6,
+                                    fontSize: 11.5,
+                                    fontWeight: 600,
+                                    border: "1px solid var(--t-accent)",
+                                    background: "color-mix(in srgb, var(--t-accent) 10%, transparent)",
+                                    color: "var(--t-accent)",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  Drill Down
+                                </button>
                               </div>
-                            </div>
-                          </td>
-                        </tr>
+                            </td>
+                          </tr>
+
+                          {/* Inline Expanded Detail Drawer */}
+                          {isExpanded && (
+                            <tr style={{ background: "color-mix(in srgb, var(--t-accent) 4%, var(--surface-1))", borderBottom: "2px solid var(--t-line)" }}>
+                              <td colSpan={9} style={{ padding: "16px 20px" }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                                  {/* Spend by Card & Categories Row */}
+                                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
+                                    {/* Card Distribution */}
+                                    <div style={{ background: "var(--t-card-bg)", padding: 14, borderRadius: 10, border: "1px solid var(--t-line)" }}>
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                                        <CreditCard size={14} color={THEME.accent} />
+                                        <span>Spends by Card in {m.label}</span>
+                                      </div>
+                                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                        {Object.values(m.cardTotals || {}).length === 0 ? (
+                                          <div style={{ fontSize: 11.5, color: THEME.muted }}>No charges in this month.</div>
+                                        ) : (
+                                          Object.values(m.cardTotals || {}).map((c, cIdx) => {
+                                            const cardPct = m.charges > 0 ? Math.round((c.amount / m.charges) * 100) : 0;
+                                            return (
+                                              <div key={cIdx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                  <BankLogo bankName={c.bank || c.cardName} size={18} />
+                                                  <span style={{ fontWeight: 600, color: THEME.ink }}>{c.cardName}</span>
+                                                  <span style={{ fontSize: 11, color: THEME.muted }}>({c.count} txns)</span>
+                                                </div>
+                                                <div style={{ fontWeight: 700, color: THEME.rust }}>
+                                                  <Prv>{fmtINRFull(c.amount)}</Prv> <span style={{ fontSize: 10.5, color: THEME.muted, fontWeight: 500 }}>({cardPct}%)</span>
+                                                </div>
+                                              </div>
+                                            );
+                                          })
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Category Distribution */}
+                                    <div style={{ background: "var(--t-card-bg)", padding: 14, borderRadius: 10, border: "1px solid var(--t-line)" }}>
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                                        <Tag size={14} color={THEME.accent} />
+                                        <span>Spends by Category in {m.label}</span>
+                                      </div>
+                                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                        {Object.entries(m.catTotals || {}).length === 0 ? (
+                                          <div style={{ fontSize: 11.5, color: THEME.muted }}>No charges in this month.</div>
+                                        ) : (
+                                          Object.entries(m.catTotals || {}).map(([cat, amt]) => (
+                                            <div
+                                              key={cat}
+                                              style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 6,
+                                                padding: "4px 10px",
+                                                borderRadius: 8,
+                                                background: "var(--surface-1)",
+                                                border: "1px solid var(--t-line)",
+                                                fontSize: 11.5,
+                                              }}
+                                            >
+                                              <div style={{ color: getCategoryColor(cat) }}>{getCategoryIcon(cat)}</div>
+                                              <span style={{ fontWeight: 500, color: THEME.ink }}>{cat}:</span>
+                                              <strong style={{ color: THEME.rust }}><Prv>{fmtINRFull(amt)}</Prv></strong>
+                                            </div>
+                                          ))
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Monthly Transactions Mini-Table */}
+                                  <div style={{ background: "var(--t-card-bg)", borderRadius: 10, border: "1px solid var(--t-line)", overflow: "hidden" }}>
+                                    <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--t-line)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                      <span style={{ fontSize: 12.5, fontWeight: 700, color: THEME.ink }}>
+                                        Transactions in {m.label} ({m.transactions.length})
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedMonthModal(m.key)}
+                                        style={{
+                                          background: "none",
+                                          border: "none",
+                                          color: "var(--t-accent)",
+                                          fontSize: 12,
+                                          fontWeight: 600,
+                                          cursor: "pointer",
+                                        }}
+                                      >
+                                        Open in Full Modal &rarr;
+                                      </button>
+                                    </div>
+
+                                    <div style={{ maxHeight: 220, overflowY: "auto" }}>
+                                      {m.transactions.length === 0 ? (
+                                        <div style={{ padding: "20px 14px", textAlign: "center", color: THEME.muted, fontSize: 12 }}>
+                                          No transactions recorded for this month.
+                                        </div>
+                                      ) : (
+                                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                                          <thead>
+                                            <tr style={{ background: "var(--surface-1)", color: THEME.muted, fontSize: 10.5, textTransform: "uppercase" }}>
+                                              <th style={{ padding: "8px 12px", textAlign: "left" }}>Date</th>
+                                              <th style={{ padding: "8px 12px", textAlign: "left" }}>Merchant</th>
+                                              <th style={{ padding: "8px 12px", textAlign: "left" }}>Category</th>
+                                              <th style={{ padding: "8px 12px", textAlign: "left" }}>Card</th>
+                                              <th style={{ padding: "8px 12px", textAlign: "right" }}>Amount</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {m.transactions.map((t) => {
+                                              const isExp = t.type === "charge";
+                                              return (
+                                                <tr key={t.id} style={{ borderBottom: "1px solid var(--t-line)" }}>
+                                                  <td style={{ padding: "8px 12px", color: THEME.muted, whiteSpace: "nowrap" }}>{fmtDate(t.date)}</td>
+                                                  <td style={{ padding: "8px 12px", fontWeight: 600, color: THEME.ink }}>{t.merchant}</td>
+                                                  <td style={{ padding: "8px 12px" }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                                      <div style={{ color: getCategoryColor(t.category) }}>{getCategoryIcon(t.category)}</div>
+                                                      <span>{t.category}</span>
+                                                    </div>
+                                                  </td>
+                                                  <td style={{ padding: "8px 12px", color: THEME.muted }}>{t.cardName}</td>
+                                                  <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: isExp ? THEME.rust : THEME.sage }}>
+                                                    <Prv>{isExp ? `- ${fmtINRFull(t.amount)}` : `+ ${fmtINRFull(t.amount)}`}</Prv>
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
                   <tfoot>
                     <tr style={{ borderTop: "2px solid var(--t-line)", fontWeight: 700, background: "var(--surface-1)" }}>
+                      <td style={{ padding: "14px 10px" }}></td>
                       <td style={{ padding: "14px 10px", color: THEME.ink }}>Grand Total</td>
                       <td style={{ padding: "14px 10px", textAlign: "right", color: THEME.rust }}>
                         <Prv>{fmtINRFull(metrics.totalCharges)}</Prv>
@@ -2158,6 +2645,7 @@ export function CardInsightsSection({
                       </td>
                       <td style={{ padding: "14px 10px", color: THEME.muted }}>—</td>
                       <td style={{ padding: "14px 10px", textAlign: "right" }}>100%</td>
+                      <td style={{ padding: "14px 10px" }}></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -3821,6 +4309,155 @@ export function CardInsightsSection({
                   </div>
                 ))
               )}
+            </div>
+          </Modal>
+        );
+      })()}
+
+      {/* Month Drill-Down Modal */}
+      {selectedMonthModal && (() => {
+        const monthData = metrics.sortedMonths.find((m) => m.key === selectedMonthModal);
+        const monthTxns = monthData ? monthData.transactions : allNormalizedTransactions.filter((t) => t.monthKey === selectedMonthModal);
+        const totalMonthCharges = monthData ? monthData.charges : monthTxns.filter((t) => t.type === "charge").reduce((a, b) => a + b.amount, 0);
+        const totalMonthPayments = monthData ? monthData.payments : monthTxns.filter((t) => t.type === "payment").reduce((a, b) => a + b.amount, 0);
+        const monthLabel = monthData ? monthData.label : selectedMonthModal;
+
+        return (
+          <Modal
+            isOpen={true}
+            onClose={() => setSelectedMonthModal(null)}
+            width={720}
+            title={
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    background: "color-mix(in srgb, var(--t-accent) 18%, transparent)",
+                    color: "var(--t-accent)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: THEME.ink, lineHeight: 1.2 }}>
+                    {monthLabel} Card Spends & Flow Breakdown
+                  </div>
+                  <div style={{ fontSize: 12.5, color: THEME.muted, fontWeight: 400, marginTop: 2 }}>
+                    {monthTxns.length} transaction{monthTxns.length !== 1 ? "s" : ""} · Spends: <strong style={{ color: THEME.rust }}><Prv>{fmtINRFull(totalMonthCharges)}</Prv></strong> · Payments: <strong style={{ color: THEME.sage }}><Prv>{fmtINRFull(totalMonthPayments)}</Prv></strong>
+                  </div>
+                </div>
+              </div>
+            }
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, maxHeight: "65vh", overflowY: "auto", padding: "4px 2px" }}>
+              {/* Summary Cards Row */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
+                <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--surface-1)", border: "1px solid var(--t-line)" }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", fontWeight: 600 }}>Total Spends</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: THEME.rust, marginTop: 2 }}><Prv>{fmtINRFull(totalMonthCharges)}</Prv></div>
+                </div>
+                <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--surface-1)", border: "1px solid var(--t-line)" }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", fontWeight: 600 }}>Repayments</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: THEME.sage, marginTop: 2 }}><Prv>{fmtINRFull(totalMonthPayments)}</Prv></div>
+                </div>
+                <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--surface-1)", border: "1px solid var(--t-line)" }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", fontWeight: 600 }}>Net Outflow</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: THEME.ink, marginTop: 2 }}><Prv>{fmtINRFull(totalMonthCharges - totalMonthPayments)}</Prv></div>
+                </div>
+                <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--surface-1)", border: "1px solid var(--t-line)" }}>
+                  <div style={{ fontSize: 11, color: THEME.muted, textTransform: "uppercase", fontWeight: 600 }}>Top Category</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: THEME.ink, marginTop: 2 }}>{monthData?.topCategory || "General"}</div>
+                </div>
+              </div>
+
+              {/* Spends by Card Chips */}
+              {monthData && Object.values(monthData.cardTotals || {}).length > 0 && (
+                <div style={{ background: "var(--surface-1)", padding: 12, borderRadius: 10, border: "1px solid var(--t-line)" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                    <CreditCard size={14} color={THEME.accent} />
+                    <span>Card Distribution</span>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {Object.values(monthData.cardTotals || {}).map((c, cIdx) => (
+                      <div
+                        key={cIdx}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "6px 10px",
+                          borderRadius: 8,
+                          background: "var(--t-card-bg)",
+                          border: "1px solid var(--t-line)",
+                          fontSize: 12,
+                        }}
+                      >
+                        <BankLogo bankName={c.bank || c.cardName} size={18} />
+                        <span style={{ fontWeight: 600, color: THEME.ink }}>{c.cardName}:</span>
+                        <strong style={{ color: THEME.rust }}><Prv>{fmtINRFull(c.amount)}</Prv></strong>
+                        <span style={{ fontSize: 10.5, color: THEME.muted }}>({c.count} txns)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Transactions List */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: THEME.ink }}>
+                  All Transactions ({monthTxns.length})
+                </div>
+
+                {monthTxns.length === 0 ? (
+                  <div style={{ padding: "30px 20px", textAlign: "center", color: THEME.muted, fontSize: 13 }}>
+                    No transactions recorded for this month.
+                  </div>
+                ) : (
+                  monthTxns.map((t) => {
+                    const isExpense = t.type === "charge";
+                    return (
+                      <div
+                        key={t.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "10px 14px",
+                          borderRadius: 10,
+                          background: "var(--surface-1)",
+                          border: "1px solid var(--t-line)",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <BankLogo bankName={t.bank || t.cardName} size={30} />
+                          <div>
+                            <div style={{ fontWeight: 600, color: THEME.ink, fontSize: 13 }}>
+                              {t.merchant || "Transaction"}
+                            </div>
+                            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
+                              {fmtDate(t.date)} · {t.cardName} · <span style={{ color: getCategoryColor(t.category) }}>{t.category}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontWeight: 700, color: isExpense ? THEME.rust : THEME.sage, fontSize: 14 }}>
+                            <Prv>{isExpense ? `- ${fmtINRFull(t.amount)}` : `+ ${fmtINRFull(t.amount)}`}</Prv>
+                          </div>
+                          <Badge variant={isExpense ? "neutral" : "sage"} style={{ fontSize: 9.5, padding: "1px 5px", marginTop: 2 }}>
+                            {t.type.toUpperCase()}
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </Modal>
         );

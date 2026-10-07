@@ -264,4 +264,45 @@ describe("CardInsightsSection Component UI & Calculations", () => {
     fireEvent.click(swiggyBtn);
     expect(screen.getByText(/Why use this card for Swiggy\?/i)).toBeDefined();
   });
+
+  it("renders Month Spends Trend Visualizer and expands month flow ledger details", () => {
+    render(<CardInsightsSection state={mockState} />);
+
+    // Switch to Month-Wise Breakdown
+    const monthTabButton = screen.getByRole("button", { name: /Month-Wise Breakdown/i });
+    fireEvent.click(monthTabButton);
+
+    // Trend Visualizer & Ledger
+    expect(screen.getByText(/Monthly Spends & Repayment Trend Visualizer/i)).toBeDefined();
+    expect(screen.getByText("Month-by-Month Card Spends & Flow Ledger")).toBeDefined();
+
+    // Click on Expand for a month
+    const expandButtons = screen.getAllByRole("button", { name: /Expand/i });
+    expect(expandButtons.length).toBeGreaterThan(0);
+    fireEvent.click(expandButtons[0]);
+
+    // Check that inline drawer opened with Spends by Card and Category
+    expect(screen.getAllByText(/Spends by Card/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Spends by Category/i).length).toBeGreaterThan(0);
+  });
+
+  it("opens Month Drill-Down Modal and shows comprehensive month transaction ledger", () => {
+    render(<CardInsightsSection state={mockState} />);
+
+    // Switch to Month-Wise Breakdown
+    const monthTabButton = screen.getByRole("button", { name: /Month-Wise Breakdown/i });
+    fireEvent.click(monthTabButton);
+
+    // Click on Drill Down button for first month
+    const drillDownBtns = screen.getAllByRole("button", { name: /Drill Down/i });
+    expect(drillDownBtns.length).toBeGreaterThan(0);
+    fireEvent.click(drillDownBtns[0]);
+
+    // Check modal contents
+    expect(screen.getByText(/Card Spends & Flow Breakdown/i)).toBeDefined();
+    expect(screen.getByText("Total Spends")).toBeDefined();
+    expect(screen.getByText("Repayments")).toBeDefined();
+    expect(screen.getAllByText("Net Outflow").length).toBeGreaterThan(0);
+  });
 });
+
