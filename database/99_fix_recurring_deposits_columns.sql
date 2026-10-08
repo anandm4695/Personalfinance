@@ -45,3 +45,6 @@ CREATE POLICY "Users can access own data" ON public.recurring_deposits
 
 -- 4. Ensure Index for Fast Lookups
 CREATE INDEX IF NOT EXISTS idx_recurring_deposits_user ON public.recurring_deposits (user_id);
+
+-- 5. Extra Compatibility for Transactions
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS description text;

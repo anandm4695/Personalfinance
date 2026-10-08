@@ -2346,6 +2346,10 @@ function FinanceDashboard() {
         if (finalItem.notes && !finalItem.note) finalItem.note = finalItem.notes;
       }
       if (key === "transactions") {
+        if (!finalItem.note && finalItem.description) {
+          finalItem.note = finalItem.description;
+        }
+        delete finalItem.description;
         if (finalItem.type) {
           const rawType = String(finalItem.type).toLowerCase();
           finalItem.type = rawType === "credit" ? "credit" : "debit";

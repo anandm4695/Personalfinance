@@ -1633,7 +1633,6 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             type: "debit",
             category: "Investments",
             note: noteText,
-            description: noteText,
             narration: noteText,
             linked_type: "recurring_deposit",
             linked_id: data.id || data.rdNumber || "",
