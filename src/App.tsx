@@ -2288,6 +2288,26 @@ function FinanceDashboard() {
           delete finalItem.category;
         }
       }
+      if (key === "recurringDeposits") {
+        if (item.bankName || finalItem.bank_name) {
+          finalItem.bank = item.bank || item.bankName || finalItem.bank || finalItem.bank_name || "";
+          delete finalItem.bank_name;
+        }
+        if (item.tenure && !finalItem.tenure_months) {
+          finalItem.tenure_months = item.tenure;
+          delete finalItem.tenure;
+        }
+        if (finalItem.rd_number && !finalItem.account_number) {
+          finalItem.account_number = finalItem.rd_number;
+        } else if (finalItem.account_number && !finalItem.rd_number) {
+          finalItem.rd_number = finalItem.account_number;
+        }
+        delete finalItem.maturity_amount;
+        delete finalItem.current_value;
+        delete finalItem.invested;
+        delete finalItem.elapsed_installments;
+        delete finalItem.debit_first_installment;
+      }
       if (key === "informalBorrowed") finalItem.direction = "borrowed";
       if (key === "informalLent") finalItem.direction = "lent";
       if (key === "rentalProperties" || key === "rentedProperties") {

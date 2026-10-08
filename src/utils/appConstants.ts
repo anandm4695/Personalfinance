@@ -194,6 +194,7 @@ export const NUMERIC_COLS = new Set([
   "seating_capacity",
   // recurring_deposits
   "debit_day",
+  "paid_installments",
   // ppf_nps
   "this_year_contribution",
   "employer_contribution",
