@@ -1,5 +1,5 @@
 // Vercel serverless function — Daily/Weekly/Monthly email summary sender
-// Triggered by Vercel Cron (GET) or manually from Settings UI (POST)
+// Triggered by Vercel Cron (GET) or manually from Settings / Monthly Report UI (POST)
 const { Resend } = require("resend");
 const { createClient } = require("@supabase/supabase-js");
 const { default: YahooFinance } = require("yahoo-finance2");
@@ -8,8 +8,7 @@ const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
 // yahoo-finance2 ships with no request timeout by default — a hung upstream
 // response can otherwise block until Vercel's maxDuration kills the whole
-// function. Follows the same 8s-timeout philosophy as the mfapi.in calls in
-// api/mf-nav.js / api/cron-update-prices.js.
+// function. Follows the same 8s-timeout philosophy as the mfapi.in calls.
 const YF_TIMEOUT_MS = 8000;
 const yfFetchOptions = () => ({ fetchOptions: { signal: AbortSignal.timeout(YF_TIMEOUT_MS) } });
 
@@ -92,27 +91,89 @@ async function verifyManualAuth(req) {
   }
 }
 
-// ── IST offset helpers ─────────────────────────────────────────────────────────
+// ── Timezone & Calendar Helpers (Standard IST Asia/Kolkata) ────────────────────
+function getISTParts(d = new Date()) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(d);
+  const map = {};
+  for (const p of parts) map[p.type] = p.value;
+  return {
+    year: parseInt(map.year, 10),
+    month: parseInt(map.month, 10), // 1-12
+    day: parseInt(map.day, 10),
+    hour: parseInt(map.hour, 10),
+    minute: parseInt(map.minute, 10),
+    second: parseInt(map.second, 10),
+  };
+}
+
 function nowIST() {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() + 330); // UTC+5:30
-  return d;
+  const p = getISTParts();
+  return new Date(Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second));
 }
 
-function istDayOfWeek() {
-  return nowIST().getUTCDay(); // 0=Sun,1=Mon,...,6=Sat
+function istDayOfWeek(d = new Date()) {
+  const p = getISTParts(d);
+  return new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
 }
 
-function istDate() {
-  return nowIST().getUTCDate();
+function istDate(d = new Date()) {
+  return getISTParts(d).day;
 }
 
-function istDaysInCurrentMonth() {
-  const d = nowIST();
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+function istDaysInCurrentMonth(d = new Date()) {
+  const p = getISTParts(d);
+  return new Date(Date.UTC(p.year, p.month, 0)).getUTCDate();
 }
 
-// ── Camel/Date helpers for calculations alignment ──────────────────────────────
+function today(d = new Date()) {
+  const p = getISTParts(d);
+  return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+}
+
+function dateLabel(iso) {
+  if (!iso) return "—";
+  const str = typeof iso === "string" ? iso.slice(0, 10) : new Date(iso).toISOString().slice(0, 10);
+  const [y, m, d] = str.split("-").map(Number);
+  if (!y || !m || !d) return "—";
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return date.toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short" });
+}
+
+function weekRange(refDate = new Date()) {
+  const p = getISTParts(refDate);
+  const curDate = new Date(Date.UTC(p.year, p.month - 1, p.day));
+  const day = curDate.getUTCDay(); // 0=Sun
+  const monOffset = (day + 6) % 7;
+  const mon = new Date(curDate);
+  mon.setUTCDate(curDate.getUTCDate() - monOffset);
+  const sun = new Date(mon);
+  sun.setUTCDate(mon.getUTCDate() + 6);
+  return `${dateLabel(mon.toISOString())} – ${dateLabel(sun.toISOString())}`;
+}
+
+function monthLabel(refDate = new Date()) {
+  const p = getISTParts(refDate);
+  const d = new Date(Date.UTC(p.year, p.month - 1, 1));
+  return d.toLocaleDateString("en-IN", { timeZone: "UTC", month: "long", year: "numeric" });
+}
+
+function clampDayToMonth(year, monthIndex0, day) {
+  const lastDay = new Date(Date.UTC(year, monthIndex0 + 1, 0)).getUTCDate();
+  const clamped = Math.max(1, Math.min(Number(day) || 1, lastDay));
+  return new Date(Date.UTC(year, monthIndex0, clamped));
+}
+
+// ── Camel/Data helpers ────────────────────────────────────────────────────────
 function snakeToCamel(obj) {
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) return obj.map(snakeToCamel);
@@ -122,14 +183,6 @@ function snakeToCamel(obj) {
     res[camel] = obj[k] !== null && typeof obj[k] === "object" ? snakeToCamel(obj[k]) : obj[k];
   }
   return res;
-}
-
-function today() {
-  const d = nowIST();
-  const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
 }
 
 function monthsBetween(d1, d2) {
@@ -150,11 +203,12 @@ function rdMaturity(monthly, rate, months) {
   return total;
 }
 
-// ── Premium annualization & next-anniversary helper ────────────────────────────
+// ── Premium annualization & Insurance Due helpers ─────────────────────────────
 const PREMIUM_FREQ_MULT = { monthly: 12, quarterly: 4, semi_annual: 2, annual: 1, yearly: 1 };
+
 function annualizePremium(premium, frequency, preAnnualized) {
   if (preAnnualized && Number(preAnnualized) > 0) return Number(preAnnualized);
-  const freq = (frequency || "annual").toLowerCase().replace("-", "_");
+  const freq = (frequency || "annual").toLowerCase().replace(/-/g, "_");
   return Number(premium || 0) * (PREMIUM_FREQ_MULT[freq] || 1);
 }
 
@@ -163,7 +217,7 @@ function nextAnnualOccurrence(startDate, refDate) {
   const parts = startDate.slice(0, 10).split("-").map(Number);
   const m = parts[1];
   const d = parts[2];
-  const refParts = (refDate || today()).split("-").map(Number);
+  const refParts = (refDate || today()).slice(0, 10).split("-").map(Number);
   const refY = refParts[0];
   const clampedDateStr = (y) => {
     const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -175,7 +229,122 @@ function nextAnnualOccurrence(startDate, refDate) {
   return occ;
 }
 
-// ── Number formatters ─────────────────────────────────────────────────────────
+function getNextInsuranceDue(policy, refDate = today()) {
+  const basePremium = Number(policy.premium || policy.annualPremium || 0);
+  if (!basePremium) return null;
+  const freq = (policy.premiumFrequency || "annual").toLowerCase().replace(/-/g, "_");
+  const startDate = policy.commencementDate || policy.startDate || policy.renewalDate;
+  if (!startDate) return null;
+  const expiry = policy.maturityDate || policy.expiryDate;
+  if (expiry && expiry < refDate) return null;
+
+  const installmentAmount = Number(policy.premium) || Number(policy.annualPremium) || 0;
+  const [startYear, startMonth, startDay] = startDate.slice(0, 10).split("-").map(Number);
+  const [refYear, refMonth, refDay] = refDate.slice(0, 10).split("-").map(Number);
+
+  let stepMonths = 12;
+  if (freq === "monthly") stepMonths = 1;
+  else if (freq === "quarterly") stepMonths = 3;
+  else if (freq === "semi_annual" || freq === "half_yearly") stepMonths = 6;
+
+  let candidate = clampDayToMonth(startYear, startMonth - 1, startDay);
+  const refTime = new Date(Date.UTC(refYear, refMonth - 1, refDay)).getTime();
+
+  let guard = 0;
+  while (candidate.getTime() < refTime && guard < 600) {
+    const nextMonthTotal = (candidate.getUTCFullYear() * 12 + candidate.getUTCMonth()) + stepMonths;
+    candidate = clampDayToMonth(Math.floor(nextMonthTotal / 12), nextMonthTotal % 12, startDay);
+    guard++;
+  }
+
+  return {
+    date: candidate,
+    amount: installmentAmount,
+  };
+}
+
+// ── Subscription Next Renewal Helper ──────────────────────────────────────────
+function getSubscriptionCycleStep(cycle) {
+  const c = (cycle || "monthly").toLowerCase();
+  if (c === "yearly" || c === "annual") return 12;
+  if (c === "half-yearly" || c === "semi-annual") return 6;
+  if (c === "quarterly") return 3;
+  return 1;
+}
+
+function addMonthsToDate(dateObj, months) {
+  const d = dateObj.getUTCDate();
+  const nextMonthTotal = dateObj.getUTCFullYear() * 12 + dateObj.getUTCMonth() + months;
+  return clampDayToMonth(Math.floor(nextMonthTotal / 12), nextMonthTotal % 12, d);
+}
+
+function getNextSubscriptionRenewal(renewalDate, cycle, refDateStr = today()) {
+  if (!renewalDate) return null;
+  const [y, m, d] = renewalDate.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return null;
+  let candidate = clampDayToMonth(y, m - 1, d);
+  const [refY, refM, refD] = refDateStr.slice(0, 10).split("-").map(Number);
+  const refTime = new Date(Date.UTC(refY, refM - 1, refD)).getTime();
+  const step = getSubscriptionCycleStep(cycle);
+
+  let guard = 0;
+  while (candidate.getTime() < refTime && guard < 600) {
+    candidate = addMonthsToDate(candidate, step);
+    guard++;
+  }
+  return candidate;
+}
+
+// ── Credit Card Next Due Date Helper ──────────────────────────────────────────
+function getCreditCardDueDate(c, refDateObj = nowIST()) {
+  const rawDueDay =
+    c.dueDay ??
+    (typeof c.dueDate === "number" ||
+    (typeof c.dueDate === "string" && /^\d{1,2}$/.test(c.dueDate.trim()))
+      ? c.dueDate
+      : undefined);
+
+  const p = getISTParts(refDateObj);
+  const todayMidnightTime = new Date(Date.UTC(p.year, p.month - 1, p.day)).getTime();
+
+  if (rawDueDay !== undefined && rawDueDay !== null && rawDueDay !== "") {
+    const day = parseInt(String(rawDueDay), 10);
+    if (!isNaN(day) && day >= 1 && day <= 31) {
+      let d = clampDayToMonth(p.year, p.month - 1, day);
+      if (d.getTime() < todayMidnightTime) {
+        d = clampDayToMonth(p.year + (p.month === 12 ? 1 : 0), p.month % 12, day);
+      }
+      return d;
+    }
+  }
+
+  if (typeof c.dueDate === "string" && c.dueDate.includes("-")) {
+    const [y, m, d] = c.dueDate.slice(0, 10).split("-").map(Number);
+    if (y && m && d) return clampDayToMonth(y, m - 1, d);
+  }
+  return null;
+}
+
+// ── Loan Outstanding Helpers (Single Source of Truth) ─────────────────────────
+function loanOutstanding(l) {
+  if (!l) return 0;
+  if ((l.status || "").toLowerCase() === "closed") return 0;
+  if (l.outstanding !== undefined && l.outstanding !== null && l.outstanding !== "") {
+    return Number(l.outstanding || 0);
+  }
+  return Number(l.principal || l.amount || 0);
+}
+
+function loanGivenOutstanding(l) {
+  if (!l) return 0;
+  if ((l.status || "").toLowerCase() === "closed") return 0;
+  if (l.outstanding !== undefined && l.outstanding !== null && l.outstanding !== "") {
+    return Number(l.outstanding || 0);
+  }
+  return Number(l.principal || l.amount || 0);
+}
+
+// ── Number Formatters ─────────────────────────────────────────────────────────
 function fmtINR(n) {
   const v = Math.abs(Number(n) || 0);
   if (v >= 1e7) return `₹${(v / 1e7).toFixed(2)}Cr`;
@@ -188,8 +357,6 @@ function fmtINRFull(n) {
   return `₹${Math.round(Math.abs(Number(n) || 0)).toLocaleString("en-IN")}`;
 }
 
-// Rounds each amount's share of `total` to a whole percent using the largest-remainder
-// method, so the results always sum to 100.
 function largestRemainderRound(amounts, total) {
   if (!(total > 0) || amounts.length === 0) return amounts.map(() => 0);
   const raw = amounts.map((a) => (a / total) * 100);
@@ -203,7 +370,6 @@ function largestRemainderRound(amounts, total) {
   return result;
 }
 
-// ── HTML escaping ──────────────────────────────────────────────────────────────
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
   return String(str)
@@ -214,36 +380,19 @@ function escapeHtml(str) {
     .replace(/'/g, "&#39;");
 }
 
-// ── Date helpers ──────────────────────────────────────────────────────────────
-function dateLabel(iso) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-}
-
-function weekRange() {
-  const ist = nowIST();
-  const day = ist.getUTCDay();
-  const mon = new Date(ist);
-  mon.setUTCDate(ist.getUTCDate() - ((day + 6) % 7));
-  const sun = new Date(mon);
-  sun.setUTCDate(mon.getUTCDate() + 6);
-  return `${dateLabel(mon.toISOString())} – ${dateLabel(sun.toISOString())}`;
-}
-
-function monthLabel() {
-  return nowIST().toLocaleDateString("en-IN", { month: "long", year: "numeric" });
-}
-
-// ── Escalation-aware rent ────────────────────────────────────────────────────
+// ── Escalation-aware Rent Helper ──────────────────────────────────────────────
 function getEffectiveRent(p, yearMonth) {
+  if (!p || p.isActive === false) return 0;
+  const refMonth = yearMonth || today().slice(0, 7);
+  if (p.agreementStart && refMonth < p.agreementStart.slice(0, 7)) return 0;
+  if (p.agreementEnd && refMonth > p.agreementEnd.slice(0, 7)) return 0;
+
   const tiers = p.escalationTiers;
   if (!tiers || !tiers.length || !p.agreementStart) return Number(p.monthlyRent || 0);
-  const refMonth = yearMonth || today().slice(0, 7);
   const [refY, refM] = refMonth.split("-").map(Number);
   const [startY, startM] = p.agreementStart.slice(0, 7).split("-").map(Number);
   const monthsElapsed = (refY - startY) * 12 + (refM - startM);
-  if (monthsElapsed < 0) return Number(tiers[0]?.amount || p.monthlyRent || 0);
+  if (monthsElapsed < 0) return 0;
   let cumulative = 0;
   for (const tier of tiers) {
     cumulative += Number(tier.durationMonths || 12);
@@ -252,77 +401,79 @@ function getEffectiveRent(p, yearMonth) {
   return Number(tiers[tiers.length - 1]?.amount || p.monthlyRent || 0);
 }
 
-// ── Compute all summary metrics from state ─────────────────────────────────────
-function computeSummary(state) {
-  const now = nowIST();
-  const m = now.getUTCMonth();
-  const y = now.getUTCFullYear();
-  const curYm = `${y}-${String(m + 1).padStart(2, "0")}`;
+// ── EPF Balance Helper (Passbook & Ledger Logic) ───────────────────────────────
+function calculateEpfBalance(e) {
+  if (!e) return 0;
+  const txs = e.transactions || [];
+  const ests = e.establishments || [];
 
-  const calculateEpfBalance = (e) => {
-    if (!e) return 0;
-    const txs = e.transactions || [];
-    const ests = e.establishments || [];
+  const hasPassbook = txs.some(
+    (t) =>
+      t.type === "monthly_contribution" ||
+      t.type === "interest_credit" ||
+      t.type === "transfer_in"
+  );
 
-    const hasPassbook = txs.some(
-      (t) =>
-        t.type === "monthly_contribution" ||
-        t.type === "interest_credit" ||
-        t.type === "transfer_in"
-    );
+  if (!hasPassbook) {
+    return Number(e.balance || 0);
+  }
 
-    if (!hasPassbook) {
-      return Number(e.balance || 0);
-    }
+  const transferredOutEstIds = new Set(
+    txs
+      .filter((x) => x.type === "transfer_in" && x.fromEmployer)
+      .map((x) => {
+        const est = ests.find((estItem) => estItem.employerName === x.fromEmployer);
+        return est ? est.id : null;
+      })
+      .filter(Boolean)
+  );
 
-    const transferredOutEstIds = new Set(
-      txs
-        .filter((x) => x.type === "transfer_in" && x.fromEmployer)
-        .map((x) => {
-          const est = ests.find((estItem) => estItem.employerName === x.fromEmployer);
-          return est ? est.id : null;
-        })
-        .filter(Boolean)
-    );
+  const activeTxs = txs.filter((t) => !t.estId || !transferredOutEstIds.has(t.estId));
 
-    const activeTxs = txs.filter((t) => !t.estId || !transferredOutEstIds.has(t.estId));
+  const byType = (type) =>
+    activeTxs.filter((x) => x.type === type).reduce((s, x) => s + Number(x.amount || 0), 0);
+  const monthlyRows = activeTxs.filter((x) => x.type === "monthly_contribution");
+  const interestRows = activeTxs.filter((x) => x.type === "interest_credit");
+  const transferRows = txs.filter((x) => x.type === "transfer_in");
 
-    const byType = (type) =>
-      activeTxs.filter((x) => x.type === type).reduce((s, x) => s + Number(x.amount || 0), 0);
-    const monthlyRows = activeTxs.filter((x) => x.type === "monthly_contribution");
-    const interestRows = activeTxs.filter((x) => x.type === "interest_credit");
-    const transferRows = txs.filter((x) => x.type === "transfer_in");
+  const totalEmployee =
+    byType("employee_contribution") +
+    monthlyRows.reduce((s, x) => s + Number(x.employeeShare || 0), 0);
+  const totalEmployer =
+    byType("employer_contribution") +
+    monthlyRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
+  const totalPension = monthlyRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
+  const totalTransferIn = transferRows.reduce((s, x) => s + Number(x.amount || 0), 0);
+  const totalWithdrawal = byType("withdrawal");
 
-    const totalEmployee =
-      byType("employee_contribution") +
-      monthlyRows.reduce((s, x) => s + Number(x.employeeShare || 0), 0);
-    const totalEmployer =
-      byType("employer_contribution") +
-      monthlyRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
-    const totalPension = monthlyRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
-    const totalTransferIn = transferRows.reduce((s, x) => s + Number(x.amount || 0), 0);
-    const totalWithdrawal = byType("withdrawal");
+  const empInterest = interestRows.reduce((s, x) => {
+    if (x.employeeShare !== undefined) return s + Number(x.employeeShare || 0);
+    return s + Number(x.amount || 0);
+  }, 0);
+  const erInterest = interestRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
+  const penInterest = interestRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
+  const transferInEr = transferRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
+  const transferInPen = transferRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
+  const transferInEmp = totalTransferIn - transferInEr - transferInPen;
 
-    const empInterest = interestRows.reduce((s, x) => {
-      if (x.employeeShare !== undefined) return s + Number(x.employeeShare || 0);
-      return s + Number(x.amount || 0);
-    }, 0);
-    const erInterest = interestRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
-    const penInterest = interestRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
-    const transferInEr = transferRows.reduce((s, x) => s + Number(x.employerShare || 0), 0);
-    const transferInPen = transferRows.reduce((s, x) => s + Number(x.pensionShare || 0), 0);
-    const transferInEmp = totalTransferIn - transferInEr - transferInPen;
+  const closingEmployee = totalEmployee + empInterest + transferInEmp;
+  const closingEmployer = totalEmployer + erInterest + transferInEr;
+  const closingPension = totalPension + transferInPen + penInterest;
+  const closingTotal = closingEmployee + closingEmployer + closingPension - totalWithdrawal;
 
-    const closingEmployee = totalEmployee + empInterest + transferInEmp;
-    const closingEmployer = totalEmployer + erInterest + transferInEr;
-    const closingPension = totalPension + transferInPen + penInterest;
-    const closingTotal = closingEmployee + closingEmployer + closingPension - totalWithdrawal;
+  return closingTotal;
+}
 
-    return closingTotal;
-  };
+// ── Main Metrics Computation (Single Source of Truth) ─────────────────────────
+function computeSummary(state, refDate = new Date()) {
+  const istP = getISTParts(refDate);
+  const curYm = `${istP.year}-${String(istP.month).padStart(2, "0")}`;
+  const todayStr = `${curYm}-${String(istP.day).padStart(2, "0")}`;
+  const todayMidnightTime = new Date(Date.UTC(istP.year, istP.month - 1, istP.day)).getTime();
 
   // ── Net worth: Assets ──────────────────────────────────────────────────────
   const bankTotal = (state.bankAccounts || []).reduce((s, b) => s + (Number(b.balance) || 0), 0);
+
   const mfTotal = (state.mutualFunds || []).reduce((s, m) => {
     const liveNav = Number(m.currentNav || 0);
     const fallbackNav =
@@ -331,18 +482,23 @@ function computeSummary(state) {
       (Number(m.units || 1) > 0 ? Number(m.invested || 0) / Number(m.units || 1) : 0);
     return s + Number(m.units || 0) * fallbackNav;
   }, 0);
+
   const stockTotal = (state.stocks || []).reduce((s, st) => {
     const fallbackPrice = Number(st.currentPrice || 0) || Number(st.avgPrice || 0);
     return s + Number(st.qty || 0) * fallbackPrice;
   }, 0);
+
   const fdTotal = (state.fixedDeposits || []).reduce((s, x) => s + (Number(x.principal) || 0), 0);
+
   const rdTotal = (state.recurringDeposits || []).reduce((s, r) => {
     const elapsed = r.startDate
-      ? Math.min(Number(r.tenureMonths || 0), Math.max(0, monthsBetween(r.startDate, today())))
+      ? Math.min(Number(r.tenureMonths || 0), Math.max(0, monthsBetween(r.startDate, todayStr)))
       : Number(r.tenureMonths || 0);
     return s + rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), elapsed);
   }, 0);
+
   const ppfTotal = (state.ppf || []).reduce((s, x) => s + (Number(x.balance) || 0), 0);
+
   const npsTotal = (state.nps || []).reduce((s, x) => {
     const bal = Number(x.balance) || 0;
     if (bal > 0) return s + bal;
@@ -354,15 +510,27 @@ function computeSummary(state) {
       )
     );
   }, 0);
+
   const epfTotal = (state.epf || []).reduce((s, x) => s + calculateEpfBalance(x), 0);
+
   const bondsTotal = (state.bonds || []).reduce(
-    (s, b) => s + Number(b.totalInvestmentAmount || b.totalPrincipalAmount || b.faceValue || 0),
+    (s, b) =>
+      s +
+      Number(
+        b.totalInvestmentAmount ||
+        b.totalPrincipalAmount ||
+        (Number(b.numberOfUnits || 0) * Number(b.faceValuePerUnit || 0)) ||
+        b.faceValue ||
+        0
+      ),
     0
   );
+
   const licTotal = (state.lic || []).reduce((s, l) => {
     const txTotal = (l.transactions || []).reduce((sum, t) => sum + Number(t.amount || 0), 0);
     return s + (txTotal > 0 ? txTotal : Number(l.premiumPaid || 0));
   }, 0);
+
   const investmentTotalPlans = (state.investmentPlans || []).reduce((s, ip) => {
     const txTotal = (ip.transactions || []).reduce((sum, t) => sum + Number(t.amount || 0), 0);
     return s + (txTotal > 0 ? txTotal : Number(ip.premiumPaid || 0));
@@ -390,7 +558,7 @@ function computeSummary(state) {
   }, 0);
 
   const loansGivenTotal = (state.loansGiven || []).reduce(
-    (s, l) => s + Number(l.outstanding || 0),
+    (s, l) => s + loanGivenOutstanding(l),
     0
   );
 
@@ -416,8 +584,8 @@ function computeSummary(state) {
     return s + Math.max(0, actualDeposit - returned);
   }, 0);
 
-  // Accounting bug fix: fallback to person.amount when no individual tranches/payments recorded
   const informalLentTotal = (state.informalLent || []).reduce((s, person) => {
+    if ((person.status || "").toLowerCase() === "settled" || person.settled) return s;
     const tranches = person.tranches || [];
     const payments = person.payments || [];
     const totalT = tranches.reduce((sum, t) => sum + Number(t.amount || 0), 0);
@@ -448,6 +616,7 @@ function computeSummary(state) {
     }
     return 1;
   };
+
   const realEstateAsset = (state.realEstateProperties || [])
     .filter((p) => p.status !== "sold")
     .reduce(
@@ -495,8 +664,8 @@ function computeSummary(state) {
     Object.values(ccGroupPools).reduce((s, v) => s + v, 0);
   const creditUtil = creditLimit > 0 ? Math.round((creditOutstanding / creditLimit) * 100) : 0;
 
-  const loanOutstanding = (state.loansTaken || []).reduce(
-    (s, l) => s + Number(l.outstanding || 0),
+  const loanOutstandingTotal = (state.loansTaken || []).reduce(
+    (s, l) => s + loanOutstanding(l),
     0
   );
 
@@ -510,8 +679,8 @@ function computeSummary(state) {
     return s + Math.max(0, actualDeposit - deducted - returned);
   }, 0);
 
-  // Accounting bug fix: fallback to person.amount when no individual tranches/payments recorded
   const informalBorrowedTotal = (state.informalBorrowed || []).reduce((s, person) => {
+    if ((person.status || "").toLowerCase() === "settled" || person.settled) return s;
     const tranches = person.tranches || [];
     const payments = person.payments || [];
     const totalT = tranches.reduce((sum, t) => sum + Number(t.amount || 0), 0);
@@ -520,7 +689,6 @@ function computeSummary(state) {
     return s + net;
   }, 0);
 
-  // Accounting bug fix: compute per-property with ownership share, matching useMetrics.ts
   const realEstateOutstanding = (state.realEstateProperties || [])
     .filter((p) => p.status === "under-construction")
     .reduce((total, p) => {
@@ -536,21 +704,24 @@ function computeSummary(state) {
 
   const totalLiabilities =
     creditOutstanding +
-    loanOutstanding +
+    loanOutstandingTotal +
     rentalDepositLiability +
     informalBorrowedTotal +
     realEstateOutstanding;
+
   const netWorth = totalAssets - totalLiabilities;
   const debtToAssetRatio =
     totalAssets > 0 ? Math.min(100, Math.round((totalLiabilities / totalAssets) * 100)) : 0;
 
   // ── Cash flow (current month MTD) ──────────────────────────────────────────
-  const monthTxns = (state.transactions || []).filter((t) => t.date && t.date.startsWith(curYm));
-  const isTransferCat = (cat) => ["Transfer", "Self Transfer", "Self-Transfer"].includes(cat);
+  const isTransferCat = (cat) => ["Transfer", "Self Transfer", "Self-Transfer"].includes(cat || "");
+  const monthTxns = (state.transactions || []).filter(
+    (t) => t.date && t.date.slice(0, 7) === curYm
+  );
 
   const rentReceivedThisMonth = (state.rentalProperties || []).reduce((sum, p) => {
     const receiptsThisMonth = (p.receipts || [])
-      .filter((r) => r.date && r.date.startsWith(curYm))
+      .filter((r) => r.date && r.date.slice(0, 7) === curYm)
       .reduce((s, r) => s + Number(r.amount || 0), 0);
     return sum + receiptsThisMonth;
   }, 0);
@@ -560,7 +731,7 @@ function computeSummary(state) {
 
   const monthIncome = (() => {
     const explicitIncomeMonth = (state.income || [])
-      .filter((i) => i.date && i.date.startsWith(curYm))
+      .filter((i) => i.date && i.date.slice(0, 7) === curYm)
       .reduce((s, i) => s + Number(i.amount || 0), 0);
     const txnIncomeMonth = monthTxns
       .filter((t) => t.type === "credit" && !isTransferCat(t.category))
@@ -571,7 +742,7 @@ function computeSummary(state) {
 
   const rentPaidThisMonth = (state.rentedProperties || []).reduce((sum, p) => {
     const paymentsThisMonth = (p.payments || [])
-      .filter((pay) => pay.date && pay.date.startsWith(curYm))
+      .filter((pay) => pay.date && pay.date.slice(0, 7) === curYm)
       .reduce((s, pay) => s + Number(pay.amount || 0), 0);
     return sum + paymentsThisMonth;
   }, 0);
@@ -591,8 +762,8 @@ function computeSummary(state) {
   const savingsPct = monthIncome > 0 ? Math.round((netSavings / monthIncome) * 100) : 0;
 
   // ── MTD Pacing ─────────────────────────────────────────────────────────────
-  const dayOfMonth = istDate();
-  const totalDaysInMonth = istDaysInCurrentMonth();
+  const dayOfMonth = istP.day;
+  const totalDaysInMonth = istDaysInCurrentMonth(refDate);
   const monthElapsedPct = Math.min(100, Math.round((dayOfMonth / totalDaysInMonth) * 100));
 
   // ── Top spending categories this month ────────────────────────────────────
@@ -613,6 +784,7 @@ function computeSummary(state) {
   const categoriesMap = {};
   (state.budgets || []).forEach((b) => {
     const cat = b.category;
+    if (!cat) return;
     if (!categoriesMap[cat]) categoriesMap[cat] = [];
     categoriesMap[cat].push(b);
   });
@@ -643,8 +815,8 @@ function computeSummary(state) {
     .map((b) => {
       const spent = catMap[b.category] || 0;
       const limit = Number(b.monthly || 0);
-      const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
-      return { category: b.category, spent, limit, pct, over: pct > 100 };
+      const pct = limit > 0 ? Math.round((spent / limit) * 100) : (spent > 0 ? 100 : 0);
+      return { category: b.category, spent, limit, pct, over: limit > 0 ? spent > limit : spent > 0 };
     })
     .sort((a, b) => b.pct - a.pct);
 
@@ -658,21 +830,22 @@ function computeSummary(state) {
     totalBudgetLimit > 0 ? Math.round((totalBudgetSpent / totalBudgetLimit) * 100) : 0;
 
   // ── Cadence 1: Daily Specific Data (Yesterday & Today Pulse) ───────────────
-  const todayVal = nowIST();
-  const todayStr = today();
-  const yestDate = new Date(now);
-  yestDate.setUTCDate(now.getUTCDate() - 1);
-  const yestYmStr = `${yestDate.getUTCFullYear()}-${String(yestDate.getUTCMonth() + 1).padStart(2, "0")}-${String(yestDate.getUTCDate()).padStart(2, "0")}`;
-  const yesterdayDebits = (state.transactions || []).filter(
-    (t) =>
-      t.date === yestYmStr &&
+  const yestP = getISTParts(new Date(todayMidnightTime - 86400000));
+  const yestYmStr = `${yestP.year}-${String(yestP.month).padStart(2, "0")}-${String(yestP.day).padStart(2, "0")}`;
+
+  const yesterdayDebits = (state.transactions || []).filter((t) => {
+    const tDate = t.date ? t.date.slice(0, 10) : "";
+    return (
+      tDate === yestYmStr &&
       t.type === "debit" &&
       !isTransferCat(t.category) &&
       t.category !== "Investment"
-  );
-  const yesterdayCredits = (state.transactions || []).filter(
-    (t) => t.date === yestYmStr && t.type === "credit" && !isTransferCat(t.category)
-  );
+    );
+  });
+  const yesterdayCredits = (state.transactions || []).filter((t) => {
+    const tDate = t.date ? t.date.slice(0, 10) : "";
+    return tDate === yestYmStr && t.type === "credit" && !isTransferCat(t.category);
+  });
   const yesterdaySpend = yesterdayDebits.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
   const yesterdayIncome = yesterdayCredits.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
   const yesterdayCount = yesterdayDebits.length;
@@ -683,7 +856,7 @@ function computeSummary(state) {
       amount: Math.abs(Number(t.amount) || 0),
     }))
     .sort((a, b) => b.amount - a.amount)
-    .slice(0, 4);
+    .slice(0, 5);
 
   const dailyBudgetAllowance =
     totalBudgetLimit > 0 ? Math.round(totalBudgetLimit / totalDaysInMonth) : 0;
@@ -691,30 +864,35 @@ function computeSummary(state) {
     dailyBudgetAllowance > 0 ? Math.round((yesterdaySpend / dailyBudgetAllowance) * 100) : null;
 
   // ── Cadence 2: Weekly Specific Data (Past 7 Days & 7-Day Trend) ────────────
-  const p7Start = new Date(todayVal);
-  p7Start.setUTCDate(todayVal.getUTCDate() - 7);
-  const p7StartStr = p7Start.toISOString().slice(0, 10);
+  // Past 7 completed days including today (today - 6 to today) = 7 calendar days
+  const p7StartObj = new Date(todayMidnightTime - 6 * 86400000);
+  const p7P = getISTParts(p7StartObj);
+  const p7StartStr = `${p7P.year}-${String(p7P.month).padStart(2, "0")}-${String(p7P.day).padStart(2, "0")}`;
 
-  const past7DaysDebits = (state.transactions || []).filter(
-    (t) =>
-      t.date &&
-      t.date >= p7StartStr &&
-      t.date <= todayStr &&
+  const past7DaysDebits = (state.transactions || []).filter((t) => {
+    const tDate = t.date ? t.date.slice(0, 10) : "";
+    return (
+      tDate &&
+      tDate >= p7StartStr &&
+      tDate <= todayStr &&
       t.type === "debit" &&
       !isTransferCat(t.category) &&
       t.category !== "Investment"
-  );
+    );
+  });
   const past7DaysExpense = past7DaysDebits.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
   const past7DaysCount = past7DaysDebits.length;
 
-  const past7DaysCredits = (state.transactions || []).filter(
-    (t) =>
-      t.date &&
-      t.date >= p7StartStr &&
-      t.date <= todayStr &&
+  const past7DaysCredits = (state.transactions || []).filter((t) => {
+    const tDate = t.date ? t.date.slice(0, 10) : "";
+    return (
+      tDate &&
+      tDate >= p7StartStr &&
+      tDate <= todayStr &&
       t.type === "credit" &&
       !isTransferCat(t.category)
-  );
+    );
+  });
   const past7DaysIncome = past7DaysCredits.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
   const past7DaysNetSavings = past7DaysIncome - past7DaysExpense;
 
@@ -725,22 +903,25 @@ function computeSummary(state) {
   });
   const past7DaysTopCats = Object.entries(past7CatMap)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 4)
+    .slice(0, 5)
     .map(([cat, amt]) => ({ cat, amt }));
 
-  // Prior 7 days for week-over-week variance
-  const p14Start = new Date(todayVal);
-  p14Start.setUTCDate(todayVal.getUTCDate() - 14);
-  const p14StartStr = p14Start.toISOString().slice(0, 10);
-  const prior7DaysDebits = (state.transactions || []).filter(
-    (t) =>
-      t.date &&
-      t.date >= p14StartStr &&
-      t.date < p7StartStr &&
+  // Prior 7 days for week-over-week variance (today - 13 to today - 7)
+  const p14StartObj = new Date(todayMidnightTime - 13 * 86400000);
+  const p14P = getISTParts(p14StartObj);
+  const p14StartStr = `${p14P.year}-${String(p14P.month).padStart(2, "0")}-${String(p14P.day).padStart(2, "0")}`;
+
+  const prior7DaysDebits = (state.transactions || []).filter((t) => {
+    const tDate = t.date ? t.date.slice(0, 10) : "";
+    return (
+      tDate &&
+      tDate >= p14StartStr &&
+      tDate < p7StartStr &&
       t.type === "debit" &&
       !isTransferCat(t.category) &&
       t.category !== "Investment"
-  );
+    );
+  });
   const prior7DaysExpense = prior7DaysDebits.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
   const weeklySpendTrendPct =
     prior7DaysExpense > 0
@@ -793,20 +974,17 @@ function computeSummary(state) {
           ? monthExpense
           : 0;
 
-  const todayMs = Date.UTC(
-    todayVal.getUTCFullYear(),
-    todayVal.getUTCMonth(),
-    todayVal.getUTCDate()
-  );
-  const in3Ms = todayMs + 3 * 86400000;
-  const in7Ms = todayMs + 7 * 86400000;
-  const in30Ms = todayMs + 30 * 86400000;
+  const in3Time = todayMidnightTime + 3 * 86400000;
+  const in7Time = todayMidnightTime + 7 * 86400000;
+  const in30Time = todayMidnightTime + 30 * 86400000;
 
   // Near-term FDs maturing within 90 days count toward liquid assets
   const nearTermFDValue = (state.fixedDeposits || []).reduce((sum, fd) => {
     if (!fd.maturityDate) return sum;
-    const matMs = new Date(fd.maturityDate + "T00:00:00").getTime();
-    if (matMs >= todayMs && matMs <= todayMs + 90 * 86400000) {
+    const [fy, fm, fdDay] = fd.maturityDate.slice(0, 10).split("-").map(Number);
+    if (!fy || !fm || !fdDay) return sum;
+    const matTime = new Date(Date.UTC(fy, fm - 1, fdDay)).getTime();
+    if (matTime >= todayMidnightTime && matTime <= todayMidnightTime + 90 * 86400000) {
       return sum + Number(fd.principal || 0);
     }
     return sum;
@@ -840,19 +1018,18 @@ function computeSummary(state) {
           ? { label: "Needs Improvement", color: "#d97706" }
           : { label: "Critical", color: "#dc2626" };
 
-  // ── Upcoming dues (collected up to 30 days) ─────────────────────────────────
+  // ── Upcoming Dues (collected up to 30 days) ─────────────────────────────────
   const dues = [];
 
   // 1. Subscriptions
   (state.subscriptions || [])
-    .filter((s) => !s.paused && s.status !== "cancelled")
+    .filter((s) => !s.paused && (s.status || "").toLowerCase() !== "cancelled")
     .forEach((s) => {
-      const next = new Date(s.renewalDate || s.nextDue || s.startDate || todayVal.toISOString());
-      next.setUTCHours(0, 0, 0, 0);
-      const nextMs = next.getTime();
-      if (nextMs >= todayMs && nextMs <= in30Ms) {
+      const renewalDate = s.renewalDate || s.startDate || s.nextDue;
+      const nextDate = getNextSubscriptionRenewal(renewalDate, s.cycle, todayStr);
+      if (nextDate && nextDate.getTime() >= todayMidnightTime && nextDate.getTime() <= in30Time) {
         dues.push({
-          date: next,
+          date: nextDate,
           label: s.name || s.provider || "Subscription",
           amount: Number(s.amount) || 0,
           type: "sub",
@@ -862,34 +1039,38 @@ function computeSummary(state) {
     });
 
   // 2. Rent dues for rented properties
-  (state.rentedProperties || []).forEach((p) => {
-    const dueDay = Number(p.dueDay || 5);
-    const paidCurrent = (p.payments || []).some((pay) => pay.date && pay.date.startsWith(curYm));
-    if (!paidCurrent) {
-      const d = new Date(Date.UTC(todayVal.getUTCFullYear(), todayVal.getUTCMonth(), dueDay));
-      if (d.getTime() >= todayMs && d.getTime() <= in30Ms)
-        dues.push({
-          date: d,
-          label: `${p.propertyName || "Rent"}`,
-          amount: getEffectiveRent(p, curYm),
-          type: "rent",
-          category: "Rent",
-        });
-    }
-  });
+  (state.rentedProperties || [])
+    .filter((p) => p.isActive !== false)
+    .forEach((p) => {
+      const dueDay = Number(p.dueDay || 5);
+      const paidCurrent = (p.payments || []).some((pay) => pay.date && pay.date.slice(0, 7) === curYm);
+      if (!paidCurrent) {
+        let d = clampDayToMonth(istP.year, istP.month - 1, dueDay);
+        if (d.getTime() < todayMidnightTime) {
+          d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, dueDay);
+        }
+        if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
+          dues.push({
+            date: d,
+            label: `${p.propertyName || "Rent"}`,
+            amount: getEffectiveRent(p, curYm),
+            type: "rent",
+            category: "Rent",
+          });
+        }
+      }
+    });
 
   // 3. Credit card statement dues
   activeCards.forEach((c) => {
-    if (!c.dueDay || !Number(c.outstanding)) return;
-    const d = new Date(
-      Date.UTC(todayVal.getUTCFullYear(), todayVal.getUTCMonth(), Number(c.dueDay))
-    );
-    if (d.getTime() < todayMs) d.setUTCMonth(d.getUTCMonth() + 1);
-    if (d.getTime() >= todayMs && d.getTime() <= in30Ms) {
+    const outstanding = Number(c.outstanding || 0);
+    if (outstanding <= 0) return;
+    const d = getCreditCardDueDate(c, refDate);
+    if (d && d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
       dues.push({
         date: d,
         label: `${c.issuer || c.name || "Credit Card"} Bill`,
-        amount: Number(c.outstanding) || 0,
+        amount: outstanding,
         type: "cc",
         category: "Credit Card",
       });
@@ -901,29 +1082,30 @@ function computeSummary(state) {
     if (!Number(c.annualFee) || !c.feeMonth) return;
     const fMonth = Number(c.feeMonth) - 1;
     const fDay = Number(c.feeDay) || 1;
-    let candidate = new Date(Date.UTC(todayVal.getUTCFullYear(), fMonth, fDay));
-    if (candidate.getTime() < todayMs) {
-      candidate = new Date(Date.UTC(todayVal.getUTCFullYear() + 1, fMonth, fDay));
+    let candidate = clampDayToMonth(istP.year, fMonth, fDay);
+    if (candidate.getTime() < todayMidnightTime) {
+      candidate = clampDayToMonth(istP.year + 1, fMonth, fDay);
     }
-    if (candidate.getTime() >= todayMs && candidate.getTime() <= in30Ms) {
+    if (candidate.getTime() >= todayMidnightTime && candidate.getTime() <= in30Time) {
       dues.push({
         date: candidate,
         label: `${c.issuer || "Card"} Annual Fee`,
         amount: Number(c.annualFee),
-        type: "cc",
-        category: "Credit Card Fee",
+        type: "cc_fee",
+        category: "Card Annual Fee",
       });
     }
   });
 
   // 5. Loan EMI dates
   (state.loansTaken || []).forEach((l) => {
-    if (!l.emiDate && !l.dueDay && !l.emi) return;
+    if (loanOutstanding(l) <= 0 || !l.emi) return;
     const day = Number(l.emiDate || l.dueDay || 5);
-    if (!day) return;
-    const d = new Date(Date.UTC(todayVal.getUTCFullYear(), todayVal.getUTCMonth(), day));
-    if (d.getTime() < todayMs) d.setUTCMonth(d.getUTCMonth() + 1);
-    if (d.getTime() >= todayMs && d.getTime() <= in30Ms) {
+    let d = clampDayToMonth(istP.year, istP.month - 1, day);
+    if (d.getTime() < todayMidnightTime) {
+      d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, day);
+    }
+    if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
       dues.push({
         date: d,
         label: `${l.lender || l.lenderBorrower || "Loan"} EMI`,
@@ -941,11 +1123,13 @@ function computeSummary(state) {
       const amt = Number(s.amount || 0);
       if (amt <= 0) return;
       const dueDay = s.startDate
-        ? new Date(s.startDate + "T00:00:00").getUTCDate()
+        ? parseInt(s.startDate.slice(8, 10), 10) || 5
         : Number(s.dayOfMonth || s.dueDay || 5);
-      const d = new Date(Date.UTC(todayVal.getUTCFullYear(), todayVal.getUTCMonth(), dueDay));
-      if (d.getTime() < todayMs) d.setUTCMonth(d.getUTCMonth() + 1);
-      if (d.getTime() >= todayMs && d.getTime() <= in30Ms) {
+      let d = clampDayToMonth(istP.year, istP.month - 1, dueDay);
+      if (d.getTime() < todayMidnightTime) {
+        d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, dueDay);
+      }
+      if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
         dues.push({
           date: d,
           label: `${s.scheme || s.fundName || "Mutual Fund"} SIP`,
@@ -957,37 +1141,33 @@ function computeSummary(state) {
     });
 
   // 7. Insurance premium renewals (LIC, Term, Investment, Health)
-  const addInsuranceDue = (policies, defaultLabel) => {
+  const addInsuranceDues = (policies, defaultLabel) => {
     (policies || []).forEach((p) => {
-      const premium = annualizePremium(p.premium, p.premiumFrequency, p.annualPremium);
-      if (!premium) return;
-      const startDate = p.commencementDate || p.startDate || p.renewalDate;
-      if (!startDate) return;
-      const expiry = p.maturityDate || p.expiryDate;
-      if (expiry && expiry < today()) return;
-      const nextDueStr = nextAnnualOccurrence(startDate, today());
-      const d = new Date(nextDueStr + "T00:00:00");
-      if (d.getTime() >= todayMs && d.getTime() <= in30Ms) {
+      const nextInfo = getNextInsuranceDue(p, todayStr);
+      if (!nextInfo) return;
+      if (nextInfo.date.getTime() >= todayMidnightTime && nextInfo.date.getTime() <= in30Time) {
         dues.push({
-          date: d,
+          date: nextInfo.date,
           label: `${p.planName || p.insurer || p.policyName || defaultLabel} Premium`,
-          amount: premium,
+          amount: nextInfo.amount,
           type: "insurance",
           category: "Insurance",
         });
       }
     });
   };
-  addInsuranceDue(state.lic, "LIC Policy");
-  addInsuranceDue(state.termPlans, "Term Insurance");
-  addInsuranceDue(state.investmentPlans, "Investment Plan");
-  addInsuranceDue(state.healthInsurance, "Health Policy");
+  addInsuranceDues(state.lic, "LIC Policy");
+  addInsuranceDues(state.termPlans, "Term Insurance");
+  addInsuranceDues(state.investmentPlans, "Investment Plan");
+  addInsuranceDues(state.healthInsurance, "Health Policy");
 
   // 8. Real Estate builder demand letters
   (state.realEstateDemands || []).forEach((d) => {
     if (d.status === "paid" || !d.dueDate) return;
-    const dueDate = new Date(d.dueDate + "T00:00:00");
-    if (dueDate.getTime() >= todayMs && dueDate.getTime() <= in30Ms) {
+    const [dy, dm, dd] = d.dueDate.slice(0, 10).split("-").map(Number);
+    if (!dy || !dm || !dd) return;
+    const dueDate = new Date(Date.UTC(dy, dm - 1, dd));
+    if (dueDate.getTime() >= todayMidnightTime && dueDate.getTime() <= in30Time) {
       const totalAmt = Number(d.totalAmount || d.amount || 0);
       const paid = (state.realEstatePayments || [])
         .filter((pm) => pm.demandId === d.id)
@@ -1006,12 +1186,14 @@ function computeSummary(state) {
     }
   });
 
-  // 9. Recurring expenses & Bill payments
+  // 9. Recurring Expenses
   (state.recurringExpenses || []).forEach((r) => {
     if (!r.amount || !r.dueDay) return;
-    const d = new Date(Date.UTC(todayVal.getUTCFullYear(), todayVal.getUTCMonth(), Number(r.dueDay)));
-    if (d.getTime() < todayMs) d.setUTCMonth(d.getUTCMonth() + 1);
-    if (d.getTime() >= todayMs && d.getTime() <= in30Ms) {
+    let d = clampDayToMonth(istP.year, istP.month - 1, Number(r.dueDay));
+    if (d.getTime() < todayMidnightTime) {
+      d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, Number(r.dueDay));
+    }
+    if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
       dues.push({
         date: d,
         label: r.name || r.title || "Recurring Expense",
@@ -1022,14 +1204,40 @@ function computeSummary(state) {
     }
   });
 
-  // 10. General Reminders
+  // 10. Bill Payments (Utilities, Electricity, Broadband, etc.)
+  (state.billPayments || [])
+    .filter((b) => Number(b.amount || 0) > 0 && b.dueDay)
+    .forEach((b) => {
+      const hist = (state.billPaymentHistory || [])
+        .filter((h) => h.billId === b.id)
+        .sort((x, y) => (y.paidDate || "").localeCompare(x.paidDate || ""));
+      const lastPaidMonth = hist[0]?.paidDate ? hist[0].paidDate.slice(0, 7) : "";
+      if (lastPaidMonth === curYm) return; // Paid already this month
+
+      let d = clampDayToMonth(istP.year, istP.month - 1, Number(b.dueDay));
+      if (d.getTime() < todayMidnightTime) {
+        d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, Number(b.dueDay));
+      }
+      if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
+        dues.push({
+          date: d,
+          label: `${b.nickname || b.provider || "Utility"} Bill`,
+          amount: Number(b.amount || 0),
+          type: "utility",
+          category: "Utility Bill",
+        });
+      }
+    });
+
+  // 11. General Reminders
   (state.reminders || [])
     .filter((r) => !r.done)
     .forEach((r) => {
-      const d = new Date(r.date || r.reminderDate || "");
-      if (isNaN(d.getTime())) return;
-      d.setUTCHours(0, 0, 0, 0);
-      if (d.getTime() >= todayMs && d.getTime() <= in30Ms) {
+      const dateStr = (r.date || r.reminderDate || "").slice(0, 10);
+      const [ry, rm, rd] = dateStr.split("-").map(Number);
+      if (!ry || !rm || !rd) return;
+      const d = new Date(Date.UTC(ry, rm - 1, rd));
+      if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
         dues.push({
           date: d,
           label: r.title || r.note || "Reminder",
@@ -1040,20 +1248,23 @@ function computeSummary(state) {
       }
     });
 
-  dues.sort((a, b) => a.date - b.date);
+  dues.sort((a, b) => a.date.getTime() - b.date.getTime());
 
   // ── Expected Inflows ────────────────────────────────────────────────────────
   const inflows = [];
+
   (state.rentalProperties || [])
     .filter((p) => p.isActive !== false)
     .forEach((p) => {
       const rentAmt = getEffectiveRent(p, curYm);
       if (!rentAmt) return;
       const dueDay = Number(p.dueDay || 1);
-      const d = new Date(Date.UTC(todayVal.getUTCFullYear(), todayVal.getUTCMonth(), dueDay));
-      if (d.getTime() < todayMs) d.setUTCMonth(d.getUTCMonth() + 1);
-      const received = (p.receipts || []).some((r) => r.date && r.date.startsWith(curYm));
-      if (!received && d.getTime() >= todayMs && d.getTime() <= in30Ms) {
+      let d = clampDayToMonth(istP.year, istP.month - 1, dueDay);
+      if (d.getTime() < todayMidnightTime) {
+        d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, dueDay);
+      }
+      const received = (p.receipts || []).some((r) => r.date && r.date.slice(0, 7) === curYm);
+      if (!received && d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
         inflows.push({
           date: d,
           label: `${p.propertyName || "Rental Property"} Rent`,
@@ -1064,28 +1275,31 @@ function computeSummary(state) {
     });
 
   (state.loansGiven || []).forEach((l) => {
-    if (!l.dueDate || Number(l.outstanding || 0) <= 0) return;
-    const d = new Date(l.dueDate + "T00:00:00");
-    if (d.getTime() >= todayMs && d.getTime() <= in30Ms) {
+    const outstanding = loanGivenOutstanding(l);
+    if (!l.dueDate || outstanding <= 0) return;
+    const [ly, lm, ld] = l.dueDate.slice(0, 10).split("-").map(Number);
+    if (!ly || !lm || !ld) return;
+    const d = new Date(Date.UTC(ly, lm - 1, ld));
+    if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
       inflows.push({
         date: d,
         label: `${l.borrower || "Borrower"} Repayment`,
-        amount: Number(l.outstanding || 0),
+        amount: outstanding,
         type: "loan_in",
       });
     }
   });
 
-  inflows.sort((a, b) => a.date - b.date);
+  inflows.sort((a, b) => a.date.getTime() - b.date.getTime());
 
   // Windowed dues & inflows for cadences
-  const dues3Days = dues.filter((d) => d.date.getTime() <= in3Ms);
-  const dues7Days = dues.filter((d) => d.date.getTime() <= in7Ms);
-  const dues30Days = dues.filter((d) => d.date.getTime() <= in30Ms);
+  const dues3Days = dues.filter((d) => d.date.getTime() <= in3Time);
+  const dues7Days = dues.filter((d) => d.date.getTime() <= in7Time);
+  const dues30Days = dues.filter((d) => d.date.getTime() <= in30Time);
 
-  const inflows3Days = inflows.filter((i) => i.date.getTime() <= in3Ms);
-  const inflows7Days = inflows.filter((i) => i.date.getTime() <= in7Ms);
-  const inflows30Days = inflows.filter((i) => i.date.getTime() <= in30Ms);
+  const inflows3Days = inflows.filter((i) => i.date.getTime() <= in3Time);
+  const inflows7Days = inflows.filter((i) => i.date.getTime() <= in7Time);
+  const inflows30Days = inflows.filter((i) => i.date.getTime() <= in30Time);
 
   const totalDues3Days = dues3Days.reduce((s, d) => s + (Number(d.amount) || 0), 0);
   const totalDues7Days = dues7Days.reduce((s, d) => s + (Number(d.amount) || 0), 0);
@@ -1110,7 +1324,6 @@ function computeSummary(state) {
   // ── Alerts & Smart Insights ────────────────────────────────────────────────
   const alerts = [];
 
-  // Urgent Liquidity Check: Upcoming dues exceed bank balance
   if (totalDues7Days > bankTotal) {
     alerts.push({
       type: "alert",
@@ -1134,7 +1347,6 @@ function computeSummary(state) {
       })
     );
 
-  // Budget burn-rate pacing alert
   if (totalBudgetLimit > 0 && totalBudgetSpentPct > monthElapsedPct + 20 && dayOfMonth <= 20) {
     alerts.push({
       type: "warn",
@@ -1149,7 +1361,6 @@ function computeSummary(state) {
     });
   }
 
-  // Emergency fund alert based on real liquid assets and standard runway formula
   if (efMonthsCovered < 3 && efMonthlyExpense > 0) {
     alerts.push({
       type: "warn",
@@ -1157,21 +1368,20 @@ function computeSummary(state) {
     });
   }
 
-  // High debt ratio
   if (totalAssets > 0 && totalLiabilities > totalAssets * 0.5) {
     alerts.push({
       type: "alert",
-      msg: `Debt-to-assets ratio at ${Math.round((totalLiabilities / totalAssets) * 100)}%. Total liabilities: ${fmtINR(totalLiabilities)}.`,
+      msg: `Debt-to-assets ratio at ${debtToAssetRatio}%. Total liabilities: ${fmtINR(totalLiabilities)}.`,
     });
   }
 
-  // FDs maturing within 30 days
   const fdMaturities30Days = [];
   (state.fixedDeposits || []).forEach((fd) => {
     if (fd.maturityDate) {
-      const daysToMaturity = Math.round(
-        (new Date(fd.maturityDate).getTime() - new Date(todayStr).getTime()) / 86400000
-      );
+      const [fy, fm, fdDay] = fd.maturityDate.slice(0, 10).split("-").map(Number);
+      if (!fy || !fm || !fdDay) return;
+      const matTime = new Date(Date.UTC(fy, fm - 1, fdDay)).getTime();
+      const daysToMaturity = Math.round((matTime - todayMidnightTime) / 86400000);
       if (daysToMaturity >= 0 && daysToMaturity <= 30) {
         fdMaturities30Days.push({ ...fd, daysToMaturity });
         alerts.push({
@@ -1211,7 +1421,7 @@ function computeSummary(state) {
     creditOutstanding,
     creditLimit,
     creditUtil,
-    loanOutstanding,
+    loanOutstanding: loanOutstandingTotal,
     rentalDepositLiability,
     informalBorrowedTotal,
     realEstateOutstanding,
@@ -1271,7 +1481,7 @@ function computeSummary(state) {
   };
 }
 
-// ── Shared HTML Email Helpers & Styles ─────────────────────────────────────────
+// ── Shared HTML Email Styles & Components ──────────────────────────────────────
 const EMAIL_STYLES = {
   posColor: "#059669",
   posBg: "#ecfdf5",
@@ -1311,7 +1521,7 @@ function renderProgressBar(pctVal, color = EMAIL_STYLES.accentColor, height = 6)
 
 function renderSectionHeader(title, badge = "", badgeColor = EMAIL_STYLES.accentColor, badgeBg = EMAIL_STYLES.accentLight) {
   return `
-    <tr><td style="padding:26px 24px 10px;">
+    <tr><td style="padding:24px 24px 10px;">
       <table cellpadding="0" cellspacing="0" width="100%">
         <tr>
           <td style="font-size:13px;font-weight:800;color:${EMAIL_STYLES.textPrimary};text-transform:uppercase;letter-spacing:0.08em;vertical-align:middle;">
@@ -1368,7 +1578,7 @@ function renderEmailShell(contentHtml, titleText) {
 <meta name="supported-color-schemes" content="light">
 <title>${escapeHtml(titleText)}</title>
 <style>
-  body { margin:0; padding:0; background-color:${EMAIL_STYLES.bodyBg}; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+  body { margin:0; padding:0; background-color:${EMAIL_STYLES.bodyBg}; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
   table { border-collapse:collapse; }
   .dark-hero { background-color:#0a0f1d !important; color:#ffffff !important; }
   .dark-header { background-color:#0a0f1d !important; }
@@ -1399,7 +1609,7 @@ function renderFooterBlock(recipientName, cadenceDesc) {
   <!-- FOOTER & DASHBOARD CTA -->
   <tr bgcolor="${EMAIL_STYLES.navyBg}"><td bgcolor="${EMAIL_STYLES.navyBg}" class="dark-footer" style="background-color:${EMAIL_STYLES.navyBg};background:${EMAIL_STYLES.navyBg};padding:26px 24px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
     <div style="margin-bottom:12px;">
-      <a href="${APP_URL}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:13.5px;font-weight:700;padding:10px 22px;border-radius:8px;">
+      <a href="${APP_URL}" style="display:inline-block;background-color:#4f46e5;color:#ffffff;text-decoration:none;font-size:13.5px;font-weight:700;padding:11px 24px;border-radius:8px;">
         Open ArthaDrishti Dashboard →
       </a>
     </div>
@@ -1413,9 +1623,7 @@ function renderFooterBlock(recipientName, cadenceDesc) {
 }
 
 // ── CADENCE 1: DAILY DIGEST ───────────────────────────────────────────────────
-// Tactical morning briefing focusing on yesterday's transactions, daily budget pace,
-// liquid cash, and immediate 1–3 day obligations.
-function renderDailyHTML(summary, recipientName, ist) {
+function renderDailyHTML(summary, recipientName, refDate = new Date()) {
   const {
     netWorth,
     bankTotal,
@@ -1433,22 +1641,23 @@ function renderDailyHTML(summary, recipientName, ist) {
     alerts,
   } = summary;
 
-  const dateStr = ist.toLocaleDateString("en-IN", {
+  const istP = getISTParts(refDate);
+  const todayMidnightTime = new Date(Date.UTC(istP.year, istP.month - 1, istP.day)).getTime();
+  const dateStr = new Date(todayMidnightTime).toLocaleDateString("en-IN", {
+    timeZone: "UTC",
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
-  const todayMs = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate());
 
   const bufferColor = liquidityBuffer3Days >= 0 ? EMAIL_STYLES.posColor : EMAIL_STYLES.negColor;
 
-  // Immediate due rows (Overdue, Today, Tomorrow, Next 3 Days)
   const dueRows = dues3Days.length > 0
     ? dues3Days
         .map((d, i) => {
           const dueTime = d.date.getTime();
-          const daysUntil = Math.ceil((dueTime - todayMs) / 86400000);
+          const daysUntil = Math.ceil((dueTime - todayMidnightTime) / 86400000);
           const isPast = daysUntil < 0;
           const isToday = daysUntil === 0;
           const isTomorrow = daysUntil === 1;
@@ -1484,7 +1693,6 @@ function renderDailyHTML(summary, recipientName, ist) {
         ✨ No bills or obligations due in the next 3 days. Clean immediate runway!
       </td></tr>`;
 
-  // Yesterday transaction breakdown rows
   const yesterdayTxnRows = yesterdayTxns.length > 0
     ? yesterdayTxns
         .map((tx, i) => {
@@ -1506,7 +1714,6 @@ function renderDailyHTML(summary, recipientName, ist) {
         .join("")
     : "";
 
-  // Active credit cards summary
   const ccRows = activeCards
     .slice(0, 3)
     .map((c, i) => {
@@ -1520,7 +1727,7 @@ function renderDailyHTML(summary, recipientName, ist) {
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td style="font-size:13px;font-weight:700;color:${EMAIL_STYLES.textPrimary};">
-              ${escapeHtml(c.issuer)} <span style="color:${EMAIL_STYLES.textMuted};font-weight:400;font-size:11px;">··${escapeHtml(c.last4) || "**"}</span>
+              ${escapeHtml(c.issuer || c.name || "Credit Card")} <span style="color:${EMAIL_STYLES.textMuted};font-weight:400;font-size:11px;">··${escapeHtml(c.last4) || "**"}</span>
             </td>
             <td style="text-align:right;">
               <span style="font-size:13.5px;font-weight:800;color:${EMAIL_STYLES.textPrimary};">${fmtINR(out)}</span>
@@ -1676,9 +1883,7 @@ function renderDailyHTML(summary, recipientName, ist) {
 }
 
 // ── CADENCE 2: WEEKLY BRIEFING ────────────────────────────────────────────────
-// Tactical 7-day review: past 7 days spending breakdown, week-over-week trend,
-// upcoming 7-day forward obligations, weekly budget burn rate, and top goals.
-function renderWeeklyHTML(summary, recipientName, ist) {
+function renderWeeklyHTML(summary, recipientName, refDate = new Date()) {
   const {
     netWorth,
     totalAssets,
@@ -1701,11 +1906,11 @@ function renderWeeklyHTML(summary, recipientName, ist) {
     alerts,
   } = summary;
 
+  const istP = getISTParts(refDate);
+  const todayMidnightTime = new Date(Date.UTC(istP.year, istP.month - 1, istP.day)).getTime();
   const bufferColor = liquidityBuffer7Days >= 0 ? EMAIL_STYLES.posColor : EMAIL_STYLES.negColor;
   const bufferBg = liquidityBuffer7Days >= 0 ? EMAIL_STYLES.posBg : EMAIL_STYLES.negBg;
-  const todayMs = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate());
 
-  // Past 7 days top category rows
   const maxCatAmt = past7DaysTopCats[0]?.amt || 1;
   const catRows = past7DaysTopCats.length > 0
     ? past7DaysTopCats
@@ -1728,13 +1933,12 @@ function renderWeeklyHTML(summary, recipientName, ist) {
         .join("")
     : `<tr><td style="padding:16px 24px;text-align:center;color:${EMAIL_STYLES.textMuted};font-size:13px;">No expenses recorded in the past 7 days.</td></tr>`;
 
-  // Next 7 days due rows
   const dueRows = dues7Days.length > 0
     ? dues7Days
         .slice(0, 6)
         .map((d, i) => {
           const dueTime = d.date.getTime();
-          const daysUntil = Math.ceil((dueTime - todayMs) / 86400000);
+          const daysUntil = Math.ceil((dueTime - todayMidnightTime) / 86400000);
           const isPast = daysUntil < 0;
           const isToday = daysUntil === 0;
           const badgeText = isPast
@@ -1765,7 +1969,6 @@ function renderWeeklyHTML(summary, recipientName, ist) {
         .join("")
     : `<tr><td style="padding:16px 24px;text-align:center;color:#15803d;font-size:13px;">No obligations due in next 7 days!</td></tr>`;
 
-  // Inflow rows
   const inflowRows = inflows7Days
     .map((inf) => `
     <tr>
@@ -1774,7 +1977,7 @@ function renderWeeklyHTML(summary, recipientName, ist) {
           <tr>
             <td style="font-size:13px;color:#166534;font-weight:600;">
               <span style="display:inline-block;font-size:9px;font-weight:800;color:#166534;background:#bbf7d0;padding:2px 6px;border-radius:4px;margin-right:8px;vertical-align:middle;">INFLOW</span>${escapeHtml(inf.label)}
-              <span style="font-size:11px;color:#15803d;font-weight:500;"> · ${inf.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+              <span style="font-size:11px;color:#15803d;font-weight:500;"> · ${dateLabel(inf.date.toISOString())}</span>
             </td>
             <td style="font-size:13.5px;font-weight:800;color:${EMAIL_STYLES.posColor};text-align:right;">
               +${fmtINRFull(inf.amount)}
@@ -1785,8 +1988,7 @@ function renderWeeklyHTML(summary, recipientName, ist) {
     </tr>`)
     .join("");
 
-  // Goal rows
-  const goalRows = goals.slice(0, 3).map((g, i) => {
+  const goalRows = (goals || []).slice(0, 3).map((g, i) => {
     const barColor = g.pct >= 80 ? EMAIL_STYLES.posColor : g.pct >= 50 ? EMAIL_STYLES.accentColor : EMAIL_STYLES.warnColor;
     const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
     return `
@@ -1817,7 +2019,7 @@ function renderWeeklyHTML(summary, recipientName, ist) {
               </td>
               <td style="vertical-align:middle;">
                 <div style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;">ArthaDrishti</div>
-                <div style="font-size:12px;color:#94a3b8;font-weight:500;margin-top:2px;">Weekly Briefing · Week of ${weekRange()}</div>
+                <div style="font-size:12px;color:#94a3b8;font-weight:500;margin-top:2px;">Weekly Briefing · Week of ${weekRange(refDate)}</div>
               </td>
             </tr>
           </table>
@@ -1978,14 +2180,11 @@ function renderWeeklyHTML(summary, recipientName, ist) {
 
   ${renderFooterBlock(recipientName, "Weekly Briefing")}`;
 
-  return renderEmailShell(bodyHtml, `ArthaDrishti Weekly Briefing · Week of ${weekRange()}`);
+  return renderEmailShell(bodyHtml, `ArthaDrishti Weekly Briefing · Week of ${weekRange(refDate)}`);
 }
 
 // ── CADENCE 3: MONTHLY EXECUTIVE STATEMENT ────────────────────────────────────
-// Comprehensive executive statement covering full month cash flow, category-by-category
-// budget adherence, complete balance sheet (all investment assets & liabilities),
-// emergency fund audit, goals milestone tracker, and 30-day forward outlook.
-function renderMonthlyHTML(summary, recipientName, ist) {
+function renderMonthlyHTML(summary, recipientName, refDate = new Date()) {
   const {
     netWorth,
     totalAssets,
@@ -2014,7 +2213,7 @@ function renderMonthlyHTML(summary, recipientName, ist) {
     govtSchemesTotal,
     creditOutstanding,
     creditUtil,
-    loanOutstanding,
+    loanOutstanding: loanOutstandingTotal,
     rentalDepositLiability,
     informalBorrowedTotal,
     realEstateOutstanding,
@@ -2036,7 +2235,7 @@ function renderMonthlyHTML(summary, recipientName, ist) {
     dues30Days,
   } = summary;
 
-  const monthStr = monthLabel();
+  const monthStr = monthLabel(refDate);
   const savRateColor = savingsPct >= 30 ? EMAIL_STYLES.posColor : savingsPct >= 15 ? EMAIL_STYLES.warnColor : EMAIL_STYLES.negColor;
 
   let rowIdx = 0;
@@ -2051,7 +2250,6 @@ function renderMonthlyHTML(summary, recipientName, ist) {
     </td></tr>`;
   }
 
-  // Monthly top category rows
   const maxCatAmt = topCats[0]?.amt || 1;
   const catRows = topCats
     .map(({ cat, amt }, i) => {
@@ -2072,7 +2270,6 @@ function renderMonthlyHTML(summary, recipientName, ist) {
     })
     .join("");
 
-  // Budget status rows
   const budgetRows = budgetStatus
     .map((b, i) => {
       const barColor = b.over ? EMAIL_STYLES.negColor : b.pct >= 85 ? EMAIL_STYLES.warnColor : EMAIL_STYLES.posColor;
@@ -2092,7 +2289,6 @@ function renderMonthlyHTML(summary, recipientName, ist) {
     })
     .join("");
 
-  // Investment categories
   rowIdx = 0;
   const investCategories = [
     { label: "Mutual Funds", amt: mfTotal },
@@ -2111,7 +2307,6 @@ function renderMonthlyHTML(summary, recipientName, ist) {
     .map((c, i) => listRow(c.label, `${fmtINR(c.amt)} <span style="color:${EMAIL_STYLES.textMuted};font-weight:500;font-size:11.5px;">(${investPcts[i]}%)</span>`))
     .join("");
 
-  // Other assets
   rowIdx = 0;
   const otherAssetItems = [
     goldTotal > 0 && listRow("Gold & SGBs", fmtINR(goldTotal)),
@@ -2125,18 +2320,16 @@ function renderMonthlyHTML(summary, recipientName, ist) {
     govtSchemesTotal > 0 && listRow("Govt Schemes", fmtINR(govtSchemesTotal)),
   ].filter(Boolean).join("");
 
-  // Liabilities
   rowIdx = 0;
   const liabilityItems = [
-    loanOutstanding > 0 && listRow("Loans Outstanding", fmtINR(loanOutstanding)),
+    loanOutstandingTotal > 0 && listRow("Loans Outstanding", fmtINR(loanOutstandingTotal)),
     creditOutstanding > 0 && listRow(`Credit Card Dues (${creditUtil}% limit used)`, fmtINR(creditOutstanding)),
     informalBorrowedTotal > 0 && listRow("Informal Borrowings", fmtINR(informalBorrowedTotal)),
     rentalDepositLiability > 0 && listRow("Tenant Deposits Owed", fmtINR(rentalDepositLiability)),
     realEstateOutstanding > 0 && listRow("Real Estate Construction Dues", fmtINR(realEstateOutstanding)),
   ].filter(Boolean).join("");
 
-  // Goals
-  const goalRows = goals.map((g, i) => {
+  const goalRows = (goals || []).map((g, i) => {
     const barColor = g.pct >= 80 ? EMAIL_STYLES.posColor : g.pct >= 50 ? EMAIL_STYLES.accentColor : EMAIL_STYLES.warnColor;
     const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
     return `
@@ -2154,7 +2347,6 @@ function renderMonthlyHTML(summary, recipientName, ist) {
     </td></tr>`;
   }).join("");
 
-  // Forward 30 days outlook items
   const outlookItems = [
     ...(fdMaturities30Days || []).map((fd) => ({
       label: `FD Maturity at ${fd.bank || "Bank"}`,
@@ -2409,18 +2601,17 @@ function renderMonthlyHTML(summary, recipientName, ist) {
 }
 
 // ── Main Dispatcher for HTML Generation ───────────────────────────────────────
-function generateHTML(summary, frequency, recipientName) {
+function generateHTML(summary, frequency, recipientName, refDate = new Date()) {
   const normFreq = String(frequency || "daily").trim().toLowerCase();
-  const ist = nowIST();
   const name = recipientName || "there";
 
   if (normFreq === "weekly") {
-    return renderWeeklyHTML(summary, name, ist);
+    return renderWeeklyHTML(summary, name, refDate);
   }
   if (normFreq === "monthly") {
-    return renderMonthlyHTML(summary, name, ist);
+    return renderMonthlyHTML(summary, name, refDate);
   }
-  return renderDailyHTML(summary, name, ist);
+  return renderDailyHTML(summary, name, refDate);
 }
 
 // ── Fetch all state from Supabase (service role) ──────────────────────────────
@@ -2458,6 +2649,7 @@ async function fetchStateFromSupabase(supabase, userId) {
     sipsQ,
     recExpensesQ,
     billPaymentsQ,
+    billPaymentHistoryQ,
   ] = await Promise.all([
     supabase.from("bank_accounts").select("*").eq("user_id", userId),
     supabase.from("transactions").select("*").eq("user_id", userId),
@@ -2618,6 +2810,14 @@ async function fetchStateFromSupabase(supabase, userId) {
         (res) => res,
         () => ({ data: [] })
       ),
+    supabase
+      .from("bill_payment_history")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
   ]);
 
   const camelBanks = snakeToCamel(banks.data || []);
@@ -2640,12 +2840,12 @@ async function fetchStateFromSupabase(supabase, userId) {
   const camelGls = snakeToCamel(gls.data || []);
   const camelBdgts = snakeToCamel(bdgts.data || []).map((b) => ({
     ...b,
-    monthly: b.monthlyLimit,
+    monthly: b.monthlyLimit ?? b.monthly,
   }));
   const camelSubs = snakeToCamel(subs.data || []);
   const camelRems = snakeToCamel(rems.data || []).map((r) => ({
     ...r,
-    date: r.reminderDate,
+    date: r.reminderDate ?? r.date,
   }));
   const camelRentalData = snakeToCamel(rentals.data || []);
   const camelIncome = snakeToCamel(incomeQ.data || []);
@@ -2664,6 +2864,7 @@ async function fetchStateFromSupabase(supabase, userId) {
   const camelSips = snakeToCamel(sipsQ.data || []);
   const camelRecExpenses = snakeToCamel(recExpensesQ.data || []);
   const camelBillPayments = snakeToCamel(billPaymentsQ.data || []);
+  const camelBillPaymentHistory = snakeToCamel(billPaymentHistoryQ.data || []);
 
   const rentalProperties = camelRentalData
     .filter((x) => x.propertyType === "out")
@@ -2710,6 +2911,7 @@ async function fetchStateFromSupabase(supabase, userId) {
     sips: camelSips,
     recurringExpenses: camelRecExpenses,
     billPayments: camelBillPayments,
+    billPaymentHistory: camelBillPaymentHistory,
   };
 }
 
@@ -2786,8 +2988,8 @@ async function withLiveMFPrices(state) {
   };
 }
 
-// ── Check if current IST day matches user's schedule ─────────────────────────
-function getMatchingFrequencies(settings, frequency) {
+// ── Schedule Frequency Matching ───────────────────────────────────────────────
+function getMatchingFrequencies(settings, frequency, refDate = new Date()) {
   const freqStr = frequency || settings?.emailFrequency || settings?.email_frequency || "weekly";
   const freqs = String(freqStr)
     .split(",")
@@ -2795,9 +2997,9 @@ function getMatchingFrequencies(settings, frequency) {
     .filter(Boolean);
 
   const matched = [];
-  const currentIstDay = istDayOfWeek();
-  const currentIstDate = istDate();
-  const daysInMonth = istDaysInCurrentMonth();
+  const currentIstDay = istDayOfWeek(refDate);
+  const currentIstDate = istDate(refDate);
+  const daysInMonth = istDaysInCurrentMonth(refDate);
   const configDay = Number(settings?.emailDay ?? settings?.email_day ?? 1);
 
   for (const freq of freqs) {
@@ -2813,19 +3015,20 @@ function getMatchingFrequencies(settings, frequency) {
   return matched;
 }
 
-function shouldSendNow(settings, frequency) {
-  return getMatchingFrequencies(settings, frequency).length > 0;
+function shouldSendNow(settings, frequency, refDate = new Date()) {
+  return getMatchingFrequencies(settings, frequency, refDate).length > 0;
 }
 
 // ── Subject line ──────────────────────────────────────────────────────────────
-function buildSubject(frequency, netWorth) {
-  const ist = nowIST();
+function buildSubject(frequency, netWorth, refDate = new Date()) {
+  const istP = getISTParts(refDate);
+  const curDate = new Date(Date.UTC(istP.year, istP.month - 1, istP.day));
   const period =
     frequency === "daily"
-      ? ist.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short" })
+      ? curDate.toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "long", day: "numeric", month: "short" })
       : frequency === "weekly"
-        ? `Week of ${weekRange()}`
-        : monthLabel();
+        ? `Week of ${weekRange(refDate)}`
+        : monthLabel(refDate);
   const title =
     frequency === "daily"
       ? "Daily Digest"
@@ -2918,7 +3121,7 @@ async function handler(req, res) {
 
   try {
     if (isManual) {
-      // ── Manual "Send Test" from Settings UI ─────────────────────────────
+      // ── Manual "Send Test" from Settings / Monthly Report UI ────────────
       const auth = await verifyManualAuth(req);
       if (!auth.ok) {
         console.error(`[send-summary] Manual send rejected: ${auth.reason}`);
@@ -3086,12 +3289,30 @@ async function handler(req, res) {
 module.exports = handler;
 handler.computeSummary = computeSummary;
 handler.generateHTML = generateHTML;
+handler.renderDailyHTML = renderDailyHTML;
+handler.renderWeeklyHTML = renderWeeklyHTML;
+handler.renderMonthlyHTML = renderMonthlyHTML;
 handler.getEffectiveRent = getEffectiveRent;
 handler.getMatchingFrequencies = getMatchingFrequencies;
 handler.shouldSendNow = shouldSendNow;
 handler.annualizePremium = annualizePremium;
 handler.nextAnnualOccurrence = nextAnnualOccurrence;
+handler.getNextInsuranceDue = getNextInsuranceDue;
+handler.getNextSubscriptionRenewal = getNextSubscriptionRenewal;
+handler.getCreditCardDueDate = getCreditCardDueDate;
+handler.loanOutstanding = loanOutstanding;
+handler.loanGivenOutstanding = loanGivenOutstanding;
+handler.clampDayToMonth = clampDayToMonth;
+handler.calculateEpfBalance = calculateEpfBalance;
+handler.nowIST = nowIST;
+handler.istDayOfWeek = istDayOfWeek;
+handler.istDate = istDate;
+handler.istDaysInCurrentMonth = istDaysInCurrentMonth;
+handler.today = today;
+handler.weekRange = weekRange;
+handler.monthLabel = monthLabel;
 handler.fmtINR = fmtINR;
 handler.fmtINRFull = fmtINRFull;
 handler.escapeHtml = escapeHtml;
 handler.largestRemainderRound = largestRemainderRound;
+handler.buildSubject = buildSubject;
