@@ -249,4 +249,43 @@ describe("RecurringDepositsSection Component", () => {
       );
     });
   });
+
+  it("opens RD Installment History & Ledger modal showing paid and upcoming schedule", () => {
+    const newRD = [
+      {
+        id: "rd-hist-test",
+        bank: "Kotak Mahindra Bank",
+        monthly: 5000,
+        rate: 6.75,
+        tenureMonths: 12,
+        startDate: "2026-01-01",
+        paidInstallments: 4,
+        rdNumber: "501004928192",
+        bankAccountId: "b-1",
+        owner: "self",
+      },
+    ];
+    const mockBanks = [{ id: "b-1", bankName: "Kotak Mahindra Bank", balance: 224730, accountNumber: "8274" }];
+    const mockTxns = [
+      {
+        id: "txn-1",
+        note: "RD Installment #1 - Kotak Mahindra Bank (A/C: 501004928192)",
+        amount: 5000,
+        date: "2026-01-01",
+        category: "Investments",
+        linked_type: "recurring_deposit",
+        linked_id: "rd-hist-test",
+      },
+    ];
+
+    renderRDSection(newRD, { bankAccounts: mockBanks, transactions: mockTxns });
+
+    const histBtn = screen.getByText("Installments");
+    fireEvent.click(histBtn);
+
+    expect(screen.getByText(/Kotak Mahindra Bank RD Installment Ledger & Payments/i)).toBeDefined();
+    expect(screen.getAllByText(/4 of 12/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Bank Outflow Receipts/i)).toBeDefined();
+    expect(screen.getByText(/RD Installment #1 - Kotak Mahindra Bank/i)).toBeDefined();
+  });
 });

@@ -26,6 +26,8 @@ import {
   Target,
   CreditCard,
   CheckCircle2,
+  ListOrdered,
+  Receipt,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -88,6 +90,7 @@ export interface RDItem {
 interface RecurringDepositsSectionProps {
   items: any[];
   bankAccounts?: any[];
+  transactions?: any[];
   removeItem: (key: string, id: string) => void;
   updateItem: (key: string, id: string, data: any) => void;
   addItem?: (key: string, data: any) => void;
@@ -125,6 +128,7 @@ const GOAL_TAGS = [
 export function RecurringDepositsSection({
   items = [],
   bankAccounts = [],
+  transactions = [],
   removeItem,
   updateItem,
   addItem,
@@ -159,6 +163,7 @@ export function RecurringDepositsSection({
   const [rolloverRD, setRolloverRD] = useState<any>(null);
   const [breakSimRD, setBreakSimRD] = useState<any>(null);
   const [payInstallmentRD, setPayInstallmentRD] = useState<any>(null);
+  const [viewHistoryRD, setViewHistoryRD] = useState<any>(null);
 
   // RD Calculation helpers
   const rdElapsedFn = (r: any) => rdElapsed(r);
@@ -494,10 +499,15 @@ export function RecurringDepositsSection({
             balance: Math.max(0, Number(bank.balance || 0) - Number(rd.monthly)),
           });
           if (addItem) {
+            const noteText = `RD Installment #${nextPaid} - ${rd.bank}${rd.rdNumber ? ` (A/C: ${rd.rdNumber})` : ""}`;
             await addItem("transactions", {
-              type: "expense",
+              type: "debit",
               category: "Investments",
-              description: `RD Installment #${nextPaid} - ${rd.bank}`,
+              note: noteText,
+              description: noteText,
+              narration: noteText,
+              linked_type: "recurring_deposit",
+              linked_id: rd.id,
               amount: Number(rd.monthly),
               date: date || today(),
               accountId: bank.id,
@@ -1452,6 +1462,16 @@ export function RecurringDepositsSection({
                             <Button
                               variant="ghost"
                               size="sm"
+                              icon={<ListOrdered size={12} />}
+                              onClick={() => setViewHistoryRD(r)}
+                              style={{ fontSize: 11, padding: "4px 8px" }}
+                              title="View all paid & upcoming installments schedule"
+                            >
+                              Installments
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               icon={<Zap size={12} />}
                               onClick={() => setBreakSimRD(r)}
                               style={{ fontSize: 11, padding: "4px 8px" }}
@@ -1789,6 +1809,13 @@ export function RecurringDepositsSection({
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                icon={<ListOrdered size={13} />}
+                                onClick={() => setViewHistoryRD(r)}
+                                title="View Installment Ledger & Payments"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 icon={<Pencil size={13} />}
                                 onClick={() => setEditRD(r)}
                                 title="Edit"
@@ -1853,6 +1880,21 @@ export function RecurringDepositsSection({
           onClose={() => setPayInstallmentRD(null)}
           onConfirm={(data) => handleRecordPayment({ rd: payInstallmentRD, ...data })}
           loading={recordingPayment}
+        />
+      )}
+
+      {/* ── Modal: Installments History & Ledger ── */}
+      {viewHistoryRD && (
+        <RDHistoryModal
+          rd={viewHistoryRD}
+          bankAccounts={bankAccounts}
+          transactions={transactions}
+          onClose={() => setViewHistoryRD(null)}
+          onPayNext={() => {
+            const targetRD = viewHistoryRD;
+            setViewHistoryRD(null);
+            setPayInstallmentRD(targetRD);
+          }}
         />
       )}
 
@@ -2633,6 +2675,250 @@ function InteractiveRDCalculator({
         </Card>
       </div>
     </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MODAL: RD Installment History & Payment Ledger
+   ══════════════════════════════════════════════════════════════════════════════ */
+function RDHistoryModal({
+  rd,
+  bankAccounts = [],
+  transactions = [],
+  onClose,
+  onPayNext,
+}: {
+  rd: any;
+  bankAccounts?: any[];
+  transactions?: any[];
+  onClose: () => void;
+  onPayNext: () => void;
+}) {
+  const tenure = Number(rd.tenureMonths) || 12;
+  const paid = Number(rd.paidInstallments) || rdElapsed(rd);
+  const monthly = Number(rd.monthly) || 0;
+  const rate = Number(rd.rate) || 0;
+  const startDate = rd.startDate || today();
+  const linkedBank = bankAccounts.find(
+    (b: any) => b.id === (rd.bankAccountId || rd.linkedAccount)
+  );
+  const totalDeposited = paid * monthly;
+  const totalPlanned = tenure * monthly;
+
+  // Filter relevant transactions
+  const rdTxns = transactions.filter((t: any) => {
+    if (t.linked_type === "recurring_deposit" && (t.linked_id === rd.id || t.linked_id === rd.rdNumber)) return true;
+    const note = (t.note || t.description || t.narration || "").toLowerCase();
+    const bankMatch = rd.bank && note.includes(rd.bank.toLowerCase()) && note.includes("rd");
+    const acctMatch = rd.rdNumber && note.includes(rd.rdNumber);
+    return bankMatch || acctMatch;
+  });
+
+  return (
+    <Modal title={`${rd.bank} RD Installment Ledger & Payments`} onClose={onClose} width={680}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Top Summary Banner */}
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 12,
+            background: "var(--surface-1)",
+            border: `1px solid ${THEME.line}`,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+            gap: 12,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Monthly SIP</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: THEME.cyan, fontFamily: "var(--font-display)", marginTop: 2 }}>
+              ₹{monthly.toLocaleString("en-IN")}
+            </div>
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>@ {rate}% p.a.</div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Total Deposited</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: THEME.accent, fontFamily: "var(--font-display)", marginTop: 2 }}>
+              ₹{totalDeposited.toLocaleString("en-IN")}
+            </div>
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>of ₹{totalPlanned.toLocaleString("en-IN")}</div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Installments Paid</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: paid >= tenure ? THEME.sage : THEME.ink, fontFamily: "var(--font-display)", marginTop: 2 }}>
+              {paid} of {tenure}
+            </div>
+            <div style={{ fontSize: 11, color: THEME.sage, marginTop: 2 }}>
+              {((paid / (tenure || 1)) * 100).toFixed(0)}% Complete
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Debited Bank Account</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginTop: 2 }}>
+              {linkedBank ? `${linkedBank.bankName} (••${linkedBank.accountNumber?.slice(-4) || "NA"})` : "Not Linked"}
+            </div>
+            {linkedBank && (
+              <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                Balance: ₹{Number(linkedBank.balance || 0).toLocaleString("en-IN")}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div style={{ width: "100%" }}>
+          <div style={{ height: 8, background: "rgba(255,255,255,0.08)", borderRadius: 4, overflow: "hidden" }}>
+            <div
+              style={{
+                width: `${Math.min(100, (paid / (tenure || 1)) * 100)}%`,
+                height: "100%",
+                background: paid >= tenure
+                  ? "linear-gradient(90deg, #10b981 0%, #34d399 100%)"
+                  : "linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)",
+                borderRadius: 4,
+                transition: "width 0.3s ease",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Installments Schedule & Status Table */}
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+              Installment Schedule ({tenure} Months)
+            </div>
+            {paid < tenure && (
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<CreditCard size={12} />}
+                onClick={onPayNext}
+                style={{ fontSize: 11, padding: "4px 10px" }}
+              >
+                Pay Installment #{paid + 1}
+              </Button>
+            )}
+          </div>
+
+          <div
+            style={{
+              maxHeight: 280,
+              overflowY: "auto",
+              border: `1px solid ${THEME.line}`,
+              borderRadius: 10,
+              background: "var(--surface-0)",
+            }}
+          >
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: "var(--surface-1)", borderBottom: `1px solid ${THEME.line}`, color: THEME.muted, fontSize: 11 }}>
+                  <th style={{ padding: "8px 12px", textAlign: "left" }}>#</th>
+                  <th style={{ padding: "8px 12px", textAlign: "left" }}>Scheduled / Due Date</th>
+                  <th style={{ padding: "8px 12px", textAlign: "left" }}>Installment Amount</th>
+                  <th style={{ padding: "8px 12px", textAlign: "left" }}>Status</th>
+                  <th style={{ padding: "8px 12px", textAlign: "left" }}>Payment Method / Bank</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: tenure }, (_, idx) => {
+                  const instNum = idx + 1;
+                  const isPaid = instNum <= paid;
+                  const isNextDue = instNum === paid + 1;
+                  const scheduledDate = addMonthsToDateStr(startDate, idx);
+
+                  return (
+                    <tr
+                      key={instNum}
+                      style={{
+                        borderBottom: `1px solid ${THEME.line}`,
+                        background: isPaid ? "rgba(16, 185, 129, 0.03)" : isNextDue ? "rgba(14, 165, 233, 0.05)" : "transparent",
+                      }}
+                    >
+                      <td style={{ padding: "8px 12px", fontWeight: 700, color: THEME.ink }}>
+                        #{instNum}
+                      </td>
+                      <td style={{ padding: "8px 12px", color: THEME.muted }}>
+                        {scheduledDate}
+                      </td>
+                      <td style={{ padding: "8px 12px", fontWeight: 700, color: THEME.ink, fontFamily: "var(--font-display)" }}>
+                        ₹{monthly.toLocaleString("en-IN")}
+                      </td>
+                      <td style={{ padding: "8px 12px" }}>
+                        {isPaid ? (
+                          <Badge variant="sage">
+                            <CheckCircle2 size={10} style={{ marginRight: 3 }} /> Paid
+                          </Badge>
+                        ) : isNextDue ? (
+                          <Badge variant="cyan">Due Now</Badge>
+                        ) : (
+                          <Badge variant="muted">Upcoming</Badge>
+                        )}
+                      </td>
+                      <td style={{ padding: "8px 12px", color: THEME.muted }}>
+                        {isPaid ? (
+                          linkedBank ? `${linkedBank.bankName} (••${linkedBank.accountNumber?.slice(-4) || "NA"})` : "Bank Account"
+                        ) : isNextDue ? (
+                          <span style={{ color: THEME.cyan, fontWeight: 600 }}>Auto Debit / Direct Pay</span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Linked Bank Transactions Vouchers */}
+        {rdTxns.length > 0 && (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 8 }}>
+              Bank Outflow Receipts ({rdTxns.length})
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 160, overflowY: "auto" }}>
+              {rdTxns.map((t: any) => (
+                <div
+                  key={t.id}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    background: "var(--surface-1)",
+                    border: `1px solid ${THEME.line}`,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    fontSize: 12,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700, color: THEME.ink }}>
+                      {t.note || t.description || t.narration || "RD Installment Debit"}
+                    </div>
+                    <div style={{ fontSize: 11, color: THEME.muted, marginTop: 1 }}>
+                      {t.date} • Category: {t.category || "Investments"}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontWeight: 800, color: THEME.rust, fontFamily: "var(--font-display)" }}>
+                      -₹{Number(t.amount || 0).toLocaleString("en-IN")}
+                    </div>
+                    <div style={{ fontSize: 10, color: THEME.sage }}>Verified Outflow</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <ModalActions onClose={onClose} />
+      </div>
+    </Modal>
   );
 }
 

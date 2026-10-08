@@ -933,7 +933,7 @@ export function BanksTab({
         if (!search) return true;
         const q = search.toLowerCase();
         return (
-          (t.note || "").toLowerCase().includes(q) ||
+          (t.note || t.description || t.narration || "").toLowerCase().includes(q) ||
           (t.category || "").toLowerCase().includes(q) ||
           (t.narration || "").toLowerCase().includes(q) ||
           (t.referenceNumber || "").toLowerCase().includes(q) ||
@@ -1156,7 +1156,7 @@ export function BanksTab({
           bank ? accountLabel(bank) : "",
           t.type || "",
           t.category || "",
-          t.note || "",
+          t.note || t.description || t.narration || "",
           t.narration || "",
           t.referenceNumber || "",
           t.type === "debit" ? t.amount : "",
@@ -2313,7 +2313,7 @@ export function BanksTab({
                             color: THEME.ink,
                           }}
                         >
-                          {t.note || "—"}
+                          {t.note || t.description || t.narration || "—"}
                           {t.category === "Transfer" && (
                             <Badge variant="accent" size="xs" style={{ whiteSpace: "nowrap" }}>
                               ↔ TRANSFER
@@ -2860,7 +2860,7 @@ export function BanksTab({
                             flexWrap: "wrap",
                           }}
                         >
-                          {t.note || "—"}
+                          {t.note || t.description || t.narration || "—"}
                           {t.category === "Transfer" && (
                             <Badge variant="accent" size="xs">
                               ↔
@@ -3642,7 +3642,7 @@ export function BanksTab({
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ color: THEME.muted, fontWeight: 600 }}>Particulars / Note</span>
                     <span style={{ fontWeight: 800, color: THEME.ink, textAlign: "right" }}>
-                      {t.note || "—"}
+                      {t.note || t.description || t.narration || "—"}
                     </span>
                   </div>
 

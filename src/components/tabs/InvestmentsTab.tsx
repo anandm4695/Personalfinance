@@ -1628,10 +1628,15 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
             ...bank,
             balance: Math.max(0, Number(bank.balance || 0) - Number(data.monthly)),
           });
+          const noteText = `RD 1st Installment - ${data.bank}${data.rdNumber ? ` (A/C: ${data.rdNumber})` : ""}`;
           await addItem("transactions", {
-            type: "expense",
+            type: "debit",
             category: "Investments",
-            description: `RD 1st Installment - ${data.bank}`,
+            note: noteText,
+            description: noteText,
+            narration: noteText,
+            linked_type: "recurring_deposit",
+            linked_id: data.id || data.rdNumber || "",
             amount: Number(data.monthly),
             date: data.startDate || today(),
             accountId: bank.id,
@@ -1796,6 +1801,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
           <RecurringDepositsSection
             items={state.recurringDeposits || []}
             bankAccounts={state.bankAccounts || []}
+            transactions={state.transactions || []}
             removeItem={removeItem}
             updateItem={updateItem}
             addItem={addItem}
