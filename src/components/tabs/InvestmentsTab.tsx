@@ -29,6 +29,7 @@ import {
   fmtINRFull,
   fdMaturity,
   rdMaturity,
+  rdElapsed,
   today,
   uid,
   monthsBetween,
@@ -292,7 +293,7 @@ const OwnerBadge = ({ owner }: { owner?: string }) => {
 /* ══════════════════════════════════════════════════════════════════════
    ADD INVESTMENT MODAL
 ══════════════════════════════════════════════════════════════════════ */
-const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", saving }: any) => {
+const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", saving, bankAccounts = [] }: any) => {
   const { mfCategories, familyProfiles } = useMasterData();
   const defaultOwner = activeProfile !== "all" ? activeProfile : "self";
   const subMeta = SUBS.find((s) => s.id === sub);
@@ -338,10 +339,19 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
   // ── RD State ──
   const [rd, setRd] = useState({
     bank: "",
+    rdNumber: "",
     monthly: "",
     rate: "",
     tenureMonths: "",
     startDate: today(),
+    debitDay: "5",
+    owner: defaultOwner,
+    goal: "General Savings",
+    nominee: "",
+    bankAccountId: bankAccounts?.[0]?.id || "",
+    paidInstallments: "0",
+    debitFirstInstallment: false,
+    notes: "",
   });
   // ── Bond State ──
   const [bond, setBond] = useState({
@@ -405,10 +415,36 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
         if (!fd.bank || !fd.principal || !fd.rate) return;
         onSave("fixedDeposits", fd);
         break;
-      case "rd":
+      case "rd": {
         if (!rd.bank || !rd.monthly || !rd.rate) return;
-        onSave("recurringDeposits", rd);
+        const tenureM = Number(rd.tenureMonths) || 0;
+        const paidInstNum = Number(rd.paidInstallments) || 0;
+        const finalPaidInst = rd.debitFirstInstallment && paidInstNum === 0 ? 1 : paidInstNum;
+        const rdData = {
+          bank: rd.bank,
+          rdNumber: rd.rdNumber || "",
+          accountNumber: rd.rdNumber || "",
+          monthly: Number(rd.monthly),
+          rate: Number(rd.rate),
+          tenureMonths: tenureM,
+          startDate: rd.startDate,
+          maturityDate: tenureM > 0 ? addMonthsToDateStr(rd.startDate, tenureM) : "",
+          debitDay: Number(rd.debitDay) || 5,
+          owner: rd.owner || defaultOwner,
+          goal: rd.goal || "General Savings",
+          nominee: rd.nominee || "",
+          bankAccountId: rd.bankAccountId || "",
+          linkedAccount: rd.bankAccountId || "",
+          paidInstallments: finalPaidInst,
+          notes: rd.notes || "",
+          status: "active",
+        };
+        onSave("recurringDeposits", rdData, {
+          debitFirstInstallment: rd.debitFirstInstallment,
+          bankAccountId: rd.bankAccountId,
+        });
         break;
+      }
       case "bond": {
         if (!bond.name || !bond.coupon) return;
         const units = Number(bond.numberOfUnits) || 0;
@@ -602,56 +638,259 @@ const AddInvestmentModal = ({ sub, onClose, onSave, activeProfile = "all", savin
       )}
 
       {/* ── Recurring Deposit ── */}
-      {sub === "rd" && (
-        <>
-          <Field label="Bank / Institution">
-            <input
-              style={inp}
-              value={rd.bank}
-              onChange={(e) => setRd({ ...rd, bank: e.target.value })}
-              placeholder="e.g. Axis Bank, Post Office"
-            />
-          </Field>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Field label="Monthly Installment (₹)">
-              <input
-                style={inp}
-                type="number"
-                value={rd.monthly}
-                onChange={(e) => setRd({ ...rd, monthly: e.target.value })}
-                placeholder="10000"
-              />
-            </Field>
-            <Field label="Interest Rate (% p.a.)">
-              <input
-                style={inp}
-                type="number"
-                value={rd.rate}
-                onChange={(e) => setRd({ ...rd, rate: e.target.value })}
-                placeholder="7.0"
-                step="0.1"
-              />
-            </Field>
-            <Field label="Tenure (Months)">
-              <input
-                style={inp}
-                type="number"
-                value={rd.tenureMonths}
-                onChange={(e) => setRd({ ...rd, tenureMonths: e.target.value })}
-                placeholder="24"
-              />
-            </Field>
-            <Field label="Start Date">
-              <input
-                style={inp}
-                type="date"
-                value={rd.startDate}
-                onChange={(e) => setRd({ ...rd, startDate: e.target.value })}
-              />
-            </Field>
-          </div>
-        </>
-      )}
+      {sub === "rd" &&
+        (() => {
+          const maturity = rdMaturity(
+            Number(rd.monthly) || 0,
+            Number(rd.rate) || 0,
+            Number(rd.tenureMonths) || 0
+          );
+          const popularBanks = [
+            "State Bank of India",
+            "HDFC Bank",
+            "ICICI Bank",
+            "Axis Bank",
+            "Kotak Mahindra Bank",
+            "Punjab National Bank",
+            "Bank of Baroda",
+            "India Post",
+          ];
+          const goalTags = [
+            "Emergency Fund",
+            "Vacation & Travel",
+            "Child Education",
+            "Down Payment",
+            "Vehicle Purchase",
+            "Tax Saving (80C)",
+            "Wedding",
+            "Wealth Accumulator",
+            "General Savings",
+          ];
+          return (
+            <>
+              <div>
+                <label style={{ fontSize: 11, color: THEME.muted, fontWeight: 600, display: "block", marginBottom: 6 }}>
+                  QUICK BANK SELECTION
+                </label>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {popularBanks.map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => setRd({ ...rd, bank: b })}
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: 16,
+                        border: `1px solid ${rd.bank === b ? THEME.cyan : THEME.line}`,
+                        background: rd.bank === b ? "rgba(14, 165, 233, 0.15)" : "rgba(255,255,255,0.03)",
+                        color: rd.bank === b ? THEME.cyan : THEME.ink,
+                        fontSize: 11,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Field label="Bank / Institution Name">
+                <input
+                  style={inp}
+                  value={rd.bank}
+                  onChange={(e) => setRd({ ...rd, bank: e.target.value })}
+                  placeholder="e.g. Kotak Bank, HDFC Bank, India Post"
+                />
+              </Field>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="RD Account / Folio No.">
+                  <input
+                    style={inp}
+                    value={rd.rdNumber}
+                    onChange={(e) => setRd({ ...rd, rdNumber: e.target.value })}
+                    placeholder="e.g. 501004928192"
+                  />
+                </Field>
+                <Field label="Family Member / Owner">
+                  <select
+                    style={inp}
+                    value={rd.owner}
+                    onChange={(e) => setRd({ ...rd, owner: e.target.value })}
+                  >
+                    <option value="self">Self</option>
+                    {familyProfiles?.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="Monthly Installment (₹)">
+                  <input
+                    style={inp}
+                    type="number"
+                    value={rd.monthly}
+                    onChange={(e) => setRd({ ...rd, monthly: e.target.value })}
+                    placeholder="5000"
+                  />
+                </Field>
+                <Field label="Interest Rate (% p.a.)">
+                  <input
+                    style={inp}
+                    type="number"
+                    step="0.05"
+                    value={rd.rate}
+                    onChange={(e) => setRd({ ...rd, rate: e.target.value })}
+                    placeholder="6.75"
+                  />
+                </Field>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="Tenure (Months)">
+                  <input
+                    style={inp}
+                    type="number"
+                    value={rd.tenureMonths}
+                    onChange={(e) => setRd({ ...rd, tenureMonths: e.target.value })}
+                    placeholder="12"
+                  />
+                </Field>
+                <Field label="Start Date">
+                  <input
+                    style={inp}
+                    type="date"
+                    value={rd.startDate}
+                    onChange={(e) => setRd({ ...rd, startDate: e.target.value })}
+                  />
+                </Field>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="Debited From Bank Account">
+                  <select
+                    style={inp}
+                    value={rd.bankAccountId}
+                    onChange={(e) => setRd({ ...rd, bankAccountId: e.target.value })}
+                  >
+                    <option value="">— Select Bank Account —</option>
+                    {bankAccounts.map((b: any) => (
+                      <option key={b.id} value={b.id}>
+                        {b.bankName} (••{b.accountNumber?.slice(-4) || "NA"} - ₹{Number(b.balance || 0).toLocaleString("en-IN")})
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Monthly Debit Day">
+                  <input
+                    style={inp}
+                    type="number"
+                    min="1"
+                    max="28"
+                    value={rd.debitDay}
+                    onChange={(e) => setRd({ ...rd, debitDay: e.target.value })}
+                    placeholder="5"
+                  />
+                </Field>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="Installments Deposited to Date">
+                  <input
+                    style={inp}
+                    type="number"
+                    min="0"
+                    value={rd.paidInstallments}
+                    onChange={(e) => setRd({ ...rd, paidInstallments: e.target.value })}
+                    placeholder="0"
+                  />
+                </Field>
+                <Field label="Goal / Category Tag">
+                  <select
+                    style={inp}
+                    value={rd.goal}
+                    onChange={(e) => setRd({ ...rd, goal: e.target.value })}
+                  >
+                    {goalTags.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+
+              {rd.bankAccountId && Number(rd.monthly) > 0 && (Number(rd.paidInstallments) === 0 || !rd.paidInstallments) && (
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontSize: 12,
+                    color: THEME.ink,
+                    background: "rgba(14, 165, 233, 0.08)",
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: "1px solid rgba(14, 165, 233, 0.2)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={rd.debitFirstInstallment}
+                    onChange={(e) => setRd({ ...rd, debitFirstInstallment: e.target.checked })}
+                    style={{ accentColor: THEME.cyan }}
+                  />
+                  <span>
+                    Debit 1st installment (₹{Number(rd.monthly).toLocaleString("en-IN")}) from selected bank account now
+                  </span>
+                </label>
+              )}
+
+              <Field label="Nominee Name">
+                <input
+                  style={inp}
+                  value={rd.nominee}
+                  onChange={(e) => setRd({ ...rd, nominee: e.target.value })}
+                  placeholder="e.g. Spouse / Child / Parent name"
+                />
+              </Field>
+
+              {/* Live Calculation Preview */}
+              {rd.monthly && rd.rate && rd.tenureMonths && (
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderRadius: 10,
+                    background: "rgba(14, 165, 233, 0.1)",
+                    border: "1px solid rgba(14, 165, 233, 0.25)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 11, color: THEME.cyan, fontWeight: 700 }}>
+                      PROJECTED MATURITY CORPUS
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, fontFamily: "var(--font-display)" }}>
+                      ₹{Math.round(maturity).toLocaleString("en-IN")}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right", fontSize: 11, color: THEME.muted }}>
+                    Deposit: ₹{(Number(rd.monthly) * Number(rd.tenureMonths)).toLocaleString("en-IN")}
+                    <br />
+                    Gain: +₹{Math.round(maturity - Number(rd.monthly) * Number(rd.tenureMonths)).toLocaleString("en-IN")}
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
       {/* ── Bonds ── */}
       {sub === "bond" &&
@@ -1380,8 +1619,26 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
   }));
 
   const { run: handleSave, loading: savingInvestment } = useAsyncAction(
-    async (key: string, data: any) => {
+    async (key: string, data: any, extra?: any) => {
       await addItem(key, data);
+      if (extra?.debitFirstInstallment && extra?.bankAccountId && Number(data.monthly) > 0) {
+        const bank = (state.bankAccounts || []).find((b: any) => b.id === extra.bankAccountId);
+        if (bank) {
+          await updateItem("bankAccounts", bank.id, {
+            ...bank,
+            balance: Math.max(0, Number(bank.balance || 0) - Number(data.monthly)),
+          });
+          await addItem("transactions", {
+            type: "expense",
+            category: "Investments",
+            description: `RD 1st Installment - ${data.bank}`,
+            amount: Number(data.monthly),
+            date: data.startDate || today(),
+            accountId: bank.id,
+            owner: data.owner || "self",
+          });
+        }
+      }
     },
     {
       onSuccess: () => setShowModal(false),
@@ -1538,6 +1795,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
         return (
           <RecurringDepositsSection
             items={state.recurringDeposits || []}
+            bankAccounts={state.bankAccounts || []}
             removeItem={removeItem}
             updateItem={updateItem}
             addItem={addItem}
@@ -1792,6 +2050,7 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
           onSave={handleSave}
           activeProfile={activeProfile}
           saving={savingInvestment}
+          bankAccounts={state.bankAccounts || []}
         />
       )}
     </div>

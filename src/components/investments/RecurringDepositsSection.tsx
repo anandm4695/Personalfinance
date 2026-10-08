@@ -24,6 +24,8 @@ import {
   FileSpreadsheet,
   Zap,
   Target,
+  CreditCard,
+  CheckCircle2,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -44,6 +46,7 @@ import { Money } from "../ui/Money";
 import {
   fmtINRFull,
   rdMaturity,
+  rdElapsed,
   today,
   monthsBetween,
   addMonthsToDateStr,
@@ -69,12 +72,14 @@ export interface RDItem {
   maturityDate?: string;
   rdNumber?: string;
   accountNumber?: string;
+  bankAccountId?: string;
+  linkedAccount?: string;
+  paidInstallments?: number | string;
   owner?: string;
   debitDay?: number | string;
   compounding?: "quarterly" | "monthly" | "half_yearly" | "annual";
   goal?: string;
   nominee?: string;
-  linkedAccount?: string;
   payoutAccount?: string;
   status?: "active" | "matured" | "closed";
   notes?: string;
@@ -82,6 +87,7 @@ export interface RDItem {
 
 interface RecurringDepositsSectionProps {
   items: any[];
+  bankAccounts?: any[];
   removeItem: (key: string, id: string) => void;
   updateItem: (key: string, id: string, data: any) => void;
   addItem?: (key: string, data: any) => void;
@@ -118,6 +124,7 @@ const GOAL_TAGS = [
 
 export function RecurringDepositsSection({
   items = [],
+  bankAccounts = [],
   removeItem,
   updateItem,
   addItem,
@@ -151,29 +158,10 @@ export function RecurringDepositsSection({
   const [confirmDeleteRD, setConfirmDeleteRD] = useState<any>(null);
   const [rolloverRD, setRolloverRD] = useState<any>(null);
   const [breakSimRD, setBreakSimRD] = useState<any>(null);
+  const [payInstallmentRD, setPayInstallmentRD] = useState<any>(null);
 
   // RD Calculation helpers
-  const rdElapsedFn = (r: any) => {
-    const tenure = Number(r.tenureMonths) || 0;
-    if (!r.startDate) return tenure;
-    const elapsedMonths = Math.max(0, monthsBetween(r.startDate, today()));
-    return Math.min(tenure, elapsedMonths);
-  };
-
-  const isRDMatured = (r: any) => {
-    const tenure = Number(r.tenureMonths) || 0;
-    if (r.status === "matured") return true;
-    if (r.maturityDate) {
-      const [y, m, d] = String(r.maturityDate).split("-").map(Number);
-      if (y && m && d) {
-        const matDate = new Date(y, m - 1, d);
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        return matDate.getTime() <= now.getTime();
-      }
-    }
-    return tenure > 0 && rdElapsedFn(r) >= tenure;
-  };
+  const rdElapsedFn = (r: any) => rdElapsed(r);
 
   const getMaturityDateStr = (r: any) => {
     if (r.maturityDate) return r.maturityDate;
@@ -182,6 +170,22 @@ export function RecurringDepositsSection({
       return addMonthsToDateStr(r.startDate, tenure);
     }
     return null;
+  };
+
+  const isRDMatured = (r: any) => {
+    const tenure = Number(r.tenureMonths) || 0;
+    if (r.status === "matured") return true;
+    const matStr = getMaturityDateStr(r);
+    if (matStr) {
+      const [y, m, d] = String(matStr).split("-").map(Number);
+      if (y && m && d) {
+        const matDate = new Date(y, m - 1, d);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        if (matDate.getTime() <= now.getTime()) return true;
+      }
+    }
+    return tenure > 0 && rdElapsedFn(r) >= tenure;
   };
 
   const rdDaysLeft = (r: any) => {
@@ -463,6 +467,53 @@ export function RecurringDepositsSection({
           `Failed to reinvest recurring deposit: ${e?.message || "Unknown error"}`,
           "error"
         ),
+    }
+  );
+
+  // Async pay/record installment action
+  const { run: handleRecordPayment, loading: recordingPayment } = useAsyncAction(
+    async (payload: { rd: any; bankAccountId: string; debitBank: boolean; date: string }) => {
+      const { rd, bankAccountId, debitBank, date } = payload;
+      const currentPaid = Number(rd.paidInstallments) || rdElapsed(rd);
+      const nextPaid = currentPaid + 1;
+      const tenure = Number(rd.tenureMonths) || 12;
+      const updatedRD = {
+        ...rd,
+        paidInstallments: nextPaid,
+        bankAccountId: bankAccountId || rd.bankAccountId || "",
+        linkedAccount: bankAccountId || rd.linkedAccount || "",
+        status: nextPaid >= tenure ? "matured" : rd.status || "active",
+      };
+      await updateItem("recurringDeposits", rd.id, updatedRD);
+
+      if (debitBank && bankAccountId && Number(rd.monthly) > 0) {
+        const bank = bankAccounts.find((b: any) => b.id === bankAccountId);
+        if (bank) {
+          await updateItem("bankAccounts", bank.id, {
+            ...bank,
+            balance: Math.max(0, Number(bank.balance || 0) - Number(rd.monthly)),
+          });
+          if (addItem) {
+            await addItem("transactions", {
+              type: "expense",
+              category: "Investments",
+              description: `RD Installment #${nextPaid} - ${rd.bank}`,
+              amount: Number(rd.monthly),
+              date: date || today(),
+              accountId: bank.id,
+              owner: rd.owner || "self",
+            });
+          }
+        }
+      }
+    },
+    {
+      onSuccess: () => {
+        setPayInstallmentRD(null);
+        showToast?.("RD installment payment recorded successfully!", "success");
+      },
+      onError: (e: any) =>
+        showToast?.(`Failed to record payment: ${e?.message || "Unknown error"}`, "error"),
     }
   );
 
@@ -762,14 +813,14 @@ export function RecurringDepositsSection({
                 gap: 10,
                 alignItems: "center",
                 justifyContent: "space-between",
-                background: "rgba(255,255,255,0.02)",
+                background: "var(--surface-0)",
                 padding: "12px 16px",
                 borderRadius: 12,
                 border: `1px solid ${THEME.line}`,
               }}
             >
               {/* Status Tabs */}
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                 {[
                   { id: "all", label: `All (${profileFilteredItems.length})` },
                   { id: "active", label: `Active (${activeItems.length})` },
@@ -780,21 +831,10 @@ export function RecurringDepositsSection({
                     key={id}
                     type="button"
                     onClick={() => setFilterTab(id as any)}
+                    className={`demat-portfolio-pill ${filterTab === id ? "active" : ""}`}
                     style={{
-                      padding: "5px 12px",
-                      borderRadius: 20,
-                      border: `1px solid ${
-                        filterTab === id ? THEME.cyan : THEME.line
-                      }`,
-                      background:
-                        filterTab === id
-                          ? "rgba(14, 165, 233, 0.12)"
-                          : "transparent",
-                      color: filterTab === id ? THEME.cyan : THEME.muted,
-                      fontWeight: filterTab === id ? 700 : 500,
-                      fontSize: 12,
                       cursor: "pointer",
-                      transition: "all 0.15s ease",
+                      border: "none",
                     }}
                   >
                     {label}
@@ -817,11 +857,11 @@ export function RecurringDepositsSection({
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
-                    background: "rgba(0,0,0,0.2)",
+                    background: "var(--surface-1)",
                     border: `1px solid ${THEME.line}`,
                     borderRadius: 8,
-                    padding: "4px 10px",
-                    width: 180,
+                    padding: "6px 10px",
+                    width: 190,
                   }}
                 >
                   <Search size={14} style={{ color: THEME.muted }} />
@@ -863,11 +903,11 @@ export function RecurringDepositsSection({
                     value={bankFilter}
                     onChange={(e) => setBankFilter(e.target.value)}
                     style={{
-                      background: "rgba(0,0,0,0.2)",
+                      background: "var(--surface-1)",
                       border: `1px solid ${THEME.line}`,
                       color: THEME.ink,
                       borderRadius: 8,
-                      padding: "5px 8px",
+                      padding: "6px 10px",
                       fontSize: 12,
                       outline: "none",
                       cursor: "pointer",
@@ -888,11 +928,11 @@ export function RecurringDepositsSection({
                     value={ownerFilter}
                     onChange={(e) => setOwnerFilter(e.target.value)}
                     style={{
-                      background: "rgba(0,0,0,0.2)",
+                      background: "var(--surface-1)",
                       border: `1px solid ${THEME.line}`,
                       color: THEME.ink,
                       borderRadius: 8,
-                      padding: "5px 8px",
+                      padding: "6px 10px",
                       fontSize: 12,
                       outline: "none",
                       cursor: "pointer",
@@ -912,11 +952,11 @@ export function RecurringDepositsSection({
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
                   style={{
-                    background: "rgba(0,0,0,0.2)",
+                    background: "var(--surface-1)",
                     border: `1px solid ${THEME.line}`,
                     color: THEME.ink,
                     borderRadius: 8,
-                    padding: "5px 8px",
+                    padding: "6px 10px",
                     fontSize: 12,
                     outline: "none",
                     cursor: "pointer",
@@ -1117,7 +1157,7 @@ export function RecurringDepositsSection({
                               marginBottom: 14,
                             }}
                           >
-                            {matured ? (
+                            {matured || (daysLeft !== null && daysLeft <= 0) ? (
                               <Badge variant="sage">Matured</Badge>
                             ) : daysLeft !== null && daysLeft <= 30 ? (
                               <Badge variant="rust">
@@ -1179,6 +1219,31 @@ export function RecurringDepositsSection({
                                 No Nominee
                               </span>
                             )}
+
+                            {(r.bankAccountId || r.linkedAccount) && (() => {
+                              const linkedBank = bankAccounts.find(
+                                (b: any) => b.id === (r.bankAccountId || r.linkedAccount)
+                              );
+                              return linkedBank ? (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    padding: "2px 8px",
+                                    borderRadius: 6,
+                                    background: "rgba(14, 165, 233, 0.1)",
+                                    color: THEME.cyan,
+                                    fontWeight: 600,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                  }}
+                                  title={`Debited from: ${linkedBank.bankName} (••${linkedBank.accountNumber?.slice(-4) || "NA"})`}
+                                >
+                                  <Building size={10} />
+                                  {linkedBank.bankName} ••{linkedBank.accountNumber?.slice(-4) || "NA"}
+                                </span>
+                              ) : null;
+                            })()}
                           </div>
 
                           {/* Monthly Installment Amount */}
@@ -1293,7 +1358,8 @@ export function RecurringDepositsSection({
                               display: "grid",
                               gridTemplateColumns: "1fr 1fr",
                               gap: 10,
-                              background: "rgba(0,0,0,0.15)",
+                              background: "var(--surface-1)",
+                              border: `1px solid ${THEME.line}`,
                               padding: "12px",
                               borderRadius: 10,
                               marginBottom: 14,
@@ -1382,16 +1448,36 @@ export function RecurringDepositsSection({
                             gap: 8,
                           }}
                         >
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            icon={<Zap size={12} />}
-                            onClick={() => setBreakSimRD(r)}
-                            style={{ fontSize: 11, padding: "4px 8px" }}
-                            title="Simulate premature withdrawal & penal rates"
-                          >
-                            Break Sim
-                          </Button>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Zap size={12} />}
+                              onClick={() => setBreakSimRD(r)}
+                              style={{ fontSize: 11, padding: "4px 8px" }}
+                              title="Simulate premature withdrawal & penal rates"
+                            >
+                              Break Sim
+                            </Button>
+                            {!matured && elapsed < tenure && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                icon={<CreditCard size={12} />}
+                                onClick={() => setPayInstallmentRD(r)}
+                                style={{
+                                  fontSize: 11,
+                                  padding: "4px 10px",
+                                  color: THEME.cyan,
+                                  borderColor: "rgba(14, 165, 233, 0.4)",
+                                  background: "rgba(14, 165, 233, 0.08)",
+                                }}
+                                title={`Pay monthly installment #${elapsed + 1} of ${tenure}`}
+                              >
+                                Pay Installment
+                              </Button>
+                            )}
+                          </div>
 
                           {matured ? (
                             <Button
@@ -1516,10 +1602,38 @@ export function RecurringDepositsSection({
                                   style={{
                                     fontSize: 11,
                                     color: THEME.muted,
+                                    display: "flex",
+                                    gap: 6,
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                    marginTop: 2,
                                   }}
                                 >
-                                  {r.rdNumber || r.accountNumber || "RD"}
-                                  {r.goal && ` • ${r.goal}`}
+                                  <span>{r.rdNumber || r.accountNumber || "RD"}</span>
+                                  {r.goal && <span>• {r.goal}</span>}
+                                  {(r.bankAccountId || r.linkedAccount) && (() => {
+                                    const linkedBank = bankAccounts.find(
+                                      (b: any) => b.id === (r.bankAccountId || r.linkedAccount)
+                                    );
+                                    return linkedBank ? (
+                                      <span
+                                        style={{
+                                          color: THEME.cyan,
+                                          background: "rgba(14, 165, 233, 0.08)",
+                                          padding: "1px 6px",
+                                          borderRadius: 4,
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 3,
+                                          fontSize: 10,
+                                          fontWeight: 600,
+                                        }}
+                                      >
+                                        <Building size={9} />
+                                        {linkedBank.bankName} ••{linkedBank.accountNumber?.slice(-4) || "NA"}
+                                      </span>
+                                    ) : null;
+                                  })()}
                                 </div>
                               </div>
                             </div>
@@ -1639,7 +1753,7 @@ export function RecurringDepositsSection({
                           </td>
 
                           <td style={{ padding: "12px 12px" }}>
-                            {matured ? (
+                            {matured || (daysLeft !== null && daysLeft <= 0) ? (
                               <Badge variant="sage">Matured</Badge>
                             ) : daysLeft !== null && daysLeft <= 90 ? (
                               <Badge variant="gold">
@@ -1662,6 +1776,16 @@ export function RecurringDepositsSection({
                                 gap: 4,
                               }}
                             >
+                              {!matured && elapsed < tenure && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  icon={<CreditCard size={13} />}
+                                  onClick={() => setPayInstallmentRD(r)}
+                                  title={`Pay installment #${elapsed + 1}`}
+                                  style={{ color: THEME.cyan }}
+                                />
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -1721,10 +1845,22 @@ export function RecurringDepositsSection({
         </>
       )}
 
+      {/* ── Modal: Pay Installment ── */}
+      {payInstallmentRD && (
+        <PayInstallmentModal
+          rd={payInstallmentRD}
+          bankAccounts={bankAccounts}
+          onClose={() => setPayInstallmentRD(null)}
+          onConfirm={(data) => handleRecordPayment({ rd: payInstallmentRD, ...data })}
+          loading={recordingPayment}
+        />
+      )}
+
       {/* ── Modal: Edit RD ── */}
       {editRD && (
         <EditRDModal
           rd={editRD}
+          bankAccounts={bankAccounts}
           familyProfiles={familyProfiles}
           onClose={() => setEditRD(null)}
           onSave={(updated: any) => saveRDEdit(editRD.id, updated)}
@@ -2195,21 +2331,21 @@ function RDTdsTaxOptimizerView({ items }: { items: any[] }) {
             </p>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
-              <div style={{ padding: 12, background: "rgba(0,0,0,0.2)", borderRadius: 8 }}>
+              <div style={{ padding: 12, background: "var(--surface-1)", border: `1px solid ${THEME.line}`, borderRadius: 8 }}>
                 <div style={{ fontSize: 11, color: THEME.muted }}>Projected Annual Interest</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: THEME.ink, fontFamily: "var(--font-display)" }}>
                   <Money value={totalAnnualInterest} variant="full" />
                 </div>
               </div>
 
-              <div style={{ padding: 12, background: "rgba(0,0,0,0.2)", borderRadius: 8 }}>
+              <div style={{ padding: 12, background: "var(--surface-1)", border: `1px solid ${THEME.line}`, borderRadius: 8 }}>
                 <div style={{ fontSize: 11, color: THEME.muted }}>Section 194A TDS Status</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: tdsApplicable ? THEME.rust : THEME.sage }}>
                   {tdsApplicable ? "TDS Applicable (10%)" : "Within INR 40,000 Limit"}
                 </div>
               </div>
 
-              <div style={{ padding: 12, background: "rgba(0,0,0,0.2)", borderRadius: 8 }}>
+              <div style={{ padding: 12, background: "var(--surface-1)", border: `1px solid ${THEME.line}`, borderRadius: 8 }}>
                 <div style={{ fontSize: 11, color: THEME.muted }}>Estimated Annual TDS</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: tdsApplicable ? THEME.rust : THEME.sage, fontFamily: "var(--font-display)" }}>
                   <Money value={estimatedTDS} variant="full" />
@@ -2442,14 +2578,14 @@ function InteractiveRDCalculator({
 
             {calcMode === "maturity" ? (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-                <div style={{ padding: 12, background: "rgba(0,0,0,0.2)", borderRadius: 10 }}>
+                <div style={{ padding: 12, background: "var(--surface-1)", border: `1px solid ${THEME.line}`, borderRadius: 10 }}>
                   <div style={{ fontSize: 11, color: THEME.muted }}>Total Deposited</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent, fontFamily: "var(--font-display)" }}>
                     <Money value={totalPrincipal} variant="full" />
                   </div>
                 </div>
 
-                <div style={{ padding: 12, background: "rgba(0,0,0,0.2)", borderRadius: 10 }}>
+                <div style={{ padding: 12, background: "var(--surface-1)", border: `1px solid ${THEME.line}`, borderRadius: 10 }}>
                   <div style={{ fontSize: 11, color: THEME.muted }}>Maturity Corpus</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: THEME.sage, fontFamily: "var(--font-display)" }}>
                     <Money value={projectedMaturity} variant="full" />
@@ -2460,7 +2596,7 @@ function InteractiveRDCalculator({
                 </div>
               </div>
             ) : (
-              <div style={{ padding: 16, background: "rgba(139, 92, 246, 0.12)", borderRadius: 12, border: "1px solid rgba(139, 92, 246, 0.25)", marginBottom: 16 }}>
+              <div style={{ padding: 16, background: "color-mix(in srgb, #8b5cf6 10%, transparent)", borderRadius: 12, border: "1px solid color-mix(in srgb, #8b5cf6 25%, transparent)", marginBottom: 16 }}>
                 <div style={{ fontSize: 12, color: THEME.muted }}>Required Monthly Installment to hit ₹{targetCorpus.toLocaleString("en-IN")}</div>
                 <div style={{ fontSize: 28, fontWeight: 900, color: "#a78bfa", fontFamily: "var(--font-display)", marginTop: 4 }}>
                   ₹{requiredMonthly.toLocaleString("en-IN")} <span style={{ fontSize: 14, color: THEME.muted }}>/ month</span>
@@ -2501,16 +2637,168 @@ function InteractiveRDCalculator({
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
+   MODAL: Pay RD Installment Modal
+   ══════════════════════════════════════════════════════════════════════════════ */
+function PayInstallmentModal({
+  rd,
+  bankAccounts = [],
+  onClose,
+  onConfirm,
+  loading,
+}: {
+  rd: any;
+  bankAccounts?: any[];
+  onClose: () => void;
+  onConfirm: (data: { bankAccountId: string; debitBank: boolean; date: string }) => void;
+  loading?: boolean;
+}) {
+  const currentPaid = Number(rd.paidInstallments) || rdElapsed(rd);
+  const nextInstallment = currentPaid + 1;
+  const tenure = Number(rd.tenureMonths) || 12;
+  const monthly = Number(rd.monthly) || 0;
+  const initialBankId = rd.bankAccountId || rd.linkedAccount || bankAccounts[0]?.id || "";
+
+  const [selectedBankId, setSelectedBankId] = useState(initialBankId);
+  const [debitBank, setDebitBank] = useState(Boolean(initialBankId));
+  const [date, setDate] = useState(today());
+
+  const selectedBank = bankAccounts.find((b: any) => b.id === selectedBankId);
+  const bankBalance = Number(selectedBank?.balance || 0);
+  const remainingBalance = bankBalance - monthly;
+
+  const inp: React.CSSProperties = {
+    background: "var(--surface-1)",
+    border: `1px solid ${THEME.line}`,
+    borderRadius: 8,
+    padding: "9px 12px",
+    color: THEME.ink,
+    fontSize: 13,
+    width: "100%",
+    outline: "none",
+  };
+
+  return (
+    <Modal title={`Pay RD Installment #${nextInstallment}`} onClose={onClose}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div
+          style={{
+            padding: "12px 16px",
+            borderRadius: 10,
+            background: "rgba(14, 165, 233, 0.08)",
+            border: "1px solid rgba(14, 165, 233, 0.2)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+              {rd.bank} Recurring Deposit
+            </div>
+            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+              {rd.rdNumber || rd.accountNumber ? `A/C: ${rd.rdNumber || rd.accountNumber} • ` : ""}
+              Installment {nextInstallment} of {tenure}
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 11, color: THEME.muted }}>Amount Due</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: THEME.cyan, fontFamily: "var(--font-display)" }}>
+              ₹{monthly.toLocaleString("en-IN")}
+            </div>
+          </div>
+        </div>
+
+        <Field label="Debited From Bank Account">
+          <select
+            style={inp}
+            value={selectedBankId}
+            onChange={(e) => setSelectedBankId(e.target.value)}
+          >
+            <option value="">— Select Bank Account —</option>
+            {bankAccounts.map((b: any) => (
+              <option key={b.id} value={b.id}>
+                {b.bankName} (••{b.accountNumber?.slice(-4) || "NA"} - Balance: ₹{Number(b.balance || 0).toLocaleString("en-IN")})
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Payment / Debit Date">
+          <input
+            style={inp}
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </Field>
+
+        {selectedBank && (
+          <div
+            style={{
+              padding: "10px 14px",
+              borderRadius: 8,
+              background: "var(--surface-1)",
+              border: `1px solid ${THEME.line}`,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: 12,
+            }}
+          >
+            <span style={{ color: THEME.muted }}>Current Balance:</span>
+            <span style={{ fontWeight: 600, color: THEME.ink }}>₹{bankBalance.toLocaleString("en-IN")}</span>
+            <span style={{ color: THEME.muted }}>After Debit:</span>
+            <span style={{ fontWeight: 700, color: remainingBalance >= 0 ? THEME.sage : THEME.rust }}>
+              ₹{remainingBalance.toLocaleString("en-IN")}
+            </span>
+          </div>
+        )}
+
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 12,
+            color: THEME.ink,
+            cursor: "pointer",
+            marginTop: 4,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={debitBank}
+            onChange={(e) => setDebitBank(e.target.checked)}
+            style={{ accentColor: THEME.cyan }}
+          />
+          <span>Deduct ₹{monthly.toLocaleString("en-IN")} from bank balance & log transaction</span>
+        </label>
+
+        <ModalActions
+          onClose={onClose}
+          onSave={() => onConfirm({ bankAccountId: selectedBankId, debitBank, date })}
+          saveLabel={`Confirm Payment (₹${monthly.toLocaleString("en-IN")})`}
+          disabled={loading || (debitBank && !selectedBankId)}
+          loading={loading}
+        />
+      </div>
+    </Modal>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
    MODAL: Edit Recurring Deposit Modal
    ══════════════════════════════════════════════════════════════════════════════ */
 function EditRDModal({
   rd: initial,
+  bankAccounts = [],
   familyProfiles = [],
   onClose,
   onSave,
   saving,
 }: {
   rd: any;
+  bankAccounts?: any[];
   familyProfiles?: any[];
   onClose: () => void;
   onSave: (updated: any) => void;
@@ -2527,6 +2815,11 @@ function EditRDModal({
     owner: initial.owner || "self",
     goal: initial.goal || "General Savings",
     nominee: initial.nominee || "",
+    bankAccountId: initial.bankAccountId || initial.linkedAccount || "",
+    paidInstallments:
+      initial.paidInstallments != null
+        ? String(initial.paidInstallments)
+        : String(rdElapsed(initial)),
     notes: initial.notes || "",
   });
 
@@ -2536,8 +2829,8 @@ function EditRDModal({
     Number(form.tenureMonths) || 0
   );
 
-  const inp = {
-    background: "rgba(0,0,0,0.2)",
+  const inp: React.CSSProperties = {
+    background: "var(--surface-1)",
     border: `1px solid ${THEME.line}`,
     borderRadius: 8,
     padding: "8px 12px",
@@ -2562,6 +2855,9 @@ function EditRDModal({
       owner: form.owner,
       goal: form.goal,
       nominee: form.nominee,
+      bankAccountId: form.bankAccountId,
+      linkedAccount: form.bankAccountId,
+      paidInstallments: Number(form.paidInstallments) || 0,
       notes: form.notes,
     });
   };
@@ -2676,6 +2972,21 @@ function EditRDModal({
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Debited From Bank Account">
+            <select
+              style={inp}
+              value={form.bankAccountId}
+              onChange={(e) => setForm({ ...form, bankAccountId: e.target.value })}
+            >
+              <option value="">— Select Bank Account —</option>
+              {bankAccounts.map((b: any) => (
+                <option key={b.id} value={b.id}>
+                  {b.bankName} (••{b.accountNumber?.slice(-4) || "NA"} - Balance: ₹{Number(b.balance || 0).toLocaleString("en-IN")})
+                </option>
+              ))}
+            </select>
+          </Field>
+
           <Field label="Monthly Debit Day">
             <input
               style={inp}
@@ -2685,6 +2996,19 @@ function EditRDModal({
               value={form.debitDay}
               onChange={(e) => setForm({ ...form, debitDay: e.target.value })}
               placeholder="5"
+            />
+          </Field>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Installments Deposited to Date">
+            <input
+              style={inp}
+              type="number"
+              min="0"
+              value={form.paidInstallments}
+              onChange={(e) => setForm({ ...form, paidInstallments: e.target.value })}
+              placeholder="0"
             />
           </Field>
 
@@ -2791,7 +3115,7 @@ function PrematureBreakModal({
           </div>
         </div>
 
-        <Card style={{ padding: 16, background: "rgba(0,0,0,0.2)" }}>
+        <Card style={{ padding: 16, background: "var(--surface-1)" }}>
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
               <span style={{ color: THEME.muted }}>Close RD After (Months):</span>
@@ -2878,8 +3202,8 @@ function RDRolloverModal({
   const [startDate, setStartDate] = useState(today());
   const [goal, setGoal] = useState(rd.goal || "Wealth Accumulator");
 
-  const inp = {
-    background: "rgba(0,0,0,0.2)",
+  const inp: React.CSSProperties = {
+    background: "var(--surface-1)",
     border: `1px solid ${THEME.line}`,
     borderRadius: 8,
     padding: "8px 12px",

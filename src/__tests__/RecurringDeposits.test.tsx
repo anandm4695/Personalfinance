@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { RecurringDepositsSection } from "../components/investments/RecurringDepositsSection";
 import { MasterDataContext, DEFAULT_MASTER_DATA } from "../utils/masterData";
 import { PrivacyProvider } from "../context/PrivacyContext";
@@ -171,5 +171,82 @@ describe("RecurringDepositsSection Component", () => {
     fireEvent.click(breakSimBtns[0]);
     expect(screen.getByText("Premature Closure & Penalty Simulator")).toBeDefined();
     expect(screen.getByText("Estimated Payout Upon Break")).toBeDefined();
+  });
+
+  it("handles newly added RD with 0 paid installments accurately without automatically assuming full deposit", () => {
+    const newRD = [
+      {
+        id: "rd-new",
+        bank: "Kotak Mahindra Bank",
+        monthly: 5000,
+        rate: 6.75,
+        tenureMonths: 12,
+        startDate: "2026-06-01",
+        paidInstallments: 0,
+        rdNumber: "501004928192",
+        bankAccountId: "b-1",
+        owner: "self",
+      },
+    ];
+    const mockBanks = [{ id: "b-1", bankName: "HDFC Bank", balance: 50000, accountNumber: "12345678" }];
+
+    renderRDSection(newRD, { bankAccounts: mockBanks });
+
+    // Should display 0 of 12 installments paid because paidInstallments is explicitly 0
+    expect(screen.getByText(/0 of 12 installments paid/i)).toBeDefined();
+    expect(screen.getByText("0%")).toBeDefined();
+    // Linked bank badge
+    expect(screen.getByText(/HDFC Bank ••5678/i)).toBeDefined();
+    // Pay Installment button is available
+    expect(screen.getByText("Pay Installment")).toBeDefined();
+  });
+
+  it("opens Pay Installment modal and executes payment deduction", async () => {
+    const updateItem = vi.fn();
+    const addItem = vi.fn();
+    const newRD = [
+      {
+        id: "rd-pay-test",
+        bank: "Kotak Mahindra Bank",
+        monthly: 5000,
+        rate: 6.75,
+        tenureMonths: 12,
+        startDate: "2026-01-01",
+        paidInstallments: 2,
+        rdNumber: "501004928192",
+        bankAccountId: "b-1",
+        owner: "self",
+      },
+    ];
+    const mockBanks = [{ id: "b-1", bankName: "HDFC Bank", balance: 50000, accountNumber: "12345678" }];
+
+    renderRDSection(newRD, { bankAccounts: mockBanks, updateItem, addItem });
+
+    const payBtn = screen.getByText("Pay Installment");
+    fireEvent.click(payBtn);
+
+    expect(screen.getByText(/Pay RD Installment #3/i)).toBeDefined();
+    expect(screen.getByText(/Amount Due/i)).toBeDefined();
+    expect(screen.getByText(/After Debit:/i)).toBeDefined();
+
+    const confirmBtn = screen.getByText(/Confirm Payment/i);
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(updateItem).toHaveBeenCalledWith(
+        "recurringDeposits",
+        "rd-pay-test",
+        expect.objectContaining({
+          paidInstallments: 3,
+        })
+      );
+      expect(updateItem).toHaveBeenCalledWith(
+        "bankAccounts",
+        "b-1",
+        expect.objectContaining({
+          balance: 45000,
+        })
+      );
+    });
   });
 });

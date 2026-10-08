@@ -543,6 +543,23 @@ export const rdMaturity = (monthly: number, rate: number, months: number) => {
   return total;
 };
 
+/**
+ * Calculates number of installments deposited for a Recurring Deposit.
+ * Prioritizes explicit paidInstallments count if tracked, otherwise computes elapsed calendar months.
+ */
+export const rdElapsed = (r: any, asOfDate: string = today()): number => {
+  if (!r) return 0;
+  const tenure = Number(r.tenureMonths) || 0;
+  if (r.paidInstallments !== undefined && r.paidInstallments !== null && r.paidInstallments !== "") {
+    const p = Number(r.paidInstallments);
+    if (!isNaN(p)) return tenure > 0 ? Math.min(tenure, Math.max(0, p)) : Math.max(0, p);
+  }
+  if (r.startDate && r.startDate > asOfDate) return 0;
+  if (!r.startDate) return tenure;
+  const elapsedMonths = Math.max(0, monthsBetween(r.startDate, asOfDate));
+  return tenure > 0 ? Math.min(tenure, elapsedMonths) : elapsedMonths;
+};
+
 export const calcTaxNew = (income: number) => {
   const res = calcTaxNewByFY(income, "2025-26");
   return { tax: res.tax, cess: res.cess, total: res.total, surcharge: res.surcharge, taxable: res.taxable, stdDed: res.stdDed };
