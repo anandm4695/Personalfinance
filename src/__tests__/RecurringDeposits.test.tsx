@@ -87,7 +87,7 @@ describe("RecurringDepositsSection Component", () => {
     expect(screen.getByText("Monthly SIP Total")).toBeDefined();
     expect(screen.getByText("Total Deposited")).toBeDefined();
     expect(screen.getByText("Current Accrued")).toBeDefined();
-    expect(screen.getByText("Projected Maturity")).toBeDefined();
+    expect(screen.getAllByText("Projected Maturity").length).toBeGreaterThan(0);
     expect(screen.getByText("Blended Yield (p.a.)")).toBeDefined();
   });
 

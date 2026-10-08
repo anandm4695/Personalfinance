@@ -180,16 +180,6 @@ export function RecurringDepositsSection({
   const isRDMatured = (r: any) => {
     const tenure = Number(r.tenureMonths) || 0;
     if (r.status === "matured") return true;
-    const matStr = getMaturityDateStr(r);
-    if (matStr) {
-      const [y, m, d] = String(matStr).split("-").map(Number);
-      if (y && m && d) {
-        const matDate = new Date(y, m - 1, d);
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        if (matDate.getTime() <= now.getTime()) return true;
-      }
-    }
     return tenure > 0 && rdElapsedFn(r) >= tenure;
   };
 
@@ -206,10 +196,6 @@ export function RecurringDepositsSection({
 
   const getAccruedValue = (r: any) => {
     const elapsed = rdElapsedFn(r);
-    const tenure = Number(r.tenureMonths) || 0;
-    if (isRDMatured(r)) {
-      return rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), tenure || elapsed);
-    }
     return rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), elapsed);
   };
 
@@ -1024,16 +1010,16 @@ export function RecurringDepositsSection({
                   {processedItems.map((r: any) => {
                     const tenure = Number(r.tenureMonths) || 0;
                     const elapsed = rdElapsedFn(r);
+                    const isFullyPaid = tenure > 0 && elapsed >= tenure;
                     const matured = isRDMatured(r);
                     const deposited = getDepositedAmount(r);
                     const accrued = getAccruedValue(r);
                     const fullMaturity = getFullMaturityValue(r);
                     const gain = Math.max(0, accrued - deposited);
-                    const progressPct = matured
-                      ? 100
-                      : tenure > 0
-                      ? Math.min(100, (elapsed / tenure) * 100)
-                      : 0;
+                    const progressPct =
+                      tenure > 0
+                        ? Math.min(100, (elapsed / tenure) * 100)
+                        : 0;
                     const daysLeft = rdDaysLeft(r);
                     const matDateStr = getMaturityDateStr(r);
 
@@ -1046,7 +1032,7 @@ export function RecurringDepositsSection({
                           flexDirection: "column",
                           justifyContent: "space-between",
                           borderTop: `4px solid ${
-                            matured ? THEME.sage : THEME.cyan
+                            isFullyPaid ? THEME.sage : THEME.cyan
                           }`,
                           background:
                             "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%)",
@@ -1074,7 +1060,7 @@ export function RecurringDepositsSection({
                               <BankLogo
                                 name={r.bank || "Bank"}
                                 size={38}
-                                accentColor={matured ? THEME.sage : THEME.cyan}
+                                accentColor={isFullyPaid ? THEME.sage : THEME.cyan}
                               />
                               <div>
                                 <div
@@ -1166,8 +1152,12 @@ export function RecurringDepositsSection({
                               marginBottom: 14,
                             }}
                           >
-                            {matured || (daysLeft !== null && daysLeft <= 0) ? (
+                            {isFullyPaid || matured ? (
                               <Badge variant="sage">Matured</Badge>
+                            ) : daysLeft !== null && daysLeft <= 0 ? (
+                              <Badge variant="gold">
+                                Tenure Ended ({elapsed}/{tenure})
+                              </Badge>
                             ) : daysLeft !== null && daysLeft <= 30 ? (
                               <Badge variant="rust">
                                 Matures in {daysLeft}d
@@ -1281,7 +1271,7 @@ export function RecurringDepositsSection({
                                   fontFamily: "var(--font-display)",
                                   fontSize: 26,
                                   fontWeight: 800,
-                                  color: matured ? THEME.muted : THEME.cyan,
+                                  color: isFullyPaid ? THEME.muted : THEME.cyan,
                                   letterSpacing: "-0.02em",
                                 }}
                               >
@@ -1326,14 +1316,14 @@ export function RecurringDepositsSection({
                               }}
                             >
                               <span>
-                                {matured
+                                {isFullyPaid
                                   ? `All ${tenure} installments paid`
                                   : `${elapsed} of ${tenure} installments paid`}
                               </span>
                               <span
                                 style={{
                                   fontWeight: 700,
-                                  color: matured ? THEME.sage : THEME.cyan,
+                                  color: isFullyPaid ? THEME.sage : THEME.cyan,
                                 }}
                               >
                                 {progressPct.toFixed(0)}%
@@ -1352,7 +1342,7 @@ export function RecurringDepositsSection({
                                   width: `${progressPct}%`,
                                   height: "100%",
                                   borderRadius: 4,
-                                  background: matured
+                                  background: isFullyPaid
                                     ? "linear-gradient(90deg, #10b981 0%, #34d399 100%)"
                                     : "linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)",
                                   transition: "width 0.3s ease",
@@ -1417,19 +1407,19 @@ export function RecurringDepositsSection({
                                   textTransform: "uppercase",
                                 }}
                               >
-                                {matured ? "Final Payout" : "On Maturity"}
+                                {isFullyPaid ? "Final Payout" : "Projected Maturity"}
                               </div>
                               <div
                                 style={{
                                   fontSize: 14,
                                   fontWeight: 800,
-                                  color: THEME.sage,
+                                  color: isFullyPaid ? THEME.sage : THEME.accent,
                                   fontFamily: "var(--font-display)",
                                   marginTop: 2,
                                 }}
                               >
                                 <Money
-                                  value={matured ? accrued : fullMaturity}
+                                  value={isFullyPaid ? accrued : fullMaturity}
                                   variant="full"
                                 />
                               </div>
@@ -1478,7 +1468,7 @@ export function RecurringDepositsSection({
                             >
                               Break Sim
                             </Button>
-                            {!matured && elapsed < tenure && (
+                            {!isFullyPaid && elapsed < tenure && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1498,7 +1488,7 @@ export function RecurringDepositsSection({
                             )}
                           </div>
 
-                          {matured ? (
+                          {isFullyPaid || matured ? (
                             <Button
                               variant="primary"
                               size="sm"
@@ -1580,10 +1570,11 @@ export function RecurringDepositsSection({
                     {processedItems.map((r: any, idx: number) => {
                       const tenure = Number(r.tenureMonths) || 0;
                       const elapsed = rdElapsedFn(r);
+                      const isFullyPaid = tenure > 0 && elapsed >= tenure;
                       const matured = isRDMatured(r);
                       const deposited = getDepositedAmount(r);
                       const accrued = getAccruedValue(r);
-                      const matVal = matured ? accrued : getFullMaturityValue(r);
+                      const matVal = isFullyPaid ? accrued : getFullMaturityValue(r);
                       const matDate = getMaturityDateStr(r);
                       const daysLeft = rdDaysLeft(r);
 
@@ -1720,7 +1711,7 @@ export function RecurringDepositsSection({
                                       : 0
                                   }%`,
                                   height: "100%",
-                                  background: matured
+                                  background: isFullyPaid
                                     ? THEME.sage
                                     : THEME.cyan,
                                 }}
@@ -1772,8 +1763,12 @@ export function RecurringDepositsSection({
                           </td>
 
                           <td style={{ padding: "12px 12px" }}>
-                            {matured || (daysLeft !== null && daysLeft <= 0) ? (
+                            {isFullyPaid || matured ? (
                               <Badge variant="sage">Matured</Badge>
+                            ) : daysLeft !== null && daysLeft <= 0 ? (
+                              <Badge variant="gold">
+                                Tenure Ended ({elapsed}/{tenure})
+                              </Badge>
                             ) : daysLeft !== null && daysLeft <= 90 ? (
                               <Badge variant="gold">
                                 {daysLeft}d left
@@ -1795,7 +1790,7 @@ export function RecurringDepositsSection({
                                 gap: 4,
                               }}
                             >
-                              {!matured && elapsed < tenure && (
+                              {!isFullyPaid && elapsed < tenure && (
                                 <Button
                                   variant="ghost"
                                   size="sm"

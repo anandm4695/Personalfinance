@@ -1669,11 +1669,6 @@ export const InvestmentsTab: React.FC<InvestmentsTabProps> = ({
   };
 
   // RD: only count installments actually deposited, and accrue interest on those
-  const rdElapsed = (x: any) =>
-    x.startDate
-      ? Math.min(Number(x.tenureMonths) || 0, Math.max(0, monthsBetween(x.startDate, today())))
-      : Number(x.tenureMonths) || 0;
-
   const rdCurrentValue = (x: any) =>
     rdMaturity(Number(x.monthly) || 0, Number(x.rate) || 0, rdElapsed(x));
 
@@ -2775,13 +2770,7 @@ function RDSection({ items, removeItem, updateItem, onAdd, showToast }: any) {
   // accent preset.
   const RD_BLUE = THEME.cyan;
 
-  const rdElapsedFn = (r: any) =>
-    r.startDate
-      ? Math.min(
-          Number(r.tenureMonths) || 0,
-          Math.max(0, monthsBetween(r.startDate, today()))
-        )
-      : Number(r.tenureMonths) || 0;
+  const rdElapsedFn = (r: any) => rdElapsed(r);
   const isRDMatured = (r: any) =>
     rdElapsedFn(r) >= (Number(r.tenureMonths) || 0) && (Number(r.tenureMonths) || 0) > 0;
 
