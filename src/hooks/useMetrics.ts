@@ -871,18 +871,47 @@ export function useMetrics(
     ].filter((x) => x.Invested > 0 || x.Current > 0);
 
     const totalGoalTarget = (sState.goals || []).reduce(
-      (s: number, g: any) => s + Number(g.targetAmount || 0),
+      (s: number, g: any) => {
+        if (g.schedule && g.schedule.length > 0) {
+          return s + g.schedule.reduce((sum: number, it: any) => sum + (Number(it.amount) || 0), 0);
+        }
+        return s + Number(g.targetAmount || 0);
+      },
       0
     );
     const totalGoalSaved = (sState.goals || []).reduce(
-      (s: number, g: any) => s + Number(g.currentAmount || 0),
+      (s: number, g: any) => {
+        const current = Number(g.currentAmount || 0);
+        if (g.goalType === "recurring") {
+          const disbursements = g.disbursements || [];
+          if (disbursements.length > 0) {
+            return s + (disbursements.reduce((sum: number, d: any) => sum + Number(d.amount || 0), 0) + current);
+          }
+          if (g.schedule && g.schedule.length > 0) {
+            const paidCount = Number(g.installmentsPaid) || 0;
+            const paidFromSchedule = g.schedule.slice(0, paidCount).reduce((sum: number, it: any) => sum + (Number(it.amount) || 0), 0);
+            return s + (paidFromSchedule + current);
+          }
+          const totalInst = Number(g.installmentsCount) || 1;
+          const perInst = Number(g.amountPerInstallment) || (Number(g.targetAmount || 0) / totalInst);
+          const paidDisbursed = (Number(g.installmentsPaid) || 0) * perInst;
+          return s + (paidDisbursed + current);
+        }
+        return s + current;
+      },
       0
     );
     const totalGoalRemaining = Math.max(0, totalGoalTarget - totalGoalSaved);
     const overallGoalPct = totalGoalTarget > 0 ? (totalGoalSaved / totalGoalTarget) * 100 : 0;
-    const goalsCompleted = (sState.goals || []).filter(
-      (g: any) => Number(g.targetAmount) > 0 && Number(g.currentAmount) >= Number(g.targetAmount)
-    ).length;
+    const goalsCompleted = (sState.goals || []).filter((g: any) => {
+      const target = Number(g.targetAmount || 0);
+      if (g.goalType === "recurring") {
+        const totalInst = g.schedule?.length || Number(g.installmentsCount) || 1;
+        const paidInst = Number(g.installmentsPaid) || (g.disbursements?.length || 0);
+        return paidInst >= totalInst || (target > 0 && Number(g.currentAmount || 0) >= target);
+      }
+      return target > 0 && Number(g.currentAmount || 0) >= target;
+    }).length;
     return {
       cashInBanks,
       fdValue,

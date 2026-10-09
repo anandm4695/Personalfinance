@@ -122,31 +122,62 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
       });
     // Goals behind schedule
     (state.goals || []).forEach((g: any) => {
-      const progress = Number(g.targetAmount)
-        ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
-        : 0;
-      if (g.targetDate) {
-        const totalM = monthsBetween(today(), g.targetDate);
-        if (totalM <= 0) {
-          // Goal is past its target date
-          if (progress < 100)
+      const isRecurring = g.goalType === "recurring";
+      if (isRecurring) {
+        const totalInst = Number(g.installmentsCount) || 1;
+        const paidInst = Number(g.installmentsPaid) || (g.disbursements?.length || 0);
+        if (paidInst >= totalInst) return; // Completed
+
+        const targetAmt = Number(g.targetAmount || 0);
+        const perInst = Number(g.amountPerInstallment) || (totalInst > 0 ? targetAmt / totalInst : 0);
+        const currentPool = Number(g.currentAmount || 0);
+        const nextDue = g.nextDueDate || g.targetDate;
+
+        if (nextDue) {
+          const totalM = monthsBetween(today(), nextDue);
+          if (totalM <= 0) {
             list.push({
               level: "warn",
-              title: `Goal "${g.name}" is overdue`,
-              detail: `Target date passed — ${progress.toFixed(0)}% funded`,
+              title: `Installment for "${g.name}" is overdue`,
+              detail: `Year ${paidInst + 1} payout of ₹${fmtINR(perInst)} was due on ${nextDue}`,
               tab: "goals",
             });
-        } else {
-          const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
-          const totalDuration = elapsed + totalM;
-          const expectedPct = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
-          if (progress < expectedPct - 10)
+          } else if (totalM <= 3 && perInst > 0 && currentPool < perInst * 0.5) {
             list.push({
               level: "warn",
-              title: `Goal "${g.name}" behind schedule`,
-              detail: `${progress.toFixed(0)}% saved, expected ${expectedPct.toFixed(0)}%`,
+              title: `Goal "${g.name}" installment due soon`,
+              detail: `Year ${paidInst + 1} payout of ₹${fmtINR(perInst)} due in ${totalM}m — ₹${fmtINR(currentPool)} ready`,
               tab: "goals",
             });
+          }
+        }
+      } else {
+        const progress = Number(g.targetAmount)
+          ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
+          : 0;
+        if (g.targetDate) {
+          const totalM = monthsBetween(today(), g.targetDate);
+          if (totalM <= 0) {
+            // Goal is past its target date
+            if (progress < 100)
+              list.push({
+                level: "warn",
+                title: `Goal "${g.name}" is overdue`,
+                detail: `Target date passed — ${progress.toFixed(0)}% funded`,
+                tab: "goals",
+              });
+          } else {
+            const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
+            const totalDuration = elapsed + totalM;
+            const expectedPct = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
+            if (progress < expectedPct - 10)
+              list.push({
+                level: "warn",
+                title: `Goal "${g.name}" behind schedule`,
+                detail: `${progress.toFixed(0)}% saved, expected ${expectedPct.toFixed(0)}%`,
+                tab: "goals",
+              });
+          }
         }
       }
     });

@@ -33,6 +33,10 @@ import {
   ChevronUp,
   User,
   Compass,
+  Repeat,
+  History,
+  ArrowRight,
+  Receipt,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { fmtINR, fmtINRFull, today, monthsBetween } from "../../utils/finance";
@@ -45,6 +49,8 @@ import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { StatCard } from "../ui/StatCard";
 import { Modal } from "../ui/Modal";
+import { Field } from "../ui/Form";
+import type { GoalDisbursement } from "../../types/finance";
 
 const EmptyHint = ({ text }: { text: string }) => (
   <div style={{ padding: "36px 20px", textAlign: "center", color: THEME.muted }}>
@@ -57,8 +63,8 @@ const GoalEmptyState = ({ onAdd }: any) => (
     icon={Flag}
     gradient={`linear-gradient(135deg, ${THEME.accent}, ${THEME.sage})`}
     title="No Financial Goals Set Yet"
-    description="Set targets for what your money is for — retirement freedom, home down payment, higher education, dream vehicle, or emergency buffer."
-    pills={["Retirement Corpus", "Home Down Payment", "Education Fund", "Emergency Buffer", "Dream Vacation"]}
+    description="Set targets for what your money is for — child school/college annual fees, retirement freedom, home down payment, higher education, or emergency buffer."
+    pills={["School Annual Fees", "Retirement Corpus", "Home Down Payment", "College Tuition", "Emergency Buffer", "Annual Insurance"]}
     buttonLabel="Set Your First Goal"
     onAdd={onAdd}
   />
@@ -119,13 +125,18 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
   const [sortBy, setSortBy] = useState<"priority" | "deadline" | "progress" | "amount">("priority");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterType, setFilterType] = useState<"all" | "target" | "recurring">("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "completed" | "on_track" | "behind" | "overdue">("all");
   const [sipExpanded, setSipExpanded] = useState<Set<string>>(new Set());
+  const [historyExpanded, setHistoryExpanded] = useState<Set<string>>(new Set());
   const [showInflation, setShowInflation] = useState(false);
   const [inflationRate, setInflationRate] = useState("6");
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   const [showSimulator, setShowSimulator] = useState(false);
   const [customSipRate, setCustomSipRate] = useState<Record<string, number>>({});
+
+  // Payout / Disbursement Modal State
+  const [disbursementGoal, setDisbursementGoal] = useState<any>(null);
 
   // Quick Top-up State
   const [contribOpen, setContribOpen] = useState<string | null>(null);
@@ -180,6 +191,91 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
     }
   };
 
+  const { run: runRecordDisbursement } = useAsyncAction(
+    async (goalId: string, goal: any, disbursement: GoalDisbursement, deductFromPool: boolean) => {
+      const existingDisbursements = goal.disbursements || [];
+      const newDisbursements = [...existingDisbursements, disbursement];
+      const newPaidCount = (Number(goal.installmentsPaid) || existingDisbursements.length) + 1;
+      const totalCount = goal.schedule?.length || Number(goal.installmentsCount) || 1;
+      const paidAmt = Number(disbursement.amount || 0);
+
+      const updatedPool = deductFromPool
+        ? Math.max(0, Number(goal.currentAmount || 0) - paidAmt)
+        : Number(goal.currentAmount || 0);
+
+      let nextDue = goal.nextDueDate || "";
+      let updatedSchedule = goal.schedule;
+
+      if (goal.schedule && goal.schedule.length > 0) {
+        updatedSchedule = goal.schedule.map((item: any) => {
+          if (item.installmentNumber === disbursement.installmentNumber) {
+            return {
+              ...item,
+              isPaid: true,
+              paidDate: disbursement.date,
+              paidAmount: disbursement.amount,
+            };
+          }
+          return item;
+        });
+        const nextUnpaid = updatedSchedule.find((item: any) => !item.isPaid);
+        if (nextUnpaid && nextUnpaid.dueDate) {
+          nextDue = nextUnpaid.dueDate;
+        }
+      } else if (newPaidCount < totalCount && nextDue) {
+        const d = new Date(nextDue);
+        if (goal.recurringFrequency === "quarterly") {
+          d.setMonth(d.getMonth() + 3);
+        } else if (goal.recurringFrequency === "half_yearly") {
+          d.setMonth(d.getMonth() + 6);
+        } else if (goal.recurringFrequency === "monthly") {
+          d.setMonth(d.getMonth() + 1);
+        } else {
+          // Yearly
+          d.setFullYear(d.getFullYear() + 1);
+        }
+        nextDue = d.toISOString().split("T")[0];
+      }
+
+      await updateItem("goals", goalId, {
+        installmentsPaid: newPaidCount,
+        disbursements: newDisbursements,
+        currentAmount: updatedPool,
+        nextDueDate: nextDue,
+        schedule: updatedSchedule,
+      });
+
+      showToast?.(
+        `Recorded installment payout of ₹${fmtINR(paidAmt)} for "${goal.name}"!`,
+        "success"
+      );
+    },
+    {
+      onSuccess: () => setDisbursementGoal(null),
+      onError: (e: any) =>
+        showToast?.(`Failed to record disbursement: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
+  const { run: runDeleteDisbursement } = useAsyncAction(
+    async (goalId: string, goal: any, disbId: string) => {
+      const existing = goal.disbursements || [];
+      const filtered = existing.filter((d: any) => d.id !== disbId);
+      const newPaidCount = Math.max(0, (Number(goal.installmentsPaid) || existing.length) - 1);
+
+      await updateItem("goals", goalId, {
+        installmentsPaid: newPaidCount,
+        disbursements: filtered,
+      });
+
+      showToast?.("Disbursement record removed", "info");
+    },
+    {
+      onError: (e: any) =>
+        showToast?.(`Failed to remove disbursement: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
   const { run: deleteGoal } = useAsyncAction(
     async (id: string) => {
       await removeItem("goals", id);
@@ -193,6 +289,127 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
 
   const allGoals: any[] = state.goals || [];
   const inflRateNum = (Number(inflationRate) || 6) / 100;
+
+  // Processed goals with comprehensive metrics
+  const processedGoals = useMemo(() => {
+    return allGoals.map((g: any) => {
+      const isRecurring = g.goalType === "recurring";
+      const hasCustomSchedule = isRecurring && g.schedule && g.schedule.length > 0;
+      const totalInstallments = isRecurring ? (hasCustomSchedule ? g.schedule.length : Number(g.installmentsCount) || 1) : 1;
+      const nominalTarget = hasCustomSchedule
+        ? g.schedule.reduce((s: number, it: any) => s + (Number(it.amount) || 0), 0)
+        : Number(g.targetAmount || 0);
+      const current = Number(g.currentAmount || 0);
+
+      const disbursements: GoalDisbursement[] = g.disbursements || [];
+      const paidInstallments = isRecurring
+        ? Number(g.installmentsPaid) || disbursements.length
+        : 0;
+
+      let perInstallment = isRecurring
+        ? Number(g.amountPerInstallment) || (totalInstallments > 0 ? nominalTarget / totalInstallments : nominalTarget)
+        : nominalTarget;
+
+      let nextDue = isRecurring ? (g.nextDueDate || g.targetDate || "") : (g.targetDate || "");
+      let nextInstallmentAmount = perInstallment;
+
+      if (hasCustomSchedule) {
+        const nextScheduleItem = g.schedule[paidInstallments] || g.schedule[g.schedule.length - 1];
+        if (nextScheduleItem) {
+          nextInstallmentAmount = Number(nextScheduleItem.amount) || perInstallment;
+          if (nextScheduleItem.dueDate) nextDue = nextScheduleItem.dueDate;
+        }
+      }
+
+      const totalDisbursed = disbursements.length > 0
+        ? disbursements.reduce((s: number, d: any) => s + Number(d.amount || 0), 0)
+        : hasCustomSchedule
+          ? g.schedule.slice(0, paidInstallments).reduce((s: number, it: any) => s + (Number(it.amount) || 0), 0)
+          : paidInstallments * perInstallment;
+
+      const totalRealized = isRecurring ? totalDisbursed + current : current;
+
+      // Inflation adjustment
+      const yearsToTarget = g.targetDate ? Math.max(0, monthsBetween(today(), g.targetDate) / 12) : 0;
+      const inflatedTarget =
+        showInflation && yearsToTarget > 0
+          ? nominalTarget * Math.pow(1 + inflRateNum, yearsToTarget)
+          : nominalTarget;
+      const effectiveTarget = showInflation ? inflatedTarget : nominalTarget;
+
+      const isComplete = isRecurring
+        ? paidInstallments >= totalInstallments || (nominalTarget > 0 && totalDisbursed >= nominalTarget)
+        : effectiveTarget > 0 && current >= effectiveTarget;
+
+      const progress = nominalTarget > 0 ? Math.min(100, (totalRealized / nominalTarget) * 100) : 0;
+      const remainingInstallments = isRecurring ? Math.max(0, totalInstallments - paidInstallments) : 0;
+      const remainingGap = isRecurring
+        ? hasCustomSchedule
+          ? Math.max(0, g.schedule.slice(paidInstallments).reduce((s: number, it: any) => s + (Number(it.amount) || 0), 0) - current)
+          : Math.max(0, remainingInstallments * perInstallment - current)
+        : Math.max(0, effectiveTarget - current);
+
+      // Deadlines and due dates
+      const rawMonthsToNext = nextDue ? monthsBetween(today(), nextDue) : null;
+      const monthsToNext = rawMonthsToNext !== null ? Math.max(0, rawMonthsToNext) : 12;
+      const effMonths = monthsToNext > 0 ? monthsToNext : rawMonthsToNext === 0 ? 1 : 12;
+
+      const nextInstallmentGap = Math.max(0, nextInstallmentAmount - current);
+      const nextInstallmentProgress = nextInstallmentAmount > 0 ? Math.min(100, (current / nextInstallmentAmount) * 100) : 0;
+
+      // Monthly requirement
+      let monthlyNeeded = 0;
+      if (!isComplete) {
+        if (isRecurring) {
+          monthlyNeeded = nextInstallmentGap > 0 ? nextInstallmentGap / effMonths : 0;
+        } else {
+          monthlyNeeded = effMonths > 0 ? remainingGap / effMonths : 0;
+        }
+      }
+
+      // Elapsed & expected progress
+      const rawML = g.targetDate ? monthsBetween(today(), g.targetDate) : null;
+      const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
+      const totalDuration = elapsed + (rawML !== null ? Math.max(0, rawML) : 0);
+      const expectedPct = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
+
+      const isOverdue = !isComplete && rawMonthsToNext !== null && rawMonthsToNext < 0;
+      const isBehind = !isComplete && !isOverdue && (
+        isRecurring
+          ? (rawMonthsToNext !== null && rawMonthsToNext <= 3 && nextInstallmentProgress < 60)
+          : (g.targetDate && progress < expectedPct - 10)
+      );
+
+      return {
+        ...g,
+        isRecurring,
+        hasCustomSchedule,
+        totalInstallments,
+        perInstallment,
+        paidInstallments,
+        remainingInstallments,
+        disbursements,
+        totalDisbursed,
+        totalRealized,
+        nominalTarget,
+        inflatedTarget,
+        effectiveTarget,
+        currentAmount: current,
+        isComplete,
+        progress,
+        remainingGap,
+        nextDue,
+        rawMonthsToNext,
+        monthsToNext,
+        nextInstallmentAmount,
+        nextInstallmentGap,
+        nextInstallmentProgress,
+        monthlyNeeded,
+        isBehind,
+        isOverdue,
+      };
+    });
+  }, [allGoals, showInflation, inflRateNum]);
 
   // Portfolio Totals & Calculations
   const {
@@ -223,65 +440,39 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
       done: { count: 0, amount: 0 },
     };
 
-    allGoals.forEach((g: any) => {
-      const nominalTarget = Number(g.targetAmount || 0);
-      const current = Number(g.currentAmount || 0);
-      targetSum += nominalTarget;
-      savedSum += current;
+    processedGoals.forEach((g) => {
+      targetSum += g.nominalTarget;
+      inflatedTargetSum += g.inflatedTarget;
+      savedSum += g.totalRealized;
 
-      const yearsToTarget = g.targetDate ? Math.max(0, monthsBetween(today(), g.targetDate) / 12) : 0;
-      const inflatedTarget =
-        showInflation && yearsToTarget > 0
-          ? nominalTarget * Math.pow(1 + inflRateNum, yearsToTarget)
-          : nominalTarget;
-      inflatedTargetSum += inflatedTarget;
-
-      const effectiveTarget = showInflation ? inflatedTarget : nominalTarget;
-      const isComplete = effectiveTarget > 0 && current >= effectiveTarget;
-      const progress = effectiveTarget > 0 ? (current / effectiveTarget) * 100 : 0;
-
-      if (isComplete) {
+      if (g.isComplete) {
         completed++;
         horizons.done.count++;
-        horizons.done.amount += current;
+        horizons.done.amount += g.totalRealized;
         return;
       }
 
-      const rawML = g.targetDate ? monthsBetween(today(), g.targetDate) : null;
-      if (rawML !== null && rawML < 0) {
+      monthlyReqSum += g.monthlyNeeded;
+
+      if (g.isOverdue) {
         overdue++;
-      }
-
-      const ml = rawML !== null ? Math.max(0, rawML) : 0;
-      const remaining = Math.max(0, effectiveTarget - current);
-      const effM = ml > 0 ? ml : rawML === 0 ? 1 : 0;
-
-      if (effM > 0) {
-        monthlyReqSum += remaining / effM;
-      }
-
-      // Elapsed & expected progress
-      const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
-      const totalMonths = elapsed + ml;
-      const expectedPct = totalMonths > 0 ? (elapsed / totalMonths) * 100 : 0;
-      const isBehind = g.targetDate && progress < expectedPct - 10;
-
-      if (isBehind) {
+      } else if (g.isBehind) {
         behind++;
       } else {
         onTrack++;
       }
 
-      // Horizon categorization
+      // Horizon categorization based on next required cashflow
+      const ml = g.monthsToNext;
       if (ml <= 12) {
         horizons.near.count++;
-        horizons.near.amount += effectiveTarget;
+        horizons.near.amount += g.effectiveTarget;
       } else if (ml <= 36) {
         horizons.medium.count++;
-        horizons.medium.amount += effectiveTarget;
+        horizons.medium.amount += g.effectiveTarget;
       } else {
         horizons.long.count++;
-        horizons.long.amount += effectiveTarget;
+        horizons.long.amount += g.effectiveTarget;
       }
     });
 
@@ -299,7 +490,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
       overdueCount: overdue,
       horizonBreakdown: horizons,
     };
-  }, [allGoals, showInflation, inflRateNum]);
+  }, [processedGoals, showInflation]);
 
   const monthlySavings = metrics
     ? Math.max(0, (metrics.monthIncome || 0) - (metrics.monthExpense || 0))
@@ -308,45 +499,17 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
   const overallPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
   const animatedOverallPct = useAnimatedNumber(overallPct);
 
-  // Portfolio Velocity Score (0 to 100)
-  const portfolioVelocityScore = useMemo(() => {
-    if (allGoals.length === 0) return 100;
-    const activeGoals = allGoals.length - completedCount;
-    if (activeGoals === 0) return 100;
-    const score = Math.round((onTrackCount / activeGoals) * 100);
-    return Math.min(100, Math.max(0, score));
-  }, [allGoals, completedCount, onTrackCount]);
-
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    allGoals.forEach((g) => {
-      if (g.category) set.add(g.category);
-    });
-    return Array.from(set);
-  }, [allGoals]);
-
   const filteredGoals = useMemo(() => {
-    return allGoals.filter((g) => {
+    return processedGoals.filter((g) => {
       if (filterPriority !== "all" && (g.priority || "Medium") !== filterPriority) return false;
       if (filterCategory !== "all" && g.category !== filterCategory) return false;
+      if (filterType === "recurring" && !g.isRecurring) return false;
+      if (filterType === "target" && g.isRecurring) return false;
 
-      const nominalTarget = Number(g.targetAmount || 0);
-      const current = Number(g.currentAmount || 0);
-      const isComplete = nominalTarget > 0 && current >= nominalTarget;
-      const rawML = g.targetDate ? monthsBetween(today(), g.targetDate) : null;
-      const isOverdue = rawML !== null && rawML < 0 && !isComplete;
-
-      const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
-      const ml = rawML !== null ? Math.max(0, rawML) : 0;
-      const totalMonths = elapsed + ml;
-      const progress = nominalTarget > 0 ? (current / nominalTarget) * 100 : 0;
-      const expectedPct = totalMonths > 0 ? (elapsed / totalMonths) * 100 : 0;
-      const isBehind = !isComplete && g.targetDate && progress < expectedPct - 10;
-
-      if (filterStatus === "completed" && !isComplete) return false;
-      if (filterStatus === "overdue" && !isOverdue) return false;
-      if (filterStatus === "behind" && !isBehind) return false;
-      if (filterStatus === "on_track" && (isComplete || isBehind || isOverdue)) return false;
+      if (filterStatus === "completed" && !g.isComplete) return false;
+      if (filterStatus === "overdue" && !g.isOverdue) return false;
+      if (filterStatus === "behind" && !g.isBehind) return false;
+      if (filterStatus === "on_track" && (g.isComplete || g.isBehind || g.isOverdue)) return false;
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -357,24 +520,20 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
       }
       return true;
     });
-  }, [allGoals, filterPriority, filterCategory, filterStatus, searchQuery]);
+  }, [processedGoals, filterPriority, filterCategory, filterType, filterStatus, searchQuery]);
 
   const sortedGoals = useMemo(() => {
     return [...filteredGoals].sort((a, b) => {
       if (sortBy === "deadline") {
-        const da = a.targetDate ? new Date(a.targetDate).getTime() : Infinity;
-        const db = b.targetDate ? new Date(b.targetDate).getTime() : Infinity;
+        const da = a.nextDue ? new Date(a.nextDue).getTime() : Infinity;
+        const db = b.nextDue ? new Date(b.nextDue).getTime() : Infinity;
         return sortDir === "desc" ? db - da : da - db;
       }
       if (sortBy === "progress") {
-        const pa = Number(a.targetAmount) ? (Number(a.currentAmount) / Number(a.targetAmount)) * 100 : 0;
-        const pb = Number(b.targetAmount) ? (Number(b.currentAmount) / Number(b.targetAmount)) * 100 : 0;
-        return sortDir === "desc" ? pb - pa : pa - pb;
+        return sortDir === "desc" ? b.progress - a.progress : a.progress - b.progress;
       }
       if (sortBy === "amount") {
-        const aa = Number(a.targetAmount || 0);
-        const ab = Number(b.targetAmount || 0);
-        return sortDir === "desc" ? ab - aa : aa - ab;
+        return sortDir === "desc" ? b.nominalTarget - a.nominalTarget : a.nominalTarget - b.nominalTarget;
       }
       const pa = PRIORITY_ORDER[a.priority] ?? 2;
       const pb = PRIORITY_ORDER[b.priority] ?? 2;
@@ -395,7 +554,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
   return (
     <div className="tab-content-enter">
       <SectionTitle
-        sub="Master your financial destiny — track wealth milestones, retirement freedom, and strategic compounding"
+        sub="Master your financial destiny — track wealth milestones, recurring school/college fees, and strategic compounding"
         rightElement={
           allGoals.length > 0 && (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -552,9 +711,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                     </span>
                   </div>
                   <div style={{ fontSize: 12, color: THEME.muted, marginTop: 4, fontWeight: 600 }}>
-                    {allGoals.length} Active Financial Goal{allGoals.length !== 1 ? "s" : ""} ·{" "}
+                    {allGoals.length} Financial Goal{allGoals.length !== 1 ? "s" : ""} ·{" "}
                     <strong style={{ color: totalRemaining > 0 ? THEME.gold : THEME.sage }}>
-                      {fmtINRFull(totalRemaining)} Remaining Gap
+                      {fmtINRFull(totalRemaining)} Remaining Commitment
                     </strong>
                   </div>
                 </div>
@@ -738,7 +897,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
             }}
           >
             <StatCard
-              label="Total Target"
+              label="Total Goal Commitment"
               value={fmtINRFull(showInflation ? totalInflatedTarget : totalTarget)}
               numericValue={showInflation ? totalInflatedTarget : totalTarget}
               formatValue={fmtINRFull}
@@ -747,25 +906,25 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
               color={THEME.accent}
             />
             <StatCard
-              label="Accumulated Corpus"
+              label="Realized & Accumulated Corpus"
               value={fmtINRFull(totalSaved)}
               numericValue={totalSaved}
               formatValue={fmtINRFull}
-              sub={`${overallPct.toFixed(1)}% of total portfolio goal`}
+              sub={`${overallPct.toFixed(1)}% of total portfolio commitments`}
               icon={<PiggyBank />}
               color={THEME.sage}
             />
             <StatCard
-              label="Funding Gap"
+              label="Remaining Gap"
               value={fmtINRFull(totalRemaining)}
               numericValue={totalRemaining}
               formatValue={fmtINRFull}
-              sub={totalRemaining === 0 ? "100% Fully Funded!" : "Net capital to be accumulated"}
+              sub={totalRemaining === 0 ? "100% Fully Funded!" : "Net capital to be accumulated/disbursed"}
               icon={<TrendingDown />}
               color={totalRemaining > 0 ? THEME.gold : THEME.sage}
             />
             <StatCard
-              label="Required Monthly SIP"
+              label="Required Monthly Savings"
               value={
                 totalMonthlyRequired > 0
                   ? fmtINR(totalMonthlyRequired) + "/mo"
@@ -837,6 +996,31 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px" }}
               >
                 <TableIcon size={13} /> Table
+              </button>
+            </div>
+
+            {/* Structure Type Filter Pills */}
+            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+              <button
+                onClick={() => setFilterType("all")}
+                className={`demat-portfolio-pill ${filterType === "all" ? "active" : ""}`}
+                style={{ fontSize: 11, padding: "4px 10px" }}
+              >
+                All Types
+              </button>
+              <button
+                onClick={() => setFilterType("target")}
+                className={`demat-portfolio-pill ${filterType === "target" ? "active" : ""}`}
+                style={{ fontSize: 11, padding: "4px 10px", display: "flex", alignItems: "center", gap: 4 }}
+              >
+                <Target size={11} /> Lump Sum
+              </button>
+              <button
+                onClick={() => setFilterType("recurring")}
+                className={`demat-portfolio-pill ${filterType === "recurring" ? "active" : ""}`}
+                style={{ fontSize: 11, padding: "4px 10px", display: "flex", alignItems: "center", gap: 4 }}
+              >
+                <Repeat size={11} /> Multi-Year Recurring
               </button>
             </div>
 
@@ -949,15 +1133,15 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
           {(() => {
             const groups: Record<string, { desc: string; items: any[] }> = {
               "Immediate & Near-Term (< 1 Year)": {
-                desc: "Critical short-term liquidity buffers, urgent debt retirement, and immediate milestones",
+                desc: "Upcoming annual fee disbursements, emergency buffers, and immediate milestones",
                 items: [],
               },
               "Medium-Term Horizon (1 – 3 Years)": {
-                desc: "Vehicle upgrades, home renovations, and planned major expenditures",
+                desc: "Multi-year school fee schedules, vehicle upgrades, and planned major expenditures",
                 items: [],
               },
               "Long-Term Wealth Milestones (3 – 7 Years)": {
-                desc: "Home down payments, child higher education, and aggressive compounding funds",
+                desc: "College tuition programs, home down payments, and aggressive compounding funds",
                 items: [],
               },
               "Decade Horizon & Retirement (7+ Years)": {
@@ -965,7 +1149,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 items: [],
               },
               "Completed & Milestones Celebrated": {
-                desc: "Goals 100% funded and ready for realization",
+                desc: "Goals 100% funded and multi-year programs completed",
                 items: [],
               },
               "No Set Target Date": {
@@ -975,18 +1159,15 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
             };
 
             sortedGoals.forEach((g) => {
-              const progress = Number(g.targetAmount)
-                ? (Number(g.currentAmount) / Number(g.targetAmount)) * 100
-                : 0;
-              if (progress >= 100) {
+              if (g.isComplete) {
                 groups["Completed & Milestones Celebrated"].items.push(g);
                 return;
               }
-              if (!g.targetDate) {
+              if (!g.nextDue && !g.targetDate) {
                 groups["No Set Target Date"].items.push(g);
                 return;
               }
-              const ml = monthsBetween(today(), g.targetDate);
+              const ml = g.monthsToNext;
               if (ml <= 12) groups["Immediate & Near-Term (< 1 Year)"].items.push(g);
               else if (ml <= 36) groups["Medium-Term Horizon (1 – 3 Years)"].items.push(g);
               else if (ml <= 84) groups["Long-Term Wealth Milestones (3 – 7 Years)"].items.push(g);
@@ -1040,24 +1221,18 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
               {
                 id: "q1",
                 title: "Urgent & High Priority (Non-Negotiable)",
-                desc: "Immediate emergency buffers & critical near-term obligations",
+                desc: "Immediate annual school fees, emergency buffers & critical near-term obligations",
                 color: THEME.rust,
                 icon: AlertTriangle,
-                filter: (g: any) => {
-                  const ml = g.targetDate ? monthsBetween(today(), g.targetDate) : 999;
-                  return g.priority === "High" && ml <= 36;
-                },
+                filter: (g: any) => g.priority === "High" && g.monthsToNext <= 36,
               },
               {
                 id: "q2",
                 title: "Strategic Long-Term Wealth (High Compounding)",
-                desc: "Retirement freedom, education corpus, and generational wealth",
+                desc: "Retirement freedom, multi-year college corpus, and generational wealth",
                 color: THEME.accent,
                 icon: TrendingUp,
-                filter: (g: any) => {
-                  const ml = g.targetDate ? monthsBetween(today(), g.targetDate) : 999;
-                  return g.priority === "High" && ml > 36;
-                },
+                filter: (g: any) => g.priority === "High" && g.monthsToNext > 36,
               },
               {
                 id: "q3",
@@ -1070,7 +1245,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
               {
                 id: "q4",
                 title: "Discretionary & Lifestyle Aspirations",
-                desc: "Vacations, luxury experiences, and elective spending goals",
+                desc: "Annual vacations, luxury experiences, and elective spending goals",
                 color: THEME.sage,
                 icon: Palmtree,
                 filter: (g: any) => (g.priority || "Low") === "Low",
@@ -1130,35 +1305,19 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
               <thead>
                 <tr style={{ background: "var(--surface-1)", borderBottom: `1.5px solid ${THEME.line}` }}>
                   <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Goal Name & Owner</th>
-                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Category</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Structure</th>
                   <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Priority</th>
-                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Target</th>
-                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Accumulated</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Total Target</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Realized / Saved</th>
                   <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Gap</th>
                   <th style={{ padding: "12px 16px", textAlign: "left", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", minWidth: 130 }}>Progress</th>
-                  <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Deadline</th>
-                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Monthly SIP</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Next Due Date</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Monthly Needed</th>
                   <th style={{ padding: "12px 16px", textAlign: "center", color: THEME.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedGoals.map((g) => {
-                  const nominalTarget = Number(g.targetAmount || 0);
-                  const yearsToTarget = g.targetDate ? Math.max(0, monthsBetween(today(), g.targetDate) / 12) : 0;
-                  const inflatedTarget =
-                    showInflation && yearsToTarget > 0
-                      ? nominalTarget * Math.pow(1 + inflRateNum, yearsToTarget)
-                      : nominalTarget;
-                  const effectiveTarget = showInflation ? inflatedTarget : nominalTarget;
-                  const savedAmt = Number(g.currentAmount || 0);
-                  const progress = effectiveTarget > 0 ? (savedAmt / effectiveTarget) * 100 : 0;
-                  const isDone = progress >= 100;
-                  const gap = Math.max(0, effectiveTarget - savedAmt);
-
-                  const rawML = g.targetDate ? monthsBetween(today(), g.targetDate) : 0;
-                  const ml = Math.max(0, rawML);
-                  const monthlyNeeded = ml > 0 ? gap / ml : 0;
-
                   return (
                     <tr
                       key={g.id}
@@ -1181,8 +1340,25 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: "14px 16px", color: THEME.muted, fontSize: 12 }}>
-                        {g.category || "Wealth"}
+                      <td style={{ padding: "14px 16px", fontSize: 11 }}>
+                        {g.isRecurring ? (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                              color: THEME.sage,
+                              fontWeight: 700,
+                            }}
+                          >
+                            <Repeat size={10} /> {g.paidInstallments}/{g.totalInstallments} Paid
+                          </span>
+                        ) : (
+                          <span style={{ color: THEME.muted, fontWeight: 600 }}>Lump Sum</span>
+                        )}
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <span
@@ -1200,13 +1376,13 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                         </span>
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 700 }}>
-                        <Money value={effectiveTarget} variant="full" />
+                        <Money value={g.effectiveTarget} variant="full" />
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800, color: THEME.sage }}>
-                        <Money value={savedAmt} variant="full" />
+                        <Money value={g.totalRealized} variant="full" />
                       </td>
-                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 700, color: gap > 0 ? THEME.gold : THEME.sage }}>
-                        <Money value={gap} variant="full" />
+                      <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 700, color: g.remainingGap > 0 ? THEME.gold : THEME.sage }}>
+                        <Money value={g.remainingGap} variant="full" />
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1214,25 +1390,46 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                             <div
                               style={{
                                 height: "100%",
-                                width: `${Math.min(progress, 100)}%`,
-                                background: isDone ? THEME.sage : ringColor(progress),
+                                width: `${Math.min(g.progress, 100)}%`,
+                                background: g.isComplete ? THEME.sage : ringColor(g.progress),
                                 borderRadius: 3,
                               }}
                             />
                           </div>
-                          <span style={{ fontSize: 11, fontWeight: 700, minWidth: 36, textAlign: "right", color: ringColor(progress) }}>
-                            {progress.toFixed(0)}%
+                          <span style={{ fontSize: 11, fontWeight: 700, minWidth: 36, textAlign: "right", color: ringColor(g.progress) }}>
+                            {g.progress.toFixed(0)}%
                           </span>
                         </div>
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "center", fontSize: 12, color: THEME.muted }}>
-                        {fmtGoalDate(g.targetDate) || "—"}
+                        {fmtGoalDate(g.nextDue) || "—"}
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 800, color: THEME.ink }}>
-                        {monthlyNeeded > 0 ? fmtINR(monthlyNeeded) : isDone ? "Done" : "—"}
+                        {g.monthlyNeeded > 0 ? fmtINR(g.monthlyNeeded) : g.isComplete ? "Done" : "—"}
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "center" }}>
                         <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                          {g.isRecurring && !g.isComplete && (
+                            <button
+                              onClick={() => setDisbursementGoal(g)}
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                padding: "3px 8px",
+                                borderRadius: 4,
+                                border: `1px solid ${THEME.sage}`,
+                                background: `color-mix(in srgb, ${THEME.sage} 15%, transparent)`,
+                                color: THEME.sage,
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                              }}
+                              title="Record Installment Payout / School Fee Paid"
+                            >
+                              <Receipt size={11} /> Pay Inst.
+                            </button>
+                          )}
                           <button
                             onClick={() => addContribution(g, 10000)}
                             style={{
@@ -1308,6 +1505,17 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
         />
       )}
 
+      {/* Record Fee / Installment Disbursement Modal */}
+      {disbursementGoal && (
+        <GoalDisbursementModal
+          goal={disbursementGoal}
+          onClose={() => setDisbursementGoal(null)}
+          onRecord={(disbursement, deductFromPool) =>
+            runRecordDisbursement(disbursementGoal.id, disbursementGoal, disbursement, deductFromPool)
+          }
+        />
+      )}
+
       {/* Interactive What-If Goal Realization Simulator */}
       {showSimulator && (
         <GoalSimulatorModal
@@ -1321,31 +1529,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
 
   // Helper render for Goal Card
   function renderGoalCard(g: any, compact = false) {
-    const nominalTarget = Number(g.targetAmount) || 0;
-    const yearsToTarget = g.targetDate
-      ? Math.max(0, monthsBetween(today(), g.targetDate) / 12)
-      : 0;
-    const inflatedTarget =
-      showInflation && yearsToTarget > 0
-        ? nominalTarget * Math.pow(1 + inflRateNum, yearsToTarget)
-        : nominalTarget;
-    const effectiveTarget = showInflation ? inflatedTarget : nominalTarget;
-    const progress = effectiveTarget > 0 ? (Number(g.currentAmount) / effectiveTarget) * 100 : 0;
-    const isComplete = progress >= 100;
-    const rawMonthsLeft = g.targetDate ? monthsBetween(today(), g.targetDate) : 0;
-    const monthsLeft = Math.max(0, rawMonthsLeft);
-    const remaining = Math.max(0, effectiveTarget - Number(g.currentAmount));
-    const effectiveMonths = monthsLeft > 0 ? monthsLeft : rawMonthsLeft === 0 && g.targetDate ? 1 : 0;
-    const monthlyNeeded = effectiveMonths > 0 ? remaining / effectiveMonths : 0;
-    const elapsed = g.startDate ? monthsBetween(g.startDate, today()) : 0;
-    const totalDuration = elapsed + monthsLeft;
-    const expectedPct = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
-    const isBehind = !isComplete && g.targetDate && progress < expectedPct - 10;
-    const isOverdue = !isComplete && g.targetDate && rawMonthsLeft < 0;
-    const rc = ringColor(progress);
-
-    const assetMix = getAssetAllocationRecommendation(monthsLeft);
-    const currentRate = customSipRate[g.id] || 12;
+    const rc = ringColor(g.progress);
+    const assetMix = getAssetAllocationRecommendation(g.monthsToNext);
+    const isHistoryOpen = historyExpanded.has(g.id);
 
     return (
       <div
@@ -1356,9 +1542,9 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
           background: "var(--surface-0)",
           border: `1px solid ${THEME.line}`,
           borderTop: `4px solid ${
-            isComplete
+            g.isComplete
               ? THEME.sage
-              : isOverdue
+              : g.isOverdue
                 ? THEME.rust
                 : PRIORITY_COLOR[g.priority] || THEME.accent
           }`,
@@ -1371,7 +1557,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
         }}
       >
         <div>
-          {/* Header Row: Category Badge, Owner Tag, and Actions */}
+          {/* Header Row: Category Badge, Type Tag, Owner, and Actions */}
           <div
             style={{
               display: "flex",
@@ -1399,6 +1585,27 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 {getCategoryIcon(g.category, 13)}
                 <span>{g.category || "Wealth"}</span>
               </div>
+
+              {g.isRecurring && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3,
+                    fontSize: 9,
+                    fontWeight: 800,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: THEME.sage,
+                    background: `color-mix(in srgb, ${THEME.sage} 12%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${THEME.sage} 25%, transparent)`,
+                    borderRadius: 4,
+                    padding: "2px 6px",
+                  }}
+                >
+                  <Repeat size={10} /> {g.totalInstallments}-Yr Multi-Year
+                </span>
+              )}
 
               {g.priority && (
                 <span
@@ -1435,7 +1642,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
             </div>
 
             <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-              {isComplete ? (
+              {g.isComplete ? (
                 <span
                   style={{
                     fontSize: 10,
@@ -1449,7 +1656,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 >
                   ACHIEVED
                 </span>
-              ) : isOverdue ? (
+              ) : g.isOverdue ? (
                 <span
                   style={{
                     fontSize: 10,
@@ -1463,7 +1670,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 >
                   OVERDUE
                 </span>
-              ) : isBehind ? (
+              ) : g.isBehind ? (
                 <span
                   style={{
                     fontSize: 10,
@@ -1519,7 +1726,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
             </div>
             <div style={{ display: "flex", gap: 10, fontSize: 11, color: THEME.muted, marginTop: 4, flexWrap: "wrap", alignItems: "center" }}>
               {g.startDate && <span>Started: {fmtGoalDate(g.startDate)}</span>}
-              {g.targetDate && (
+              {g.nextDue && (
                 <span
                   style={{
                     display: "inline-flex",
@@ -1530,33 +1737,208 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                     background: "var(--surface-1)",
                     border: `1px solid ${THEME.line}`,
                     fontWeight: 700,
-                    color: rawMonthsLeft < 0 ? THEME.rust : THEME.ink,
+                    color: g.rawMonthsToNext < 0 ? THEME.rust : THEME.ink,
                   }}
                 >
                   <Calendar size={11} />
-                  Target: {fmtGoalDate(g.targetDate)} ·{" "}
-                  {rawMonthsLeft < 0
-                    ? `${Math.abs(rawMonthsLeft)}m overdue`
-                    : monthsLeft >= 12
-                      ? `${(monthsLeft / 12).toFixed(1)}y left`
-                      : `${monthsLeft}m left`}
+                  {g.isRecurring ? `Next Due: ${fmtGoalDate(g.nextDue)}` : `Target: ${fmtGoalDate(g.nextDue)}`} ·{" "}
+                  {g.rawMonthsToNext < 0
+                    ? `${Math.abs(g.rawMonthsToNext)}m overdue`
+                    : g.monthsToNext >= 12
+                      ? `${(g.monthsToNext / 12).toFixed(1)}y left`
+                      : `${g.monthsToNext}m left`}
                 </span>
               )}
             </div>
           </div>
 
+          {/* RECURRING MULTI-YEAR INSTALLMENT PROGRESS STEPS */}
+          {g.isRecurring && (
+            <div
+              style={{
+                marginBottom: 14,
+                padding: "10px 12px",
+                borderRadius: "var(--radius-md)",
+                background: "var(--surface-1)",
+                border: `1px solid ${THEME.line}`,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: THEME.muted }}>
+                  Installment Schedule ({g.paidInstallments} of {g.totalInstallments} Paid)
+                </div>
+                {g.disbursements?.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setHistoryExpanded((prev) => {
+                        const next = new Set(prev);
+                        next.has(g.id) ? next.delete(g.id) : next.add(g.id);
+                        return next;
+                      })
+                    }
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: THEME.accent,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 3,
+                    }}
+                  >
+                    <History size={11} /> {isHistoryOpen ? "Hide History" : `${g.disbursements.length} Paid Logs`}
+                  </button>
+                )}
+              </div>
+
+              {/* Installment Step Pills */}
+              <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(g.totalInstallments, 6)}, 1fr)`, gap: 4 }}>
+                {g.schedule && g.schedule.length > 0
+                  ? g.schedule.map((item: any, idx: number) => {
+                      const instNum = idx + 1;
+                      const isPaid = instNum <= g.paidInstallments || item.isPaid;
+                      const isCurrent = instNum === g.paidInstallments + 1;
+                      const amtFormatted = fmtINR(Number(item.amount));
+                      return (
+                        <div
+                          key={instNum}
+                          title={`${item.label || `Year ${instNum}`}: ₹${amtFormatted}${item.dueDate ? ` (Due ${item.dueDate})` : ""}`}
+                          style={{
+                            padding: "5px 4px",
+                            textAlign: "center",
+                            borderRadius: 4,
+                            fontSize: 9,
+                            fontWeight: 800,
+                            background: isPaid
+                              ? `color-mix(in srgb, ${THEME.sage} 18%, var(--surface-0))`
+                              : isCurrent
+                                ? `color-mix(in srgb, ${THEME.accent} 15%, var(--surface-0))`
+                                : "var(--surface-0)",
+                            border: `1px solid ${
+                              isPaid
+                                ? THEME.sage
+                                : isCurrent
+                                  ? THEME.accent
+                                  : THEME.line
+                            }`,
+                            color: isPaid ? THEME.sage : isCurrent ? THEME.accent : THEME.muted,
+                          }}
+                        >
+                          <div>Yr {instNum} ({amtFormatted})</div>
+                          <div style={{ fontSize: 8, opacity: 0.8, marginTop: 1 }}>
+                            {isPaid ? "✓ Paid" : isCurrent ? `${g.nextInstallmentProgress.toFixed(0)}%` : "Pending"}
+                          </div>
+                        </div>
+                      );
+                    })
+                  : Array.from({ length: g.totalInstallments }).map((_, idx) => {
+                      const instNum = idx + 1;
+                      const isPaid = instNum <= g.paidInstallments;
+                      const isCurrent = instNum === g.paidInstallments + 1;
+                      return (
+                        <div
+                          key={instNum}
+                          style={{
+                            padding: "5px 4px",
+                            textAlign: "center",
+                            borderRadius: 4,
+                            fontSize: 9,
+                            fontWeight: 800,
+                            background: isPaid
+                              ? `color-mix(in srgb, ${THEME.sage} 18%, var(--surface-0))`
+                              : isCurrent
+                                ? `color-mix(in srgb, ${THEME.accent} 15%, var(--surface-0))`
+                                : "var(--surface-0)",
+                            border: `1px solid ${
+                              isPaid
+                                ? THEME.sage
+                                : isCurrent
+                                  ? THEME.accent
+                                  : THEME.line
+                            }`,
+                            color: isPaid ? THEME.sage : isCurrent ? THEME.accent : THEME.muted,
+                          }}
+                        >
+                          <div>Yr {instNum}</div>
+                          <div style={{ fontSize: 8, opacity: 0.8, marginTop: 1 }}>
+                            {isPaid ? "✓ Paid" : isCurrent ? `${g.nextInstallmentProgress.toFixed(0)}%` : "Pending"}
+                          </div>
+                        </div>
+                      );
+                    })}
+              </div>
+
+              {/* Collapsible Payment History Ledger */}
+              {isHistoryOpen && g.disbursements?.length > 0 && (
+                <div style={{ marginTop: 10, borderTop: `1px dashed ${THEME.line}`, paddingTop: 8 }}>
+                  <div style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, marginBottom: 6 }}>
+                    Payment History
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {g.disbursements.map((d: GoalDisbursement) => (
+                      <div
+                        key={d.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          fontSize: 10,
+                          padding: "4px 6px",
+                          borderRadius: 4,
+                          background: "var(--surface-0)",
+                          border: `1px solid ${THEME.line}`,
+                        }}
+                      >
+                        <div>
+                          <strong>Inst #{d.installmentNumber}</strong> · {d.date}{" "}
+                          {d.notes && <span style={{ color: THEME.muted }}>({d.notes})</span>}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <strong style={{ color: THEME.sage }}>{fmtINR(Number(d.amount))}</strong>
+                          <button
+                            type="button"
+                            onClick={() => runDeleteDisbursement(g.id, g, d.id)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: THEME.rust,
+                              padding: 2,
+                            }}
+                            title="Undo / Delete this payment entry"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Amount and Mini Radial Gauge */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, marginBottom: 12 }}>
             <div>
               <div style={{ fontSize: 20, fontWeight: 900, color: THEME.ink }}>
-                <Money value={g.currentAmount} variant="full" />
+                <Money value={g.totalRealized} variant="full" />
               </div>
               <div style={{ fontSize: 12, color: THEME.muted }}>
-                of <Money value={effectiveTarget} variant="full" /> target
+                of <Money value={g.effectiveTarget} variant="full" /> total commitment
               </div>
-              {showInflation && inflatedTarget > nominalTarget && (
+              {g.isRecurring && (
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                  Current Pool Ready: <strong style={{ color: THEME.sage }}>{fmtINR(g.currentAmount)}</strong>
+                  {" "}(for {fmtINR(g.nextInstallmentAmount)} payout)
+                </div>
+              )}
+              {showInflation && g.inflatedTarget > g.nominalTarget && (
                 <div style={{ fontSize: 10, color: THEME.gold, marginTop: 2 }}>
-                  Nominal: <Money value={nominalTarget} variant="full" />
+                  Nominal: <Money value={g.nominalTarget} variant="full" />
                 </div>
               )}
             </div>
@@ -1567,7 +1949,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 sz = 60,
                 cx = sz / 2;
               const circ = 2 * Math.PI * r;
-              const dashOff = circ * (1 - Math.min(progress, 100) / 100);
+              const dashOff = circ * (1 - Math.min(g.progress, 100) / 100);
               return (
                 <svg width={sz} height={sz} style={{ flexShrink: 0 }}>
                   <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--t-line)" strokeWidth="5" />
@@ -1588,18 +1970,18 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                     }}
                   />
                   <text x={cx} y={cx + 4} textAnchor="middle" fontSize="11" fontWeight="800" fill={rc}>
-                    {Math.min(Math.round(progress), 100)}%
+                    {Math.min(Math.round(g.progress), 100)}%
                   </text>
                 </svg>
               );
             })()}
           </div>
 
-          {/* 4-Stage Milestone Progression */}
+          {/* Overall Milestone Progression */}
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
               {[25, 50, 75, 100].map((m) => {
-                const reached = progress >= m;
+                const reached = g.progress >= m;
                 return (
                   <span
                     key={m}
@@ -1621,8 +2003,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
               <div
                 style={{
                   height: "100%",
-                  width: `${Math.min(progress, 100)}%`,
-                  background: isComplete ? THEME.sage : `linear-gradient(90deg, ${THEME.accent}, ${rc})`,
+                  width: `${Math.min(g.progress, 100)}%`,
+                  background: g.isComplete ? THEME.sage : `linear-gradient(90deg, ${THEME.accent}, ${rc})`,
                   borderRadius: 3,
                   transition: "width 0.6s ease",
                 }}
@@ -1630,8 +2012,8 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
             </div>
           </div>
 
-          {/* Quick Top-Up Bar */}
-          {!isComplete && (
+          {/* Quick Actions Bar (Pay Fee / Disburse + Top Up) */}
+          {!g.isComplete && (
             <div
               style={{
                 padding: "8px 10px",
@@ -1641,9 +2023,33 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 marginBottom: 8,
               }}
             >
-              <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, marginBottom: 5 }}>
-                Quick Top-Up
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: THEME.muted }}>
+                  Quick Actions
+                </div>
+                {g.isRecurring && (
+                  <button
+                    type="button"
+                    onClick={() => setDisbursementGoal(g)}
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      padding: "3px 8px",
+                      borderRadius: 4,
+                      border: `1px solid ${THEME.sage}`,
+                      background: `color-mix(in srgb, ${THEME.sage} 15%, transparent)`,
+                      color: THEME.sage,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Receipt size={12} /> Record Payout (Yr {g.paidInstallments + 1})
+                  </button>
+                )}
               </div>
+
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                 {[5000, 10000, 25000, 50000].map((amt) => (
                   <button
@@ -1726,11 +2132,12 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
         </div>
 
         {/* Footer: Monthly Needed, Smart SIP & Asset Allocation Guidance */}
-        {monthlyNeeded > 0 && !isComplete && (
+        {g.monthlyNeeded > 0 && !g.isComplete && (
           <div style={{ borderTop: `1px solid ${THEME.line}`, paddingTop: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ fontSize: 11, color: THEME.muted }}>
-                Needed: <strong style={{ color: THEME.ink }}>{fmtINR(monthlyNeeded)}</strong>/mo
+                Needed: <strong style={{ color: THEME.ink }}>{fmtINR(g.monthlyNeeded)}</strong>/mo
+                {g.isRecurring && <span style={{ fontSize: 10 }}> (for next payout)</span>}
               </div>
               <button
                 onClick={() =>
@@ -1768,15 +2175,16 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
               >
                 {/* 3-Tier Monthly SIP compound table */}
                 <div style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, marginBottom: 6 }}>
-                  Monthly SIP Required by Expected Return
+                  Monthly SIP Required by Expected Return ({g.isRecurring ? "For Next Installment" : "For Goal"})
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 10 }}>
                   {[8, 12, 15].map((rate) => {
                     const r = rate / 100 / 12;
-                    const n = effectiveMonths;
+                    const n = g.monthsToNext;
+                    const targetAmt = g.isRecurring ? g.nextInstallmentAmount : g.effectiveTarget;
                     const fvCurrent = Number(g.currentAmount || 0) * Math.pow(1 + r, n);
-                    const gap = Math.max(0, effectiveTarget - fvCurrent);
-                    const sip = n > 0 && r > 0 ? (gap * r) / (Math.pow(1 + r, n) - 1) : monthlyNeeded;
+                    const gap = Math.max(0, targetAmt - fvCurrent);
+                    const sip = n > 0 && r > 0 ? (gap * r) / (Math.pow(1 + r, n) - 1) : g.monthlyNeeded;
                     return (
                       <div
                         key={rate}
@@ -1800,7 +2208,7 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
                 {/* Horizon Asset Allocation Guidance */}
                 <div style={{ borderTop: `1px dashed ${THEME.line}`, paddingTop: 8 }}>
                   <div style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", color: THEME.muted, marginBottom: 4 }}>
-                    Recommended Asset Mix ({monthsLeft >= 12 ? `${(monthsLeft / 12).toFixed(1)}y Horizon` : `${monthsLeft}m Horizon`})
+                    Recommended Asset Mix ({g.monthsToNext >= 12 ? `${(g.monthsToNext / 12).toFixed(1)}y Horizon` : `${g.monthsToNext}m Horizon`})
                   </div>
                   <div style={{ display: "flex", gap: 6, fontSize: 10, fontWeight: 700 }}>
                     <span style={{ color: THEME.accent }}>{assetMix.equity}% Equity</span> ·{" "}
@@ -1816,6 +2224,136 @@ export function GoalsTab({ state, addItem, removeItem, updateItem, metrics, show
       </div>
     );
   }
+}
+
+// Modal to log fee disbursement / installment payout
+function GoalDisbursementModal({
+  goal,
+  onClose,
+  onRecord,
+}: {
+  goal: any;
+  onClose: () => void;
+  onRecord: (disbursement: GoalDisbursement, deductFromPool: boolean) => void;
+}) {
+  const nextInstallmentNum = (Number(goal.installmentsPaid) || (goal.disbursements?.length || 0)) + 1;
+  let defaultAmount = goal.nextInstallmentAmount || goal.perInstallment || goal.amountPerInstallment || Math.round(Number(goal.targetAmount) / (Number(goal.installmentsCount) || 1));
+  let defaultDueDate = goal.nextDue || goal.nextDueDate || today();
+
+  if (goal.schedule && goal.schedule.length > 0) {
+    const nextItem = goal.schedule[nextInstallmentNum - 1];
+    if (nextItem) {
+      if (nextItem.amount) defaultAmount = Number(nextItem.amount);
+      if (nextItem.dueDate) defaultDueDate = nextItem.dueDate;
+    }
+  }
+
+  const [date, setDate] = useState(defaultDueDate);
+  const [amount, setAmount] = useState(String(defaultAmount));
+  const [notes, setNotes] = useState(`Year ${nextInstallmentNum} Fee / Payout`);
+  const [deductFromPool, setDeductFromPool] = useState(true);
+
+  const canSubmit = Number(amount) > 0 && date.length > 0;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    const disb: GoalDisbursement = {
+      id: "disb-" + Date.now(),
+      date,
+      amount: Number(amount),
+      installmentNumber: nextInstallmentNum,
+      notes: notes.trim() || undefined,
+    };
+    onRecord(disb, deductFromPool);
+  };
+
+  return (
+    <Modal title={`Record Installment Payout — ${goal.name}`} onClose={onClose}>
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div
+          style={{
+            padding: "12px 14px",
+            borderRadius: "var(--radius-md)",
+            background: "var(--surface-1)",
+            border: `1px solid ${THEME.line}`,
+            fontSize: 12,
+            color: THEME.muted,
+          }}
+        >
+          Recording payment for <strong>Installment #{nextInstallmentNum} of {goal.totalInstallments}</strong>.
+          {goal.currentAmount > 0 && (
+            <div style={{ marginTop: 4, color: THEME.ink }}>
+              Current Goal Pool Balance: <strong>{fmtINR(goal.currentAmount)}</strong>
+            </div>
+          )}
+        </div>
+
+        <div className="form-grid-2" style={{ gap: 12 }}>
+          <Field label="Payment Date">
+            <input
+              className="form-input"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </Field>
+
+          <Field label="Amount Paid (₹)">
+            <input
+              className="form-input"
+              type="number"
+              min="1"
+              step="100"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+            />
+          </Field>
+        </div>
+
+        <Field label="Payment Notes / Memo">
+          <input
+            className="form-input"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g. School Fee Term 1 & 2 / Online Transfer"
+          />
+        </Field>
+
+        <div
+          style={{
+            padding: "10px 12px",
+            borderRadius: "var(--radius-md)",
+            background: "var(--surface-1)",
+            border: `1px solid ${THEME.line}`,
+          }}
+        >
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 12 }}>
+            <input
+              type="checkbox"
+              checked={deductFromPool}
+              onChange={(e) => setDeductFromPool(e.target.checked)}
+              style={{ accentColor: THEME.accent }}
+            />
+            <span>
+              <strong>Deduct from Goal Pool Balance</strong> (reduce current savings by {fmtINR(Number(amount) || 0)})
+            </span>
+          </label>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10 }}>
+          <Button variant="secondary" onClick={onClose} type="button">
+            Cancel
+          </Button>
+          <Button variant="accent" type="submit" disabled={!canSubmit} onClick={handleSubmit}>
+            Record Payment
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
 }
 
 // Interactive What-If Goal Realization Simulator Modal

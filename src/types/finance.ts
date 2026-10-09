@@ -299,3 +299,48 @@ export interface CreditCardEntity {
   variants?: CardVariant[]; // Multi-variant linked cards (e.g. Scapia RuPay + Visa, Sapphiro MC + Amex)
 }
 
+// ────────────────────────────────────────────────────────────
+// Goal Models (Lump-Sum & Multi-Year Recurring Cash-Flow)
+// ────────────────────────────────────────────────────────────
+
+export interface GoalInstallmentScheduleItem {
+  installmentNumber: number;
+  label?: string; // e.g. "Year 1 (Grade 1)", "Year 2 (Grade 2)"
+  dueDate?: string; // e.g. "2025-04-01"
+  amount: number | string; // specific amount for this year/installment
+  isPaid?: boolean;
+  paidDate?: string;
+  paidAmount?: number | string;
+  notes?: string;
+}
+
+export interface GoalDisbursement {
+  id: string;
+  date: string;
+  amount: number | string;
+  installmentNumber: number;
+  notes?: string;
+}
+
+export interface GoalEntity {
+  id?: string;
+  owner?: string;
+  name: string;
+  category: string;
+  goalType?: "target" | "recurring";
+  recurringFrequency?: "yearly" | "half_yearly" | "quarterly" | "monthly";
+  installmentsCount?: number | string;
+  amountPerInstallment?: number | string;
+  installmentsPaid?: number | string;
+  nextDueDate?: string;
+  disbursements?: GoalDisbursement[];
+  schedule?: GoalInstallmentScheduleItem[]; // Custom year-by-year fee schedule
+  targetAmount: number | string;
+  currentAmount: number | string;
+  priority: string;
+  startDate: string;
+  targetDate?: string;
+  expectedReturnRate?: number | string;
+  notes?: string;
+}
+
