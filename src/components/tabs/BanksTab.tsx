@@ -4022,7 +4022,10 @@ function getLinkConfig(category: string, type: string, state: any, privacyMode?:
           label: `${c.issuer || "Card"} ····${c.last4 || "????"} | Outstanding ${fmt(
             c.outstanding
           )}`,
-        })),
+        }))
+        .sort((a: any, b: any) =>
+          a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
+        ),
     };
   }
   if (category === "Real Estate" && type === "debit") {

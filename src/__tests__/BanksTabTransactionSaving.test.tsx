@@ -233,6 +233,69 @@ describe("BanksTab Transaction Saving and Modal State", () => {
 
     expect(resyncMock).toHaveBeenCalledTimes(1);
   });
+
+  it("sorts Link to Credit Card dropdown options alphabetically from A to Z", async () => {
+    const mockState = {
+      bankAccounts: [
+        { id: "bank-1", bankName: "HDFC Bank", type: "Savings", balance: 10000, owner: "self" },
+      ],
+      creditCards: [
+        { id: "cc-sbi", issuer: "SBI SimplyCLICK", last4: "1111", outstanding: 5000, status: "active" },
+        { id: "cc-axis", issuer: "Axis Bank Atlas", last4: "2222", outstanding: 12000, status: "active" },
+        { id: "cc-hsbc", issuer: "HSBC Cashback", last4: "0838", outstanding: -923, status: "active" },
+        { id: "cc-hdfc", issuer: "HDFC Regalia Gold", last4: "4444", outstanding: 3000, status: "active" },
+      ],
+      transactions: [],
+    };
+
+    const container = await mount(
+      <PrivacyProvider>
+        <BanksTab
+          state={mockState}
+          addItem={vi.fn()}
+          showToast={vi.fn()}
+          activeProfile="self"
+        />
+      </PrivacyProvider>
+    );
+
+    const recordBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Record Transaction")
+    );
+    await act(async () => {
+      recordBtn?.click();
+    });
+
+    // Select category "Credit Card"
+    const selects = Array.from(document.body.querySelectorAll("select"));
+    const categorySelect = selects.find((s) =>
+      Array.from(s.options).some((o) => o.value === "Credit Card")
+    );
+    expect(categorySelect).toBeDefined();
+
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, "value")!.set!;
+    await act(async () => {
+      setter.call(categorySelect, "Credit Card");
+      categorySelect!.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    // Find the Link to Credit Card select dropdown
+    const linkSelect = Array.from(document.body.querySelectorAll("select")).find((s) =>
+      Array.from(s.options).some((o) => o.value.startsWith("creditCards:"))
+    );
+    expect(linkSelect).toBeDefined();
+
+    const ccOptionLabels = Array.from(linkSelect!.options)
+      .filter((o) => o.value.startsWith("creditCards:"))
+      .map((o) => o.textContent?.trim() || "");
+
+    expect(ccOptionLabels).toHaveLength(4);
+    expect(ccOptionLabels[0]).toContain("Axis Bank Atlas");
+    expect(ccOptionLabels[1]).toContain("HDFC Regalia Gold");
+    expect(ccOptionLabels[2]).toContain("HSBC Cashback");
+    expect(ccOptionLabels[3]).toContain("SBI SimplyCLICK");
+  });
 });
+
 
 
