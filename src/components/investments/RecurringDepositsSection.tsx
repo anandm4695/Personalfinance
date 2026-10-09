@@ -28,6 +28,8 @@ import {
   CheckCircle2,
   ListOrdered,
   Receipt,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -2688,6 +2690,7 @@ function RDHistoryModal({
   onClose: () => void;
   onPayNext: () => void;
 }) {
+  const [txnSortOrder, setTxnSortOrder] = useState<"asc" | "desc">("asc");
   const tenure = Number(rd.tenureMonths) || 12;
   const paid = Number(rd.paidInstallments) || rdElapsed(rd);
   const monthly = Number(rd.monthly) || 0;
@@ -2700,13 +2703,29 @@ function RDHistoryModal({
   const totalPlanned = tenure * monthly;
 
   // Filter relevant transactions
-  const rdTxns = transactions.filter((t: any) => {
-    if (t.linked_type === "recurring_deposit" && (t.linked_id === rd.id || t.linked_id === rd.rdNumber)) return true;
-    const note = (t.note || t.description || t.narration || "").toLowerCase();
-    const bankMatch = rd.bank && note.includes(rd.bank.toLowerCase()) && note.includes("rd");
-    const acctMatch = rd.rdNumber && note.includes(rd.rdNumber);
-    return bankMatch || acctMatch;
-  });
+  const rdTxns = useMemo(() => {
+    return transactions.filter((t: any) => {
+      if (t.linked_type === "recurring_deposit" && (t.linked_id === rd.id || t.linked_id === rd.rdNumber)) return true;
+      const note = (t.note || t.description || t.narration || "").toLowerCase();
+      const bankMatch = rd.bank && note.includes(rd.bank.toLowerCase()) && note.includes("rd");
+      const acctMatch = rd.rdNumber && note.includes(rd.rdNumber);
+      return bankMatch || acctMatch;
+    });
+  }, [transactions, rd]);
+
+  // Sort transactions by date (asc / desc)
+  const sortedTxns = useMemo(() => {
+    return [...rdTxns].sort((a: any, b: any) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      if (dateA !== dateB) {
+        return txnSortOrder === "asc" ? dateA - dateB : dateB - dateA;
+      }
+      return txnSortOrder === "asc"
+        ? String(a.id || "").localeCompare(String(b.id || ""))
+        : String(b.id || "").localeCompare(String(a.id || ""));
+    });
+  }, [rdTxns, txnSortOrder]);
 
   return (
     <Modal title={`${rd.bank} RD Installment Ledger & Payments`} onClose={onClose} width={680}>
@@ -2870,13 +2889,86 @@ function RDHistoryModal({
         </div>
 
         {/* Linked Bank Transactions Vouchers */}
-        {rdTxns.length > 0 && (
+        {sortedTxns.length > 0 && (
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, marginBottom: 8 }}>
-              Bank Outflow Receipts ({rdTxns.length})
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 8,
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
+                <Receipt size={14} style={{ color: THEME.cyan }} />
+                <span>Bank Outflow Receipts ({sortedTxns.length})</span>
+              </div>
+
+              {/* Sorting Controls */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Sort Date:</span>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    background: "var(--surface-1)",
+                    padding: "2px",
+                    borderRadius: 6,
+                    border: `1px solid ${THEME.line}`,
+                    gap: 2,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setTxnSortOrder("asc")}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "3px 8px",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      borderRadius: 4,
+                      border: "none",
+                      cursor: "pointer",
+                      background: txnSortOrder === "asc" ? THEME.cyan : "transparent",
+                      color: txnSortOrder === "asc" ? "#ffffff" : THEME.muted,
+                      transition: "all 0.15s ease",
+                    }}
+                    title="Sort Oldest to Newest (Ascending)"
+                  >
+                    <ArrowUp size={11} />
+                    <span>Oldest First</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTxnSortOrder("desc")}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "3px 8px",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      borderRadius: 4,
+                      border: "none",
+                      cursor: "pointer",
+                      background: txnSortOrder === "desc" ? THEME.cyan : "transparent",
+                      color: txnSortOrder === "desc" ? "#ffffff" : THEME.muted,
+                      transition: "all 0.15s ease",
+                    }}
+                    title="Sort Newest to Oldest (Descending)"
+                  >
+                    <ArrowDown size={11} />
+                    <span>Newest First</span>
+                  </button>
+                </div>
+              </div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 160, overflowY: "auto" }}>
-              {rdTxns.map((t: any) => (
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 180, overflowY: "auto" }}>
+              {sortedTxns.map((t: any) => (
                 <div
                   key={t.id}
                   style={{
