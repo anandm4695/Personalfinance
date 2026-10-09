@@ -61,6 +61,7 @@ import {
   loanGivenOutstanding,
   informalPersonOutstanding,
   uid,
+  getEmergencyFundMonthlyExpense,
 } from "../../utils/finance";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
@@ -894,20 +895,71 @@ export function BanksTab({
       ? Math.max(0, Math.min(100, (netMonthlySavings / monthlyIncome) * 100))
       : 0;
 
-  // Average 3-month expense for runway estimation
+  // Monthly burn & liquid runway estimation
   const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
   const threeMonthsAgoStr = getLocalDateString(threeMonthsAgo);
   const last3mDebits = (state.transactions || [])
     .filter((t: any) => t.date >= threeMonthsAgoStr && t.type === "debit" && !isTransferCat(t.category))
     .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-  const avgMonthlyBurn = last3mDebits > 0 ? last3mDebits / 3 : monthlyExpense > 0 ? monthlyExpense : 0;
+
+  // Fallback to recurring commitments / budget if recent transactions are sparse
+  const efMonthlyBurn = getEmergencyFundMonthlyExpense(state, monthlyExpense);
+
+  let avgMonthlyBurn = 0;
+  let burnDetail = "";
+
+  if (last3mDebits > 0) {
+    avgMonthlyBurn = last3mDebits / 3;
+    burnDetail = `3-mo avg burn of ${fmtINR(Math.round(avgMonthlyBurn))}/mo`;
+  } else if (monthlyExpense > 0) {
+    avgMonthlyBurn = monthlyExpense;
+    burnDetail = `Current spend of ${fmtINR(Math.round(avgMonthlyBurn))}/mo`;
+  } else if (efMonthlyBurn > 0) {
+    avgMonthlyBurn = efMonthlyBurn;
+    burnDetail = `Commitments of ${fmtINR(Math.round(avgMonthlyBurn))}/mo`;
+  } else {
+    // Check all historical debits across recorded transactions
+    const allDebits = (state.transactions || []).filter(
+      (t: any) => t.type === "debit" && !isTransferCat(t.category)
+    );
+    if (allDebits.length > 0) {
+      const dates = allDebits.map((t: any) => t.date).filter(Boolean).sort();
+      const minDate = new Date(dates[0]);
+      const monthSpan = Math.max(
+        1,
+        (now.getFullYear() - minDate.getFullYear()) * 12 + (now.getMonth() - minDate.getMonth()) + 1
+      );
+      const totalHistoric = allDebits.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+      avgMonthlyBurn = totalHistoric / monthSpan;
+      burnDetail = `Historical avg of ${fmtINR(Math.round(avgMonthlyBurn))}/mo`;
+    }
+  }
+
   const cashRunwayMonths = avgMonthlyBurn > 0 ? totalBalance / avgMonthlyBurn : 0;
   const isHealthyRunway = avgMonthlyBurn <= 0 && totalBalance > 0;
-  const runwayDisplay = isHealthyRunway
-    ? "> 24 Months"
-    : cashRunwayMonths >= 36
-      ? "> 36 Months"
-      : `${cashRunwayMonths.toFixed(1)} Months`;
+
+  let runwayDisplay = "0 Months";
+  let runwaySub = "No liquid balance";
+
+  if (isHealthyRunway) {
+    runwayDisplay = "∞ No Burn";
+    runwaySub = "Zero outflows recorded (Infinite runway)";
+  } else if (cashRunwayMonths > 0) {
+    if (cashRunwayMonths >= 24) {
+      const years = (cashRunwayMonths / 12).toFixed(1);
+      runwayDisplay = `${cashRunwayMonths.toFixed(1)} Months`;
+      runwaySub = `Extensive buffer (~${years} yrs • ${burnDetail})`;
+    } else if (cashRunwayMonths >= 6) {
+      runwayDisplay = `${cashRunwayMonths.toFixed(1)} Months`;
+      runwaySub = `Strong buffer (6+ mo • ${burnDetail})`;
+    } else if (cashRunwayMonths >= 3) {
+      runwayDisplay = `${cashRunwayMonths.toFixed(1)} Months`;
+      runwaySub = `Moderate buffer (3-6 mo • ${burnDetail})`;
+    } else {
+      runwayDisplay = `${cashRunwayMonths.toFixed(1)} Months`;
+      runwaySub = `Low runway (<3 mo • ${burnDetail})`;
+    }
+  }
 
   // Animated numbers
   const animTotalBalance = useAnimatedNumber(totalBalance);
@@ -1322,15 +1374,7 @@ export function BanksTab({
           value={runwayDisplay}
           icon={<ShieldCheck />}
           color={isHealthyRunway || cashRunwayMonths >= 6 ? THEME.sage : cashRunwayMonths >= 3 ? THEME.gold : THEME.rust}
-          sub={
-            isHealthyRunway
-              ? "Zero recent outflows (Strong buffer)"
-              : cashRunwayMonths >= 6
-                ? "Strong safety buffer (6+ mo)"
-                : cashRunwayMonths >= 3
-                  ? "Moderate buffer (3-6 mo)"
-                  : "Low runway (<3 mo)"
-          }
+          sub={runwaySub}
         />
       </div>
 
