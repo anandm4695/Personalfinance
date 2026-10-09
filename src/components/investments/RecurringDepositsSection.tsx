@@ -2728,7 +2728,7 @@ function RDHistoryModal({
   }, [rdTxns, txnSortOrder]);
 
   return (
-    <Modal title={`${rd.bank} RD Installment Ledger & Payments`} onClose={onClose} width={1060}>
+    <Modal title={`${rd.bank} RD Installment Ledger & Payments`} onClose={onClose} width={1180}>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {/* Top Summary Banner */}
         <div
@@ -2799,16 +2799,9 @@ function RDHistoryModal({
         </div>
 
         {/* Responsive Content Grid: Schedule (Left) + Outflow Receipts (Right) */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: sortedTxns.length > 0 ? "repeat(auto-fit, minmax(430px, 1fr))" : "1fr",
-            gap: 18,
-            alignItems: "start",
-          }}
-        >
+        <div className={sortedTxns.length > 0 ? "rd-ledger-grid" : ""}>
           {/* Installments Schedule & Status Table */}
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
                 Installment Schedule ({tenure} Months)
@@ -2830,19 +2823,20 @@ function RDHistoryModal({
               style={{
                 maxHeight: 440,
                 overflowY: "auto",
+                overflowX: "auto",
                 border: `1px solid ${THEME.line}`,
                 borderRadius: 10,
                 background: "var(--surface-0)",
               }}
             >
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 540 }}>
                 <thead style={{ position: "sticky", top: 0, zIndex: 2 }}>
                   <tr style={{ background: "var(--surface-1)", borderBottom: `1px solid ${THEME.line}`, color: THEME.muted, fontSize: 11 }}>
-                    <th style={{ padding: "10px 12px", textAlign: "left", whiteSpace: "nowrap" }}>#</th>
-                    <th style={{ padding: "10px 12px", textAlign: "left", whiteSpace: "nowrap" }}>Scheduled / Due Date</th>
-                    <th style={{ padding: "10px 12px", textAlign: "left", whiteSpace: "nowrap" }}>Installment Amount</th>
-                    <th style={{ padding: "10px 12px", textAlign: "left", whiteSpace: "nowrap" }}>Status</th>
-                    <th style={{ padding: "10px 12px", textAlign: "left" }}>Payment Method / Bank</th>
+                    <th style={{ padding: "8px 8px", textAlign: "center", width: 36, whiteSpace: "nowrap" }}>#</th>
+                    <th style={{ padding: "8px 10px", textAlign: "left", whiteSpace: "nowrap" }}>Due Date</th>
+                    <th style={{ padding: "8px 10px", textAlign: "left", whiteSpace: "nowrap" }}>Amount</th>
+                    <th style={{ padding: "8px 10px", textAlign: "left", whiteSpace: "nowrap" }}>Status</th>
+                    <th style={{ padding: "8px 10px", textAlign: "left", whiteSpace: "nowrap" }}>Payment Method / Bank</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2860,16 +2854,16 @@ function RDHistoryModal({
                           background: isPaid ? "rgba(16, 185, 129, 0.03)" : isNextDue ? "rgba(14, 165, 233, 0.05)" : "transparent",
                         }}
                       >
-                        <td style={{ padding: "9px 12px", fontWeight: 700, color: THEME.ink }}>
+                        <td style={{ padding: "8px 8px", textAlign: "center", fontWeight: 700, color: THEME.ink }}>
                           #{instNum}
                         </td>
-                        <td style={{ padding: "9px 12px", color: THEME.muted, whiteSpace: "nowrap" }}>
+                        <td style={{ padding: "8px 10px", color: THEME.muted, whiteSpace: "nowrap" }}>
                           {scheduledDate}
                         </td>
-                        <td style={{ padding: "9px 12px", fontWeight: 700, color: THEME.ink, fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>
+                        <td style={{ padding: "8px 10px", fontWeight: 700, color: THEME.ink, fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>
                           ₹{monthly.toLocaleString("en-IN")}
                         </td>
-                        <td style={{ padding: "9px 12px", whiteSpace: "nowrap" }}>
+                        <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
                           {isPaid ? (
                             <Badge variant="sage">
                               <CheckCircle2 size={10} style={{ marginRight: 3 }} /> Paid
@@ -2880,7 +2874,7 @@ function RDHistoryModal({
                             <Badge variant="muted">Upcoming</Badge>
                           )}
                         </td>
-                        <td style={{ padding: "9px 12px", color: THEME.muted }}>
+                        <td style={{ padding: "8px 10px", color: THEME.muted, whiteSpace: "nowrap" }}>
                           {isPaid ? (
                             linkedBank ? `${linkedBank.bankName} (••${linkedBank.accountNumber?.slice(-4) || "NA"})` : "Bank Account"
                           ) : isNextDue ? (
@@ -2899,7 +2893,7 @@ function RDHistoryModal({
 
           {/* Linked Bank Transactions Vouchers (Right Column) */}
           {sortedTxns.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
               <div
                 style={{
                   display: "flex",

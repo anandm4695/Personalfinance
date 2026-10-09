@@ -1004,6 +1004,20 @@ tbody tr:hover td {
   color: var(--t-rust);
 }
 
+.rd-ledger-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(350px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .rd-ledger-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
 /* ── Right-side detail drawer ─────────────────────────────────────
    Shares the modal's backdrop/header/close-button visual language but
    anchors the panel to the right edge instead of centering it, so a
