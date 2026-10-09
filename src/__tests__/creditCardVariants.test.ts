@@ -231,4 +231,18 @@ describe("Credit Card Dual & Multi-Variant Account Support", () => {
       expect(brand?.color).toBe("#006fcf");
     }
   });
+
+  it("handles negative credit card balances and formats INR correctly without negative debt", async () => {
+    const { getCcOutstanding, fmtINRFull, fmtINRExact } = await import("../utils/finance");
+
+    // Negative outstanding (e.g. overpayment/credit balance) should be treated as 0 outstanding liability
+    expect(getCcOutstanding({ outstanding: -143920, status: "active" })).toBe(0);
+    expect(getCcOutstanding({ outstanding: 50000, status: "active" })).toBe(50000);
+    expect(getCcOutstanding({ outstanding: 50000, status: "closed" })).toBe(0);
+
+    // Negative currency format should prefix sign before rupee symbol
+    expect(fmtINRFull(-143920)).toBe("-₹1,43,920");
+    expect(fmtINRExact(-143920)).toBe("-₹1,43,920");
+    expect(fmtINRFull(143920)).toBe("₹1,43,920");
+  });
 });

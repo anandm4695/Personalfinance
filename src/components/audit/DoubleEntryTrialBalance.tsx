@@ -353,8 +353,10 @@ export const DoubleEntryTrialBalance: React.FC<DoubleEntryTrialBalanceProps> = (
       });
     });
 
-    (state.creditCards || []).forEach((c: any, idx: number) => {
-      const out = Number(c.outstanding || 0);
+    (state.creditCards || [])
+      .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
+      .forEach((c: any, idx: number) => {
+        const out = Math.max(0, Number(c.outstanding || 0));
       list.push({
         id: c.id || `cc-${idx}`,
         code: `2300-${idx + 1}`,

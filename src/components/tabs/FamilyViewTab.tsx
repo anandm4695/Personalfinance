@@ -366,7 +366,7 @@ const memberAssets = (state: any, owner: string, marketData?: any) => {
   const loans = filter(state.loansTaken).reduce((s: number, l: any) => s + loanOutstanding(l), 0);
   const cc = filter(state.creditCards)
     .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
-    .reduce((s: number, c: any) => s + Number(c.outstanding || 0), 0);
+    .reduce((s: number, c: any) => s + Math.max(0, Number(c.outstanding || 0)), 0);
   const rentalDepositLiab = filter(state.rentalProperties || []).reduce((s: number, p: any) => {
     const actualDeposit =
       p.depositTransactions && p.depositTransactions.length > 0

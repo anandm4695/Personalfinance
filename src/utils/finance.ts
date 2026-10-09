@@ -32,14 +32,18 @@ export const fmtINR = (n: number | string | null | undefined) => {
 
 export const fmtINRFull = (n: number | string | null | undefined) => {
   if (n === null || n === undefined || isNaN(Number(n))) return "₹0";
-  return `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+  const num = Number(n);
+  const sign = num < 0 ? "-" : "";
+  return `${sign}₹${Math.abs(num).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 };
 
 export const fmtINRExact = (n: number | string | null | undefined) => {
   if (n === null || n === undefined || isNaN(Number(n))) return "₹0";
   const num = Number(n);
-  const hasPaisa = num % 1 !== 0;
-  return `₹${num.toLocaleString("en-IN", { minimumFractionDigits: hasPaisa ? 2 : 0, maximumFractionDigits: 2 })}`;
+  const abs = Math.abs(num);
+  const sign = num < 0 ? "-" : "";
+  const hasPaisa = abs % 1 !== 0;
+  return `${sign}₹${abs.toLocaleString("en-IN", { minimumFractionDigits: hasPaisa ? 2 : 0, maximumFractionDigits: 2 })}`;
 };
 
 export const fmtDate = (d?: string | null): string => {
@@ -929,6 +933,12 @@ export const loanGivenOutstanding = (l: any): number => {
   if (l?.outstanding != null && l.outstanding !== "") return Number(l.outstanding) || 0;
   return Number(l?.principal || l?.amount || 0);
 };
+
+export const ccOutstanding = (card: any): number => {
+  if ((card?.status || "").toLowerCase() === "closed") return 0;
+  return Math.max(0, Number(card?.outstanding || 0));
+};
+export const getCcOutstanding = ccOutstanding;
 
 export const informalPersonOutstanding = (person: any): number => {
   if (!person) return 0;

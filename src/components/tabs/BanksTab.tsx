@@ -546,7 +546,7 @@ export function BanksTab({
             category: "Payment",
           },
         ],
-        outstanding: Number(card.outstanding || 0) - amt,
+        outstanding: Math.max(0, Number(card.outstanding || 0) - amt),
       });
     } else if (lt === "realEstateProperties") {
       const sep = lid.indexOf(":");

@@ -47,8 +47,9 @@ export const SolvencyScorecard: React.FC<SolvencyScorecardProps> = ({ state, met
 
     const totalGrossAssets = liquidAssets + investmentAssets + retirementAssets + realAssets;
 
-    // 2. Liabilities
-    const shortTermLiabilities = (state.creditCards || []).reduce((sum: number, c: any) => sum + Number(c.outstanding || 0), 0) +
+    const shortTermLiabilities = (state.creditCards || [])
+      .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
+      .reduce((sum: number, c: any) => sum + Math.max(0, Number(c.outstanding || 0)), 0) +
       (state.informalBorrowed || []).reduce((sum: number, i: any) => sum + Number(i.outstanding || i.amount || 0), 0);
 
     const totalLongTermDebt = (state.loansTaken || []).reduce((sum: number, l: any) => sum + Number(l.outstanding || l.principal || 0), 0);

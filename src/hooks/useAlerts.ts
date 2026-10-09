@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import {
+  fmtINR,
   fmtINRFull,
   today,
   monthsBetween,
@@ -8,6 +9,7 @@ import {
   calcTaxOldByFY,
   alertDismissKey,
   loanOutstanding,
+  ccOutstanding,
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
 import { dueStatus } from "../utils/dueStatus";
@@ -139,14 +141,14 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
             list.push({
               level: "warn",
               title: `Installment for "${g.name}" is overdue`,
-              detail: `Year ${paidInst + 1} payout of ₹${fmtINR(perInst)} was due on ${nextDue}`,
+              detail: `Year ${paidInst + 1} payout of ${fmtINRFull(perInst)} was due on ${nextDue}`,
               tab: "goals",
             });
           } else if (totalM <= 3 && perInst > 0 && currentPool < perInst * 0.5) {
             list.push({
               level: "warn",
               title: `Goal "${g.name}" installment due soon`,
-              detail: `Year ${paidInst + 1} payout of ₹${fmtINR(perInst)} due in ${totalM}m — ₹${fmtINR(currentPool)} ready`,
+              detail: `Year ${paidInst + 1} payout of ${fmtINRFull(perInst)} due in ${totalM}m — ${fmtINRFull(currentPool)} ready`,
               tab: "goals",
             });
           }
@@ -268,7 +270,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
         .reduce((s: number, c: any) => s + Number((c as any).limit || (c as any).cardLimit || 0), 0) +
       (Object.values(ccGroupPoolsForAlert) as number[]).reduce((s: number, v: number) => s + v, 0);
     const ccOutstandingForAlert = activeCCForAlert.reduce(
-      (s: number, c: any) => s + Number(c.outstanding || 0),
+      (s: number, c: any) => s + ccOutstanding(c),
       0
     );
     if (totalCCLimitForAlert > 0 && ccOutstandingForAlert > 0) {

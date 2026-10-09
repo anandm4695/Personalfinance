@@ -1255,7 +1255,7 @@ function CreditPillarsEngine({
       .reduce((s: number, c) => s + Number(c.limit || c.cardLimit || 0), 0) +
     Object.values(pools).reduce((s: number, v: number) => s + v, 0);
   const totalOutstanding = activeCards.reduce(
-    (s: number, c) => s + Number(c.outstanding || 0),
+    (s: number, c) => s + Math.max(0, Number(c.outstanding || 0)),
     0
   );
   const utilization = totalLimit > 0 ? (totalOutstanding / totalLimit) * 100 : null;
@@ -1706,7 +1706,7 @@ function CreditScoreSimulator({
     0
   );
   const totalOutstanding = activeCards.reduce(
-    (s: number, c) => s + Number(c.outstanding || 0),
+    (s: number, c) => s + Math.max(0, Number(c.outstanding || 0)),
     0
   );
 

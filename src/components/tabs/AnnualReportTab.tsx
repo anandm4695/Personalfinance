@@ -1512,7 +1512,8 @@ export const AnnualReportTab = ({
     const principalRepaid = Math.max(0, annualEMI - interestPortion);
 
     const ccOutstanding = (state.creditCards || []).reduce(
-      (s: number, c: any) => s + Number(c.outstanding || 0),
+      (s: number, c: any) =>
+        (c.status || "").toLowerCase() === "closed" ? s : s + Math.max(0, Number(c.outstanding || 0)),
       0
     );
 

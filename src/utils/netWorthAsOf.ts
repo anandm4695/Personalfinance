@@ -219,7 +219,7 @@ export function computeNetWorthAsOf(
       if (!c.closedDate) return false;
       return ym(c.closedDate) > asOfYm;
     })
-    .reduce((sum: number, c: any) => sum + Number(c.outstanding || 0), 0);
+    .reduce((sum: number, c: any) => sum + Math.max(0, Number(c.outstanding || 0)), 0);
 
   // Tier 1 — ledger-based, filter dated entries by <= asOfYm.
   const rdValue = (s.recurringDeposits || []).reduce((sum: number, r: any) => {

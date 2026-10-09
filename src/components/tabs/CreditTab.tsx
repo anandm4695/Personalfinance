@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { getCardGradient } from "../../utils/cardColors";
-import { fmtINRFull, fmtINRExact, today, uid, getCCDueDate, loanOutstanding } from "../../utils/finance";
+import { fmtINRFull, fmtINRExact, today, uid, getCCDueDate, loanOutstanding, ccOutstanding } from "../../utils/finance";
 import { useMasterData, formatProfileOption, DEFAULT_MASTER_DATA } from "../../utils/masterData";
 import { Modal, ModalActions } from "../ui/Modal";
 import { Field } from "../ui/Form";
@@ -773,12 +773,14 @@ export function CreditTab({
                   0
                 );
               const totalOutstandingCC = activeCards.reduce(
-                (acc: any, c: any) => acc + (Number(c.outstanding) || 0),
+                (acc: any, c: any) => acc + ccOutstanding(c),
                 0
               );
               const totalAvailable = Math.max(0, totalLimit - totalOutstandingCC);
               const utilPct =
-                totalLimit > 0 ? Math.round((totalOutstandingCC / totalLimit) * 100) : 0;
+                totalLimit > 0
+                  ? Math.min(100, Math.max(0, Math.round((totalOutstandingCC / totalLimit) * 100)))
+                  : 0;
 
               const totalAnnualFees = activeCards
                 .filter((c: any) => Number(c.annualFee) > 0)
@@ -806,7 +808,7 @@ export function CreditTab({
                 },
                 {
                   label: "Outstanding",
-                  sub: utilPct > 0 ? `${utilPct}% utilization` : "No balance due",
+                  sub: totalOutstandingCC > 0 ? `${utilPct}% utilization` : "No balance due",
                   value: fmtINRFull(totalOutstandingCC),
                   numericValue: totalOutstandingCC,
                   color: THEME.rust,
@@ -816,9 +818,9 @@ export function CreditTab({
                   label: "Available",
                   sub:
                     totalLimit > 0
-                      ? utilPct > 100
+                      ? totalOutstandingCC > totalLimit
                         ? `Over limit by ${utilPct - 100}%`
-                        : `${100 - utilPct}% of limit free`
+                        : `${Math.max(0, 100 - utilPct)}% of limit free`
                       : activeCards.length === 0 && (state.creditCards || []).length > 0
                         ? "All cards closed"
                         : "No cards yet",
@@ -1931,7 +1933,8 @@ function CCList({
 
   const renderCard = (c: any) => {
     const isClosed = (c.status || "active").toLowerCase() === "closed";
-    const util = Number(c.limit) ? (Number(c.outstanding) / Number(c.limit)) * 100 : 0;
+    const cardOut = ccOutstanding(c);
+    const util = Number(c.limit) ? (cardOut / Number(c.limit)) * 100 : 0;
     const txnCount = (c.transactions || []).length;
 
     return (
@@ -2237,12 +2240,17 @@ function CCList({
                 fontFamily: "var(--font-display)",
                 fontWeight: 800,
                 fontSize: 18,
-                color: Number(c.outstanding) > 0 ? "#ff9999" : "#6ee7b7",
+                color: ccOutstanding(c) > 0 ? "#ff9999" : "#6ee7b7",
                 letterSpacing: "-0.01em",
                 marginTop: 2,
               }}
             >
-              <Money value={c.outstanding} variant="full" />
+              <Money value={ccOutstanding(c)} variant="full" />
+              {Number(c.outstanding) < 0 && (
+                <span style={{ fontSize: 10, fontWeight: 600, color: "#6ee7b7", marginLeft: 4 }}>
+                  (₹{Math.abs(Number(c.outstanding)).toLocaleString("en-IN")} CR)
+                </span>
+              )}
             </div>
           </div>
           <div>
@@ -2306,7 +2314,7 @@ function CCList({
                 {util.toFixed(1)}% {c.sharedGroup ? "sub-limit" : "limit"} used
               </span>
               <span style={{ color: "rgba(255,255,255,0.65)" }}>
-                Avail: <Money value={Math.max(0, (Number(c.limit) || 0) - (Number(c.outstanding) || 0))} variant="full" />
+                Avail: <Money value={Math.max(0, (Number(c.limit) || 0) - ccOutstanding(c))} variant="full" />
               </span>
             </div>
           </div>
@@ -2918,10 +2926,10 @@ function CCList({
       {Object.entries(groupedCards).map(([groupName, cards]) => {
         const groupLimit = Math.max(...cards.map((c: any) => Number(c.sharedGroupLimit) || 0));
         const groupOutstanding = cards.reduce(
-          (s: number, c: any) => s + (Number(c.outstanding) || 0),
+          (s: number, c: any) => s + ccOutstanding(c),
           0
         );
-        const groupUtil = groupLimit > 0 ? (groupOutstanding / groupLimit) * 100 : 0;
+        const groupUtil = groupLimit > 0 ? Math.min(100, (groupOutstanding / groupLimit) * 100) : 0;
         const groupAvailable = Math.max(0, groupLimit - groupOutstanding);
         const barColor = groupUtil > 70 ? THEME.rust : groupUtil > 30 ? THEME.gold : THEME.sage;
 
@@ -3203,10 +3211,11 @@ function CCList({
           card={selectedCard}
           onClose={() => setSelectedLedger(null)}
           onUpdate={(newTransactions: any) => {
-            const newOutstanding = newTransactions.reduce(
-              (acc: number, t: any) => acc + Number(t.amount),
+            const ledgerSum = newTransactions.reduce(
+              (acc: number, t: any) => acc + Number(t.amount || 0),
               0
             );
+            const newOutstanding = Math.max(0, ledgerSum);
             onUpdateCard(selectedLedger, {
               transactions: newTransactions,
               outstanding: String(newOutstanding),

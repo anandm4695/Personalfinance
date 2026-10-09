@@ -7,6 +7,7 @@ import {
   rdMaturity,
   loanOutstanding,
   loanGivenOutstanding,
+  getCcOutstanding,
   getTaxDueForDashboard,
   getGoldPricePerGram,
   GOLD_PURITY_FACTOR,
@@ -317,12 +318,10 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     goldValue +
     govtSchemesValue;
 
-  const ccOutstanding = (pState.creditCards || [])
-    .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
-    .reduce(
-      (s: number, c: any) => s + Number(c.outstanding || 0),
-      0
-    );
+  const ccOutstanding = (pState.creditCards || []).reduce(
+    (s: number, c: any) => s + getCcOutstanding(c),
+    0
+  );
   const loansTakenValue = (pState.loansTaken || []).reduce(
     (s: number, l: any) => s + loanOutstanding(l),
     0
@@ -522,9 +521,10 @@ export function useMetrics(
         return s + (loaded - spent);
       }, 0);
 
-    const ccOutstanding = (sState.creditCards || [])
-      .filter((c: any) => (c.status || "").toLowerCase() !== "closed")
-      .reduce((s: number, c: any) => s + Number(c.outstanding || 0), 0);
+    const ccOutstanding = (sState.creditCards || []).reduce(
+      (s: number, c: any) => s + getCcOutstanding(c),
+      0
+    );
     const loansTakenValue = (sState.loansTaken || []).reduce(
       (s: number, l: any) => s + loanOutstanding(l),
       0
