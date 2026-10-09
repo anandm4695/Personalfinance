@@ -1165,17 +1165,27 @@ COMMENT ON COLUMN public.rental_properties.deposit_transactions
 -- ================================================================
 
 CREATE TABLE IF NOT EXISTS public.goals (
-  id             uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id        uuid REFERENCES auth.users NOT NULL,
-  owner          text NOT NULL,
-  name           text NOT NULL,
-  category       text,
-  target_amount  numeric DEFAULT 0,
-  current_amount numeric DEFAULT 0,
-  priority       text CHECK (priority IN ('Low', 'Medium', 'High')),
-  start_date     date,
-  target_date    date,
-  created_at     timestamp with time zone DEFAULT now()
+  id                     uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id                uuid REFERENCES auth.users NOT NULL,
+  owner                  text NOT NULL,
+  name                   text NOT NULL,
+  category               text,
+  goal_type              text DEFAULT 'target',
+  recurring_frequency    text DEFAULT 'yearly',
+  installments_count     integer DEFAULT 1,
+  amount_per_installment numeric DEFAULT 0,
+  installments_paid      integer DEFAULT 0,
+  next_due_date          date,
+  disbursements          jsonb DEFAULT '[]'::jsonb,
+  schedule               jsonb DEFAULT '[]'::jsonb,
+  target_amount          numeric DEFAULT 0,
+  current_amount         numeric DEFAULT 0,
+  priority               text CHECK (priority IN ('Low', 'Medium', 'High')),
+  start_date             date,
+  target_date            date,
+  expected_return_rate   numeric DEFAULT 12,
+  notes                  text DEFAULT '',
+  created_at             timestamp with time zone DEFAULT now()
 );
 
 ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;

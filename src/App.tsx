@@ -2388,6 +2388,38 @@ function FinanceDashboard() {
           finalItem.linked_id = null;
         }
       }
+      if (key === "goals") {
+        delete finalItem.effective_target;
+        delete finalItem.inflated_target;
+        delete finalItem.nominal_target;
+        delete finalItem.is_recurring;
+        delete finalItem.has_custom_schedule;
+        delete finalItem.total_installments;
+        delete finalItem.per_installment;
+        delete finalItem.paid_installments;
+        delete finalItem.remaining_installments;
+        delete finalItem.total_disbursed;
+        delete finalItem.total_realized;
+        delete finalItem.is_complete;
+        delete finalItem.progress;
+        delete finalItem.remaining_gap;
+        delete finalItem.next_due;
+        delete finalItem.raw_months_to_next;
+        delete finalItem.months_to_next;
+        delete finalItem.next_installment_amount;
+        delete finalItem.next_installment_gap;
+        delete finalItem.next_installment_progress;
+        delete finalItem.monthly_needed;
+        delete finalItem.is_behind;
+        delete finalItem.is_overdue;
+
+        if (finalItem.disbursements !== undefined && !Array.isArray(finalItem.disbursements)) {
+          finalItem.disbursements = [];
+        }
+        if (finalItem.schedule !== undefined && !Array.isArray(finalItem.schedule)) {
+          finalItem.schedule = [];
+        }
+      }
 
       const isTextIdTable = key === "stockSells" || key === "mfSells";
       const resolvedId =
@@ -3600,6 +3632,31 @@ function FinanceDashboard() {
           if (finalPatch.linked_id !== undefined && finalPatch.linked_id !== null && !isUuid(finalPatch.linked_id)) {
             finalPatch.linked_id = null;
           }
+        }
+        if (key === "goals") {
+          delete finalPatch.effective_target;
+          delete finalPatch.inflated_target;
+          delete finalPatch.nominal_target;
+          delete finalPatch.is_recurring;
+          delete finalPatch.has_custom_schedule;
+          delete finalPatch.total_installments;
+          delete finalPatch.per_installment;
+          delete finalPatch.paid_installments;
+          delete finalPatch.remaining_installments;
+          delete finalPatch.total_disbursed;
+          delete finalPatch.total_realized;
+          delete finalPatch.is_complete;
+          delete finalPatch.progress;
+          delete finalPatch.remaining_gap;
+          delete finalPatch.next_due;
+          delete finalPatch.raw_months_to_next;
+          delete finalPatch.months_to_next;
+          delete finalPatch.next_installment_amount;
+          delete finalPatch.next_installment_gap;
+          delete finalPatch.next_installment_progress;
+          delete finalPatch.monthly_needed;
+          delete finalPatch.is_behind;
+          delete finalPatch.is_overdue;
         }
 
         for (const k in finalPatch) {

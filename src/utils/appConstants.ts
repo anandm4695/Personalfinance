@@ -186,9 +186,13 @@ export const NUMERIC_COLS = new Set([
   "gross_grams",
   "making_charges",
   "interest_rate",
-  // life_events
+  // life_events & goals
   "inflation_rate",
   "expected_return",
+  "installments_count",
+  "amount_per_installment",
+  "installments_paid",
+  "expected_return_rate",
   // vehicles
   "cubic_capacity",
   "seating_capacity",

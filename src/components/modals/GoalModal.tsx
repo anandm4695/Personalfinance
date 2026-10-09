@@ -1308,10 +1308,14 @@ export function GoalModal({ initial, onClose, onSave, saving = false }: GoalModa
       )}
 
       <ModalActions
-        onSave={() =>
-          onSave({
-            ...f,
+        onSave={() => {
+          const cleanGoal: Goal = {
+            ...(f.id ? { id: f.id } : {}),
+            owner: f.owner || "self",
             name: f.name.trim(),
+            category: f.category || "Wealth",
+            goalType: f.goalType || "target",
+            recurringFrequency: isRecurring ? (f.recurringFrequency || "yearly") : undefined,
             installmentsCount: isRecurring
               ? scheduleMode === "variable" && f.schedule
                 ? f.schedule.length
@@ -1323,9 +1327,19 @@ export function GoalModal({ initial, onClose, onSave, saving = false }: GoalModa
                 : Number(f.amountPerInstallment) || 0
               : undefined,
             installmentsPaid: isRecurring ? Number(f.installmentsPaid) || 0 : undefined,
-            schedule: isRecurring && scheduleMode === "variable" ? f.schedule : undefined,
-          })
-        }
+            nextDueDate: isRecurring ? (f.nextDueDate || undefined) : undefined,
+            disbursements: isRecurring ? (f.disbursements || []) : undefined,
+            schedule: isRecurring && scheduleMode === "variable" ? (f.schedule || []) : undefined,
+            targetAmount: Number(f.targetAmount) || 0,
+            currentAmount: Number(f.currentAmount) || 0,
+            priority: f.priority || "Medium",
+            startDate: f.startDate || today(),
+            targetDate: f.targetDate || undefined,
+            expectedReturnRate: f.expectedReturnRate !== undefined && f.expectedReturnRate !== "" ? Number(f.expectedReturnRate) : undefined,
+            notes: f.notes || "",
+          };
+          onSave(cleanGoal);
+        }}
         onClose={onClose}
         saveLabel={initial ? "Save Changes" : "Create Financial Goal"}
         disabled={!canSave || saving}
