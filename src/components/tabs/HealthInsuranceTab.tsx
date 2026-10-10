@@ -1961,26 +1961,16 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
     });
   }, [policies]);
 
-  // Section 80D Math
-  const selfFamilyPremium = useMemo(() => {
-    return policies
-      .filter((p: any) => !isParentsPolicy(p))
-      .reduce(
-        (s: number, p: any) => s + annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual"),
-        0
-      );
-  }, [policies]);
+  // Check senior citizen status for Self/Spouse and Parents
+  const hasSeniorSelfOrSpouse = useMemo(() => {
+    return familyProfiles.some((p: any) => {
+      const isSelfOrSpouse = /self|spouse|wife|husband/i.test(p.relationship || "") || p.relationship === "self";
+      if (!isSelfOrSpouse) return false;
+      const age = p.dob ? calculateAge(p.dob) : null;
+      return age !== null && age >= 60;
+    });
+  }, [familyProfiles]);
 
-  const parentsPremium = useMemo(() => {
-    return policies
-      .filter(isParentsPolicy)
-      .reduce(
-        (s: number, p: any) => s + annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual"),
-        0
-      );
-  }, [policies]);
-
-  // Check if any parents in Master Data are senior citizens (age 60+)
   const hasSeniorParents = useMemo(() => {
     return familyProfiles.some((p: any) => {
       if (!PARENT_RELATION_RE.test(p.relationship || "")) return false;
@@ -1989,19 +1979,43 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
     });
   }, [familyProfiles]);
 
-  const sec80D_SelfLimit = 25000;
+  // Section 80D Math (evaluated on active policies if present, or historical records)
+  const policiesFor80D = activePolicies.length > 0 ? activePolicies : policies;
+
+  const selfFamilyPremium = useMemo(() => {
+    return policiesFor80D
+      .filter((p: any) => !isParentsPolicy(p))
+      .reduce(
+        (s: number, p: any) => s + annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual"),
+        0
+      );
+  }, [policiesFor80D]);
+
+  const parentsPremium = useMemo(() => {
+    return policiesFor80D
+      .filter(isParentsPolicy)
+      .reduce(
+        (s: number, p: any) => s + annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual"),
+        0
+      );
+  }, [policiesFor80D]);
+
+  const sec80D_SelfLimit = hasSeniorSelfOrSpouse ? 50000 : 25000;
   const sec80D_ParentsLimit = hasSeniorParents ? 50000 : 25000;
   const sec80D_PreventiveLimit = 5000;
 
-  const sec80D_SelfDeduction = Math.min(selfFamilyPremium, sec80D_SelfLimit);
-  const sec80D_ParentsDeduction = Math.min(parentsPremium, sec80D_ParentsLimit);
-  const sec80D_PreventiveDeduction = Math.min(preventiveCheckupSpent, sec80D_PreventiveLimit);
+  const validPreventive = Math.min(sec80D_PreventiveLimit, Math.max(0, preventiveCheckupSpent || 0));
 
-  const totalEligible80D = Math.min(
-    sec80D_SelfLimit + sec80D_ParentsLimit,
-    sec80D_SelfDeduction + sec80D_ParentsDeduction + sec80D_PreventiveDeduction
-  );
+  // Self deduction is capped at sec80D_SelfLimit, including preventive checkup
+  const sec80D_SelfDeduction = Math.min(sec80D_SelfLimit, selfFamilyPremium + validPreventive);
 
+  // Remaining unused preventive limit (out of ₹5k) that can be applied to parents
+  const preventiveUsedInSelf = Math.max(0, Math.min(validPreventive, sec80D_SelfLimit - selfFamilyPremium));
+  const remainingPreventive = Math.max(0, validPreventive - preventiveUsedInSelf);
+
+  const sec80D_ParentsDeduction = Math.min(sec80D_ParentsLimit, parentsPremium + remainingPreventive);
+
+  const totalEligible80D = sec80D_SelfDeduction + sec80D_ParentsDeduction;
   const estimatedTaxSaved = Math.round(totalEligible80D * (taxSlabRate / 100) * 1.04); // including 4% cess
 
   // Claims Analytics
@@ -2017,7 +2031,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
   const pendingClaimsCount = allClaims.filter((c: any) => !c.settled && c.status !== "settled").length;
   const settledClaimsCount = allClaims.filter((c: any) => c.settled || c.status === "settled").length;
 
-  // Family Coverage Adequacy Matrix Calculation
+  // Family Coverage Adequacy Matrix Calculation (Active Coverage based)
   const familyCoverageMatrix = useMemo(() => {
     // Gather distinct family members from Master Data + all policies
     const memberMap = new Map<string, { name: string; relation: string; dob?: string; policies: any[] }>();
@@ -2055,22 +2069,35 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
       const isSenior = age !== null && age >= 60;
       const targetBenchmark = isSenior ? SENIOR_ADEQUACY_MIN : ADEQUACY_PER_MEMBER_MIN;
 
-      const baseCover = member.policies
+      // Distinguish active vs historical policies for each member
+      const activeMemberPolicies = member.policies.filter((p) => {
+        const d = daysUntilRenewal(p.renewalDate);
+        return d === null || d >= 0;
+      });
+
+      const expiredMemberPolicies = member.policies.filter((p) => {
+        const d = daysUntilRenewal(p.renewalDate);
+        return d !== null && d < 0;
+      });
+
+      const baseCover = activeMemberPolicies
         .filter((p) => !["top_up", "super_top_up", "critical_illness"].includes(p.policyType))
         .reduce((sum, p) => sum + Number(p.sumInsured || 0), 0);
 
-      const topUpCover = member.policies
+      const topUpCover = activeMemberPolicies
         .filter((p) => ["top_up", "super_top_up"].includes(p.policyType))
         .reduce((sum, p) => sum + Number(p.sumInsured || 0), 0);
 
-      const criticalCover = member.policies
+      const criticalCover = activeMemberPolicies
         .filter((p) => p.policyType === "critical_illness")
         .reduce((sum, p) => sum + Number(p.sumInsured || 0), 0);
 
       const totalMemberCover = baseCover + topUpCover;
       const isAdequate = totalMemberCover >= targetBenchmark;
-      const hasCorporate = member.policies.some((p) => p.policyType === "corporate");
-      const hasPersonalOnly = member.policies.length > 0 && !hasCorporate;
+      const hasCorporate = activeMemberPolicies.some((p) => p.policyType === "corporate");
+      const hasPersonalOnly = activeMemberPolicies.length > 0 && !hasCorporate;
+      const hasExpiredOnly = activeMemberPolicies.length === 0 && expiredMemberPolicies.length > 0;
+      const historicalTotalCover = member.policies.reduce((sum, p) => sum + Number(p.sumInsured || 0), 0);
 
       return {
         ...member,
@@ -2080,15 +2107,19 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
         topUpCover,
         criticalCover,
         totalMemberCover,
+        historicalTotalCover,
         targetBenchmark,
         isAdequate,
         hasCorporate,
         hasPersonalOnly,
+        hasExpiredOnly,
+        activeMemberPolicies,
+        expiredMemberPolicies,
       };
     });
   }, [familyProfiles, policies]);
 
-  // Overall Family Protection Score
+  // Overall Family Protection Score (based on Active Cover)
   const familyProtectionScore = useMemo(() => {
     if (familyCoverageMatrix.length === 0) return 0;
     const adequateCount = familyCoverageMatrix.filter((m) => m.isAdequate).length;
@@ -3341,13 +3372,13 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
                         <span style={{ fontWeight: 600, color: THEME.ink }}>Preventive Health Checkup</span>
                         <span style={{ color: THEME.muted }}>
-                          {fmtINRFull(sec80D_PreventiveDeduction)} / ₹5,000
+                          {fmtINRFull(validPreventive)} / ₹5,000
                         </span>
                       </div>
                       <div style={{ height: 6, borderRadius: 3, background: "var(--surface-2)", overflow: "hidden" }}>
                         <div
                           style={{
-                            width: `${Math.min(100, (sec80D_PreventiveDeduction / 5000) * 100)}%`,
+                            width: `${Math.min(100, (validPreventive / 5000) * 100)}%`,
                             height: "100%",
                             background: THEME.sage,
                             borderRadius: 3,
@@ -3487,7 +3518,15 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                     key={member.name}
                     style={{
                       padding: "18px 20px",
-                      borderTop: `3px solid ${member.isAdequate ? THEME.sage : THEME.gold}`,
+                      borderTop: `3px solid ${
+                        member.isAdequate
+                          ? THEME.sage
+                          : member.hasExpiredOnly
+                          ? THEME.rust
+                          : member.totalMemberCover > 0
+                          ? THEME.gold
+                          : THEME.rust
+                      }`,
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
@@ -3501,23 +3540,55 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                           {member.isSenior ? " (Senior Citizen)" : ""}
                         </div>
                       </div>
-                      <Badge variant={member.isAdequate ? "sage" : "gold"}>
-                        {member.isAdequate ? "Adequately Covered" : "Under-Insured"}
+                      <Badge
+                        variant={
+                          member.isAdequate
+                            ? "sage"
+                            : member.hasExpiredOnly
+                            ? "rust"
+                            : member.totalMemberCover > 0
+                            ? "gold"
+                            : "rust"
+                        }
+                      >
+                        {member.isAdequate
+                          ? "Adequately Covered"
+                          : member.hasExpiredOnly
+                          ? "Cover Expired"
+                          : member.totalMemberCover > 0
+                          ? "Under-Insured"
+                          : "Uninsured"}
                       </Badge>
                     </div>
 
                     {/* Coverage Stacking Visual */}
                     <div style={{ marginBottom: 14 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                        <span style={{ color: THEME.muted }}>Total Effective Cover:</span>
-                        <strong style={{ color: THEME.accent, fontSize: 14 }}>{fmtINRFull(member.totalMemberCover)}</strong>
+                        <span style={{ color: THEME.muted }}>Total Active Cover:</span>
+                        <strong
+                          style={{
+                            color: member.totalMemberCover > 0 ? THEME.accent : THEME.muted,
+                            fontSize: 14,
+                          }}
+                        >
+                          {fmtINRFull(member.totalMemberCover)}
+                          {member.hasExpiredOnly && (
+                            <span style={{ fontSize: 10, color: THEME.rust, marginLeft: 6, fontWeight: 600 }}>
+                              (Historical: {fmtINRFull(member.historicalTotalCover)})
+                            </span>
+                          )}
+                        </strong>
                       </div>
                       <div style={{ height: 6, borderRadius: 3, background: "var(--surface-2)", overflow: "hidden" }}>
                         <div
                           style={{
                             width: `${Math.min(100, Math.round((member.totalMemberCover / member.targetBenchmark) * 100))}%`,
                             height: "100%",
-                            background: member.isAdequate ? THEME.sage : THEME.gold,
+                            background: member.isAdequate
+                              ? THEME.sage
+                              : member.totalMemberCover > 0
+                              ? THEME.gold
+                              : THEME.rust,
                             borderRadius: 3,
                           }}
                         />
@@ -3528,18 +3599,18 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                       </div>
                     </div>
 
-                    {/* Linked Policies */}
+                    {/* Linked Active Policies */}
                     <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 6, textTransform: "uppercase" }}>
-                      Active Policies ({member.policies.length})
+                      Active Policies ({member.activeMemberPolicies.length})
                     </div>
-                    {member.policies.length === 0 ? (
-                      <div style={{ fontSize: 12, color: THEME.rust, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                    {member.activeMemberPolicies.length === 0 ? (
+                      <div style={{ fontSize: 12, color: member.hasExpiredOnly ? THEME.rust : THEME.muted, fontWeight: 600, display: "flex", alignItems: "center", gap: 5, marginBottom: member.expiredMemberPolicies.length > 0 ? 8 : 0 }}>
                         <AlertTriangle size={13} style={{ flexShrink: 0 }} />
-                        <span>Not included in any active health policy.</span>
+                        <span>{member.hasExpiredOnly ? "Previous health cover expired · Renew or add policy." : "Not included in any active health policy."}</span>
                       </div>
                     ) : (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        {member.policies.map((p: any) => (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: member.expiredMemberPolicies.length > 0 ? 8 : 0 }}>
+                        {member.activeMemberPolicies.map((p: any) => (
                           <div
                             key={p.id}
                             style={{
@@ -3554,6 +3625,33 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                           >
                             <span style={{ fontWeight: 600 }}>{p.insurer} ({POLICY_TYPES.find((t) => t.value === p.policyType)?.label || p.policyType})</span>
                             <strong style={{ color: THEME.ink }}><Money value={Number(p.sumInsured || 0)} variant="full" /></strong>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Historical / Expired Policies (if any) */}
+                    {member.expiredMemberPolicies.length > 0 && (
+                      <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${THEME.line}` }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted, marginBottom: 4, textTransform: "uppercase" }}>
+                          Archived / Expired ({member.expiredMemberPolicies.length})
+                        </div>
+                        {member.expiredMemberPolicies.map((p: any) => (
+                          <div
+                            key={p.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "4px 8px",
+                              borderRadius: "var(--radius-sm)",
+                              background: "var(--surface-1)",
+                              fontSize: 11,
+                              color: THEME.muted,
+                            }}
+                          >
+                            <span>{p.insurer} · Expired ({p.renewalDate || "Past"})</span>
+                            <span style={{ fontWeight: 600 }}>{fmtINRFull(p.sumInsured || 0)}</span>
                           </div>
                         ))}
                       </div>
@@ -3712,13 +3810,13 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                   {/* Category 1: Self, Spouse & Dependent Children */}
                   <div style={{ padding: 16, borderRadius: "var(--radius-md)", background: "var(--surface-1)", border: `1px solid ${THEME.line}` }}>
                     <div style={{ fontSize: 11, fontWeight: 800, color: THEME.accent, textTransform: "uppercase" }}>
-                      1. Self, Spouse & Kids
+                      1. Self, Spouse & Kids {hasSeniorSelfOrSpouse ? "(Senior Citizen Cap)" : "(Normal Cap)"}
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginTop: 6 }}>
                       <Money value={sec80D_SelfDeduction} variant="full" />
                     </div>
                     <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
-                      Premium: {fmtINRFull(selfFamilyPremium)} (Cap: ₹25,000)
+                      Premium: {fmtINRFull(selfFamilyPremium)} (Cap: {fmtINRFull(sec80D_SelfLimit)})
                     </div>
                     <div style={{ height: 5, borderRadius: 3, background: "var(--surface-2)", marginTop: 8, overflow: "hidden" }}>
                       <div
@@ -3759,10 +3857,10 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                       3. Preventive Health Checkup
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 900, color: THEME.ink, marginTop: 6 }}>
-                      <Money value={sec80D_PreventiveDeduction} variant="full" />
+                      <Money value={validPreventive} variant="full" />
                     </div>
                     <div style={{ fontSize: 12, color: THEME.muted, marginTop: 2 }}>
-                      Max ₹5,000 sublimit across all members
+                      Sub-limit: Max ₹5,000 within Self & Parents caps
                     </div>
                     <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ fontSize: 11, color: THEME.muted }}>Spent: ₹</span>
