@@ -1232,7 +1232,7 @@ export function GoalModal({ initial, onClose, onSave, saving = false }: GoalModa
                 <div style={{ fontWeight: 800, color: THEME.sage, fontSize: 13 }}>
                   {fmtINRFull(f.currentAmount)}
                   <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 600 }}>
-                    {" "}({calculations.nextProgress.toFixed(0)}%)
+                    {" "}({(calculations.nextProgress ?? 0).toFixed(0)}%)
                   </span>
                 </div>
               </div>
@@ -1277,8 +1277,8 @@ export function GoalModal({ initial, onClose, onSave, saving = false }: GoalModa
                   <div>
                     <div style={{ color: THEME.muted, fontSize: 10, fontWeight: 700 }}>HORIZON</div>
                     <div style={{ fontWeight: 800, color: THEME.ink, fontSize: 13 }}>
-                      {(calculations.yearsLeft || 0) >= 1
-                        ? `${calculations.yearsLeft.toFixed(1)} Years`
+                      {(calculations.yearsLeft ?? 0) >= 1
+                        ? `${(calculations.yearsLeft ?? 0).toFixed(1)} Years`
                         : `${calculations.monthsLeft} Months`}
                     </div>
                   </div>

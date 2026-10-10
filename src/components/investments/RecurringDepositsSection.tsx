@@ -1554,7 +1554,7 @@ export function RecurringDepositsSection({
                                     acc.id === (r.payoutBankAccountId || r.bankAccountId || r.linkedAccount)
                                 );
                                 return b?.bankName || "Bank Account";
-                              })()}: ₹{fmtINR(r.payoutAmount || (matured ? matVal : accrued))}
+                              })()}: ₹{fmtINR(r.payoutAmount || (matured ? fullMaturity : accrued))}
                             </span>
                             <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>
                               {r.payoutDate || "Settled"}

@@ -49,7 +49,7 @@ const mockRDs = [
   },
 ];
 
-const renderRDSection = (items = mockRDs, props = {}) => {
+const renderRDSection = (items: any = mockRDs, props: any = {}) => {
   const defaultProps = {
     items,
     removeItem: vi.fn(),

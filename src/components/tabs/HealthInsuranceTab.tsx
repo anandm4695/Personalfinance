@@ -1008,7 +1008,7 @@ export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
                       );
                       const dob = m.dob || matchedProfile?.dob;
                       const currentAge = dob ? calculateAge(dob) : null;
-                      const entryAge = (m.entryAge !== undefined && m.entryAge !== null && m.entryAge !== "")
+                      const entryAge = (m.entryAge !== undefined && m.entryAge !== null && (m.entryAge as unknown as string) !== "")
                         ? Number(m.entryAge)
                         : (dob && form.startDate ? calculateAge(dob, form.startDate) : currentAge);
                       return (
