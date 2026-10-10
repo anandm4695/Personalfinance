@@ -2479,10 +2479,13 @@ export function BanksTab({
                               ↔ TRANSFER
                             </Badge>
                           )}
-                          {(t.linked_type === "recurring_deposit" ||
-                            t.linkedType === "recurringDeposits" ||
-                            t.subCategory === "RD Maturity" ||
-                            (t.note && t.note.toLowerCase().includes("rd maturity"))) && (
+                          {/* RD Maturity Credit Badge */}
+                          {(t.subCategory === "RD Maturity" ||
+                            (t.type === "credit" &&
+                              (t.linked_type === "recurring_deposit" ||
+                                t.linkedType === "recurringDeposits" ||
+                                (t.note && t.note.toLowerCase().includes("rd maturity")))) ||
+                            (t.note && (t.note.toLowerCase().includes("rd maturity") || t.note.toLowerCase().includes("rd maturity payout")))) && (
                             <Badge
                               variant="sage"
                               size="xs"
@@ -2498,6 +2501,30 @@ export function BanksTab({
                               }}
                             >
                               <Sparkles size={9} /> RD MATURITY
+                            </Badge>
+                          )}
+                          {/* RD Installment Debit Badge */}
+                          {t.type === "debit" &&
+                            (t.subCategory === "RD Installment" ||
+                              ((t.linked_type === "recurring_deposit" || t.linkedType === "recurringDeposits") &&
+                                (t.note || "").toLowerCase().includes("installment")) ||
+                              ((t.note || "").toLowerCase().includes("rd") &&
+                                (t.note || "").toLowerCase().includes("installment"))) && (
+                            <Badge
+                              variant="cyan"
+                              size="xs"
+                              style={{
+                                whiteSpace: "nowrap",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                                background: "rgba(14, 165, 233, 0.12)",
+                                color: THEME.cyan,
+                                border: "1px solid rgba(14, 165, 233, 0.3)",
+                                fontWeight: 700,
+                              }}
+                            >
+                              <RefreshCw size={9} /> RD INSTALLMENT
                             </Badge>
                           )}
                           {(t.linkedType || t.linked_type) && (
@@ -3047,10 +3074,13 @@ export function BanksTab({
                               ↔
                             </Badge>
                           )}
-                          {(t.linked_type === "recurring_deposit" ||
-                            t.linkedType === "recurringDeposits" ||
-                            t.subCategory === "RD Maturity" ||
-                            (t.note && t.note.toLowerCase().includes("rd maturity"))) && (
+                          {/* RD Maturity Credit Badge */}
+                          {(t.subCategory === "RD Maturity" ||
+                            (t.type === "credit" &&
+                              (t.linked_type === "recurring_deposit" ||
+                                t.linkedType === "recurringDeposits" ||
+                                (t.note && t.note.toLowerCase().includes("rd maturity")))) ||
+                            (t.note && (t.note.toLowerCase().includes("rd maturity") || t.note.toLowerCase().includes("rd maturity payout")))) && (
                             <Badge
                               variant="sage"
                               size="xs"
@@ -3066,6 +3096,30 @@ export function BanksTab({
                               }}
                             >
                               <Sparkles size={9} /> RD MATURITY
+                            </Badge>
+                          )}
+                          {/* RD Installment Debit Badge */}
+                          {t.type === "debit" &&
+                            (t.subCategory === "RD Installment" ||
+                              ((t.linked_type === "recurring_deposit" || t.linkedType === "recurringDeposits") &&
+                                (t.note || "").toLowerCase().includes("installment")) ||
+                              ((t.note || "").toLowerCase().includes("rd") &&
+                                (t.note || "").toLowerCase().includes("installment"))) && (
+                            <Badge
+                              variant="cyan"
+                              size="xs"
+                              style={{
+                                whiteSpace: "nowrap",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                                background: "rgba(14, 165, 233, 0.12)",
+                                color: THEME.cyan,
+                                border: "1px solid rgba(14, 165, 233, 0.3)",
+                                fontWeight: 700,
+                              }}
+                            >
+                              <RefreshCw size={9} /> RD INSTALLMENT
                             </Badge>
                           )}
                           {(t.linkedType || t.linked_type) && (
