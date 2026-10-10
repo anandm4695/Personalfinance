@@ -202,7 +202,9 @@ const EMPTY_POLICY: any = {
 // ==========================================
 export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
   const { familyProfiles } = useMasterData();
-  const [activeTab, setActiveTab] = useState<"general" | "financials" | "terms" | "members" | "documents" | "notes">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "financials" | "terms" | "members" | "documents" | "notes">(
+    initial?._initialTab || "general"
+  );
   const [form, setForm] = useState({ ...EMPTY_POLICY, ...initial });
   const [members, setMembers] = useState<{ name: string; relation: string; dob?: string; entryAge?: number }[]>(
     initial?.insuredMembers || []
@@ -274,8 +276,10 @@ export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
       setActiveTab("general");
       return;
     }
+    const cleanForm = { ...form };
+    delete cleanForm._initialTab;
     onSave({
-      ...form,
+      ...cleanForm,
       sumInsured: Number(form.sumInsured),
       deductible: form.deductible ? Number(form.deductible) : 0,
       premium: Number(form.premium),
@@ -2565,7 +2569,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                                 size="sm"
                                 variant="ghost"
                                 icon={<Upload size={12} color={THEME.muted} />}
-                                onClick={() => setPolicyModal(p)}
+                                onClick={() => setPolicyModal({ ...p, _initialTab: "documents" })}
                                 title="Upload policy copy PDF/scan"
                                 style={{ padding: "6px 8px", fontSize: 11, color: THEME.muted }}
                               >
@@ -2880,7 +2884,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                                     size="sm"
                                     variant="ghost"
                                     icon={<Pencil size={11} />}
-                                    onClick={() => setPolicyModal(p)}
+                                    onClick={() => setPolicyModal({ ...p, _initialTab: "documents" })}
                                     title="Replace document"
                                   >
                                     Replace
@@ -2891,7 +2895,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                                   size="sm"
                                   variant="primary"
                                   icon={<UploadCloud size={13} />}
-                                  onClick={() => setPolicyModal(p)}
+                                  onClick={() => setPolicyModal({ ...p, _initialTab: "documents" })}
                                 >
                                   Upload Policy Copy
                                 </Button>
