@@ -27,3 +27,17 @@ ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS linked_type text;
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS linked_id text;
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS linked_principal_amount numeric;
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS statement_balance numeric;
+
+-- 5. Health Insurance columns
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS room_rent_limit text DEFAULT 'No Sub-limit';
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS deductible numeric DEFAULT 0;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS tpa_name text DEFAULT '';
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS tpa_contact text DEFAULT '';
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS copay_percent numeric DEFAULT 0;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS restoration_benefit boolean DEFAULT false;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS maternity_cover boolean DEFAULT false;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS daycare_cover boolean DEFAULT false;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS waiting_period_years numeric DEFAULT 0;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS no_claim_bonus numeric DEFAULT 0;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS claims jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS insured_members jsonb DEFAULT '[]'::jsonb;

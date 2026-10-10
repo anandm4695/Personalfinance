@@ -20,6 +20,7 @@ ALTER TABLE public.life_events ADD COLUMN IF NOT EXISTS inflation_rate numeric D
 ALTER TABLE public.life_events ADD COLUMN IF NOT EXISTS expected_return numeric DEFAULT 10;
 
 -- 3. Health Insurance
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS room_rent_limit text DEFAULT 'No Sub-limit';
 ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS deductible numeric DEFAULT 0;
 ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS tpa_name text DEFAULT '';
 ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS tpa_contact text DEFAULT '';
@@ -27,6 +28,10 @@ ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS copay_percent numer
 ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS restoration_benefit boolean DEFAULT false;
 ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS maternity_cover boolean DEFAULT false;
 ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS daycare_cover boolean DEFAULT false;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS waiting_period_years numeric DEFAULT 0;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS no_claim_bonus numeric DEFAULT 0;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS claims jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS insured_members jsonb DEFAULT '[]'::jsonb;
 
 -- 4. Bill Payments & Bill Payment History
 ALTER TABLE public.bill_payments ADD COLUMN IF NOT EXISTS frequency text DEFAULT 'monthly';
