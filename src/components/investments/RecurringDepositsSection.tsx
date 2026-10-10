@@ -2933,14 +2933,32 @@ function RDHistoryModal({
   const totalDeposited = paid * monthly;
   const totalPlanned = tenure * monthly;
 
-  // Filter relevant transactions
+  // Filter relevant transactions strictly for THIS recurring deposit
   const rdTxns = useMemo(() => {
     return transactions.filter((t: any) => {
-      if (t.linked_type === "recurring_deposit" && (t.linked_id === rd.id || t.linked_id === rd.rdNumber)) return true;
+      // 1. Direct explicit link via linked_type / linkedType
+      const isLinkedRD =
+        t.linked_type === "recurring_deposit" ||
+        t.linkedType === "recurring_deposit" ||
+        t.linked_type === "recurringDeposits" ||
+        t.linkedType === "recurringDeposits";
+
+      if (isLinkedRD) {
+        const idMatches =
+          t.linked_id === rd.id ||
+          t.linkedId === rd.id ||
+          (rd.rdNumber && (t.linked_id === rd.rdNumber || t.linkedId === rd.rdNumber)) ||
+          (rd.accountNumber && (t.linked_id === rd.accountNumber || t.linkedId === rd.accountNumber));
+        if (idMatches) return true;
+      }
+
+      // 2. Match specifically by RD Account number or RD record ID in note/narration
       const note = (t.note || t.description || t.narration || "").toLowerCase();
-      const bankMatch = rd.bank && note.includes(rd.bank.toLowerCase()) && note.includes("rd");
-      const acctMatch = rd.rdNumber && note.includes(rd.rdNumber);
-      return bankMatch || acctMatch;
+      if (rd.rdNumber && note.includes(String(rd.rdNumber).toLowerCase())) return true;
+      if (rd.accountNumber && note.includes(String(rd.accountNumber).toLowerCase())) return true;
+      if (rd.id && note.includes(String(rd.id).toLowerCase())) return true;
+
+      return false;
     });
   }, [transactions, rd]);
 
@@ -2958,8 +2976,20 @@ function RDHistoryModal({
     });
   }, [rdTxns, txnSortOrder]);
 
+  const totalDebits = useMemo(() => {
+    return sortedTxns
+      .filter((t: any) => t.type !== "credit" && t.subCategory !== "RD Maturity")
+      .reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
+  }, [sortedTxns]);
+
+  const totalCredits = useMemo(() => {
+    return sortedTxns
+      .filter((t: any) => t.type === "credit" || t.subCategory === "RD Maturity")
+      .reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
+  }, [sortedTxns]);
+
   return (
-    <Modal title={`${rd.bank} RD Installment Ledger & Payments`} onClose={onClose} width={1180}>
+    <Modal title={`${rd.bank || "Recurring Deposit"} RD Installment Ledger & Payments`} onClose={onClose} width={1180}>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {/* Top Summary Banner */}
         <div
@@ -2975,7 +3005,7 @@ function RDHistoryModal({
         >
           <div>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Monthly SIP</div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: THEME.cyan, fontFamily: "var(--font-display)", marginTop: 2 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: THEME.cyan, fontFamily: "var(--font-display)", marginTop: 2 }}>
               ₹{monthly.toLocaleString("en-IN")}
             </div>
             <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>@ {rate}% p.a.</div>
@@ -2983,7 +3013,7 @@ function RDHistoryModal({
 
           <div>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Total Deposited</div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: THEME.accent, fontFamily: "var(--font-display)", marginTop: 2 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: THEME.accent, fontFamily: "var(--font-display)", marginTop: 2 }}>
               ₹{totalDeposited.toLocaleString("en-IN")}
             </div>
             <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>of ₹{totalPlanned.toLocaleString("en-IN")}</div>
@@ -2991,7 +3021,7 @@ function RDHistoryModal({
 
           <div>
             <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Installments Paid</div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: paid >= tenure ? THEME.sage : THEME.ink, fontFamily: "var(--font-display)", marginTop: 2 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: paid >= tenure ? THEME.sage : THEME.ink, fontFamily: "var(--font-display)", marginTop: 2 }}>
               {paid} of {tenure}
             </div>
             <div style={{ fontSize: 11, color: THEME.sage, marginTop: 2 }}>
@@ -3029,13 +3059,14 @@ function RDHistoryModal({
           </div>
         </div>
 
-        {/* Responsive Content Grid: Schedule (Left) + Outflow Receipts (Right) */}
-        <div className={sortedTxns.length > 0 ? "rd-ledger-grid" : ""}>
+        {/* Responsive Content Grid: Schedule (Left) + Outflow Receipts & Inflows (Right) */}
+        <div className="rd-ledger-grid">
           {/* Installments Schedule & Status Table */}
           <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
-                Installment Schedule ({tenure} Months)
+              <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
+                <Calendar size={14} style={{ color: THEME.cyan }} />
+                <span>Installment Schedule ({tenure} Months)</span>
               </div>
               {paid < tenure && (
                 <Button
@@ -3052,7 +3083,7 @@ function RDHistoryModal({
 
             <div
               style={{
-                maxHeight: 440,
+                maxHeight: 460,
                 overflowY: "auto",
                 overflowX: "auto",
                 border: `1px solid ${THEME.line}`,
@@ -3063,11 +3094,11 @@ function RDHistoryModal({
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 540 }}>
                 <thead style={{ position: "sticky", top: 0, zIndex: 2 }}>
                   <tr style={{ background: "var(--surface-1)", borderBottom: `1px solid ${THEME.line}`, color: THEME.muted, fontSize: 11 }}>
-                    <th style={{ padding: "8px 8px", textAlign: "center", width: 36, whiteSpace: "nowrap" }}>#</th>
-                    <th style={{ padding: "8px 10px", textAlign: "left", whiteSpace: "nowrap" }}>Due Date</th>
-                    <th style={{ padding: "8px 10px", textAlign: "left", whiteSpace: "nowrap" }}>Amount</th>
-                    <th style={{ padding: "8px 10px", textAlign: "left", whiteSpace: "nowrap" }}>Status</th>
-                    <th style={{ padding: "8px 10px", textAlign: "left", whiteSpace: "nowrap" }}>Payment Method / Bank</th>
+                    <th style={{ padding: "10px 8px", textAlign: "center", width: 42, whiteSpace: "nowrap" }}>#</th>
+                    <th style={{ padding: "10px 10px", textAlign: "left", whiteSpace: "nowrap" }}>Due Date</th>
+                    <th style={{ padding: "10px 10px", textAlign: "left", whiteSpace: "nowrap" }}>Amount</th>
+                    <th style={{ padding: "10px 10px", textAlign: "left", whiteSpace: "nowrap" }}>Status</th>
+                    <th style={{ padding: "10px 10px", textAlign: "left", whiteSpace: "nowrap" }}>Payment Method / Bank</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3085,16 +3116,16 @@ function RDHistoryModal({
                           background: isPaid ? "rgba(16, 185, 129, 0.03)" : isNextDue ? "rgba(14, 165, 233, 0.05)" : "transparent",
                         }}
                       >
-                        <td style={{ padding: "8px 8px", textAlign: "center", fontWeight: 700, color: THEME.ink }}>
+                        <td style={{ padding: "10px 8px", textAlign: "center", fontWeight: 700, color: THEME.ink }}>
                           #{instNum}
                         </td>
-                        <td style={{ padding: "8px 10px", color: THEME.muted, whiteSpace: "nowrap" }}>
+                        <td style={{ padding: "10px 10px", color: THEME.muted, whiteSpace: "nowrap" }}>
                           {scheduledDate}
                         </td>
-                        <td style={{ padding: "8px 10px", fontWeight: 700, color: THEME.ink, fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>
+                        <td style={{ padding: "10px 10px", fontWeight: 700, color: THEME.ink, fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>
                           ₹{monthly.toLocaleString("en-IN")}
                         </td>
-                        <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
+                        <td style={{ padding: "10px 10px", whiteSpace: "nowrap" }}>
                           {isPaid ? (
                             <Badge variant="sage">
                               <CheckCircle2 size={10} style={{ marginRight: 3 }} /> Paid
@@ -3105,9 +3136,16 @@ function RDHistoryModal({
                             <Badge variant="muted">Upcoming</Badge>
                           )}
                         </td>
-                        <td style={{ padding: "8px 10px", color: THEME.muted, whiteSpace: "nowrap" }}>
+                        <td style={{ padding: "10px 10px", color: THEME.muted, whiteSpace: "nowrap" }}>
                           {isPaid ? (
-                            linkedBank ? `${linkedBank.bankName} (••${linkedBank.accountNumber?.slice(-4) || "NA"})` : "Bank Account"
+                            linkedBank ? (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                <Building size={11} style={{ color: THEME.sage }} />
+                                {linkedBank.bankName} (••{linkedBank.accountNumber?.slice(-4) || "NA"})
+                              </span>
+                            ) : (
+                              "Bank Account"
+                            )
                           ) : isNextDue ? (
                             <span style={{ color: THEME.cyan, fontWeight: 600 }}>Auto Debit / Direct Pay</span>
                           ) : (
@@ -3122,25 +3160,25 @@ function RDHistoryModal({
             </div>
           </div>
 
-          {/* Linked Bank Transactions Vouchers (Right Column) */}
-          {sortedTxns.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 10,
-                  flexWrap: "wrap",
-                  gap: 8,
-                }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
-                  <Receipt size={14} style={{ color: THEME.cyan }} />
-                  <span>Bank Outflow Receipts ({sortedTxns.length})</span>
-                </div>
+          {/* Linked Bank Transactions & Vouchers (Right Column) */}
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 10,
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 6 }}>
+                <Receipt size={14} style={{ color: THEME.cyan }} />
+                <span>Bank Outflow Receipts & Vouchers ({sortedTxns.length})</span>
+              </div>
 
-                {/* Sorting Controls */}
+              {/* Sorting Controls */}
+              {sortedTxns.length > 0 && (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>Sort Date:</span>
                   <div
@@ -3199,43 +3237,118 @@ function RDHistoryModal({
                     </button>
                   </div>
                 </div>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 440, overflowY: "auto", paddingRight: 2 }}>
-                {sortedTxns.map((t: any) => (
-                  <div
-                    key={t.id}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: 8,
-                      background: "var(--surface-1)",
-                      border: `1px solid ${THEME.line}`,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 12,
-                      fontSize: 12,
-                    }}
-                  >
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontWeight: 700, color: THEME.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {t.note || t.description || t.narration || "RD Installment Debit"}
-                      </div>
-                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
-                        {t.date} • Category: {t.category || "Investments"}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontWeight: 800, color: THEME.rust, fontFamily: "var(--font-display)" }}>
-                        -₹{Number(t.amount || 0).toLocaleString("en-IN")}
-                      </div>
-                      <div style={{ fontSize: 10, color: THEME.sage }}>Verified Outflow</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              )}
             </div>
-          )}
+
+            {sortedTxns.length === 0 ? (
+              <div
+                style={{
+                  padding: "32px 20px",
+                  borderRadius: 10,
+                  background: "var(--surface-0)",
+                  border: `1px solid ${THEME.line}`,
+                  textAlign: "center",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 200,
+                }}
+              >
+                <Receipt size={32} style={{ color: THEME.muted, marginBottom: 8, opacity: 0.5 }} />
+                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.ink }}>
+                  No Linked Bank Transactions
+                </div>
+                <div style={{ fontSize: 11, color: THEME.muted, marginTop: 4, maxWidth: 280 }}>
+                  When installment debits or maturity proceeds are recorded for this RD, verified receipts will appear here.
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 460, overflowY: "auto", paddingRight: 2 }}>
+                {sortedTxns.map((t: any) => {
+                  const isCredit =
+                    t.type === "credit" ||
+                    t.subCategory === "RD Maturity" ||
+                    (t.note || "").toLowerCase().includes("maturity");
+                  const txnBank = bankAccounts.find(
+                    (b: any) => b.id === (t.accountId || t.bankAccountId)
+                  );
+
+                  return (
+                    <div
+                      key={t.id}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        background: isCredit ? "rgba(16, 185, 129, 0.04)" : "var(--surface-1)",
+                        border: `1px solid ${isCredit ? "rgba(16, 185, 129, 0.3)" : THEME.line}`,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 12,
+                        fontSize: 12,
+                      }}
+                    >
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 700, color: THEME.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {t.note || t.description || t.narration || (isCredit ? "RD Maturity Payout" : "RD Installment Debit")}
+                        </div>
+                        <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span>{t.date}</span>
+                          <span>•</span>
+                          <span>{txnBank ? `${txnBank.bankName} (••${txnBank.accountNumber?.slice(-4) || "NA"})` : t.category || "Investments"}</span>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div
+                          style={{
+                            fontWeight: 800,
+                            color: isCredit ? THEME.sage : THEME.rust,
+                            fontFamily: "var(--font-display)",
+                            fontSize: 13,
+                          }}
+                        >
+                          {isCredit ? "+" : "-"}₹{Math.abs(Number(t.amount || 0)).toLocaleString("en-IN")}
+                        </div>
+                        <div style={{ marginTop: 2 }}>
+                          {isCredit ? (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                color: THEME.sage,
+                                background: "rgba(16, 185, 129, 0.12)",
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                              }}
+                            >
+                              <Sparkles size={9} /> Maturity Inflow
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 600,
+                                color: THEME.muted,
+                                background: "rgba(255, 255, 255, 0.05)",
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                              }}
+                            >
+                              Verified Outflow
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         <ModalActions onClose={onClose} />
