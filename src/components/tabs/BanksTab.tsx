@@ -1067,17 +1067,28 @@ export function BanksTab({
 
   // Account filter for bank cards
   const filteredBankAccounts = useMemo(() => {
-    return (state.bankAccounts || []).filter((a: any) => {
-      if (accountTypeFilter === "all") return true;
-      const t = (a.type || "savings").toLowerCase();
-      if (accountTypeFilter === "savings") return t.includes("savings");
-      if (accountTypeFilter === "current") return t.includes("current");
-      if (accountTypeFilter === "salary") return t.includes("salary");
-      if (accountTypeFilter === "fd") return t.includes("fd") || t.includes("fixed");
-      if (accountTypeFilter === "joint") return t.includes("joint");
-      return true;
-    });
-  }, [state.bankAccounts, accountTypeFilter]);
+    return (state.bankAccounts || [])
+      .filter((a: any) => {
+        if (accountTypeFilter === "all") return true;
+        const t = (a.type || "savings").toLowerCase();
+        if (accountTypeFilter === "savings") return t.includes("savings");
+        if (accountTypeFilter === "current") return t.includes("current");
+        if (accountTypeFilter === "salary") return t.includes("salary");
+        if (accountTypeFilter === "fd") return t.includes("fd") || t.includes("fixed");
+        if (accountTypeFilter === "joint") return t.includes("joint");
+        return true;
+      })
+      .sort((a: any, b: any) => {
+        const balA = getDisplayBalance(a);
+        const balB = getDisplayBalance(b);
+        if (balB !== balA) return balB - balA;
+        const nameA = a.bankName || "";
+        const nameB = b.bankName || "";
+        const nameCmp = nameA.localeCompare(nameB);
+        if (nameCmp !== 0) return nameCmp;
+        return String(a.id || "").localeCompare(String(b.id || ""));
+      });
+  }, [state.bankAccounts, accountTypeFilter, getDisplayBalance]);
 
   // Liquidity weights & Category spending memo
   const { topSpendCategories, liquidityWeights, monthlyCashFlowTrend, transferList } = useMemo(() => {
@@ -1091,12 +1102,12 @@ export function BanksTab({
       });
 
     const sortedCats = Object.entries(categorySpends)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .map(([name, amount], index) => ({
         name,
         amount,
         color: CHART_PALETTE[index % CHART_PALETTE.length],
-      }))
-      .sort((a, b) => b.amount - a.amount);
+      }));
 
     // 2. Liquidity weights
     const positiveAccounts = (state.bankAccounts || []).filter((a: any) => getDisplayBalance(a) > 0);
@@ -1104,22 +1115,33 @@ export function BanksTab({
       (s: number, a: any) => s + getDisplayBalance(a),
       0
     );
-    const weights = (state.bankAccounts || [])
-      .map((a: any, i: number) => {
-        const bal = getDisplayBalance(a);
-        const share = totalAssetBal > 0 && bal > 0 ? (bal / totalAssetBal) * 100 : 0;
-        return {
-          id: a.id,
-          name: accountLabel(a),
-          bankName: a.bankName,
-          type: a.type || "Savings",
-          accountNumberSuffix: a.accountNumber ? String(a.accountNumber).slice(-4) : "",
-          balance: bal,
-          share,
-          color: CHART_PALETTE[i % CHART_PALETTE.length],
-        };
-      })
-      .sort((a: any, b: any) => b.balance - a.balance);
+
+    // Sort deterministically first: highest balance first, tie-break by bank name, then ID
+    const sortedBankAccounts = [...(state.bankAccounts || [])].sort((a: any, b: any) => {
+      const balA = getDisplayBalance(a);
+      const balB = getDisplayBalance(b);
+      if (balB !== balA) return balB - balA;
+      const nameA = a.bankName || "";
+      const nameB = b.bankName || "";
+      const nameCmp = nameA.localeCompare(nameB);
+      if (nameCmp !== 0) return nameCmp;
+      return String(a.id || "").localeCompare(String(b.id || ""));
+    });
+
+    const weights = sortedBankAccounts.map((a: any, i: number) => {
+      const bal = getDisplayBalance(a);
+      const share = totalAssetBal > 0 && bal > 0 ? (bal / totalAssetBal) * 100 : 0;
+      return {
+        id: a.id,
+        name: accountLabel(a),
+        bankName: a.bankName,
+        type: a.type || "Savings",
+        accountNumberSuffix: a.accountNumber ? String(a.accountNumber).slice(-4) : "",
+        balance: bal,
+        share,
+        color: a.color || CHART_PALETTE[i % CHART_PALETTE.length],
+      };
+    });
 
     // 3. Last 6 Months Cash Flow Trend for Recharts
     const trend: Record<string, { month: string; income: number; expense: number; net: number }> = {};
