@@ -2007,7 +2007,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
       {/* Main Subview Content */}
       {policies.length === 0 ? (
         <EmptyState
-          icon={Heart}
+          icon={Shield}
           gradient={`linear-gradient(135deg, ${THEME.accent} 0%, color-mix(in srgb, ${THEME.accent} 55%, white) 100%)`}
           dotColor={THEME.accent}
           title="No Health Insurance Policies Yet"
