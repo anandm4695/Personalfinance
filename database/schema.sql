@@ -770,6 +770,11 @@ CREATE TABLE IF NOT EXISTS public.health_insurance (
   no_claim_bonus       numeric DEFAULT 0,
   claims               jsonb NOT NULL DEFAULT '[]',            -- [{ date, amount, description, settled }]
   room_rent_limit      text DEFAULT '',                        -- 88
+  policy_document_url  text DEFAULT '',
+  policy_document_name text DEFAULT '',
+  policy_document_size numeric DEFAULT 0,
+  policy_document_mime text DEFAULT '',
+  policy_document_uploaded_at timestamptz,
   notes                text DEFAULT '',
   created_at           timestamptz NOT NULL DEFAULT NOW(),
   updated_at           timestamptz NOT NULL DEFAULT NOW()

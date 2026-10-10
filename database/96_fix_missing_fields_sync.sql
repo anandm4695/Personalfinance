@@ -32,6 +32,11 @@ ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS waiting_period_year
 ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS no_claim_bonus numeric DEFAULT 0;
 ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS claims jsonb DEFAULT '[]'::jsonb;
 ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS insured_members jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS policy_document_url text DEFAULT '';
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS policy_document_name text DEFAULT '';
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS policy_document_size numeric DEFAULT 0;
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS policy_document_mime text DEFAULT '';
+ALTER TABLE public.health_insurance ADD COLUMN IF NOT EXISTS policy_document_uploaded_at timestamptz;
 
 -- 4. Bill Payments & Bill Payment History
 ALTER TABLE public.bill_payments ADD COLUMN IF NOT EXISTS frequency text DEFAULT 'monthly';

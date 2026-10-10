@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   Heart,
   Plus,
@@ -32,6 +32,13 @@ import {
   Sparkles,
   Layers,
   Info,
+  Upload,
+  UploadCloud,
+  Paperclip,
+  Download,
+  ExternalLink,
+  Eye,
+  RefreshCw,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption, calculateAge } from "../../utils/masterData";
@@ -49,6 +56,13 @@ import { Money } from "../ui/Money";
 import { ConfirmDialog } from "../ui/Feedback";
 import { useAsyncAction } from "../../hooks/useAsyncAction";
 import { InsurerLogo } from "../ui/BrandLogos";
+
+export function formatFileSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
 
 // Types & Enums
 export const POLICY_TYPES = [
@@ -174,6 +188,11 @@ const EMPTY_POLICY: any = {
   restorationBenefit: true,
   maternityCover: false,
   daycareCover: true,
+  policyDocumentUrl: "",
+  policyDocumentName: "",
+  policyDocumentSize: 0,
+  policyDocumentMime: "",
+  policyDocumentUploadedAt: "",
   notes: "",
   claims: [],
 };
@@ -183,14 +202,17 @@ const EMPTY_POLICY: any = {
 // ==========================================
 export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
   const { familyProfiles } = useMasterData();
-  const [activeTab, setActiveTab] = useState<"general" | "financials" | "terms" | "members" | "notes">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "financials" | "terms" | "members" | "documents" | "notes">("general");
   const [form, setForm] = useState({ ...EMPTY_POLICY, ...initial });
-  const [members, setMembers] = useState<{ name: string; relation: string; dob?: string }[]>(
+  const [members, setMembers] = useState<{ name: string; relation: string; dob?: string; entryAge?: number }[]>(
     initial?.insuredMembers || []
   );
   const [memberName, setMemberName] = useState("");
   const [memberRelation, setMemberRelation] = useState("self");
+  const [memberDob, setMemberDob] = useState("");
+  const [memberEntryAge, setMemberEntryAge] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const set = (k: string, v: any) => {
     setForm((f: any) => ({ ...f, [k]: v }));
@@ -199,15 +221,44 @@ export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
 
   const addMember = () => {
     if (!memberName.trim()) return;
+    const calcEntry = memberDob
+      ? (form.startDate ? calculateAge(memberDob, form.startDate) : calculateAge(memberDob))
+      : null;
+    const finalAge = memberEntryAge ? Number(memberEntryAge) : (calcEntry ?? undefined);
+
     setMembers((m) => [
       ...m,
-      { name: memberName.trim(), relation: memberRelation.trim() || "self" },
+      {
+        name: memberName.trim(),
+        relation: memberRelation.trim() || "self",
+        dob: memberDob.trim() || undefined,
+        entryAge: finalAge,
+      },
     ]);
     setMemberName("");
     setMemberRelation("self");
+    setMemberDob("");
+    setMemberEntryAge("");
   };
 
   const removeMember = (i: number) => setMembers((m) => m.filter((_, idx) => idx !== i));
+
+  const handlePolicyFileUpload = (file: File) => {
+    if (file.size > 20 * 1024 * 1024) {
+      alert("File size exceeds maximum limit of 20MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      set("policyDocumentUrl", dataUrl);
+      set("policyDocumentName", file.name);
+      set("policyDocumentSize", file.size);
+      set("policyDocumentMime", file.type || "application/pdf");
+      set("policyDocumentUploadedAt", new Date().toISOString());
+    };
+    reader.readAsDataURL(file);
+  };
 
   const validate = () => {
     const next: Record<string, string> = {};
@@ -238,7 +289,7 @@ export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
   const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 };
 
   const STEPS: {
-    id: "general" | "financials" | "terms" | "members" | "notes";
+    id: "general" | "financials" | "terms" | "members" | "documents" | "notes";
     step: number;
     label: string;
     icon: any;
@@ -248,7 +299,8 @@ export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
     { id: "financials", step: 2, label: "Cover & Premium", icon: HeartPulse, desc: "Sum Insured & Renewal" },
     { id: "terms", step: 3, label: "TPA & Rules", icon: Hospital, desc: "Network & Sub-limits" },
     { id: "members", step: 4, label: `Lives Covered (${members.length})`, icon: Users, desc: "Insured Family Members" },
-    { id: "notes", step: 5, label: "Features & Notes", icon: FileText, desc: "Riders & Exclusions" },
+    { id: "documents", step: 5, label: `Policy Copy${form.policyDocumentUrl ? " ✓" : ""}`, icon: Paperclip, desc: "Upload Document / E-Policy" },
+    { id: "notes", step: 6, label: "Features & Notes", icon: FileText, desc: "Riders & Exclusions" },
   ];
 
   const currentStepIndex = STEPS.findIndex((s) => s.id === activeTab);
@@ -836,7 +888,9 @@ export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
                           const alreadyAdded = members.some(
                             (m) => m.name.toLowerCase() === p.name.toLowerCase()
                           );
-                          const age = p.dob ? calculateAge(p.dob) : null;
+                          const entryAge = p.dob
+                            ? (form.startDate ? calculateAge(p.dob, form.startDate) : calculateAge(p.dob))
+                            : null;
                           return (
                             <button
                               key={p.id}
@@ -845,7 +899,12 @@ export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
                               onClick={() => {
                                 setMembers((m) => [
                                   ...m,
-                                  { name: p.name, relation: p.relationship?.toLowerCase() || "self", dob: p.dob },
+                                  {
+                                    name: p.name,
+                                    relation: p.relationship?.toLowerCase() || "self",
+                                    dob: p.dob,
+                                    entryAge: entryAge ?? undefined,
+                                  },
                                 ]);
                               }}
                               style={{
@@ -865,7 +924,7 @@ export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
                             >
                               <span>+ {p.name}</span>
                               <span style={{ fontSize: 10, opacity: 0.85 }}>
-                                ({p.relationship}{age !== null ? `, ${age}y` : ""})
+                                ({p.relationship}{entryAge !== null ? `, ${entryAge}y ${form.startDate ? "at start" : ""}` : ""})
                               </span>
                             </button>
                           );
@@ -874,31 +933,67 @@ export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
                   </div>
                 )}
 
-                <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-                  <input
-                    className="form-input"
-                    value={memberName}
-                    onChange={(e) => setMemberName(e.target.value)}
-                    placeholder="Custom Member Name"
-                    style={{ flex: 2 }}
-                  />
-                  <select
-                    className="form-input"
-                    value={memberRelation}
-                    onChange={(e) => setMemberRelation(e.target.value)}
-                    style={{ flex: 1.5 }}
-                  >
-                    <option value="self">Self</option>
-                    <option value="spouse">Spouse</option>
-                    <option value="child">Child / Dependent</option>
-                    <option value="father">Father</option>
-                    <option value="mother">Mother</option>
-                    <option value="father-in-law">Father-in-law</option>
-                    <option value="mother-in-law">Mother-in-law</option>
-                  </select>
-                  <Button size="sm" variant="ghost" onClick={addMember}>
-                    Add
-                  </Button>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "2fr 1.5fr 1.5fr 1fr auto",
+                    gap: 8,
+                    alignItems: "flex-end",
+                    marginBottom: 14,
+                  }}
+                >
+                  <Field label="Custom Member Name">
+                    <input
+                      className="form-input"
+                      value={memberName}
+                      onChange={(e) => setMemberName(e.target.value)}
+                      placeholder="e.g. Anand Mohta"
+                    />
+                  </Field>
+                  <Field label="Relationship">
+                    <select
+                      className="form-input"
+                      value={memberRelation}
+                      onChange={(e) => setMemberRelation(e.target.value)}
+                    >
+                      <option value="self">Self</option>
+                      <option value="spouse">Spouse</option>
+                      <option value="child">Child / Dependent</option>
+                      <option value="father">Father</option>
+                      <option value="mother">Mother</option>
+                      <option value="father-in-law">Father-in-law</option>
+                      <option value="mother-in-law">Mother-in-law</option>
+                    </select>
+                  </Field>
+                  <Field label="Date of Birth">
+                    <input
+                      className="form-input"
+                      type="date"
+                      value={memberDob}
+                      onChange={(e) => {
+                        const d = e.target.value;
+                        setMemberDob(d);
+                        if (d) {
+                          const autoAge = form.startDate ? calculateAge(d, form.startDate) : calculateAge(d);
+                          if (autoAge !== null) setMemberEntryAge(String(autoAge));
+                        }
+                      }}
+                    />
+                  </Field>
+                  <Field label={form.startDate ? "Age at Start" : "Age (Years)"}>
+                    <input
+                      className="form-input"
+                      type="number"
+                      value={memberEntryAge}
+                      onChange={(e) => setMemberEntryAge(e.target.value)}
+                      placeholder={form.startDate ? "e.g. 23" : "e.g. 31"}
+                    />
+                  </Field>
+                  <div style={{ paddingBottom: 2 }}>
+                    <Button size="sm" variant="ghost" onClick={addMember}>
+                      Add
+                    </Button>
+                  </div>
                 </div>
 
                 {members.length > 0 ? (
@@ -908,7 +1003,10 @@ export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
                         (p: any) => p.name.toLowerCase() === m.name.toLowerCase()
                       );
                       const dob = m.dob || matchedProfile?.dob;
-                      const age = dob ? calculateAge(dob) : null;
+                      const currentAge = dob ? calculateAge(dob) : null;
+                      const entryAge = (m.entryAge !== undefined && m.entryAge !== null && m.entryAge !== "")
+                        ? Number(m.entryAge)
+                        : (dob && form.startDate ? calculateAge(dob, form.startDate) : currentAge);
                       return (
                         <Badge
                           key={i}
@@ -924,7 +1022,11 @@ export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
                           <UserCheck size={13} color={THEME.accent} />
                           <span style={{ fontWeight: 700 }}>{m.name}</span>
                           <span style={{ opacity: 0.8 }}>({m.relation})</span>
-                          {age !== null && <span style={{ fontWeight: 800, color: THEME.ink }}>· {age} yrs</span>}
+                          {entryAge !== null && (
+                            <span style={{ fontWeight: 800, color: THEME.ink }}>
+                              · {entryAge} yrs {form.startDate ? "(at start)" : ""}
+                            </span>
+                          )}
                           <button
                             onClick={() => removeMember(i)}
                             style={{
@@ -959,6 +1061,150 @@ export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
                   </div>
                 )}
               </>
+            )}
+
+            {activeTab === "documents" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {/* Upload Dropzone */}
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) handlePolicyFileUpload(file);
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    border: `2px dashed ${form.policyDocumentUrl ? THEME.sage : THEME.line}`,
+                    borderRadius: "var(--radius-lg)",
+                    padding: "24px 20px",
+                    textAlign: "center",
+                    background: form.policyDocumentUrl
+                      ? `color-mix(in srgb, ${THEME.sage} 6%, var(--surface-0))`
+                      : "var(--surface-1)",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".pdf,.png,.jpg,.jpeg,.webp"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handlePolicyFileUpload(file);
+                    }}
+                  />
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: "50%",
+                        background: form.policyDocumentUrl
+                          ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)`
+                          : `color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: form.policyDocumentUrl ? THEME.sage : THEME.accent,
+                      }}
+                    >
+                      {form.policyDocumentUrl ? <CheckCircle2 size={24} /> : <UploadCloud size={24} />}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: THEME.ink }}>
+                        {form.policyDocumentUrl ? "Policy Document Attached" : "Upload Policy Document / Copy"}
+                      </div>
+                      <div style={{ fontSize: 11, color: THEME.muted, marginTop: 3 }}>
+                        Drag & drop your policy PDF or scan image, or click to browse (up to 20MB)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Attached File Preview Card */}
+                {form.policyDocumentUrl && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "12px 16px",
+                      borderRadius: "var(--radius-md)",
+                      background: "var(--surface-0)",
+                      border: `1px solid ${THEME.line}`,
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                      <FileText size={28} color={THEME.accent} style={{ flexShrink: 0 }} />
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: 13,
+                            color: THEME.ink,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {form.policyDocumentName || "Health_Policy_Copy.pdf"}
+                        </div>
+                        <div style={{ fontSize: 11, color: THEME.muted, display: "flex", gap: 6, marginTop: 2 }}>
+                          {form.policyDocumentSize ? <span>{formatFileSize(form.policyDocumentSize)}</span> : null}
+                          {form.policyDocumentUploadedAt ? (
+                            <span>· Attached {new Date(form.policyDocumentUploadedAt).toLocaleDateString("en-IN")}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        icon={<Eye size={12} />}
+                        onClick={() => window.open(form.policyDocumentUrl, "_blank")}
+                      >
+                        View
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        style={{ color: THEME.rust }}
+                        icon={<Trash2 size={12} />}
+                        onClick={() => {
+                          set("policyDocumentUrl", "");
+                          set("policyDocumentName", "");
+                          set("policyDocumentSize", 0);
+                          set("policyDocumentMime", "");
+                          set("policyDocumentUploadedAt", "");
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* External URL Link */}
+                <Field label="Or Link External Policy URL (Google Drive, DigiLocker, Insurer Portal)">
+                  <input
+                    className="form-input"
+                    value={form.policyDocumentUrl?.startsWith("http") ? form.policyDocumentUrl : ""}
+                    onChange={(e) => {
+                      const v = e.target.value.trim();
+                      set("policyDocumentUrl", v);
+                      if (v && !form.policyDocumentName) {
+                        set("policyDocumentName", `${form.insurer || "Health"}_Policy_Doc`);
+                      }
+                    }}
+                    placeholder="https://drive.google.com/file/... or insurer download link"
+                  />
+                </Field>
+              </div>
             )}
 
             {activeTab === "notes" && (
@@ -1487,6 +1733,138 @@ Emergency Contact: ${policy.owner || "Family"}`;
 }
 
 // ==========================================
+// 4. POLICY DOCUMENT VIEWER MODAL
+// ==========================================
+function DocumentPreviewModal({ doc, onClose }: { doc: { url: string; name: string; size?: number; mime?: string; policy?: any }; onClose: () => void }) {
+  const isPdf =
+    doc.mime?.includes("pdf") ||
+    doc.name?.toLowerCase().endsWith(".pdf") ||
+    doc.url?.startsWith("data:application/pdf");
+  const isImage =
+    doc.mime?.startsWith("image/") ||
+    /\.(jpg|jpeg|png|webp|gif)$/i.test(doc.name) ||
+    doc.url?.startsWith("data:image/");
+  const isExternalUrl = doc.url?.startsWith("http://") || doc.url?.startsWith("https://");
+
+  const handleDownload = () => {
+    const a = document.createElement("a");
+    a.href = doc.url;
+    a.download = doc.name || "health_policy_document.pdf";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  return (
+    <Modal title={doc.name || "Policy Document Preview"} onClose={onClose} maxWidth={880}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Top Info Bar */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 10,
+            padding: "10px 14px",
+            borderRadius: "var(--radius-md)",
+            background: "var(--surface-1)",
+            border: `1px solid ${THEME.line}`,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {doc.policy?.insurer && <InsurerLogo name={doc.policy.insurer} size={28} />}
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 13, color: THEME.ink }}>
+                {doc.policy ? `${doc.policy.insurer} — ${doc.policy.policyName || "Policy Copy"}` : doc.name}
+              </div>
+              <div style={{ fontSize: 11, color: THEME.muted, display: "flex", gap: 8 }}>
+                {doc.policy?.policyNumber && <span>Policy No: {doc.policy.policyNumber}</span>}
+                {doc.size ? <span>· {formatFileSize(doc.size)}</span> : null}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Button
+              size="sm"
+              variant="outline"
+              icon={<Download size={13} />}
+              onClick={handleDownload}
+            >
+              Download Copy
+            </Button>
+            {isExternalUrl && (
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={<ExternalLink size={13} />}
+                onClick={() => window.open(doc.url, "_blank", "noopener,noreferrer")}
+              >
+                Open External
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Document Content Frame */}
+        <div
+          style={{
+            minHeight: "55vh",
+            maxHeight: "72vh",
+            borderRadius: "var(--radius-md)",
+            overflow: "hidden",
+            border: `1px solid ${THEME.line}`,
+            background: "var(--surface-2)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {isPdf ? (
+            <iframe
+              src={doc.url}
+              title="Policy PDF Document"
+              style={{ width: "100%", height: "65vh", border: "none" }}
+            />
+          ) : isImage ? (
+            <div style={{ padding: 16, overflow: "auto", maxHeight: "65vh", width: "100%", display: "flex", justifyContent: "center" }}>
+              <img
+                src={doc.url}
+                alt={doc.name}
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "60vh",
+                  objectFit: "contain",
+                  borderRadius: 6,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                }}
+              />
+            </div>
+          ) : (
+            <div style={{ textAlign: "center", padding: 32 }}>
+              <FileText size={48} color={THEME.accent} style={{ margin: "0 auto 12px" }} />
+              <div style={{ fontWeight: 700, fontSize: 15, color: THEME.ink, marginBottom: 6 }}>
+                External Document Record
+              </div>
+              <div style={{ fontSize: 13, color: THEME.muted, marginBottom: 16, maxWidth: 420 }}>
+                This policy has a linked digital document address ({doc.name}).
+              </div>
+              <Button
+                variant="primary"
+                icon={<ExternalLink size={14} />}
+                onClick={() => window.open(doc.url, "_blank", "noopener,noreferrer")}
+              >
+                Open Document in New Tab
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ==========================================
 // MAIN HEALTH INSURANCE TAB COMPONENT
 // ==========================================
 export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, showToast }: any) {
@@ -1503,6 +1881,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
   const [policyModal, setPolicyModal] = useState<any>(null);
   const [claimModal, setClaimModal] = useState<any>(null);
   const [eCardModal, setECardModal] = useState<{ policy: any; member: any } | null>(null);
+  const [previewDocModal, setPreviewDocModal] = useState<{ url: string; name: string; size?: number; mime?: string; policy?: any } | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   // Tax 80D custom state
@@ -2159,6 +2538,41 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
 
                           {/* Quick Actions */}
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            {p.policyDocumentUrl ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                icon={<FileText size={13} color={THEME.accent} />}
+                                onClick={() =>
+                                  setPreviewDocModal({
+                                    url: p.policyDocumentUrl,
+                                    name: p.policyDocumentName || `${p.insurer}_Policy_Copy.pdf`,
+                                    size: p.policyDocumentSize,
+                                    mime: p.policyDocumentMime,
+                                    policy: p,
+                                  })
+                                }
+                                style={{
+                                  padding: "6px 10px",
+                                  fontSize: 12,
+                                  borderColor: `color-mix(in srgb, ${THEME.accent} 35%, var(--t-line))`,
+                                }}
+                              >
+                                Policy Copy
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                icon={<Upload size={12} color={THEME.muted} />}
+                                onClick={() => setPolicyModal(p)}
+                                title="Upload policy copy PDF/scan"
+                                style={{ padding: "6px 8px", fontSize: 11, color: THEME.muted }}
+                              >
+                                + Policy Copy
+                              </Button>
+                            )}
+
                             <Button
                               size="sm"
                               variant="ghost"
@@ -2326,7 +2740,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
 
                           {/* Insured Members List with Emergency Pass Action */}
                           {p.insuredMembers?.length > 0 && (
-                            <div>
+                            <div style={{ marginBottom: 16 }}>
                               <div style={{ fontSize: 11, fontWeight: 800, color: THEME.muted, marginBottom: 8, textTransform: "uppercase" }}>
                                 Insured Members & Instant Emergency Passes
                               </div>
@@ -2336,10 +2750,27 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                                     (prof: any) => prof.name.toLowerCase() === m.name.toLowerCase()
                                   );
                                   const dob = m.dob || matchedProfile?.dob;
-                                  const age = dob ? calculateAge(dob) : null;
+                                  const currentAge = dob ? calculateAge(dob) : (m.age ? Number(m.age) : null);
+                                  const policyRefDate = p.startDate || p.renewalDate;
+                                  const entryAge = (m.entryAge !== undefined && m.entryAge !== null && m.entryAge !== "")
+                                    ? Number(m.entryAge)
+                                    : (dob && policyRefDate ? calculateAge(dob, policyRefDate) : currentAge);
+                                  const isExpired = p.renewalDate && new Date(p.renewalDate) < new Date();
+
+                                  const displayAgeText = isExpired
+                                    ? `${entryAge ?? currentAge}y (at entry)`
+                                    : (entryAge && currentAge && entryAge !== currentAge
+                                        ? `${currentAge}y (entry: ${entryAge}y)`
+                                        : `${currentAge ?? entryAge}y`);
+
                                   return (
                                     <div
                                       key={idx}
+                                      title={
+                                        dob
+                                          ? `DOB: ${dob} · Age at policy start: ${entryAge ?? "—"} yrs · Current age: ${currentAge ?? "—"} yrs`
+                                          : undefined
+                                      }
                                       style={{
                                         display: "flex",
                                         alignItems: "center",
@@ -2354,7 +2785,9 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                                       <Users size={12} color={THEME.accent} />
                                       <span style={{ fontWeight: 700, color: THEME.ink }}>{m.name}</span>
                                       <span style={{ color: THEME.muted }}>({m.relation})</span>
-                                      {age !== null && <span style={{ fontWeight: 700, color: THEME.ink }}>· {age}y</span>}
+                                      {(entryAge !== null || currentAge !== null) && (
+                                        <span style={{ fontWeight: 700, color: THEME.ink }}>· {displayAgeText}</span>
+                                      )}
                                       <button
                                         onClick={() => setECardModal({ policy: p, member: m })}
                                         style={{
@@ -2380,6 +2813,91 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                               </div>
                             </div>
                           )}
+
+                          {/* Policy Document & E-Archive Section */}
+                          <div
+                            style={{
+                              padding: "12px 16px",
+                              borderRadius: "var(--radius-md)",
+                              background: "var(--surface-1)",
+                              border: `1px solid ${THEME.line}`,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              flexWrap: "wrap",
+                              gap: 10,
+                              marginBottom: 12,
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <Paperclip size={16} color={p.policyDocumentUrl ? THEME.sage : THEME.muted} />
+                              <div>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
+                                  Policy Schedule / E-Document Copy
+                                </div>
+                                <div style={{ fontSize: 11, color: THEME.muted }}>
+                                  {p.policyDocumentUrl
+                                    ? `${p.policyDocumentName || "Policy document attached"} ${p.policyDocumentSize ? `(${formatFileSize(p.policyDocumentSize)})` : ""}`
+                                    : "No digital copy uploaded yet"}
+                                </div>
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              {p.policyDocumentUrl ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    icon={<Eye size={12} />}
+                                    onClick={() =>
+                                      setPreviewDocModal({
+                                        url: p.policyDocumentUrl,
+                                        name: p.policyDocumentName || `${p.insurer}_Policy_Copy.pdf`,
+                                        size: p.policyDocumentSize,
+                                        mime: p.policyDocumentMime,
+                                        policy: p,
+                                      })
+                                    }
+                                  >
+                                    Preview Document
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    icon={<Download size={12} />}
+                                    onClick={() => {
+                                      const a = document.createElement("a");
+                                      a.href = p.policyDocumentUrl;
+                                      a.download = p.policyDocumentName || `${p.insurer}_Policy_Copy.pdf`;
+                                      document.body.appendChild(a);
+                                      a.click();
+                                      document.body.removeChild(a);
+                                    }}
+                                  >
+                                    Download
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    icon={<Pencil size={11} />}
+                                    onClick={() => setPolicyModal(p)}
+                                    title="Replace document"
+                                  >
+                                    Replace
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="primary"
+                                  icon={<UploadCloud size={13} />}
+                                  onClick={() => setPolicyModal(p)}
+                                >
+                                  Upload Policy Copy
+                                </Button>
+                              )}
+                            </div>
+                          </div>
 
                           {p.notes && (
                             <div style={{ marginTop: 12, fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>
@@ -3003,6 +3521,13 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
           policy={eCardModal.policy}
           member={eCardModal.member}
           onClose={() => setECardModal(null)}
+        />
+      )}
+
+      {previewDocModal !== null && (
+        <DocumentPreviewModal
+          doc={previewDocModal}
+          onClose={() => setPreviewDocModal(null)}
         />
       )}
 
