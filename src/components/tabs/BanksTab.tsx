@@ -32,6 +32,8 @@ import {
   Layers,
   ShieldCheck,
   RefreshCw,
+  Sparkles,
+  Repeat,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -62,6 +64,8 @@ import {
   informalPersonOutstanding,
   uid,
   getEmergencyFundMonthlyExpense,
+  rdElapsed,
+  rdMaturity,
 } from "../../utils/finance";
 import { Prv, usePrivacy } from "../../context/PrivacyContext";
 import { Money } from "../ui/Money";
@@ -572,6 +576,39 @@ export function BanksTab({
         renewalDate: addMonthsToDateStr(sub.renewalDate, step),
         lastPaidAmount: amt,
       });
+    } else if (lt === "recurringDeposits" || lt === "recurring_deposit") {
+      const rd = (state.recurringDeposits || []).find((r: any) => r.id === lid);
+      if (!rd) return;
+      if (type === "credit") {
+        // Maturity proceeds received into bank account
+        await updateItem("recurringDeposits", lid, {
+          status: "matured",
+          payoutStatus: "credited",
+          payoutAmount: amt,
+          payoutDate: date,
+          payoutBankAccountId: txn.accountId,
+          notes: (rd.notes ? `${rd.notes} | ` : "") + `Maturity proceeds ₹${amt} credited to bank on ${date}`,
+        });
+      } else {
+        // RD Installment payment made from bank account
+        const currentPaid = Number(rd.paidInstallments) || rdElapsed(rd);
+        const nextPaid = currentPaid + 1;
+        const tenure = Number(rd.tenureMonths) || 12;
+        await updateItem("recurringDeposits", lid, {
+          paidInstallments: nextPaid,
+          status: nextPaid >= tenure ? "matured" : rd.status || "active",
+        });
+      }
+    } else if (lt === "fixedDeposits" || lt === "fixed_deposit") {
+      const fd = (state.fixedDeposits || []).find((f: any) => f.id === lid);
+      if (!fd) return;
+      if (type === "credit") {
+        await updateItem("fixedDeposits", lid, {
+          status: "matured",
+          payoutStatus: "credited",
+          payoutDate: date,
+        });
+      }
     }
   };
 
@@ -1960,6 +1997,63 @@ export function BanksTab({
                         </div>
                       </div>
 
+                      {/* Linked Recurring Deposits Overview */}
+                      {(() => {
+                        const linkedRDs = (state.recurringDeposits || []).filter(
+                          (r: any) =>
+                            r.bankAccountId === a.id ||
+                            r.payoutBankAccountId === a.id ||
+                            r.linkedAccount === a.id
+                        );
+                        const activeLinked = linkedRDs.filter(
+                          (r: any) => r.status !== "closed" && r.payoutStatus !== "credited"
+                        );
+                        const maturedCredited = linkedRDs.filter(
+                          (r: any) => r.payoutStatus === "credited"
+                        );
+                        if (linkedRDs.length === 0) return null;
+                        return (
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: THEME.muted,
+                              padding: "6px 10px",
+                              background: "var(--surface-0)",
+                              borderRadius: 8,
+                              border: `1px solid ${THEME.line}`,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: 6,
+                            }}
+                          >
+                            <span
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                                color: THEME.cyan,
+                                fontWeight: 700,
+                              }}
+                            >
+                              <Repeat size={11} /> Linked RDs ({linkedRDs.length})
+                            </span>
+                            <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                              {maturedCredited.length > 0 && (
+                                <span style={{ color: THEME.sage, fontWeight: 700 }}>
+                                  ✓ {maturedCredited.length} Matured
+                                </span>
+                              )}
+                              {activeLinked.length > 0 && (
+                                <span style={{ color: THEME.muted }}>
+                                  {activeLinked.length} Active (₹{activeLinked.reduce((s: number, r: any) => s + (Number(r.monthly) || 0), 0).toLocaleString("en-IN")}/mo)
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })()}
+
                       {/* Card Footer Actions */}
                       <div
                         style={{
@@ -2385,7 +2479,28 @@ export function BanksTab({
                               ↔ TRANSFER
                             </Badge>
                           )}
-                          {t.linkedType && (
+                          {(t.linked_type === "recurring_deposit" ||
+                            t.linkedType === "recurringDeposits" ||
+                            t.subCategory === "RD Maturity" ||
+                            (t.note && t.note.toLowerCase().includes("rd maturity"))) && (
+                            <Badge
+                              variant="sage"
+                              size="xs"
+                              style={{
+                                whiteSpace: "nowrap",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                                background: "rgba(16, 185, 129, 0.15)",
+                                color: THEME.sage,
+                                border: "1px solid rgba(16, 185, 129, 0.3)",
+                                fontWeight: 800,
+                              }}
+                            >
+                              <Sparkles size={9} /> RD MATURITY
+                            </Badge>
+                          )}
+                          {(t.linkedType || t.linked_type) && (
                             <Badge
                               variant="accent"
                               size="xs"
@@ -2932,7 +3047,28 @@ export function BanksTab({
                               ↔
                             </Badge>
                           )}
-                          {t.linkedType && (
+                          {(t.linked_type === "recurring_deposit" ||
+                            t.linkedType === "recurringDeposits" ||
+                            t.subCategory === "RD Maturity" ||
+                            (t.note && t.note.toLowerCase().includes("rd maturity"))) && (
+                            <Badge
+                              variant="sage"
+                              size="xs"
+                              style={{
+                                whiteSpace: "nowrap",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                                background: "rgba(16, 185, 129, 0.15)",
+                                color: THEME.sage,
+                                border: "1px solid rgba(16, 185, 129, 0.3)",
+                                fontWeight: 800,
+                              }}
+                            >
+                              <Sparkles size={9} /> RD MATURITY
+                            </Badge>
+                          )}
+                          {(t.linkedType || t.linked_type) && (
                             <Badge
                               variant="accent"
                               size="xs"
@@ -4126,6 +4262,66 @@ function getLinkConfig(category: string, type: string, state: any, privacyMode?:
         })),
     };
   }
+
+  // Recurring & Fixed Deposits Linking on Credit (Maturity Proceeds Received)
+  if (
+    type === "credit" &&
+    (category === "Investments" ||
+      category === "Maturity Proceeds" ||
+      category === "Income" ||
+      category === "Interest" ||
+      category === "Other" ||
+      catLower.includes("rd") ||
+      catLower.includes("maturity") ||
+      catLower.includes("deposit"))
+  ) {
+    const rdOptions = (state.recurringDeposits || []).map((r: any) => {
+      const tenure = Number(r.tenureMonths) || 12;
+      const elapsed = rdElapsed(r);
+      const matVal = rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), tenure);
+      const isCredited = r.payoutStatus === "credited";
+      return {
+        key: `recurringDeposits:${r.id}`,
+        label: `RD: ${r.bank || "Bank"} – ${r.rdNumber || r.accountNumber || "A/C"} | Maturity ${fmt(matVal)} ${isCredited ? "(Credited)" : elapsed >= tenure ? "(Matured)" : "(Active)"}`,
+      };
+    });
+
+    const fdOptions = (state.fixedDeposits || []).map((f: any) => {
+      return {
+        key: `fixedDeposits:${f.id}`,
+        label: `FD: ${f.bank || "Bank"} – ${f.fdNumber || f.accountNumber || "A/C"} | Amount ${fmt(f.amount || f.principal)} | Maturity ${fmt(f.maturityAmount || f.amount)}`,
+      };
+    });
+
+    const allDepositOptions = [...rdOptions, ...fdOptions];
+    if (allDepositOptions.length > 0) {
+      return {
+        label: "Recurring / Fixed Deposit Maturity",
+        options: allDepositOptions,
+      };
+    }
+  }
+
+  // Recurring Deposits Linking on Debit (Monthly Installment Paid)
+  if (
+    type === "debit" &&
+    (category === "Investments" || catLower.includes("rd") || catLower.includes("deposit"))
+  ) {
+    const rdOptions = (state.recurringDeposits || [])
+      .filter((r: any) => r.status !== "closed" && r.payoutStatus !== "credited")
+      .map((r: any) => ({
+        key: `recurringDeposits:${r.id}`,
+        label: `RD Installment: ${r.bank || "Bank"} – ${r.rdNumber || "A/C"} | ${fmt(r.monthly)}/mo`,
+      }));
+
+    if (rdOptions.length > 0) {
+      return {
+        label: "Recurring Deposit Installment",
+        options: rdOptions,
+      };
+    }
+  }
+
   return null;
 }
 
@@ -4564,7 +4760,7 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave, savin
 
   return (
     <Modal title="Edit Transaction Details" onClose={onClose}>
-      {txn?.linkedType && (
+      {(txn?.linkedType || txn?.linked_type) && (
         <div
           style={{
             fontSize: 11,
@@ -4578,7 +4774,26 @@ function TxnEditModal({ txn, accounts, getDisplayBalance, onClose, onSave, savin
           }}
         >
           <Link2 size={12} style={{ verticalAlign: -2, marginRight: 4 }} /> This transaction is
-          linked to a {txn.linkedType} record.
+          linked to a {txn.linkedType || txn.linked_type} record.
+        </div>
+      )}
+      {(txn?.subCategory === "RD Maturity" || (txn?.note && txn.note.toLowerCase().includes("rd maturity"))) && (
+        <div
+          style={{
+            fontSize: 11,
+            color: THEME.sage,
+            marginBottom: 12,
+            fontWeight: 700,
+            padding: "8px 12px",
+            background: `rgba(16, 185, 129, 0.1)`,
+            border: `1px solid rgba(16, 185, 129, 0.25)`,
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <Sparkles size={13} /> Recurring Deposit maturity proceeds credited into this bank account.
         </div>
       )}
 

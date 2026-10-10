@@ -168,6 +168,7 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     0
   );
   const rdValue = (pState.recurringDeposits || []).reduce((s: number, r: any) => {
+    if (r.payoutStatus === "credited" || r.status === "closed") return s;
     const elapsed = r.startDate
       ? Math.min(Number(r.tenureMonths || 0), Math.max(0, monthsBetween(r.startDate, today())))
       : Number(r.tenureMonths || 0);
@@ -421,6 +422,7 @@ export function useMetrics(
       0
     );
     const rdValue = (sState.recurringDeposits || []).reduce((s: number, r: any) => {
+      if (r.payoutStatus === "credited" || r.status === "closed") return s;
       const elapsed = r.startDate
         ? Math.min(Number(r.tenureMonths || 0), Math.max(0, monthsBetween(r.startDate, today())))
         : Number(r.tenureMonths || 0);

@@ -480,6 +480,11 @@ CREATE TABLE IF NOT EXISTS public.recurring_deposits (
   notes            text,
   nominee          text DEFAULT '',                           -- 69
   nominee_relation text DEFAULT '',                             -- 69
+  payout_status    text DEFAULT 'pending',                      -- 101
+  payout_amount    numeric DEFAULT 0,                           -- 101
+  payout_date      date,                                        -- 101
+  payout_bank_account_id text,                                  -- 101
+  tds_deducted     numeric DEFAULT 0,                           -- 101
   created_at       timestamp with time zone DEFAULT now()
 );
 

@@ -48,6 +48,7 @@ import { THEME } from "../../utils/constants";
 import { useMasterData } from "../../utils/masterData";
 import { Money } from "../ui/Money";
 import {
+  fmtINR,
   fmtINRFull,
   rdMaturity,
   rdElapsed,
@@ -86,6 +87,11 @@ export interface RDItem {
   nominee?: string;
   payoutAccount?: string;
   status?: "active" | "matured" | "closed";
+  payoutStatus?: "credited" | "pending" | "unclaimed";
+  payoutAmount?: number | string;
+  payoutDate?: string;
+  payoutBankAccountId?: string;
+  tdsDeducted?: number | string;
   notes?: string;
 }
 
@@ -163,6 +169,7 @@ export function RecurringDepositsSection({
   const [editRD, setEditRD] = useState<any>(null);
   const [confirmDeleteRD, setConfirmDeleteRD] = useState<any>(null);
   const [rolloverRD, setRolloverRD] = useState<any>(null);
+  const [claimMaturityRD, setClaimMaturityRD] = useState<any>(null);
   const [breakSimRD, setBreakSimRD] = useState<any>(null);
   const [payInstallmentRD, setPayInstallmentRD] = useState<any>(null);
   const [viewHistoryRD, setViewHistoryRD] = useState<any>(null);
@@ -511,6 +518,86 @@ export function RecurringDepositsSection({
       },
       onError: (e: any) =>
         showToast?.(`Failed to record payment: ${e?.message || "Unknown error"}`, "error"),
+    }
+  );
+
+  // Async claim maturity / credit to bank action
+  const { run: handleClaimMaturity, loading: claimingMaturity } = useAsyncAction(
+    async (payload: {
+      rd: any;
+      bankAccountId: string;
+      payoutAmount: number;
+      date: string;
+      tds?: number;
+      note?: string;
+    }) => {
+      const { rd, bankAccountId, payoutAmount, date, tds = 0, note } = payload;
+      const amt = Number(payoutAmount) || 0;
+      if (amt <= 0) {
+        throw new Error("Maturity amount must be greater than 0");
+      }
+      const bank = bankAccounts.find((b: any) => b.id === bankAccountId);
+      if (!bank) {
+        throw new Error("Please select a valid destination bank account");
+      }
+
+      const noteText =
+        note ||
+        `RD Maturity Payout - ${rd.bank || "Deposit"}${
+          rd.rdNumber || rd.accountNumber ? ` (A/C: ${rd.rdNumber || rd.accountNumber})` : ""
+        }`;
+
+      const updatedRD = {
+        ...rd,
+        status: "matured",
+        payoutStatus: "credited",
+        payoutAmount: amt,
+        payoutDate: date || today(),
+        payoutBankAccountId: bank.id,
+        tdsDeducted: Number(tds) || 0,
+        notes: rd.notes
+          ? `${rd.notes} | Maturity credited: ₹${fmtINR(amt)} to ${bank.bankName} on ${date || today()}`
+          : `Maturity credited: ₹${fmtINR(amt)} to ${bank.bankName} on ${date || today()}`,
+      };
+
+      // 1. Update the RD record
+      await updateItem("recurringDeposits", rd.id, updatedRD);
+
+      // 2. Credit destination bank balance
+      await updateItem("bankAccounts", bank.id, {
+        ...bank,
+        balance: Number(bank.balance || 0) + amt,
+      });
+
+      // 3. Log credit transaction in the bank ledger
+      if (addItem) {
+        await addItem("transactions", {
+          type: "credit",
+          category: "Investments",
+          subCategory: "RD Maturity",
+          note: noteText,
+          narration: noteText,
+          linked_type: "recurring_deposit",
+          linkedType: "recurringDeposits",
+          linked_id: rd.id,
+          linkedId: rd.id,
+          amount: amt,
+          date: date || today(),
+          accountId: bank.id,
+          owner: rd.owner || "self",
+        });
+      }
+    },
+    {
+      onSuccess: () => {
+        setClaimMaturityRD(null);
+        showToast?.("RD maturity proceeds credited to bank account successfully!", "success");
+      },
+      onError: (e: any) =>
+        showToast?.(
+          `Failed to credit RD maturity: ${e?.message || "Unknown error"}`,
+          "error"
+        ),
     }
   );
 
@@ -1154,8 +1241,12 @@ export function RecurringDepositsSection({
                               marginBottom: 14,
                             }}
                           >
-                            {isFullyPaid || matured ? (
-                              <Badge variant="sage">Matured</Badge>
+                            {r.payoutStatus === "credited" ? (
+                              <Badge variant="sage">
+                                <CheckCircle2 size={11} style={{ marginRight: 3 }} /> Credited to Bank
+                              </Badge>
+                            ) : isFullyPaid || matured ? (
+                              <Badge variant="gold">Matured</Badge>
                             ) : daysLeft !== null && daysLeft <= 0 ? (
                               <Badge variant="gold">
                                 Tenure Ended ({elapsed}/{tenure})
@@ -1438,87 +1529,194 @@ export function RecurringDepositsSection({
                           </div>
                         </div>
 
-                        {/* Card Bottom Quick Actions */}
+                        {/* ── 1. Matured & Credited Success Banner ── */}
+                        {r.payoutStatus === "credited" && (
+                          <div
+                            style={{
+                              padding: "9px 12px",
+                              borderRadius: 10,
+                              background: "linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%)",
+                              border: "1px solid rgba(16, 185, 129, 0.3)",
+                              fontSize: 11,
+                              color: THEME.sage,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              fontWeight: 700,
+                              marginBottom: 10,
+                            }}
+                          >
+                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <CheckCircle2 size={13} style={{ color: THEME.sage }} />
+                              Credited to {(() => {
+                                const b = bankAccounts.find(
+                                  (acc: any) =>
+                                    acc.id === (r.payoutBankAccountId || r.bankAccountId || r.linkedAccount)
+                                );
+                                return b?.bankName || "Bank Account";
+                              })()}: ₹{fmtINR(r.payoutAmount || (matured ? matVal : accrued))}
+                            </span>
+                            <span style={{ fontSize: 10, color: THEME.muted, fontWeight: 500 }}>
+                              {r.payoutDate || "Settled"}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* ── 2. Primary Action Bar for Matured Unclaimed RD ── */}
+                        {(isFullyPaid || matured) && r.payoutStatus !== "credited" && (
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "1.2fr 1fr",
+                              gap: 8,
+                              marginBottom: 12,
+                            }}
+                          >
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              icon={<IndianRupee size={13} />}
+                              onClick={() => setClaimMaturityRD(r)}
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 700,
+                                padding: "8px 10px",
+                                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                                color: "#ffffff",
+                                border: "none",
+                                boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
+                                justifyContent: "center",
+                              }}
+                              title="Receive full RD maturity proceeds into your bank account"
+                            >
+                              Credit to Bank
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={<RefreshCw size={12} />}
+                              onClick={() => setRolloverRD(r)}
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                padding: "8px 10px",
+                                justifyContent: "center",
+                              }}
+                              title="Reinvest matured deposit into a new RD or FD"
+                            >
+                              Reinvest / Rollover
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* ── 3. Action Bar for Matured Already-Credited RD ── */}
+                        {(isFullyPaid || matured) && r.payoutStatus === "credited" && (
+                          <div style={{ marginBottom: 12 }}>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={<RefreshCw size={12} />}
+                              onClick={() => setRolloverRD(r)}
+                              style={{
+                                width: "100%",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                padding: "7px 12px",
+                                justifyContent: "center",
+                              }}
+                              title="Reinvest into a new RD or FD"
+                            >
+                              Reinvest in New RD / FD
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* ── 4. Card Bottom Utility Toolbar ── */}
                         <div
                           style={{
                             borderTop: `1px solid ${THEME.line}`,
-                            paddingTop: 12,
+                            paddingTop: 10,
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
                             gap: 8,
                           }}
                         >
-                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                             <Button
                               variant="ghost"
                               size="sm"
                               icon={<ListOrdered size={12} />}
                               onClick={() => setViewHistoryRD(r)}
-                              style={{ fontSize: 11, padding: "4px 8px" }}
+                              style={{ fontSize: 11, padding: "4px 8px", color: THEME.muted }}
                               title="View all paid & upcoming installments schedule"
                             >
                               Installments
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              icon={<Zap size={12} />}
-                              onClick={() => setBreakSimRD(r)}
-                              style={{ fontSize: 11, padding: "4px 8px" }}
-                              title="Simulate premature withdrawal & penal rates"
-                            >
-                              Break Sim
-                            </Button>
-                            {!isFullyPaid && elapsed < tenure && (
+                            {!isFullyPaid && !matured && (
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
-                                icon={<CreditCard size={12} />}
-                                onClick={() => setPayInstallmentRD(r)}
-                                style={{
-                                  fontSize: 11,
-                                  padding: "4px 10px",
-                                  color: THEME.cyan,
-                                  borderColor: "rgba(14, 165, 233, 0.4)",
-                                  background: "rgba(14, 165, 233, 0.08)",
-                                }}
-                                title={`Pay monthly installment #${elapsed + 1} of ${tenure}`}
+                                icon={<Zap size={12} />}
+                                onClick={() => setBreakSimRD(r)}
+                                style={{ fontSize: 11, padding: "4px 8px", color: THEME.muted }}
+                                title="Simulate premature withdrawal & penal rates"
                               >
-                                Pay Installment
+                                Break Sim
                               </Button>
                             )}
                           </div>
 
-                          {isFullyPaid || matured ? (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              icon={<RefreshCw size={12} />}
-                              onClick={() => setRolloverRD(r)}
-                              style={{
-                                fontSize: 11,
-                                padding: "4px 10px",
-                                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                              }}
-                              title="Reinvest matured deposit into a new RD or FD"
-                            >
-                              Reinvest / Rollover
-                            </Button>
-                          ) : (
+                          {!isFullyPaid && !matured && (
+                            <div>
+                              {elapsed < tenure ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  icon={<CreditCard size={12} />}
+                                  onClick={() => setPayInstallmentRD(r)}
+                                  style={{
+                                    fontSize: 11,
+                                    padding: "4px 10px",
+                                    color: THEME.cyan,
+                                    borderColor: "rgba(14, 165, 233, 0.4)",
+                                    background: "rgba(14, 165, 233, 0.08)",
+                                  }}
+                                  title={`Pay monthly installment #${elapsed + 1} of ${tenure}`}
+                                >
+                                  Pay Installment
+                                </Button>
+                              ) : (
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    color: THEME.muted,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                  }}
+                                >
+                                  <Clock size={12} />
+                                  {daysLeft !== null && daysLeft > 0
+                                    ? `${daysLeft}d left`
+                                    : "Active"}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {(isFullyPaid || matured) && (
                             <div
                               style={{
                                 fontSize: 11,
-                                color: THEME.muted,
+                                color: THEME.sage,
+                                fontWeight: 700,
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 4,
                               }}
                             >
-                              <Clock size={12} />
-                              {daysLeft !== null && daysLeft > 0
-                                ? `${daysLeft}d left`
-                                : "Active"}
+                              <CheckCircle2 size={12} /> {r.payoutStatus === "credited" ? "Credited" : "Matured"}
                             </div>
                           )}
                         </div>
@@ -1765,8 +1963,10 @@ export function RecurringDepositsSection({
                           </td>
 
                           <td style={{ padding: "12px 12px" }}>
-                            {isFullyPaid || matured ? (
-                              <Badge variant="sage">Matured</Badge>
+                            {r.payoutStatus === "credited" ? (
+                              <Badge variant="sage">Credited to Bank</Badge>
+                            ) : isFullyPaid || matured ? (
+                              <Badge variant="gold">Matured</Badge>
                             ) : daysLeft !== null && daysLeft <= 0 ? (
                               <Badge variant="gold">
                                 Tenure Ended ({elapsed}/{tenure})
@@ -1792,6 +1992,26 @@ export function RecurringDepositsSection({
                                 gap: 4,
                               }}
                             >
+                              {r.payoutStatus !== "credited" && (isFullyPaid || matured) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  icon={<IndianRupee size={13} />}
+                                  onClick={() => setClaimMaturityRD(r)}
+                                  title="Credit RD Maturity Proceeds to Bank Account"
+                                  style={{ color: THEME.sage }}
+                                />
+                              )}
+                              {(isFullyPaid || matured) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  icon={<RefreshCw size={13} />}
+                                  onClick={() => setRolloverRD(r)}
+                                  title="Reinvest / Rollover RD"
+                                  style={{ color: THEME.cyan }}
+                                />
+                              )}
                               {!isFullyPaid && elapsed < tenure && (
                                 <Button
                                   variant="ghost"
@@ -1924,6 +2144,17 @@ export function RecurringDepositsSection({
         <PrematureBreakModal
           rd={breakSimRD}
           onClose={() => setBreakSimRD(null)}
+        />
+      )}
+
+      {/* ── Modal: Credit RD Maturity Proceeds to Bank Account ── */}
+      {claimMaturityRD && (
+        <RDMaturityPayoutModal
+          rd={claimMaturityRD}
+          bankAccounts={bankAccounts}
+          onClose={() => setClaimMaturityRD(null)}
+          onConfirm={handleClaimMaturity}
+          loading={claimingMaturity}
         />
       )}
 
@@ -3671,3 +3902,267 @@ function RDRolloverModal({
     </Modal>
   );
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MODAL: Credit RD Maturity Proceeds to Bank Account
+   ══════════════════════════════════════════════════════════════════════════════ */
+function RDMaturityPayoutModal({
+  rd,
+  bankAccounts = [],
+  onClose,
+  onConfirm,
+  loading,
+}: {
+  rd: any;
+  bankAccounts?: any[];
+  onClose: () => void;
+  onConfirm: (data: {
+    rd: any;
+    bankAccountId: string;
+    payoutAmount: number;
+    date: string;
+    tds?: number;
+    note?: string;
+  }) => void;
+  loading?: boolean;
+}) {
+  const tenure = Number(rd.tenureMonths) || 12;
+  const elapsed = rdElapsed(rd);
+  const monthly = Number(rd.monthly) || 0;
+  const rate = Number(rd.rate) || 0;
+  const paidCount = Number(rd.paidInstallments) || elapsed || tenure;
+  const deposited = monthly * paidCount;
+  const defaultMaturity = Math.round(
+    elapsed >= tenure ? rdMaturity(monthly, rate, tenure) : rdMaturity(monthly, rate, elapsed || tenure)
+  );
+
+  const initialBankId =
+    rd.bankAccountId ||
+    rd.payoutAccount ||
+    rd.linkedAccount ||
+    bankAccounts[0]?.id ||
+    "";
+
+  const [selectedBankId, setSelectedBankId] = useState<string>(initialBankId);
+  const [payoutAmount, setPayoutAmount] = useState<string>(String(defaultMaturity));
+  const [date, setDate] = useState<string>(rd.maturityDate || today());
+  const [tds, setTds] = useState<string>(String(rd.tdsDeducted || 0));
+  const [note, setNote] = useState<string>(
+    `RD Maturity Payout - ${rd.bank || "Bank"}${
+      rd.rdNumber || rd.accountNumber ? ` (A/C: ${rd.rdNumber || rd.accountNumber})` : ""
+    }`
+  );
+
+  const selectedBank = bankAccounts.find((b: any) => b.id === selectedBankId);
+  const finalPayoutNum = Number(payoutAmount) || 0;
+  const interestEarned = Math.max(0, finalPayoutNum - deposited);
+
+  const inp: React.CSSProperties = {
+    background: "var(--surface-1)",
+    border: `1.5px solid ${THEME.line}`,
+    borderRadius: 8,
+    padding: "9px 12px",
+    color: THEME.ink,
+    fontSize: 13,
+    width: "100%",
+    outline: "none",
+  };
+
+  const handleSubmit = () => {
+    if (!selectedBankId || finalPayoutNum <= 0) return;
+    onConfirm({
+      rd,
+      bankAccountId: selectedBankId,
+      payoutAmount: finalPayoutNum,
+      date,
+      tds: Number(tds) || 0,
+      note,
+    });
+  };
+
+  return (
+    <Modal title="Credit RD Maturity Proceeds to Bank Account" onClose={onClose}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* RD Header Info */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 16px",
+            background: "var(--surface-1)",
+            borderRadius: 12,
+            border: `1px solid ${THEME.line}`,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <BankLogo name={rd.bank} size={40} />
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: THEME.ink }}>
+                {rd.bank} Recurring Deposit
+              </div>
+              <div style={{ fontSize: 12, color: THEME.muted }}>
+                {rd.rdNumber || rd.accountNumber ? `A/C: ${rd.rdNumber || rd.accountNumber} · ` : ""}
+                ₹{monthly.toLocaleString("en-IN")}/mo @ {rate}% p.a. ({tenure}m)
+              </div>
+            </div>
+          </div>
+          <Badge variant="sage">Matured</Badge>
+        </div>
+
+        {/* Breakdown of Invested vs Interest Accrued */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gap: 10,
+            padding: 12,
+            borderRadius: 10,
+            background:
+              "linear-gradient(145deg, rgba(16, 185, 129, 0.08) 0%, rgba(14, 165, 233, 0.05) 100%)",
+            border: "1px solid rgba(16, 185, 129, 0.2)",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700 }}>Total Deposited</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: THEME.ink, marginTop: 2 }}>
+              ₹{deposited.toLocaleString("en-IN")}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: THEME.sage, fontWeight: 700 }}>Interest Return</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: THEME.sage, marginTop: 2 }}>
+              +₹{interestEarned.toLocaleString("en-IN")}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: THEME.cyan, fontWeight: 700 }}>Full Maturity Value</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: THEME.cyan, marginTop: 2 }}>
+              ₹{defaultMaturity.toLocaleString("en-IN")}
+            </div>
+          </div>
+        </div>
+
+        {/* Destination Bank Account Selection */}
+        <Field label="Credit Into Bank Account *">
+          {bankAccounts.length === 0 ? (
+            <div style={{ fontSize: 12, color: THEME.rust, padding: 8 }}>
+              No bank accounts found. Please add a bank account first.
+            </div>
+          ) : (
+            <select
+              style={inp}
+              value={selectedBankId}
+              onChange={(e) => setSelectedBankId(e.target.value)}
+            >
+              {bankAccounts.map((b: any) => (
+                <option key={b.id} value={b.id}>
+                  {b.bankName} – {b.type || "Savings"} (
+                  {b.accountNumber ? `••••${String(b.accountNumber).slice(-4)}` : "No A/C"}) | Current
+                  Bal: ₹{Number(b.balance || 0).toLocaleString("en-IN")}
+                </option>
+              ))}
+            </select>
+          )}
+          {selectedBank && (
+            <div
+              style={{
+                fontSize: 11,
+                color: THEME.muted,
+                marginTop: 6,
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <span>Current Balance: ₹{Number(selectedBank.balance || 0).toLocaleString("en-IN")}</span>
+              <span style={{ color: THEME.sage, fontWeight: 700 }}>
+                Balance after credit: ₹
+                {(Number(selectedBank.balance || 0) + finalPayoutNum).toLocaleString("en-IN")}
+              </span>
+            </div>
+          )}
+        </Field>
+
+        {/* Amount to Credit & Date */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Maturity Payout Amount (₹) *">
+            <input
+              style={inp}
+              type="number"
+              value={payoutAmount}
+              onChange={(e) => setPayoutAmount(e.target.value)}
+            />
+          </Field>
+
+          <Field label="Credit Date *">
+            <input
+              style={inp}
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </Field>
+        </div>
+
+        {/* Optional TDS and Narration */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+          <Field label="TDS Deducted (₹, if any)">
+            <input
+              style={inp}
+              type="number"
+              value={tds}
+              onChange={(e) => setTds(e.target.value)}
+              placeholder="0"
+            />
+          </Field>
+
+          <Field label="Transaction Note / Narration">
+            <input
+              style={inp}
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </Field>
+        </div>
+
+        {/* Explanatory Info Card */}
+        <div
+          style={{
+            padding: "10px 14px",
+            borderRadius: 8,
+            background: "rgba(14, 165, 233, 0.08)",
+            border: "1px solid rgba(14, 165, 233, 0.2)",
+            fontSize: 12,
+            color: THEME.ink,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 8,
+          }}
+        >
+          <Sparkles size={16} style={{ color: THEME.cyan, marginTop: 2, flexShrink: 0 }} />
+          <div style={{ lineHeight: 1.5 }}>
+            <strong>How this is recorded:</strong>
+            <br />
+            1. Increases your <strong>{selectedBank?.bankName || "Bank"}</strong> balance by{" "}
+            <strong>₹{finalPayoutNum.toLocaleString("en-IN")}</strong>.
+            <br />
+            2. Automatically adds a verified <strong>Investments (RD Maturity)</strong> credit
+            transaction to your Bank Account ledger.
+            <br />
+            3. Marks this Recurring Deposit as <strong>Settled & Credited</strong>.
+          </div>
+        </div>
+
+        <ModalActions
+          onClose={onClose}
+          onSave={handleSubmit}
+          saveLabel={`Credit ₹${finalPayoutNum.toLocaleString("en-IN")} to Bank`}
+          disabled={loading || !selectedBankId || finalPayoutNum <= 0}
+          loading={loading}
+        />
+      </div>
+    </Modal>
+  );
+}
+

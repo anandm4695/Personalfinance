@@ -224,9 +224,17 @@ export function computeNetWorthAsOf(
   // Tier 1 — ledger-based, filter dated entries by <= asOfYm.
   const rdValue = (s.recurringDeposits || []).reduce((sum: number, r: any) => {
     if (!r.startDate) {
+      if (r.payoutStatus === "credited" || r.status === "closed") return sum;
       return sum + rdMaturity(Number(r.monthly || 0), Number(r.rate || 0), Number(r.tenureMonths || 0));
     }
     if (ym(r.startDate) > asOfYm) return sum; // not opened yet as of this month
+    if (
+      (r.payoutStatus === "credited" || r.status === "closed") &&
+      r.payoutDate &&
+      ym(r.payoutDate) <= asOfYm
+    ) {
+      return sum; // already paid out into bank account as of this month
+    }
     const elapsed = Math.min(
       Number(r.tenureMonths || 0),
       Math.max(0, monthsBetween(r.startDate, `${asOfYm}-01`))
