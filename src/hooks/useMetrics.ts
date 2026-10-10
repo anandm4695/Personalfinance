@@ -792,7 +792,7 @@ export function useMetrics(
       if (c.sharedGroup) {
         ccGroupPools[c.sharedGroup] = Math.max(
           ccGroupPools[c.sharedGroup] || 0,
-          Number(c.sharedGroupLimit) || 0
+          Number(c.sharedGroupLimit) || Number(c.limit || (c as any).cardLimit) || 0
         );
       }
     });

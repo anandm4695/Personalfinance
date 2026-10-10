@@ -1246,7 +1246,7 @@ function CreditPillarsEngine({
   const pools: Record<string, number> = {};
   activeCards.forEach((c) => {
     if (c.sharedGroup) {
-      pools[c.sharedGroup] = Math.max(pools[c.sharedGroup] || 0, Number(c.sharedGroupLimit) || 0);
+      pools[c.sharedGroup] = Math.max(pools[c.sharedGroup] || 0, Number(c.sharedGroupLimit) || Number(c.limit || c.cardLimit) || 0);
     }
   });
   const totalLimit =

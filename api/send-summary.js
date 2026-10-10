@@ -663,14 +663,17 @@ function computeSummary(state, refDate = new Date()) {
   const activeCards = (state.creditCards || []).filter(
     (c) => (c.status || "active").toLowerCase() !== "closed"
   );
-  const creditOutstanding = activeCards.reduce((s, c) => s + (Number(c.outstanding) || 0), 0);
+  const creditOutstanding = activeCards.reduce(
+    (s, c) => s + Math.max(0, Number(c.outstanding || 0)),
+    0
+  );
 
   const ccGroupPools = {};
   activeCards.forEach((c) => {
     if (c.sharedGroup) {
       ccGroupPools[c.sharedGroup] = Math.max(
         ccGroupPools[c.sharedGroup] || 0,
-        Number(c.sharedGroupLimit) || 0
+        Number(c.sharedGroupLimit) || Number(c.limit || c.cardLimit) || 0
       );
     }
   });
@@ -679,7 +682,28 @@ function computeSummary(state, refDate = new Date()) {
       .filter((c) => !c.sharedGroup)
       .reduce((s, c) => s + (Number(c.limit || c.cardLimit) || 0), 0) +
     Object.values(ccGroupPools).reduce((s, v) => s + v, 0);
-  const creditUtil = creditLimit > 0 ? Math.round((creditOutstanding / creditLimit) * 100) : 0;
+  const creditAvailable = Math.max(0, creditLimit - creditOutstanding);
+  const creditUtil =
+    creditLimit > 0
+      ? Math.min(100, Math.max(0, Math.round((creditOutstanding / creditLimit) * 100)))
+      : (creditOutstanding > 0 ? 100 : 0);
+
+  const enrichedCards = activeCards.map((c) => {
+    const out = Math.max(0, Number(c.outstanding || 0));
+    const lim =
+      (c.sharedGroup ? ccGroupPools[c.sharedGroup] : 0) ||
+      Number(c.limit || c.cardLimit) ||
+      0;
+    const u = lim > 0 ? Math.min(100, Math.max(0, Math.round((out / lim) * 100))) : (out > 0 ? 100 : 0);
+    const avail = Math.max(0, lim - out);
+    return {
+      ...c,
+      outstanding: out,
+      effectiveLimit: lim,
+      utilizationPct: u,
+      availableLimit: avail,
+    };
+  });
 
   const loanOutstandingTotal = (state.loansTaken || []).reduce(
     (s, l) => s + loanOutstanding(l),
@@ -848,7 +872,7 @@ function computeSummary(state, refDate = new Date()) {
   const budgetStatus = filteredBudgets
     .map((b) => {
       const spent = catMap[b.category] || 0;
-      const limit = Number(b.monthly || 0);
+      const limit = Number(b.monthly ?? b.monthlyLimit ?? b.amount ?? 0);
       const pct = limit > 0 ? Math.round((spent / limit) * 100) : (spent > 0 ? 100 : 0);
       return { category: b.category, spent, limit, pct, over: limit > 0 ? spent > limit : spent > 0 };
     })
@@ -856,7 +880,7 @@ function computeSummary(state, refDate = new Date()) {
 
   const totalBudgetLimit = filteredBudgets
     .filter((b) => !isTransferCat(b.category) && b.category !== "Investment")
-    .reduce((s, b) => s + Number(b.monthly || 0), 0);
+    .reduce((s, b) => s + Number(b.monthly ?? b.monthlyLimit ?? b.amount ?? 0), 0);
   const totalBudgetSpent = filteredBudgets
     .filter((b) => !isTransferCat(b.category) && b.category !== "Investment")
     .reduce((s, b) => s + (catMap[b.category] || 0), 0);
@@ -981,12 +1005,18 @@ function computeSummary(state, refDate = new Date()) {
     weeklyBudgetAllowance > 0 ? Math.round((past7DaysExpense / weeklyBudgetAllowance) * 100) : 0;
 
   // ── Emergency Fund (accurate liquid runway accounting) ─────────────────────
-  const commitEmis = (state.loansTaken || []).reduce((s, l) => s + Number(l.emi || 0), 0);
+  const commitEmis = (state.loansTaken || [])
+    .filter(
+      (l) =>
+        (l.status || "").toLowerCase() !== "closed" &&
+        (loanOutstanding(l) > 0 || Number(l.principal || 0) > 0)
+    )
+    .reduce((s, l) => s + Number(l.emi || 0), 0);
   const commitSips = (state.sips || [])
     .filter((s) => s.status !== "stopped")
     .reduce((s, si) => s + Number(si.amount || 0), 0);
   const commitSubs = (state.subscriptions || [])
-    .filter((s) => !s.paused && s.status !== "cancelled")
+    .filter((s) => !s.paused && (s.status || "").toLowerCase() !== "cancelled")
     .reduce((s, sub) => {
       const amt = Number(sub.amount || 0);
       const c = (sub.cycle || "monthly").toLowerCase();
@@ -1012,14 +1042,26 @@ function computeSummary(state, refDate = new Date()) {
   const bottomUpMonthlyExpense =
     commitEmis + commitSips + commitSubs + commitRecurring + commitRent + commitInsurance;
 
+  const debitsPast90Days = (state.transactions || [])
+    .filter((t) => {
+      if (t.type !== "debit" || isTransferCat(t.category) || t.category === "Investment") return false;
+      if (!t.date) return false;
+      const tTime = new Date(t.date).getTime();
+      return tTime >= todayMidnightTime - 90 * 86400000 && tTime <= todayMidnightTime;
+    })
+    .reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
+  const avgMonthlyExpenseFromHistory = debitsPast90Days > 0 ? Math.round(debitsPast90Days / 3) : 0;
+
   const efMonthlyExpense =
     totalBudgetLimit > 0
       ? totalBudgetLimit
       : bottomUpMonthlyExpense > 0
         ? bottomUpMonthlyExpense
-        : monthExpense > 0
-          ? monthExpense
-          : 0;
+        : avgMonthlyExpenseFromHistory > 0
+          ? avgMonthlyExpenseFromHistory
+          : monthExpense > 0
+            ? monthExpense
+            : 0;
 
   const past30Time = todayMidnightTime - 30 * 86400000;
   const in3Time = todayMidnightTime + 3 * 86400000;
@@ -1033,7 +1075,7 @@ function computeSummary(state, refDate = new Date()) {
     if (!fy || !fm || !fdDay) return sum;
     const matTime = new Date(Date.UTC(fy, fm - 1, fdDay)).getTime();
     if (matTime >= todayMidnightTime && matTime <= todayMidnightTime + 90 * 86400000) {
-      return sum + Number(fd.principal || 0);
+      return sum + Number(fd.principal || fd.amount || 0);
     }
     return sum;
   }, 0);
@@ -1057,14 +1099,17 @@ function computeSummary(state, refDate = new Date()) {
   const efLiquidAssets = bankTotal + nearTermFDValue + liquidMFValue + Math.max(0, prepaidTotal);
   const efMonthsCovered =
     efMonthlyExpense > 0 ? Number((efLiquidAssets / efMonthlyExpense).toFixed(1)) : 0;
+  const efTargetMonths = 6;
+  const efTargetAmount = efMonthlyExpense * efTargetMonths;
+  const efGap = Math.max(0, efTargetAmount - efLiquidAssets);
   const efStatus =
     efMonthsCovered >= 12
-      ? { label: "Excellent", color: "#059669" }
+      ? { tier: "excellent", label: "Excellent", color: "#059669" }
       : efMonthsCovered >= 6
-        ? { label: "Healthy", color: "#059669" }
+        ? { tier: "healthy", label: "Healthy", color: "#059669" }
         : efMonthsCovered >= 3
-          ? { label: "Needs Improvement", color: "#d97706" }
-          : { label: "Critical", color: "#dc2626" };
+          ? { tier: "building", label: "Needs Improvement", color: "#d97706" }
+          : { tier: "critical", label: "Critical", color: "#dc2626" };
 
   // ── Upcoming Dues (collected up to 30 days, including recent unpaid overdue) ──
   const dues = [];
@@ -1498,6 +1543,7 @@ function computeSummary(state, refDate = new Date()) {
     govtSchemesTotal,
     creditOutstanding,
     creditLimit,
+    creditAvailable,
     creditUtil,
     loanOutstanding: loanOutstandingTotal,
     rentalDepositLiability,
@@ -1531,6 +1577,9 @@ function computeSummary(state, refDate = new Date()) {
     efLiquidAssets,
     efMonthlyExpense,
     efMonthsCovered,
+    efTargetMonths,
+    efTargetAmount,
+    efGap,
     efStatus,
     topCats,
     budgetStatus,
@@ -1556,6 +1605,7 @@ function computeSummary(state, refDate = new Date()) {
     alerts,
     activeCardCount: activeCards.length,
     activeCards,
+    enrichedCards,
   };
 }
 
@@ -1705,6 +1755,9 @@ function renderDailyHTML(summary, recipientName, refDate = new Date()) {
   const {
     netWorth,
     bankTotal,
+    creditOutstanding,
+    creditLimit,
+    creditAvailable,
     creditUtil,
     yesterdaySpend,
     yesterdayCount,
@@ -1715,7 +1768,8 @@ function renderDailyHTML(summary, recipientName, refDate = new Date()) {
     totalDues3Days,
     liquidityBuffer3Days,
     efMonthsCovered,
-    activeCards,
+    activeCards = [],
+    enrichedCards = activeCards,
     alerts,
   } = summary;
 
@@ -1792,27 +1846,30 @@ function renderDailyHTML(summary, recipientName, refDate = new Date()) {
         .join("")
     : "";
 
-  const ccRows = activeCards
-    .slice(0, 3)
+  const ccCardsToRender = enrichedCards.length > 0 ? enrichedCards : activeCards;
+  const ccRows = ccCardsToRender
     .map((c, i) => {
-      const out = Number(c.outstanding) || 0;
-      const lim = Number(c.limit || c.cardLimit) || 0;
-      const u = lim > 0 ? Math.round((out / lim) * 100) : 0;
+      const out = Number(c.outstanding || 0);
+      const lim = Number(c.effectiveLimit || c.limit || c.cardLimit || 0);
+      const u = c.utilizationPct != null ? c.utilizationPct : (lim > 0 ? Math.round((out / lim) * 100) : (out > 0 ? 100 : 0));
       const uColor = u >= 70 ? EMAIL_STYLES.negColor : u >= 40 ? EMAIL_STYLES.warnColor : EMAIL_STYLES.posColor;
       const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
       return `
-      <tr><td style="padding:10px 24px;background:${bg};border-bottom:1px solid ${EMAIL_STYLES.borderColor};">
+      <tr><td style="padding:11px 24px;background:${bg};border-bottom:1px solid ${EMAIL_STYLES.borderColor};">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td style="font-size:13px;font-weight:700;color:${EMAIL_STYLES.textPrimary};">
               ${escapeHtml(c.issuer || c.name || "Credit Card")} <span style="color:${EMAIL_STYLES.textMuted};font-weight:400;font-size:11px;">··${escapeHtml(c.last4) || "**"}</span>
+              ${c.sharedGroup ? `<span style="font-size:9px;color:#6366f1;background:#e0e7ff;padding:1px 5px;border-radius:4px;margin-left:5px;font-weight:600;">${escapeHtml(c.sharedGroup)}</span>` : ""}
             </td>
             <td style="text-align:right;">
               <span style="font-size:13.5px;font-weight:800;color:${EMAIL_STYLES.textPrimary};">${fmtINR(out)}</span>
-              <span style="font-size:11px;color:${uColor};font-weight:700;margin-left:6px;">${u}% used</span>
+              ${lim > 0 ? `<span style="font-size:11px;color:${EMAIL_STYLES.textMuted};margin-left:3px;">/ ${fmtINR(lim)}</span>` : ""}
+              <span style="display:inline-block;font-size:10.5px;color:${uColor};font-weight:700;margin-left:6px;background:${u >= 70 ? EMAIL_STYLES.negBg : u >= 40 ? EMAIL_STYLES.warnBg : EMAIL_STYLES.posBg};padding:1px 6px;border-radius:4px;">${u}% used</span>
             </td>
           </tr>
         </table>
+        ${lim > 0 ? renderProgressBar(u, uColor, 4) : ""}
       </td></tr>`;
     })
     .join("");
@@ -1935,9 +1992,9 @@ function renderDailyHTML(summary, recipientName, refDate = new Date()) {
 
   <!-- CREDIT CARD QUICK PULSE -->
   ${
-    activeCards.length > 0
+    ccCardsToRender.length > 0
       ? `
-  ${renderSectionHeader(`Credit Cards (${creditUtil}% utilized)`)}
+  ${renderSectionHeader(`Credit Cards (${creditUtil}% utilized)`, `${fmtINR(creditOutstanding)} of ${fmtINR(creditLimit)}`)}
   <tr><td style="background:${EMAIL_STYLES.cardBg};">
     ${ccRows}
   </td></tr>`
@@ -1967,6 +2024,12 @@ function renderWeeklyHTML(summary, recipientName, refDate = new Date()) {
     totalAssets,
     totalLiabilities,
     bankTotal,
+    creditOutstanding,
+    creditLimit,
+    creditAvailable,
+    creditUtil,
+    activeCards = [],
+    enrichedCards = activeCards,
     past7DaysExpense,
     past7DaysIncome,
     past7DaysNetSavings,
@@ -2064,6 +2127,34 @@ function renderWeeklyHTML(summary, recipientName, refDate = new Date()) {
         </table>
       </td>
     </tr>`)
+    .join("");
+
+  const ccCardsToRender = enrichedCards.length > 0 ? enrichedCards : activeCards;
+  const ccRows = ccCardsToRender
+    .map((c, i) => {
+      const out = Number(c.outstanding || 0);
+      const lim = Number(c.effectiveLimit || c.limit || c.cardLimit || 0);
+      const u = c.utilizationPct != null ? c.utilizationPct : (lim > 0 ? Math.round((out / lim) * 100) : (out > 0 ? 100 : 0));
+      const uColor = u >= 70 ? EMAIL_STYLES.negColor : u >= 40 ? EMAIL_STYLES.warnColor : EMAIL_STYLES.posColor;
+      const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
+      return `
+      <tr><td style="padding:11px 24px;background:${bg};border-bottom:1px solid ${EMAIL_STYLES.borderColor};">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:13px;font-weight:700;color:${EMAIL_STYLES.textPrimary};">
+              ${escapeHtml(c.issuer || c.name || "Credit Card")} <span style="color:${EMAIL_STYLES.textMuted};font-weight:400;font-size:11px;">··${escapeHtml(c.last4) || "**"}</span>
+              ${c.sharedGroup ? `<span style="font-size:9px;color:#6366f1;background:#e0e7ff;padding:1px 5px;border-radius:4px;margin-left:5px;font-weight:600;">${escapeHtml(c.sharedGroup)}</span>` : ""}
+            </td>
+            <td style="text-align:right;">
+              <span style="font-size:13.5px;font-weight:800;color:${EMAIL_STYLES.textPrimary};">${fmtINR(out)}</span>
+              ${lim > 0 ? `<span style="font-size:11px;color:${EMAIL_STYLES.textMuted};margin-left:3px;">/ ${fmtINR(lim)}</span>` : ""}
+              <span style="display:inline-block;font-size:10.5px;color:${uColor};font-weight:700;margin-left:6px;background:${u >= 70 ? EMAIL_STYLES.negBg : u >= 40 ? EMAIL_STYLES.warnBg : EMAIL_STYLES.posBg};padding:1px 6px;border-radius:4px;">${u}% used</span>
+            </td>
+          </tr>
+        </table>
+        ${lim > 0 ? renderProgressBar(u, uColor, 4) : ""}
+      </td></tr>`;
+    })
     .join("");
 
   const goalRows = (goals || []).slice(0, 3).map((g, i) => {
@@ -2213,6 +2304,17 @@ function renderWeeklyHTML(summary, recipientName, refDate = new Date()) {
     </table>
   </td></tr>
 
+  <!-- CREDIT CARDS & REVOLVING PULSE -->
+  ${
+    ccCardsToRender.length > 0
+      ? `
+  ${renderSectionHeader(`Credit Cards & Revolving Limit (${creditUtil}% utilized)`, `${fmtINR(creditOutstanding)} of ${fmtINR(creditLimit)}`)}
+  <tr><td style="background:${EMAIL_STYLES.cardBg};">
+    ${ccRows}
+  </td></tr>`
+      : ""
+  }
+
   <!-- WEEKLY BUDGET PACE -->
   ${
     weeklyBudgetAllowance > 0
@@ -2290,7 +2392,11 @@ function renderMonthlyHTML(summary, recipientName, refDate = new Date()) {
     vehicleAsset,
     govtSchemesTotal,
     creditOutstanding,
+    creditLimit,
+    creditAvailable,
     creditUtil,
+    activeCards = [],
+    enrichedCards = activeCards,
     loanOutstanding: loanOutstandingTotal,
     rentalDepositLiability,
     informalBorrowedTotal,
@@ -2304,6 +2410,9 @@ function renderMonthlyHTML(summary, recipientName, refDate = new Date()) {
     efLiquidAssets,
     efMonthlyExpense,
     efMonthsCovered,
+    efTargetMonths = 6,
+    efTargetAmount = efMonthlyExpense * 6,
+    efGap = Math.max(0, efTargetAmount - efLiquidAssets),
     efStatus,
     topCats,
     budgetStatus,
@@ -2363,6 +2472,34 @@ function renderMonthlyHTML(summary, recipientName, refDate = new Date()) {
           </tr>
         </table>
         ${renderProgressBar(b.pct, barColor, 5)}
+      </td></tr>`;
+    })
+    .join("");
+
+  const ccCardsToRender = enrichedCards.length > 0 ? enrichedCards : activeCards;
+  const ccRows = ccCardsToRender
+    .map((c, i) => {
+      const out = Number(c.outstanding || 0);
+      const lim = Number(c.effectiveLimit || c.limit || c.cardLimit || 0);
+      const u = c.utilizationPct != null ? c.utilizationPct : (lim > 0 ? Math.round((out / lim) * 100) : (out > 0 ? 100 : 0));
+      const uColor = u >= 70 ? EMAIL_STYLES.negColor : u >= 40 ? EMAIL_STYLES.warnColor : EMAIL_STYLES.posColor;
+      const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
+      return `
+      <tr><td style="padding:11px 24px;background:${bg};border-bottom:1px solid ${EMAIL_STYLES.borderColor};">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:13px;font-weight:700;color:${EMAIL_STYLES.textPrimary};">
+              ${escapeHtml(c.issuer || c.name || "Credit Card")} <span style="color:${EMAIL_STYLES.textMuted};font-weight:400;font-size:11px;">··${escapeHtml(c.last4) || "**"}</span>
+              ${c.sharedGroup ? `<span style="font-size:9px;color:#6366f1;background:#e0e7ff;padding:1px 5px;border-radius:4px;margin-left:5px;font-weight:600;">${escapeHtml(c.sharedGroup)}</span>` : ""}
+            </td>
+            <td style="text-align:right;">
+              <span style="font-size:13.5px;font-weight:800;color:${EMAIL_STYLES.textPrimary};">${fmtINR(out)}</span>
+              ${lim > 0 ? `<span style="font-size:11px;color:${EMAIL_STYLES.textMuted};margin-left:3px;">/ ${fmtINR(lim)}</span>` : ""}
+              <span style="display:inline-block;font-size:10.5px;color:${uColor};font-weight:700;margin-left:6px;background:${u >= 70 ? EMAIL_STYLES.negBg : u >= 40 ? EMAIL_STYLES.warnBg : EMAIL_STYLES.posBg};padding:1px 6px;border-radius:4px;">${u}% used</span>
+            </td>
+          </tr>
+        </table>
+        ${lim > 0 ? renderProgressBar(u, uColor, 4) : ""}
       </td></tr>`;
     })
     .join("");
@@ -2621,23 +2758,61 @@ function renderMonthlyHTML(summary, recipientName, refDate = new Date()) {
       : ""
   }
 
+  <!-- CREDIT CARDS & REVOLVING DEBT PORTFOLIO -->
+  ${
+    ccCardsToRender.length > 0
+      ? `
+  ${renderSectionHeader("Credit Cards & Revolving Lines", `${creditUtil}% utilized`)}
+  <tr><td style="padding:12px 24px;background:#f8fafc;border-bottom:1px solid ${EMAIL_STYLES.borderColor};">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="font-size:12px;color:${EMAIL_STYLES.textMuted};font-weight:700;text-transform:uppercase;">Total Credit Line</td>
+        <td style="font-size:12px;color:${EMAIL_STYLES.textMuted};font-weight:700;text-transform:uppercase;text-align:center;">Total Balance Due</td>
+        <td style="font-size:12px;color:${EMAIL_STYLES.textMuted};font-weight:700;text-transform:uppercase;text-align:right;">Available Limit</td>
+      </tr>
+      <tr>
+        <td style="font-size:15px;font-weight:900;color:${EMAIL_STYLES.textPrimary};padding-top:3px;">${fmtINR(creditLimit)}</td>
+        <td style="font-size:15px;font-weight:900;color:${creditUtil >= 70 ? EMAIL_STYLES.negColor : creditUtil >= 40 ? EMAIL_STYLES.warnColor : EMAIL_STYLES.textPrimary};padding-top:3px;text-align:center;">${fmtINR(creditOutstanding)}</td>
+        <td style="font-size:15px;font-weight:900;color:${EMAIL_STYLES.posColor};padding-top:3px;text-align:right;">${fmtINR(creditAvailable)}</td>
+      </tr>
+    </table>
+  </td></tr>
+  <tr><td style="background:${EMAIL_STYLES.cardBg};">
+    ${ccRows}
+  </td></tr>`
+      : ""
+  }
+
   <!-- EMERGENCY FUND AUDIT -->
-  ${renderSectionHeader("Emergency Liquidity Audit", `${efMonthsCovered} mo runway`)}
+  ${renderSectionHeader("Emergency Liquidity & Safety Cushion", `${efMonthsCovered} mo runway`)}
   <tr><td style="padding:14px 24px;background:#f8fafc;border-bottom:1px solid ${EMAIL_STYLES.borderColor};">
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
-        <td style="font-size:12.5px;color:${EMAIL_STYLES.textMuted};font-weight:600;">Liquid Reserves Available (Bank, FDs, Liq MF):</td>
-        <td style="font-size:13.5px;font-weight:800;color:${EMAIL_STYLES.textPrimary};text-align:right;">${fmtINR(efLiquidAssets)}</td>
+        <td style="font-size:12.5px;color:${EMAIL_STYLES.textMuted};font-weight:600;">Liquid Reserves Available (Bank, Near-term FDs, Liq MF):</td>
+        <td style="font-size:13.5px;font-weight:800;color:${EMAIL_STYLES.textPrimary};text-align:right;">${fmtINRFull(efLiquidAssets)}</td>
       </tr>
       <tr>
-        <td style="font-size:12.5px;color:${EMAIL_STYLES.textMuted};font-weight:600;padding-top:6px;">Monthly Fixed &amp; Living Expense Baseline:</td>
-        <td style="font-size:13.5px;font-weight:800;color:${EMAIL_STYLES.negColor};text-align:right;padding-top:6px;">${fmtINR(efMonthlyExpense)}/mo</td>
+        <td style="font-size:12.5px;color:${EMAIL_STYLES.textMuted};font-weight:600;padding-top:6px;">Monthly Fixed &amp; Living Baseline Outflow:</td>
+        <td style="font-size:13.5px;font-weight:800;color:${EMAIL_STYLES.negColor};text-align:right;padding-top:6px;">${fmtINRFull(efMonthlyExpense)}/mo</td>
+      </tr>
+      <tr>
+        <td style="font-size:12.5px;color:${EMAIL_STYLES.textMuted};font-weight:600;padding-top:6px;">6-Month Target Cushion (${efTargetMonths || 6} mo):</td>
+        <td style="font-size:13.5px;font-weight:800;color:${EMAIL_STYLES.textPrimary};text-align:right;padding-top:6px;">${fmtINRFull(efTargetAmount || (efMonthlyExpense * 6))}</td>
+      </tr>
+      <tr>
+        <td style="font-size:12.5px;color:${EMAIL_STYLES.textPrimary};font-weight:700;padding-top:6px;">Emergency Fund Status &amp; Gap:</td>
+        <td style="font-size:13px;font-weight:800;color:${efGap > 0 ? EMAIL_STYLES.warnColor : EMAIL_STYLES.posColor};text-align:right;padding-top:6px;">
+          ${efGap > 0 ? `Deficit of ${fmtINRFull(efGap)}` : `Fully Funded (+${fmtINRFull(Math.abs(efLiquidAssets - (efTargetAmount || 0)))})`}
+        </td>
       </tr>
       <tr>
         <td style="font-size:12.5px;color:${EMAIL_STYLES.textPrimary};font-weight:700;padding-top:6px;">Total Safety Runway:</td>
         <td style="font-size:14px;font-weight:900;color:${efStatus.color};text-align:right;padding-top:6px;">${efMonthsCovered} Months (${efStatus.label})</td>
       </tr>
     </table>
+    <div style="margin-top:10px;">
+      ${renderProgressBar(Math.min(100, Math.round((efMonthsCovered / (efTargetMonths || 6)) * 100)), efStatus.color, 6)}
+    </div>
   </td></tr>
 
   <!-- GOALS PROGRESS TRACKER -->

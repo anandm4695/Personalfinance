@@ -2813,14 +2813,14 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
       if (c.sharedGroup) {
         ccGroupPoolsBadge[c.sharedGroup] = Math.max(
           ccGroupPoolsBadge[c.sharedGroup] || 0,
-          Number(c.sharedGroupLimit) || 0
+          Number(c.sharedGroupLimit) || Number(c.limit || c.cardLimit) || 0
         );
       }
     });
     const ccLim =
       activeCC
         .filter((c: any) => !c.sharedGroup)
-        .reduce((s: number, c: any) => s + Number(c.limit || 0), 0) +
+        .reduce((s: number, c: any) => s + Number(c.limit || c.cardLimit || 0), 0) +
       (Object.values(ccGroupPoolsBadge) as number[]).reduce((s: number, v: number) => s + v, 0);
     const ccUtil = ccLim > 0 ? (ccOut / ccLim) * 100 : 0;
     if (activeCC.length > 0 && ccOut === 0) earned.add("cc0");

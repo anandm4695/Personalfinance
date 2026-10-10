@@ -260,7 +260,7 @@ export function useAlerts(state: any, metrics: any, marketData?: Record<string, 
       if (c.sharedGroup) {
         ccGroupPoolsForAlert[c.sharedGroup] = Math.max(
           ccGroupPoolsForAlert[c.sharedGroup] || 0,
-          Number(c.sharedGroupLimit) || 0
+          Number(c.sharedGroupLimit) || Number(c.limit || (c as any).cardLimit) || 0
         );
       }
     });

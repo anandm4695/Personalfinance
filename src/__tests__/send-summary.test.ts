@@ -440,7 +440,7 @@ describe("Daily, Weekly & Monthly Email Summary Engine", () => {
       expect(html).toContain("Top Expense Categories MTD");
       expect(html).toContain("Category Budget Adherence");
       expect(html).toContain("Investment Portfolio Allocation");
-      expect(html).toContain("Emergency Liquidity Audit");
+      expect(html).toContain("Emergency Liquidity &amp; Safety Cushion");
       expect(html).toContain("Next 30 Days Forward Outlook");
       expect(html).toContain("FD Maturity at HDFC");
       expect(html).toContain("Anand");
@@ -565,6 +565,141 @@ describe("Daily, Weekly & Monthly Email Summary Engine", () => {
 
       expect(monthlySubj).toContain("Monthly Executive Statement");
       expect(monthlySubj).toContain("Net Worth ₹1.5Cr");
+    });
+  });
+
+  describe("7. Dedicated Credit Card Portfolio & Utilization Mathematics", () => {
+    it("accurately calculates total limit, outstanding, and utilization with standalone cards and closed cards", () => {
+      const state = {
+        creditCards: [
+          { issuer: "HDFC Infinia", limit: 500000, outstanding: 125000, status: "active" },
+          { issuer: "ICICI Emeralde", limit: 300000, outstanding: 75000, status: "active" },
+          { issuer: "Axis Magnus", limit: 400000, outstanding: 50000, status: "closed" }, // closed -> excluded
+        ],
+      };
+
+      const summary = computeSummary(state);
+
+      // Limit = 500K + 300K = 800000
+      expect(summary.creditLimit).toBe(800000);
+      // Outstanding = 125K + 75K = 200000
+      expect(summary.creditOutstanding).toBe(200000);
+      // Available = 800K - 200K = 600000
+      expect(summary.creditAvailable).toBe(600000);
+      // Utilization = 200K / 800K = 25%
+      expect(summary.creditUtil).toBe(25);
+    });
+
+    it("correctly handles shared-limit credit pools and fallbacks", () => {
+      const state = {
+        creditCards: [
+          // 2 HDFC cards sharing a 400K pool limit
+          { issuer: "HDFC Regalia", sharedGroup: "HDFC Pool", sharedGroupLimit: 400000, outstanding: 80000 },
+          { issuer: "HDFC Tata Neu", sharedGroup: "HDFC Pool", sharedGroupLimit: 400000, outstanding: 40000 },
+          // 2 ICICI cards sharing a group without explicit sharedGroupLimit, falling back to card limit
+          { issuer: "ICICI Sapphiro", sharedGroup: "ICICI Group", limit: 300000, outstanding: 60000 },
+          { issuer: "ICICI Amazon Pay", sharedGroup: "ICICI Group", cardLimit: 300000, outstanding: 30000 },
+          // 1 standalone card
+          { issuer: "Amex Gold", limit: 200000, outstanding: 50000 },
+        ],
+      };
+
+      const summary = computeSummary(state);
+
+      // Total Limit = HDFC Pool (400K) + ICICI Group (300K) + Amex (200K) = 900000
+      expect(summary.creditLimit).toBe(900000);
+      // Outstanding = 80K + 40K + 60K + 30K + 50K = 260000
+      expect(summary.creditOutstanding).toBe(260000);
+      // Available = 900K - 260K = 640000
+      expect(summary.creditAvailable).toBe(640000);
+      // Utilization = 260000 / 900000 = 28.88% -> 29%
+      expect(summary.creditUtil).toBe(29);
+      expect(summary.enrichedCards.length).toBe(5);
+    });
+  });
+
+  describe("8. Dedicated Emergency Runway & Commitment Hierarchy Mathematics", () => {
+    it("falls back to bottom-up commitments when no category budgets are defined", () => {
+      const state = {
+        bankAccounts: [{ balance: 300000 }],
+        loansTaken: [
+          { lender: "SBI Car Loan", emi: 15000, outstanding: 500000 },
+        ],
+        sips: [
+          { scheme: "Parag Parikh Flexi Cap", amount: 10000, status: "active" },
+          { scheme: "Stopped SIP", amount: 5000, status: "stopped" },
+        ],
+        subscriptions: [
+          { name: "Netflix", amount: 650, cycle: "monthly" },
+          { name: "Amazon Prime", amount: 1499, cycle: "yearly" }, // ~124.9/mo
+        ],
+        rentedProperties: [
+          { propertyName: "Rented Flat", monthlyRent: 25000, isActive: true },
+        ],
+        lic: [
+          { planName: "Jeevan Labh", premium: 24000, premiumFrequency: "annual" }, // 2000/mo
+        ],
+      };
+
+      const summary = computeSummary(state);
+
+      // Commitments = EMI (15000) + SIP (10000) + Subs (650 + 124.91) + Rent (25000) + Insurance (2000) = 52774.91 -> ~52775
+      expect(summary.efMonthlyExpense).toBeCloseTo(52775, -1);
+      // Runway = 300000 / 52775 = 5.68 -> 5.7 months
+      expect(summary.efMonthsCovered).toBeCloseTo(5.7, 1);
+      expect(summary.efTargetAmount).toBeCloseTo(52775 * 6, -1);
+      expect(summary.efGap).toBeGreaterThan(0);
+    });
+
+    it("falls back to 90-day debits history average when no budgets or commitments exist", () => {
+      const refDate = new Date("2026-10-10T00:00:00Z");
+      const state = {
+        bankAccounts: [{ balance: 180000 }],
+        transactions: [
+          // Debits in last 90 days = 120,000 total -> avg 40,000/mo
+          { date: "2026-09-15", type: "debit", category: "Shopping", amount: 40000 },
+          { date: "2026-08-15", type: "debit", category: "Travel", amount: 40000 },
+          { date: "2026-07-20", type: "debit", category: "General", amount: 40000 },
+        ],
+      };
+
+      const summary = computeSummary(state, refDate);
+
+      expect(summary.efMonthlyExpense).toBe(40000);
+      // Runway = 180000 / 40000 = 4.5 months
+      expect(summary.efMonthsCovered).toBe(4.5);
+      expect(summary.efTargetAmount).toBe(240000); // 6 * 40000
+      expect(summary.efGap).toBe(60000); // 240000 - 180000
+      expect(summary.efStatus.label).toBe("Needs Improvement");
+    });
+  });
+
+  describe("9. Multi-Cadence HTML Content Parity for Credit Cards & Emergency Runway", () => {
+    it("verifies Weekly Briefing and Monthly Statement both include Credit Cards & Emergency Runway details", () => {
+      const state = {
+        bankAccounts: [{ balance: 400000 }],
+        creditCards: [
+          { issuer: "HDFC Bank", limit: 200000, outstanding: 50000 },
+        ],
+        budgets: [{ category: "Groceries", monthly: 40000 }],
+      };
+
+      const summary = computeSummary(state);
+      const weeklyHtml = generateHTML(summary, "weekly", "Anand");
+      const monthlyHtml = generateHTML(summary, "monthly", "Anand");
+
+      // Weekly Briefing checks
+      expect(weeklyHtml).toContain("Credit Cards &amp; Revolving Limit");
+      expect(weeklyHtml).toContain("HDFC Bank");
+      expect(weeklyHtml).toContain("25% used");
+
+      // Monthly Statement checks
+      expect(monthlyHtml).toContain("Credit Cards &amp; Revolving Lines");
+      expect(monthlyHtml).toContain("Total Credit Line");
+      expect(monthlyHtml).toContain("Available Limit");
+      expect(monthlyHtml).toContain("Emergency Liquidity &amp; Safety Cushion");
+      expect(monthlyHtml).toContain("6-Month Target Cushion");
+      expect(monthlyHtml).toContain("Fully Funded");
     });
   });
 });

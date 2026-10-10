@@ -760,14 +760,14 @@ export function CreditTab({
                 if (c.sharedGroup) {
                   groupPools[c.sharedGroup] = Math.max(
                     groupPools[c.sharedGroup] || 0,
-                    Number(c.sharedGroupLimit) || 0
+                    Number(c.sharedGroupLimit) || Number(c.limit || c.cardLimit) || 0
                   );
                 }
               });
               const totalLimit =
                 activeCards
                   .filter((c: any) => !c.sharedGroup)
-                  .reduce((acc: number, c: any) => acc + (Number(c.limit) || 0), 0) +
+                  .reduce((acc: number, c: any) => acc + (Number(c.limit || c.cardLimit) || 0), 0) +
                 (Object.values(groupPools) as number[]).reduce(
                   (acc: number, v: number) => acc + v,
                   0
