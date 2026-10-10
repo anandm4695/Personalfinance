@@ -143,4 +143,30 @@ describe("HealthInsuranceTab Component", () => {
 
     expect(html).toContain("No Health Insurance Policies Yet");
   });
+
+  it("renders PolicyForm modal with widescreen stepper navigation and live preview", async () => {
+    const { render } = await import("@testing-library/react");
+    const { PolicyForm } = await import("../components/tabs/HealthInsuranceTab");
+    const { container } = render(
+      <PolicyForm
+        initial={{
+          insurer: "Star Health",
+          policyName: "Optima Secure",
+          policyType: "family_floater",
+          sumInsured: 1000000,
+          premium: 24000,
+        }}
+        onSave={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    const text = document.body.textContent || "";
+    expect(text).toContain("Add Health Insurance Policy");
+    expect(text).toContain("Policy Info");
+    expect(text).toContain("Cover & Premium");
+    expect(text).toContain("TPA & Rules");
+    expect(text).toContain("Live Preview");
+    expect(text).toContain("Star Health");
+  });
 });

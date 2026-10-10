@@ -27,6 +27,11 @@ import {
   UserCheck,
   SlidersHorizontal,
   FileSpreadsheet,
+  ChevronRight,
+  ChevronLeft,
+  Sparkles,
+  Layers,
+  Info,
 } from "lucide-react";
 import { THEME } from "../../utils/constants";
 import { useMasterData, formatProfileOption, calculateAge } from "../../utils/masterData";
@@ -176,7 +181,7 @@ const EMPTY_POLICY: any = {
 // ==========================================
 // 1. ADD / EDIT POLICY MODAL
 // ==========================================
-function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
+export function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
   const { familyProfiles } = useMasterData();
   const [activeTab, setActiveTab] = useState<"general" | "financials" | "terms" | "members" | "notes">("general");
   const [form, setForm] = useState({ ...EMPTY_POLICY, ...initial });
@@ -232,467 +237,848 @@ function PolicyForm({ initial, onSave, onClose, saving = false }: any) {
 
   const g2: React.CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 };
 
+  const STEPS: {
+    id: "general" | "financials" | "terms" | "members" | "notes";
+    step: number;
+    label: string;
+    icon: any;
+    desc: string;
+  }[] = [
+    { id: "general", step: 1, label: "Policy Info", icon: Shield, desc: "Insurer, Plan & Type" },
+    { id: "financials", step: 2, label: "Cover & Premium", icon: HeartPulse, desc: "Sum Insured & Renewal" },
+    { id: "terms", step: 3, label: "TPA & Rules", icon: Hospital, desc: "Network & Sub-limits" },
+    { id: "members", step: 4, label: `Lives Covered (${members.length})`, icon: Users, desc: "Insured Family Members" },
+    { id: "notes", step: 5, label: "Features & Notes", icon: FileText, desc: "Riders & Exclusions" },
+  ];
+
+  const currentStepIndex = STEPS.findIndex((s) => s.id === activeTab);
+  const selectedType = POLICY_TYPES.find((t) => t.value === form.policyType) || POLICY_TYPES[0];
+  const typeColor = TYPE_COLORS[form.policyType] || THEME.accent;
+
+  const goNext = () => {
+    if (currentStepIndex < STEPS.length - 1) {
+      setActiveTab(STEPS[currentStepIndex + 1].id);
+    }
+  };
+
+  const goPrev = () => {
+    if (currentStepIndex > 0) {
+      setActiveTab(STEPS[currentStepIndex - 1].id);
+    }
+  };
+
   return (
     <Modal
-      title={initial?.id ? `Edit ${initial.insurer} Policy` : "Add Health Insurance Policy"}
+      title={initial?.id ? `Edit ${initial.insurer || "Health"} Policy` : "Add Health Insurance Policy"}
       onClose={onClose}
-      maxWidth={680}
+      maxWidth={1080}
     >
-      {/* Modal Tab Switcher */}
       <div
+        className="health-modal-grid"
         style={{
-          display: "flex",
-          borderBottom: `1px solid ${THEME.line}`,
-          marginBottom: 18,
-          gap: 6,
-          overflowX: "auto",
+          display: "grid",
+          gridTemplateColumns: "minmax(260px, 300px) 1fr",
+          gap: 22,
+          alignItems: "stretch",
+          minHeight: 460,
         }}
       >
-        {[
-          { id: "general", label: "1. Policy Info" },
-          { id: "financials", label: "2. Cover & Premium" },
-          { id: "terms", label: "3. TPA & Rules" },
-          { id: "members", label: `4. Lives Covered (${members.length})` },
-          { id: "notes", label: "5. Features & Notes" },
-        ].map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setActiveTab(t.id as any)}
-            style={{
-              padding: "8px 14px",
-              border: "none",
-              borderBottom: activeTab === t.id ? `2px solid ${THEME.accent}` : "2px solid transparent",
-              background: "none",
-              fontWeight: activeTab === t.id ? 700 : 500,
-              color: activeTab === t.id ? THEME.accent : THEME.muted,
-              fontSize: 13,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === "general" && (
-        <>
-          <ModalSection title="Basic Details" first />
-          <Field label="Insurer / Insurance Company *" error={errors.insurer}>
-            <input
-              className="form-input"
-              value={form.insurer}
-              onChange={(e) => set("insurer", e.target.value)}
-              placeholder="e.g. Star Health, HDFC ERGO, Care Health"
-              list="popular-insurers"
-            />
-            <datalist id="popular-insurers">
-              {POPULAR_INSURERS.map((ins) => (
-                <option key={ins} value={ins} />
-              ))}
-            </datalist>
-          </Field>
-
-          <div className="form-grid-2" style={g2}>
-            <Field label="Plan / Product Name">
-              <input
-                className="form-input"
-                value={form.policyName}
-                onChange={(e) => set("policyName", e.target.value)}
-                placeholder="e.g. Optima Secure, Supreme, Comprehensive"
-              />
-            </Field>
-            <Field label="Policy / Certificate Number">
-              <input
-                className="form-input"
-                value={form.policyNumber}
-                onChange={(e) => set("policyNumber", e.target.value)}
-                placeholder="e.g. POL-9847291038"
-              />
-            </Field>
-          </div>
-
-          <div className="form-grid-2" style={g2}>
-            <Field label="Policy Type">
-              <select
-                className="form-input"
-                value={form.policyType}
-                onChange={(e) => set("policyType", e.target.value)}
-              >
-                {POLICY_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label} ({t.desc})
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Policy Owner">
-              <select
-                className="form-input"
-                value={form.owner}
-                onChange={(e) => set("owner", e.target.value)}
-              >
-                {familyProfiles.map((p: any) => (
-                  <option key={p.id} value={p.id}>
-                    {formatProfileOption(p)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-        </>
-      )}
-
-      {activeTab === "financials" && (
-        <>
-          <ModalSection title="Sum Insured & Premium Schedule" first />
-          <div className="form-grid-2" style={g2}>
-            <Field label="Base Sum Insured (₹) *" error={errors.sumInsured}>
-              <input
-                className="form-input"
-                type="number"
-                value={form.sumInsured}
-                onChange={(e) => set("sumInsured", e.target.value)}
-                placeholder="e.g. 1000000 (₹10 Lakhs)"
-              />
-            </Field>
-            <Field label="Cumulative / No Claim Bonus (₹)">
-              <input
-                className="form-input"
-                type="number"
-                value={form.noClaimBonus}
-                onChange={(e) => set("noClaimBonus", e.target.value)}
-                placeholder="e.g. 200000"
-              />
-            </Field>
-          </div>
-
-          {(form.policyType === "top_up" || form.policyType === "super_top_up") && (
-            <Field label="Deductible / Threshold Amount (₹)">
-              <input
-                className="form-input"
-                type="number"
-                value={form.deductible}
-                onChange={(e) => set("deductible", e.target.value)}
-                placeholder="e.g. 500000 (Cover kicks in after ₹5L)"
-              />
-            </Field>
-          )}
-
-          <div className="form-grid-2" style={g2}>
-            <Field label="Premium Amount (₹) *" error={errors.premium}>
-              <input
-                className="form-input"
-                type="number"
-                value={form.premium}
-                onChange={(e) => set("premium", e.target.value)}
-                placeholder="e.g. 24000"
-              />
-            </Field>
-            <Field label="Premium Frequency">
-              <select
-                className="form-input"
-                value={form.premiumFrequency}
-                onChange={(e) => set("premiumFrequency", e.target.value)}
-              >
-                {Object.entries(FREQ_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          <div className="form-grid-2" style={g2}>
-            <Field label="Policy Commencement Date">
-              <input
-                className="form-input"
-                type="date"
-                value={form.startDate}
-                onChange={(e) => set("startDate", e.target.value)}
-              />
-            </Field>
-            <Field label="Next Renewal Date">
-              <input
-                className="form-input"
-                type="date"
-                value={form.renewalDate}
-                onChange={(e) => set("renewalDate", e.target.value)}
-              />
-            </Field>
-          </div>
-        </>
-      )}
-
-      {activeTab === "terms" && (
-        <>
-          <ModalSection title="TPA & Hospital Network" first />
-          <div className="form-grid-2" style={g2}>
-            <Field label="Third Party Administrator (TPA)">
-              <input
-                className="form-input"
-                value={form.tpaName}
-                onChange={(e) => set("tpaName", e.target.value)}
-                placeholder="e.g. Medi Assist, Vidal Health"
-                list="tpa-list"
-              />
-              <datalist id="tpa-list">
-                {COMMON_TPAS.map((t) => (
-                  <option key={t} value={t} />
-                ))}
-              </datalist>
-            </Field>
-            <Field label="TPA Helpline / Emergency Contact">
-              <input
-                className="form-input"
-                value={form.tpaContact}
-                onChange={(e) => set("tpaContact", e.target.value)}
-                placeholder="e.g. 1800-425-9449"
-              />
-            </Field>
-          </div>
-
-          <div className="form-grid-2" style={g2}>
-            <Field label="Hospital Network Count">
-              <input
-                className="form-input"
-                value={form.hospitalNetwork}
-                onChange={(e) => set("hospitalNetwork", e.target.value)}
-                placeholder="e.g. 12,000+ Cashless Hospitals"
-              />
-            </Field>
-            <Field label="Room Rent Sub-limit Rule">
-              <input
-                className="form-input"
-                value={form.roomRentLimit}
-                onChange={(e) => set("roomRentLimit", e.target.value)}
-                placeholder="e.g. No Sub-limit, Single Private, 1% SI"
-              />
-            </Field>
-          </div>
-
-          <div className="form-grid-2" style={g2}>
-            <Field label="Co-payment (%)">
-              <select
-                className="form-input"
-                value={form.copayPercent}
-                onChange={(e) => set("copayPercent", e.target.value)}
-              >
-                <option value="0">0% (Zero Co-pay)</option>
-                <option value="10">10% Co-pay</option>
-                <option value="20">20% Senior Citizen Co-pay</option>
-                <option value="30">30% Zone/Age Co-pay</option>
-              </select>
-            </Field>
-            <Field label="Pre-Existing Condition Waiting (Years)">
-              <input
-                className="form-input"
-                type="number"
-                value={form.waitingPeriodYears}
-                onChange={(e) => set("waitingPeriodYears", e.target.value)}
-                placeholder="e.g. 2 or 3 years"
-              />
-            </Field>
-          </div>
-        </>
-      )}
-
-      {activeTab === "members" && (
-        <>
-          <ModalSection title="Insured Family Members" first />
-          {familyProfiles?.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 8 }}>
-                Quick Add from Family Profiles:
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {familyProfiles
-                  .filter((p: any) => p.relationship !== "HUF")
-                  .map((p: any) => {
-                    const alreadyAdded = members.some(
-                      (m) => m.name.toLowerCase() === p.name.toLowerCase()
-                    );
-                    const age = p.dob ? calculateAge(p.dob) : null;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        disabled={alreadyAdded}
-                        onClick={() => {
-                          setMembers((m) => [
-                            ...m,
-                            { name: p.name, relation: p.relationship?.toLowerCase() || "self", dob: p.dob },
-                          ]);
-                        }}
-                        style={{
-                          padding: "5px 12px",
-                          borderRadius: "var(--radius-sm)",
-                          fontSize: 12,
-                          fontWeight: 600,
-                          border: `1px solid ${alreadyAdded ? "var(--t-line)" : THEME.accent}`,
-                          background: alreadyAdded ? "var(--surface-2)" : "var(--surface-0)",
-                          color: alreadyAdded ? THEME.muted : THEME.accent,
-                          cursor: alreadyAdded ? "not-allowed" : "pointer",
-                          opacity: alreadyAdded ? 0.6 : 1,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <span>+ {p.name}</span>
-                        <span style={{ fontSize: 10, opacity: 0.85 }}>
-                          ({p.relationship}{age !== null ? `, ${age}y` : ""})
-                        </span>
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-            <input
-              className="form-input"
-              value={memberName}
-              onChange={(e) => setMemberName(e.target.value)}
-              placeholder="Custom Member Name"
-              style={{ flex: 2 }}
-            />
-            <select
-              className="form-input"
-              value={memberRelation}
-              onChange={(e) => setMemberRelation(e.target.value)}
-              style={{ flex: 1.5 }}
-            >
-              <option value="self">Self</option>
-              <option value="spouse">Spouse</option>
-              <option value="child">Child / Dependent</option>
-              <option value="father">Father</option>
-              <option value="mother">Mother</option>
-              <option value="father-in-law">Father-in-law</option>
-              <option value="mother-in-law">Mother-in-law</option>
-            </select>
-            <Button size="sm" variant="ghost" onClick={addMember}>
-              Add
-            </Button>
-          </div>
-
-          {members.length > 0 ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-              {members.map((m, i) => {
-                const matchedProfile = familyProfiles?.find(
-                  (p: any) => p.name.toLowerCase() === m.name.toLowerCase()
-                );
-                const dob = m.dob || matchedProfile?.dob;
-                const age = dob ? calculateAge(dob) : null;
-                return (
-                  <Badge
-                    key={i}
-                    variant="muted"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "6px 10px",
-                      fontSize: 12,
-                    }}
-                  >
-                    <UserCheck size={13} color={THEME.accent} />
-                    <span style={{ fontWeight: 700 }}>{m.name}</span>
-                    <span style={{ opacity: 0.8 }}>({m.relation})</span>
-                    {age !== null && <span style={{ fontWeight: 800, color: THEME.ink }}>· {age} yrs</span>}
-                    <button
-                      onClick={() => removeMember(i)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: THEME.rust,
-                        padding: 0,
-                        marginLeft: 4,
-                      }}
-                      title="Remove member"
-                    >
-                      <X size={13} />
-                    </button>
-                  </Badge>
-                );
-              })}
-            </div>
-          ) : (
-            <div
-              style={{
-                padding: "12px",
-                borderRadius: "var(--radius-sm)",
-                background: "var(--surface-1)",
-                color: THEME.muted,
-                fontSize: 12,
-                marginBottom: 16,
-              }}
-            >
-              No members added yet. For Family Floater policies, adding members enables the Family Protection Matrix and age-based 80D calculations.
-            </div>
-          )}
-        </>
-      )}
-
-      {activeTab === "notes" && (
-        <>
-          <ModalSection title="Key Benefits & Riders" first />
+        {/* Left Column: Vertical Stepper Navigation & Live Policy Preview */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Stepper Navigation */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: 12,
-              marginBottom: 16,
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              background: "var(--surface-1)",
+              padding: 8,
+              borderRadius: "var(--radius-lg)",
+              border: `1px solid ${THEME.line}`,
             }}
           >
-            {[
-              { key: "cashless", label: "Cashless Hospitalisation" },
-              { key: "preExistingCovered", label: "Pre-Existing Diseases Covered" },
-              { key: "restorationBenefit", label: "100% Restoration Benefit" },
-              { key: "daycareCover", label: "Daycare Procedures Included" },
-              { key: "maternityCover", label: "Maternity / Newborn Cover" },
-            ].map((feature) => (
-              <label
-                key={feature.key}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  cursor: "pointer",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  padding: "8px 12px",
-                  borderRadius: "var(--radius-sm)",
-                  background: form[feature.key] ? `color-mix(in srgb, ${THEME.accent} 8%, var(--surface-1))` : "var(--surface-1)",
-                  border: `1px solid ${form[feature.key] ? THEME.accent : THEME.line}`,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={!!form[feature.key]}
-                  onChange={(e) => set(feature.key, e.target.checked)}
-                  style={{ accentColor: THEME.accent }}
-                />
-                {feature.label}
-              </label>
-            ))}
+            {STEPS.map((s) => {
+              const isActive = activeTab === s.id;
+              const isDone =
+                s.id === "general"
+                  ? Boolean(form.insurer.trim())
+                  : s.id === "financials"
+                  ? Number(form.sumInsured) > 0 && Number(form.premium) > 0
+                  : s.id === "terms"
+                  ? Boolean(form.tpaName || form.roomRentLimit)
+                  : s.id === "members"
+                  ? members.length > 0
+                  : Boolean(form.notes || form.cashless);
+
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setActiveTab(s.id)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "9px 12px",
+                    borderRadius: "var(--radius-md)",
+                    border: isActive ? `1.5px solid ${THEME.accent}` : "1.5px solid transparent",
+                    background: isActive
+                      ? `color-mix(in srgb, ${THEME.accent} 12%, var(--surface-0))`
+                      : "transparent",
+                    color: isActive ? THEME.accent : THEME.ink,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: isActive
+                        ? THEME.accent
+                        : isDone
+                        ? `color-mix(in srgb, ${THEME.sage} 20%, transparent)`
+                        : "var(--surface-2)",
+                      color: isActive ? "#fff" : isDone ? THEME.sage : THEME.muted,
+                      flexShrink: 0,
+                      fontWeight: 800,
+                      fontSize: 11,
+                    }}
+                  >
+                    {isDone && !isActive ? <Check size={13} /> : s.step}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: isActive ? 800 : 600,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {s.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: THEME.muted,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {s.desc}
+                    </div>
+                  </div>
+                  {isActive && <ChevronRight size={14} color={THEME.accent} />}
+                </button>
+              );
+            })}
           </div>
 
-          <Field label="Special Clauses, Exclusions & Notes">
-            <textarea
-              className="form-input"
-              rows={3}
-              value={form.notes}
-              onChange={(e) => set("notes", e.target.value)}
-              placeholder="e.g. Critical illness rider of ₹10L included; 2-year waiting period on joint replacement."
-            />
-          </Field>
-        </>
-      )}
+          {/* Live Policy Preview Card */}
+          <div
+            style={{
+              padding: 14,
+              borderRadius: "var(--radius-lg)",
+              background:
+                "linear-gradient(145deg, var(--surface-0) 0%, color-mix(in srgb, var(--surface-1) 85%, transparent) 100%)",
+              border: `1.5px solid ${THEME.line}`,
+              boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  color: THEME.muted,
+                }}
+              >
+                Live Preview
+              </span>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  padding: "2px 8px",
+                  borderRadius: 8,
+                  background: `color-mix(in srgb, ${typeColor} 12%, transparent)`,
+                  color: typeColor,
+                }}
+              >
+                {selectedType.label}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <InsurerLogo name={form.insurer || "Health Insurance"} size={34} />
+              <div style={{ overflow: "hidden", minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    color: THEME.ink,
+                    whiteSpace: "nowrap",
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                  }}
+                >
+                  {form.insurer || "Insurer Name"}
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: THEME.muted,
+                    whiteSpace: "nowrap",
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                  }}
+                >
+                  {form.policyName || "Health Plan"}{" "}
+                  {form.policyNumber ? `· #${form.policyNumber}` : ""}
+                </div>
+              </div>
+            </div>
+
+            {/* Metrics Row */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 8,
+                padding: "8px 10px",
+                background: "var(--surface-1)",
+                borderRadius: "var(--radius-sm)",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" }}>
+                  Sum Insured
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: THEME.accent }}>
+                  {Number(form.sumInsured) > 0 ? `₹${fmtINRFull(Number(form.sumInsured))}` : "₹0"}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: THEME.muted, textTransform: "uppercase" }}>
+                  {FREQ_LABELS[form.premiumFrequency] || "Annual"} Premium
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                  {Number(form.premium) > 0 ? `₹${fmtINRFull(Number(form.premium))}` : "₹0"}
+                </div>
+              </div>
+            </div>
+
+            {/* Insured members chips preview */}
+            {members.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: THEME.muted }}>
+                  {members.length} {members.length === 1 ? "Life Covered" : "Lives Covered"}:
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {members.map((m, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        background: "var(--surface-2)",
+                        color: THEME.ink,
+                      }}
+                    >
+                      {m.name} ({m.relation})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Feature pills */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {form.cashless && (
+                <span
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                    background: `color-mix(in srgb, ${THEME.sage} 15%, transparent)`,
+                    color: THEME.sage,
+                  }}
+                >
+                  ✓ Cashless
+                </span>
+              )}
+              {form.restorationBenefit && (
+                <span
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                    background: `color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+                    color: THEME.accent,
+                  }}
+                >
+                  ✓ Restoration
+                </span>
+              )}
+              {form.daycareCover && (
+                <span
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                    background: `color-mix(in srgb, ${THEME.cyan} 15%, transparent)`,
+                    color: THEME.cyan,
+                  }}
+                >
+                  ✓ Daycare
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Active Step Form */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            gap: 16,
+            background: "var(--surface-0)",
+            padding: "2px 0",
+          }}
+        >
+          <div>
+            {/* Step Header */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                paddingBottom: 12,
+                marginBottom: 16,
+                borderBottom: `1px solid ${THEME.line}`,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: THEME.accent,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    marginBottom: 2,
+                  }}
+                >
+                  Step {currentStepIndex + 1} of {STEPS.length}
+                </div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: THEME.ink }}>
+                  {STEPS[currentStepIndex].label}
+                </h3>
+              </div>
+              <div style={{ fontSize: 12, color: THEME.muted, fontWeight: 600 }}>
+                {STEPS[currentStepIndex].desc}
+              </div>
+            </div>
+
+            {activeTab === "general" && (
+              <>
+                <Field label="Insurer / Insurance Company *" error={errors.insurer}>
+                  <input
+                    className="form-input"
+                    value={form.insurer}
+                    onChange={(e) => set("insurer", e.target.value)}
+                    placeholder="e.g. Star Health, HDFC ERGO, Care Health"
+                    list="popular-insurers"
+                  />
+                  <datalist id="popular-insurers">
+                    {POPULAR_INSURERS.map((ins) => (
+                      <option key={ins} value={ins} />
+                    ))}
+                  </datalist>
+                </Field>
+
+                <div className="form-grid-2" style={g2}>
+                  <Field label="Plan / Product Name">
+                    <input
+                      className="form-input"
+                      value={form.policyName}
+                      onChange={(e) => set("policyName", e.target.value)}
+                      placeholder="e.g. Optima Secure, Supreme, Comprehensive"
+                    />
+                  </Field>
+                  <Field label="Policy / Certificate Number">
+                    <input
+                      className="form-input"
+                      value={form.policyNumber}
+                      onChange={(e) => set("policyNumber", e.target.value)}
+                      placeholder="e.g. POL-9847291038"
+                    />
+                  </Field>
+                </div>
+
+                <div className="form-grid-2" style={g2}>
+                  <Field label="Policy Type">
+                    <select
+                      className="form-input"
+                      value={form.policyType}
+                      onChange={(e) => set("policyType", e.target.value)}
+                    >
+                      {POLICY_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label} ({t.desc})
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Policy Owner">
+                    <select
+                      className="form-input"
+                      value={form.owner}
+                      onChange={(e) => set("owner", e.target.value)}
+                    >
+                      {familyProfiles.map((p: any) => (
+                        <option key={p.id} value={p.id}>
+                          {formatProfileOption(p)}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+              </>
+            )}
+
+            {activeTab === "financials" && (
+              <>
+                <div className="form-grid-2" style={g2}>
+                  <Field label="Base Sum Insured (₹) *" error={errors.sumInsured}>
+                    <input
+                      className="form-input"
+                      type="number"
+                      value={form.sumInsured}
+                      onChange={(e) => set("sumInsured", e.target.value)}
+                      placeholder="e.g. 1000000 (₹10 Lakhs)"
+                    />
+                  </Field>
+                  <Field label="Cumulative / No Claim Bonus (₹)">
+                    <input
+                      className="form-input"
+                      type="number"
+                      value={form.noClaimBonus}
+                      onChange={(e) => set("noClaimBonus", e.target.value)}
+                      placeholder="e.g. 200000"
+                    />
+                  </Field>
+                </div>
+
+                {(form.policyType === "top_up" || form.policyType === "super_top_up") && (
+                  <Field label="Deductible / Threshold Amount (₹)">
+                    <input
+                      className="form-input"
+                      type="number"
+                      value={form.deductible}
+                      onChange={(e) => set("deductible", e.target.value)}
+                      placeholder="e.g. 500000 (Cover kicks in after ₹5L)"
+                    />
+                  </Field>
+                )}
+
+                <div className="form-grid-2" style={g2}>
+                  <Field label="Premium Amount (₹) *" error={errors.premium}>
+                    <input
+                      className="form-input"
+                      type="number"
+                      value={form.premium}
+                      onChange={(e) => set("premium", e.target.value)}
+                      placeholder="e.g. 24000"
+                    />
+                  </Field>
+                  <Field label="Premium Frequency">
+                    <select
+                      className="form-input"
+                      value={form.premiumFrequency}
+                      onChange={(e) => set("premiumFrequency", e.target.value)}
+                    >
+                      {Object.entries(FREQ_LABELS).map(([k, v]) => (
+                        <option key={k} value={k}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+
+                <div className="form-grid-2" style={g2}>
+                  <Field label="Policy Commencement Date">
+                    <input
+                      className="form-input"
+                      type="date"
+                      value={form.startDate}
+                      onChange={(e) => set("startDate", e.target.value)}
+                    />
+                  </Field>
+                  <Field label="Next Renewal Date">
+                    <input
+                      className="form-input"
+                      type="date"
+                      value={form.renewalDate}
+                      onChange={(e) => set("renewalDate", e.target.value)}
+                    />
+                  </Field>
+                </div>
+              </>
+            )}
+
+            {activeTab === "terms" && (
+              <>
+                <div className="form-grid-2" style={g2}>
+                  <Field label="Third Party Administrator (TPA)">
+                    <input
+                      className="form-input"
+                      value={form.tpaName}
+                      onChange={(e) => set("tpaName", e.target.value)}
+                      placeholder="e.g. Medi Assist, Vidal Health"
+                      list="tpa-list"
+                    />
+                    <datalist id="tpa-list">
+                      {COMMON_TPAS.map((t) => (
+                        <option key={t} value={t} />
+                      ))}
+                    </datalist>
+                  </Field>
+                  <Field label="TPA Helpline / Emergency Contact">
+                    <input
+                      className="form-input"
+                      value={form.tpaContact}
+                      onChange={(e) => set("tpaContact", e.target.value)}
+                      placeholder="e.g. 1800-425-9449"
+                    />
+                  </Field>
+                </div>
+
+                <div className="form-grid-2" style={g2}>
+                  <Field label="Hospital Network Count">
+                    <input
+                      className="form-input"
+                      value={form.hospitalNetwork}
+                      onChange={(e) => set("hospitalNetwork", e.target.value)}
+                      placeholder="e.g. 12,000+ Cashless Hospitals"
+                    />
+                  </Field>
+                  <Field label="Room Rent Sub-limit Rule">
+                    <input
+                      className="form-input"
+                      value={form.roomRentLimit}
+                      onChange={(e) => set("roomRentLimit", e.target.value)}
+                      placeholder="e.g. No Sub-limit, Single Private, 1% SI"
+                    />
+                  </Field>
+                </div>
+
+                <div className="form-grid-2" style={g2}>
+                  <Field label="Co-payment (%)">
+                    <select
+                      className="form-input"
+                      value={form.copayPercent}
+                      onChange={(e) => set("copayPercent", e.target.value)}
+                    >
+                      <option value="0">0% (Zero Co-pay)</option>
+                      <option value="10">10% Co-pay</option>
+                      <option value="20">20% Senior Citizen Co-pay</option>
+                      <option value="30">30% Zone/Age Co-pay</option>
+                    </select>
+                  </Field>
+                  <Field label="Pre-Existing Condition Waiting (Years)">
+                    <input
+                      className="form-input"
+                      type="number"
+                      value={form.waitingPeriodYears}
+                      onChange={(e) => set("waitingPeriodYears", e.target.value)}
+                      placeholder="e.g. 2 or 3 years"
+                    />
+                  </Field>
+                </div>
+              </>
+            )}
+
+            {activeTab === "members" && (
+              <>
+                {familyProfiles?.length > 0 && (
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, marginBottom: 8 }}>
+                      Quick Add from Family Profiles:
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {familyProfiles
+                        .filter((p: any) => p.relationship !== "HUF")
+                        .map((p: any) => {
+                          const alreadyAdded = members.some(
+                            (m) => m.name.toLowerCase() === p.name.toLowerCase()
+                          );
+                          const age = p.dob ? calculateAge(p.dob) : null;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              disabled={alreadyAdded}
+                              onClick={() => {
+                                setMembers((m) => [
+                                  ...m,
+                                  { name: p.name, relation: p.relationship?.toLowerCase() || "self", dob: p.dob },
+                                ]);
+                              }}
+                              style={{
+                                padding: "6px 12px",
+                                borderRadius: "var(--radius-sm)",
+                                fontSize: 12,
+                                fontWeight: 600,
+                                border: `1px solid ${alreadyAdded ? "var(--t-line)" : THEME.accent}`,
+                                background: alreadyAdded ? "var(--surface-2)" : "var(--surface-0)",
+                                color: alreadyAdded ? THEME.muted : THEME.accent,
+                                cursor: alreadyAdded ? "not-allowed" : "pointer",
+                                opacity: alreadyAdded ? 0.6 : 1,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              <span>+ {p.name}</span>
+                              <span style={{ fontSize: 10, opacity: 0.85 }}>
+                                ({p.relationship}{age !== null ? `, ${age}y` : ""})
+                              </span>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                  <input
+                    className="form-input"
+                    value={memberName}
+                    onChange={(e) => setMemberName(e.target.value)}
+                    placeholder="Custom Member Name"
+                    style={{ flex: 2 }}
+                  />
+                  <select
+                    className="form-input"
+                    value={memberRelation}
+                    onChange={(e) => setMemberRelation(e.target.value)}
+                    style={{ flex: 1.5 }}
+                  >
+                    <option value="self">Self</option>
+                    <option value="spouse">Spouse</option>
+                    <option value="child">Child / Dependent</option>
+                    <option value="father">Father</option>
+                    <option value="mother">Mother</option>
+                    <option value="father-in-law">Father-in-law</option>
+                    <option value="mother-in-law">Mother-in-law</option>
+                  </select>
+                  <Button size="sm" variant="ghost" onClick={addMember}>
+                    Add
+                  </Button>
+                </div>
+
+                {members.length > 0 ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+                    {members.map((m, i) => {
+                      const matchedProfile = familyProfiles?.find(
+                        (p: any) => p.name.toLowerCase() === m.name.toLowerCase()
+                      );
+                      const dob = m.dob || matchedProfile?.dob;
+                      const age = dob ? calculateAge(dob) : null;
+                      return (
+                        <Badge
+                          key={i}
+                          variant="muted"
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "6px 10px",
+                            fontSize: 12,
+                          }}
+                        >
+                          <UserCheck size={13} color={THEME.accent} />
+                          <span style={{ fontWeight: 700 }}>{m.name}</span>
+                          <span style={{ opacity: 0.8 }}>({m.relation})</span>
+                          {age !== null && <span style={{ fontWeight: 800, color: THEME.ink }}>· {age} yrs</span>}
+                          <button
+                            onClick={() => removeMember(i)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: THEME.rust,
+                              padding: 0,
+                              marginLeft: 4,
+                            }}
+                            title="Remove member"
+                          >
+                            <X size={13} />
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: "14px",
+                      borderRadius: "var(--radius-sm)",
+                      background: "var(--surface-1)",
+                      color: THEME.muted,
+                      fontSize: 12,
+                      lineHeight: 1.5,
+                      marginBottom: 16,
+                    }}
+                  >
+                    No members added yet. For Family Floater policies, adding members enables the Family Protection Matrix and age-based 80D tax calculations.
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === "notes" && (
+              <>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 10,
+                    marginBottom: 16,
+                  }}
+                >
+                  {[
+                    { key: "cashless", label: "Cashless Hospitalisation", desc: "Network hospital instant admission" },
+                    { key: "preExistingCovered", label: "Pre-Existing Covered", desc: "After waiting period" },
+                    { key: "restorationBenefit", label: "100% Restoration Benefit", desc: "Auto-reinstates sum insured" },
+                    { key: "daycareCover", label: "Daycare Procedures", desc: "<24hr treatments covered" },
+                    { key: "maternityCover", label: "Maternity & Newborn", desc: "Delivery & infant expenses" },
+                  ].map((feature) => {
+                    const isChecked = Boolean(form[feature.key]);
+                    return (
+                      <div
+                        key={feature.key}
+                        onClick={() => set(feature.key, !isChecked)}
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 10,
+                          cursor: "pointer",
+                          padding: "10px 12px",
+                          borderRadius: "var(--radius-md)",
+                          background: isChecked
+                            ? `color-mix(in srgb, ${THEME.accent} 10%, var(--surface-0))`
+                            : "var(--surface-1)",
+                          border: `1.5px solid ${isChecked ? THEME.accent : THEME.line}`,
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => set(feature.key, e.target.checked)}
+                          style={{ accentColor: THEME.accent, marginTop: 2, cursor: "pointer" }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
+                            {feature.label}
+                          </div>
+                          <div style={{ fontSize: 10, color: THEME.muted, marginTop: 1 }}>
+                            {feature.desc}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <Field label="Special Clauses, Exclusions & Notes">
+                  <textarea
+                    className="form-input"
+                    rows={3}
+                    value={form.notes}
+                    onChange={(e) => set("notes", e.target.value)}
+                    placeholder="e.g. Critical illness rider of ₹10L included; 2-year waiting period on joint replacement."
+                  />
+                </Field>
+              </>
+            )}
+          </div>
+
+          {/* Step Navigation Actions */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingTop: 14,
+              borderTop: `1px solid ${THEME.line}`,
+            }}
+          >
+            {currentStepIndex > 0 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                icon={<ChevronLeft size={14} />}
+                onClick={goPrev}
+              >
+                Back
+              </Button>
+            ) : (
+              <div />
+            )}
+
+            {currentStepIndex < STEPS.length - 1 ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={goNext}
+                style={{ display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <span>Next: {STEPS[currentStepIndex + 1].label}</span>
+                <ChevronRight size={14} />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="accent"
+                size="sm"
+                onClick={save}
+                disabled={saving}
+              >
+                {initial?.id ? "Save Policy" : "Complete & Add Policy"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
 
       <ModalActions
         onSave={save}
@@ -773,7 +1159,7 @@ function ClaimModal({ policy, onClose, onSave, saving = false }: any) {
     <Modal
       title={`Claims Tracker · ${policy.insurer} (${policy.policyName || "Policy"})`}
       onClose={onClose}
-      maxWidth={640}
+      maxWidth={840}
     >
       <div
         style={{

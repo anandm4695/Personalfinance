@@ -3390,4 +3390,17 @@ input[type="range"].cxo-slider::-moz-range-thumb:hover {
   background: var(--surface-0);
 }
 
+/* ── Health Insurance Modal Widescreen Grid ── */
+.health-modal-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) 1fr;
+  gap: 22px;
+}
+@media (max-width: 860px) {
+  .health-modal-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
 
