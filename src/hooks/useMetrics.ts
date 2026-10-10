@@ -16,6 +16,7 @@ import {
   getEmergencyFundStatus,
   EMERGENCY_FUND_TARGET_MONTHS,
   getSubscriptionMonthlyEquivalent,
+  informalPersonOutstanding,
 } from "../utils/finance";
 import { getCurrentFY } from "../utils/appConstants";
 import { DEFAULT_MASTER_DATA, FamilyProfile } from "../utils/masterData";
@@ -258,15 +259,10 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     const returned = Number(p.depositReturned || 0);
     return s + Math.max(0, actualDeposit - returned);
   }, 0);
-  const informalLentValue = (pState.informalLent || []).reduce((s: number, person: any) => {
-    const tranches = person.tranches || [];
-    const payments = person.payments || [];
-    const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-    const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-    const net =
-      totalT > 0 || totalP > 0 ? Math.max(0, totalT - totalP) : Number(person.amount || 0);
-    return s + net;
-  }, 0);
+  const informalLentValue = (pState.informalLent || []).reduce(
+    (s: number, person: any) => s + informalPersonOutstanding(person),
+    0
+  );
   // Rental property market value is stored as `propertyValue` (see
   // RentalPropertyModal / migration 45_rental_property_value.sql) — this used to
   // read the non-existent `marketValue`/`value` fields, so a landlord's rental
@@ -344,15 +340,7 @@ export function calculateProfileNWAndCover(pState: any, marketData: any, profile
     return s + Math.max(0, actualDeposit - deducted - returned);
   }, 0);
   const informalBorrowedValue = (pState.informalBorrowed || []).reduce(
-    (s: number, person: any) => {
-      const tranches = person.tranches || [];
-      const payments = person.payments || [];
-      const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-      const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-      const net =
-        totalT > 0 || totalP > 0 ? Math.max(0, totalT - totalP) : Number(person.amount || 0);
-      return s + net;
-    },
+    (s: number, person: any) => s + informalPersonOutstanding(person),
     0
   );
 
@@ -550,26 +538,13 @@ export function useMetrics(
       return s + Math.max(0, actualDeposit - returned);
     }, 0);
 
-    const informalLentValue = (sState.informalLent || []).reduce((s: number, person: any) => {
-      const tranches = person.tranches || [];
-      const payments = person.payments || [];
-      const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-      const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-      const net =
-        totalT > 0 || totalP > 0 ? Math.max(0, totalT - totalP) : Number(person.amount || 0);
-      return s + net;
-    }, 0);
+    const informalLentValue = (sState.informalLent || []).reduce(
+      (s: number, person: any) => s + informalPersonOutstanding(person),
+      0
+    );
 
     const informalBorrowedValue = (sState.informalBorrowed || []).reduce(
-      (s: number, person: any) => {
-        const tranches = person.tranches || [];
-        const payments = person.payments || [];
-        const totalT = tranches.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-        const totalP = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
-        const net =
-          totalT > 0 || totalP > 0 ? Math.max(0, totalT - totalP) : Number(person.amount || 0);
-        return s + net;
-      },
+      (s: number, person: any) => s + informalPersonOutstanding(person),
       0
     );
 

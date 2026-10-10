@@ -522,13 +522,9 @@ export function MonthlyReportModal({
       : null;
   const nwDelta = hasNWData && prevNW !== null ? displayNetWorth - prevNW : 0;
 
-  // Email report handler — the backend always computes the summary from TODAY's
-  // live data (see api/send-summary.js), it has no notion of "the month currently
-  // shown in this modal". Sending while viewing a past month would silently
-  // email numbers that don't match what's on screen, so this is gated to the
-  // current month only (see the disabled "Email to me" button below).
+  // Email report handler — uses the selected report month (reportDate) so the
+  // emailed summary matches the month currently viewed.
   async function handleEmailReport() {
-    if (!isCurrentMonth) return;
     const emailTo = state.settings?.emailAddress || "";
     if (!emailTo) {
       setEmailStatus("no-email");
@@ -552,6 +548,7 @@ export function MonthlyReportModal({
           frequency: "monthly",
           recipientName: state.profile?.name || "there",
           fromEmail: state.settings?.fromEmail || undefined,
+          refDate: reportDate.toISOString(),
         }),
       });
       const json = await res.json();
@@ -1494,18 +1491,14 @@ export function MonthlyReportModal({
             <button
               style={{
                 ...btnGhost,
-                color: emailSending || !isCurrentMonth ? THEME.muted : THEME.accent,
+                color: emailSending ? THEME.muted : THEME.accent,
                 borderColor: `color-mix(in srgb, ${THEME.accent} 33%, transparent)`,
-                opacity: emailSending || !isCurrentMonth ? 0.5 : 1,
-                cursor: !isCurrentMonth ? "not-allowed" : "pointer",
+                opacity: emailSending ? 0.5 : 1,
+                cursor: emailSending ? "not-allowed" : "pointer",
               }}
               onClick={handleEmailReport}
-              disabled={emailSending || !isCurrentMonth}
-              title={
-                !isCurrentMonth
-                  ? "Email reports always reflect live, current-month data — switch to the current month to email this report"
-                  : undefined
-              }
+              disabled={emailSending}
+              title={`Email ${monthLabel} statement to ${state.settings?.emailAddress || "your email"}`}
             >
               <Mail size={13} />
               {emailSending ? "Sending…" : "Email to me"}

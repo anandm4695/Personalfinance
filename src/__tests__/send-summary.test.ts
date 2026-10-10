@@ -358,8 +358,8 @@ describe("Daily, Weekly & Monthly Email Summary Engine", () => {
 
       const alert = summary.alerts.find((a: any) => a.type === "alert" && a.msg.includes("exceed your bank cash"));
       expect(alert).toBeDefined();
-      expect(alert.msg).toContain("₹50.0K");
-      expect(alert.msg).toContain("₹15.0K");
+      expect(alert.msg).toContain("₹50K");
+      expect(alert.msg).toContain("₹15K");
     });
   });
 
@@ -463,12 +463,92 @@ describe("Daily, Weekly & Monthly Email Summary Engine", () => {
       expect(pcts.reduce((a: number, b: number) => a + b, 0)).toBe(100);
     });
 
-    it("formats INR numbers correctly", () => {
-      expect(fmtINR(50000000)).toBe("₹5.00Cr");
-      expect(fmtINR(250000)).toBe("₹2.50L");
-      expect(fmtINR(15000)).toBe("₹15.0K");
+    it("formats INR numbers correctly including negative values", () => {
+      expect(fmtINR(50000000)).toBe("₹5Cr");
+      expect(fmtINR(250000)).toBe("₹2.5L");
+      expect(fmtINR(15000)).toBe("₹15K");
       expect(fmtINR(500)).toBe("₹500");
+      expect(fmtINR(-50000000)).toBe("-₹5Cr");
+      expect(fmtINR(-250000)).toBe("-₹2.5L");
+      expect(fmtINR(-15000)).toBe("-₹15K");
+      expect(fmtINR(-500)).toBe("-₹500");
       expect(fmtINRFull(1234567)).toBe("₹12,34,567");
+      expect(fmtINRFull(-1234567)).toBe("-₹12,34,567");
+    });
+
+    it("informalPersonOutstanding correctly calculates remaining balance for legacy principal with payments", () => {
+      const { informalPersonOutstanding } = sendSummary;
+      // Case 1: Legacy amount with no tranches, but with payments
+      const legacyPersonWithPayments = {
+        name: "Aakash",
+        amount: 50000,
+        tranches: [],
+        payments: [{ amount: 10000 }, { amount: 5000 }],
+      };
+      // 50000 - 15000 = 35000
+      expect(informalPersonOutstanding(legacyPersonWithPayments)).toBe(35000);
+
+      // Case 2: Tranches model
+      const tranchesPerson = {
+        name: "Bhavin",
+        amount: 0,
+        tranches: [{ amount: 30000 }, { amount: 20000 }],
+        payments: [{ amount: 10000 }],
+      };
+      // 50000 - 10000 = 40000
+      expect(informalPersonOutstanding(tranchesPerson)).toBe(40000);
+
+      // Case 3: Settled status
+      const settledPerson = {
+        name: "Chetan",
+        amount: 50000,
+        status: "settled",
+      };
+      expect(informalPersonOutstanding(settledPerson)).toBe(0);
+    });
+
+    it("correctly includes salary_slips and rental income in monthly income computations", () => {
+      const refDate = new Date("2026-10-15T00:00:00Z");
+      const state = {
+        bankAccounts: [{ balance: 100000 }],
+        salarySlips: [
+          { month: "2026-10", netPay: 180000 },
+          { month: "2026-09", netPay: 180000 },
+        ],
+        rentalIncome: [
+          { month: "2026-10", amount: 25000 },
+        ],
+        transactions: [
+          { date: "2026-10-05", type: "debit", category: "Groceries", amount: 5000 },
+        ],
+      };
+
+      const summary = computeSummary(state, refDate);
+      // monthIncome = salary_slips (180000) + rentalIncome (25000) = 205000
+      expect(summary.monthIncome).toBe(205000);
+      expect(summary.monthExpense).toBe(5000);
+      expect(summary.netSavings).toBe(200000);
+    });
+
+    it("includes overdue dues in dues3Days and dues7Days with overdue flag", () => {
+      const refDate = new Date("2026-10-10T00:00:00Z");
+      const state = {
+        bankAccounts: [{ balance: 50000 }],
+        billPayments: [
+          // Bill due on Oct 5 (5 days ago, unpaid)
+          { id: "b-overdue", provider: "Electricity Board", amount: 3500, dueDay: 5 },
+          // Bill due on Oct 12 (in 2 days)
+          { id: "b-upcoming", provider: "Internet", amount: 1200, dueDay: 12 },
+        ],
+        billPaymentHistory: [],
+      };
+
+      const summary = computeSummary(state, refDate);
+      expect(summary.dues3Days.length).toBe(2);
+      const overdueDue = summary.dues3Days.find((d: any) => d.label.includes("Electricity Board"));
+      expect(overdueDue).toBeDefined();
+      expect(overdueDue.isOverdue).toBe(true);
+      expect(overdueDue.daysDiff).toBeLessThan(0);
     });
 
     it("builds clear, informative email subject lines for all frequencies", () => {
@@ -478,13 +558,14 @@ describe("Daily, Weekly & Monthly Email Summary Engine", () => {
       const monthlySubj = buildSubject("monthly", 15000000, refDate);
 
       expect(dailySubj).toContain("Daily Digest");
-      expect(dailySubj).toContain("Net Worth ₹1.50Cr");
+      expect(dailySubj).toContain("Net Worth ₹1.5Cr");
 
       expect(weeklySubj).toContain("Weekly Briefing");
-      expect(weeklySubj).toContain("Net Worth ₹1.50Cr");
+      expect(weeklySubj).toContain("Net Worth ₹1.5Cr");
 
       expect(monthlySubj).toContain("Monthly Executive Statement");
-      expect(monthlySubj).toContain("Net Worth ₹1.50Cr");
+      expect(monthlySubj).toContain("Net Worth ₹1.5Cr");
     });
   });
 });
+

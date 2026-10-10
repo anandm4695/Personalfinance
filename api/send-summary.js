@@ -344,17 +344,39 @@ function loanGivenOutstanding(l) {
   return Number(l.principal || l.amount || 0);
 }
 
+function informalPersonOutstanding(person) {
+  if (!person) return 0;
+  if ((person.status || "").toLowerCase() === "settled" || person.settled) return 0;
+  const tranches = Array.isArray(person.tranches) ? person.tranches : [];
+  const payments = Array.isArray(person.payments) ? person.payments : [];
+  if (tranches.length === 0 && Number(person.amount || 0) > 0) {
+    const legacyPrincipal = Number(person.amount || 0);
+    const totalP = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    return Math.max(0, legacyPrincipal - totalP);
+  }
+  const totalT = tranches.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const totalP = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  return Math.max(0, totalT - totalP);
+}
+
 // ── Number Formatters ─────────────────────────────────────────────────────────
 function fmtINR(n) {
-  const v = Math.abs(Number(n) || 0);
-  if (v >= 1e7) return `₹${(v / 1e7).toFixed(2)}Cr`;
-  if (v >= 1e5) return `₹${(v / 1e5).toFixed(2)}L`;
-  if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`;
-  return `₹${Math.round(v).toLocaleString("en-IN")}`;
+  if (n === null || n === undefined || isNaN(Number(n))) return "₹0";
+  const num = Number(n);
+  const abs = Math.abs(num);
+  const sign = num < 0 ? "-" : "";
+  const fmt = (val, dec) => parseFloat(val.toFixed(dec)).toString();
+  if (abs >= 1e7) return `${sign}₹${fmt(abs / 1e7, 2)}Cr`;
+  if (abs >= 1e5) return `${sign}₹${fmt(abs / 1e5, 2)}L`;
+  if (abs >= 1000) return `${sign}₹${fmt(abs / 1000, 1)}K`;
+  return `${sign}₹${abs.toFixed(0)}`;
 }
 
 function fmtINRFull(n) {
-  return `₹${Math.round(Math.abs(Number(n) || 0)).toLocaleString("en-IN")}`;
+  if (n === null || n === undefined || isNaN(Number(n))) return "₹0";
+  const num = Number(n);
+  const sign = num < 0 ? "-" : "";
+  return `${sign}₹${Math.round(Math.abs(num)).toLocaleString("en-IN")}`;
 }
 
 function largestRemainderRound(amounts, total) {
@@ -584,15 +606,10 @@ function computeSummary(state, refDate = new Date()) {
     return s + Math.max(0, actualDeposit - returned);
   }, 0);
 
-  const informalLentTotal = (state.informalLent || []).reduce((s, person) => {
-    if ((person.status || "").toLowerCase() === "settled" || person.settled) return s;
-    const tranches = person.tranches || [];
-    const payments = person.payments || [];
-    const totalT = tranches.reduce((sum, t) => sum + Number(t.amount || 0), 0);
-    const totalP = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const net = totalT > 0 || totalP > 0 ? Math.max(0, totalT - totalP) : Number(person.amount || 0);
-    return s + net;
-  }, 0);
+  const informalLentTotal = (state.informalLent || []).reduce(
+    (s, person) => s + informalPersonOutstanding(person),
+    0
+  );
 
   const rentalPropertiesAsset = (state.rentalProperties || []).reduce(
     (s, r) => s + Number(r.propertyValue || 0),
@@ -679,15 +696,10 @@ function computeSummary(state, refDate = new Date()) {
     return s + Math.max(0, actualDeposit - deducted - returned);
   }, 0);
 
-  const informalBorrowedTotal = (state.informalBorrowed || []).reduce((s, person) => {
-    if ((person.status || "").toLowerCase() === "settled" || person.settled) return s;
-    const tranches = person.tranches || [];
-    const payments = person.payments || [];
-    const totalT = tranches.reduce((sum, t) => sum + Number(t.amount || 0), 0);
-    const totalP = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const net = totalT > 0 || totalP > 0 ? Math.max(0, totalT - totalP) : Number(person.amount || 0);
-    return s + net;
-  }, 0);
+  const informalBorrowedTotal = (state.informalBorrowed || []).reduce(
+    (s, person) => s + informalPersonOutstanding(person),
+    0
+  );
 
   const realEstateOutstanding = (state.realEstateProperties || [])
     .filter((p) => p.status === "under-construction")
@@ -711,7 +723,7 @@ function computeSummary(state, refDate = new Date()) {
 
   const netWorth = totalAssets - totalLiabilities;
   const debtToAssetRatio =
-    totalAssets > 0 ? Math.min(100, Math.round((totalLiabilities / totalAssets) * 100)) : 0;
+    totalAssets > 0 ? Math.round((totalLiabilities / totalAssets) * 100) : 0;
 
   // ── Cash flow (current month MTD) ──────────────────────────────────────────
   const isTransferCat = (cat) => ["Transfer", "Self Transfer", "Self-Transfer"].includes(cat || "");
@@ -719,25 +731,47 @@ function computeSummary(state, refDate = new Date()) {
     (t) => t.date && t.date.slice(0, 7) === curYm
   );
 
-  const rentReceivedThisMonth = (state.rentalProperties || []).reduce((sum, p) => {
-    const receiptsThisMonth = (p.receipts || [])
+  const rentReceivedFromProps = (state.rentalProperties || []).reduce((sum, p) => {
+    const receiptsThisMonth = (p.receipts || p.rent_receipts || [])
       .filter((r) => r.date && r.date.slice(0, 7) === curYm)
       .reduce((s, r) => s + Number(r.amount || 0), 0);
     return sum + receiptsThisMonth;
   }, 0);
+  const directRentalIncome = (state.rentalIncome || state.rental_income || [])
+    .filter((r) => r.month === curYm || (r.date && r.date.slice(0, 7) === curYm))
+    .reduce((s, r) => s + Number(r.amount || 0), 0);
+  const rentReceivedThisMonth = rentReceivedFromProps + directRentalIncome;
+
   const hasRentReceivedTxn = monthTxns.some(
     (t) => t.type === "credit" && (t.category || "").toLowerCase() === "rent"
   );
 
+  const salarySlipsMonth = (state.salarySlips || state.salary_slips || [])
+    .filter((s) => {
+      const sYm = s.slipMonth || s.month || (s.date ? s.date.slice(0, 7) : "");
+      return sYm === curYm;
+    })
+    .reduce(
+      (sum, s) =>
+        sum + Number(s.netSalary ?? s.netPay ?? s.inHand ?? s.takeHome ?? s.grossSalary ?? s.amount ?? 0),
+      0
+    );
+
   const monthIncome = (() => {
     const explicitIncomeMonth = (state.income || [])
-      .filter((i) => i.date && i.date.slice(0, 7) === curYm)
+      .filter((i) => (i.date && i.date.slice(0, 7) === curYm) || i.month === curYm)
       .reduce((s, i) => s + Number(i.amount || 0), 0);
     const txnIncomeMonth = monthTxns
       .filter((t) => t.type === "credit" && !isTransferCat(t.category))
       .reduce((s, t) => s + Number(t.amount || 0), 0);
+    const primaryIncome =
+      explicitIncomeMonth > 0
+        ? explicitIncomeMonth
+        : txnIncomeMonth > 0
+          ? txnIncomeMonth
+          : salarySlipsMonth;
     const rentTopUp = rentReceivedThisMonth > 0 && !hasRentReceivedTxn ? rentReceivedThisMonth : 0;
-    return (explicitIncomeMonth > 0 ? explicitIncomeMonth : txnIncomeMonth) + rentTopUp;
+    return primaryIncome + rentTopUp;
   })();
 
   const rentPaidThisMonth = (state.rentedProperties || []).reduce((sum, p) => {
@@ -846,8 +880,15 @@ function computeSummary(state, refDate = new Date()) {
     const tDate = t.date ? t.date.slice(0, 10) : "";
     return tDate === yestYmStr && t.type === "credit" && !isTransferCat(t.category);
   });
+  const yesterdayExplicitIncome = (state.income || []).filter((i) => {
+    const iDate = i.date ? i.date.slice(0, 10) : "";
+    return iDate === yestYmStr;
+  });
   const yesterdaySpend = yesterdayDebits.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
-  const yesterdayIncome = yesterdayCredits.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
+  const yesterdayIncome =
+    yesterdayExplicitIncome.length > 0
+      ? yesterdayExplicitIncome.reduce((s, i) => s + Math.abs(Number(i.amount) || 0), 0)
+      : yesterdayCredits.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
   const yesterdayCount = yesterdayDebits.length;
   const yesterdayTxns = yesterdayDebits
     .map((t) => ({
@@ -864,7 +905,6 @@ function computeSummary(state, refDate = new Date()) {
     dailyBudgetAllowance > 0 ? Math.round((yesterdaySpend / dailyBudgetAllowance) * 100) : null;
 
   // ── Cadence 2: Weekly Specific Data (Past 7 Days & 7-Day Trend) ────────────
-  // Past 7 completed days including today (today - 6 to today) = 7 calendar days
   const p7StartObj = new Date(todayMidnightTime - 6 * 86400000);
   const p7P = getISTParts(p7StartObj);
   const p7StartStr = `${p7P.year}-${String(p7P.month).padStart(2, "0")}-${String(p7P.day).padStart(2, "0")}`;
@@ -893,7 +933,14 @@ function computeSummary(state, refDate = new Date()) {
       !isTransferCat(t.category)
     );
   });
-  const past7DaysIncome = past7DaysCredits.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
+  const past7DaysExplicitIncome = (state.income || []).filter((i) => {
+    const iDate = i.date ? i.date.slice(0, 10) : "";
+    return iDate && iDate >= p7StartStr && iDate <= todayStr;
+  });
+  const past7DaysIncome =
+    past7DaysExplicitIncome.length > 0
+      ? past7DaysExplicitIncome.reduce((s, i) => s + Math.abs(Number(i.amount) || 0), 0)
+      : past7DaysCredits.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
   const past7DaysNetSavings = past7DaysIncome - past7DaysExpense;
 
   const past7CatMap = {};
@@ -974,6 +1021,7 @@ function computeSummary(state, refDate = new Date()) {
           ? monthExpense
           : 0;
 
+  const past30Time = todayMidnightTime - 30 * 86400000;
   const in3Time = todayMidnightTime + 3 * 86400000;
   const in7Time = todayMidnightTime + 7 * 86400000;
   const in30Time = todayMidnightTime + 30 * 86400000;
@@ -1018,7 +1066,7 @@ function computeSummary(state, refDate = new Date()) {
           ? { label: "Needs Improvement", color: "#d97706" }
           : { label: "Critical", color: "#dc2626" };
 
-  // ── Upcoming Dues (collected up to 30 days) ─────────────────────────────────
+  // ── Upcoming Dues (collected up to 30 days, including recent unpaid overdue) ──
   const dues = [];
 
   // 1. Subscriptions
@@ -1027,7 +1075,7 @@ function computeSummary(state, refDate = new Date()) {
     .forEach((s) => {
       const renewalDate = s.renewalDate || s.startDate || s.nextDue;
       const nextDate = getNextSubscriptionRenewal(renewalDate, s.cycle, todayStr);
-      if (nextDate && nextDate.getTime() >= todayMidnightTime && nextDate.getTime() <= in30Time) {
+      if (nextDate && nextDate.getTime() >= past30Time && nextDate.getTime() <= in30Time) {
         dues.push({
           date: nextDate,
           label: s.name || s.provider || "Subscription",
@@ -1044,12 +1092,13 @@ function computeSummary(state, refDate = new Date()) {
     .forEach((p) => {
       const dueDay = Number(p.dueDay || 5);
       const paidCurrent = (p.payments || []).some((pay) => pay.date && pay.date.slice(0, 7) === curYm);
-      if (!paidCurrent) {
-        let d = clampDayToMonth(istP.year, istP.month - 1, dueDay);
-        if (d.getTime() < todayMidnightTime) {
-          d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, dueDay);
-        }
-        if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
+      let d = clampDayToMonth(istP.year, istP.month - 1, dueDay);
+      if (paidCurrent) {
+        // Current month is settled -> schedule next month's occurrence
+        d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, dueDay);
+      }
+      if (d.getTime() >= past30Time && d.getTime() <= in30Time) {
+        if (!paidCurrent || d.getTime() >= todayMidnightTime) {
           dues.push({
             date: d,
             label: `${p.propertyName || "Rent"}`,
@@ -1066,7 +1115,7 @@ function computeSummary(state, refDate = new Date()) {
     const outstanding = Number(c.outstanding || 0);
     if (outstanding <= 0) return;
     const d = getCreditCardDueDate(c, refDate);
-    if (d && d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
+    if (d && d.getTime() >= past30Time && d.getTime() <= in30Time) {
       dues.push({
         date: d,
         label: `${c.issuer || c.name || "Credit Card"} Bill`,
@@ -1083,10 +1132,10 @@ function computeSummary(state, refDate = new Date()) {
     const fMonth = Number(c.feeMonth) - 1;
     const fDay = Number(c.feeDay) || 1;
     let candidate = clampDayToMonth(istP.year, fMonth, fDay);
-    if (candidate.getTime() < todayMidnightTime) {
+    if (candidate.getTime() < past30Time) {
       candidate = clampDayToMonth(istP.year + 1, fMonth, fDay);
     }
-    if (candidate.getTime() >= todayMidnightTime && candidate.getTime() <= in30Time) {
+    if (candidate.getTime() >= past30Time && candidate.getTime() <= in30Time) {
       dues.push({
         date: candidate,
         label: `${c.issuer || "Card"} Annual Fee`,
@@ -1102,10 +1151,10 @@ function computeSummary(state, refDate = new Date()) {
     if (loanOutstanding(l) <= 0 || !l.emi) return;
     const day = Number(l.emiDate || l.dueDay || 5);
     let d = clampDayToMonth(istP.year, istP.month - 1, day);
-    if (d.getTime() < todayMidnightTime) {
+    if (d.getTime() < past30Time) {
       d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, day);
     }
-    if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
+    if (d.getTime() >= past30Time && d.getTime() <= in30Time) {
       dues.push({
         date: d,
         label: `${l.lender || l.lenderBorrower || "Loan"} EMI`,
@@ -1126,10 +1175,10 @@ function computeSummary(state, refDate = new Date()) {
         ? parseInt(s.startDate.slice(8, 10), 10) || 5
         : Number(s.dayOfMonth || s.dueDay || 5);
       let d = clampDayToMonth(istP.year, istP.month - 1, dueDay);
-      if (d.getTime() < todayMidnightTime) {
+      if (d.getTime() < past30Time) {
         d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, dueDay);
       }
-      if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
+      if (d.getTime() >= past30Time && d.getTime() <= in30Time) {
         dues.push({
           date: d,
           label: `${s.scheme || s.fundName || "Mutual Fund"} SIP`,
@@ -1145,7 +1194,7 @@ function computeSummary(state, refDate = new Date()) {
     (policies || []).forEach((p) => {
       const nextInfo = getNextInsuranceDue(p, todayStr);
       if (!nextInfo) return;
-      if (nextInfo.date.getTime() >= todayMidnightTime && nextInfo.date.getTime() <= in30Time) {
+      if (nextInfo.date.getTime() >= past30Time && nextInfo.date.getTime() <= in30Time) {
         dues.push({
           date: nextInfo.date,
           label: `${p.planName || p.insurer || p.policyName || defaultLabel} Premium`,
@@ -1167,7 +1216,7 @@ function computeSummary(state, refDate = new Date()) {
     const [dy, dm, dd] = d.dueDate.slice(0, 10).split("-").map(Number);
     if (!dy || !dm || !dd) return;
     const dueDate = new Date(Date.UTC(dy, dm - 1, dd));
-    if (dueDate.getTime() >= todayMidnightTime && dueDate.getTime() <= in30Time) {
+    if (dueDate.getTime() >= past30Time && dueDate.getTime() <= in30Time) {
       const totalAmt = Number(d.totalAmount || d.amount || 0);
       const paid = (state.realEstatePayments || [])
         .filter((pm) => pm.demandId === d.id)
@@ -1190,10 +1239,10 @@ function computeSummary(state, refDate = new Date()) {
   (state.recurringExpenses || []).forEach((r) => {
     if (!r.amount || !r.dueDay) return;
     let d = clampDayToMonth(istP.year, istP.month - 1, Number(r.dueDay));
-    if (d.getTime() < todayMidnightTime) {
+    if (d.getTime() < past30Time) {
       d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, Number(r.dueDay));
     }
-    if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
+    if (d.getTime() >= past30Time && d.getTime() <= in30Time) {
       dues.push({
         date: d,
         label: r.name || r.title || "Recurring Expense",
@@ -1215,10 +1264,10 @@ function computeSummary(state, refDate = new Date()) {
       if (lastPaidMonth === curYm) return; // Paid already this month
 
       let d = clampDayToMonth(istP.year, istP.month - 1, Number(b.dueDay));
-      if (d.getTime() < todayMidnightTime) {
+      if (d.getTime() < past30Time) {
         d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, Number(b.dueDay));
       }
-      if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
+      if (d.getTime() >= past30Time && d.getTime() <= in30Time) {
         dues.push({
           date: d,
           label: `${b.nickname || b.provider || "Utility"} Bill`,
@@ -1237,7 +1286,7 @@ function computeSummary(state, refDate = new Date()) {
       const [ry, rm, rd] = dateStr.split("-").map(Number);
       if (!ry || !rm || !rd) return;
       const d = new Date(Date.UTC(ry, rm - 1, rd));
-      if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
+      if (d.getTime() >= past30Time && d.getTime() <= in30Time) {
         dues.push({
           date: d,
           label: r.title || r.note || "Reminder",
@@ -1249,6 +1298,10 @@ function computeSummary(state, refDate = new Date()) {
     });
 
   dues.sort((a, b) => a.date.getTime() - b.date.getTime());
+  dues.forEach((d) => {
+    d.daysDiff = Math.ceil((d.date.getTime() - todayMidnightTime) / 86400000);
+    d.isOverdue = d.daysDiff < 0;
+  });
 
   // ── Expected Inflows ────────────────────────────────────────────────────────
   const inflows = [];
@@ -1260,17 +1313,19 @@ function computeSummary(state, refDate = new Date()) {
       if (!rentAmt) return;
       const dueDay = Number(p.dueDay || 1);
       let d = clampDayToMonth(istP.year, istP.month - 1, dueDay);
-      if (d.getTime() < todayMidnightTime) {
+      const received = (p.receipts || []).some((r) => r.date && r.date.slice(0, 7) === curYm);
+      if (received) {
         d = clampDayToMonth(istP.year + (istP.month === 12 ? 1 : 0), istP.month % 12, dueDay);
       }
-      const received = (p.receipts || []).some((r) => r.date && r.date.slice(0, 7) === curYm);
-      if (!received && d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
-        inflows.push({
-          date: d,
-          label: `${p.propertyName || "Rental Property"} Rent`,
-          amount: rentAmt,
-          type: "rent_in",
-        });
+      if (d.getTime() >= past30Time && d.getTime() <= in30Time) {
+        if (!received || d.getTime() >= todayMidnightTime) {
+          inflows.push({
+            date: d,
+            label: `${p.propertyName || "Rental Property"} Rent`,
+            amount: rentAmt,
+            type: "rent_in",
+          });
+        }
       }
     });
 
@@ -1280,7 +1335,7 @@ function computeSummary(state, refDate = new Date()) {
     const [ly, lm, ld] = l.dueDate.slice(0, 10).split("-").map(Number);
     if (!ly || !lm || !ld) return;
     const d = new Date(Date.UTC(ly, lm - 1, ld));
-    if (d.getTime() >= todayMidnightTime && d.getTime() <= in30Time) {
+    if (d.getTime() >= past30Time && d.getTime() <= in30Time) {
       inflows.push({
         date: d,
         label: `${l.borrower || "Borrower"} Repayment`,
@@ -1291,6 +1346,10 @@ function computeSummary(state, refDate = new Date()) {
   });
 
   inflows.sort((a, b) => a.date.getTime() - b.date.getTime());
+  inflows.forEach((i) => {
+    i.daysDiff = Math.ceil((i.date.getTime() - todayMidnightTime) / 86400000);
+    i.isOverdue = i.daysDiff < 0;
+  });
 
   // Windowed dues & inflows for cadences
   const dues3Days = dues.filter((d) => d.date.getTime() <= in3Time);
@@ -1315,8 +1374,27 @@ function computeSummary(state, refDate = new Date()) {
 
   // ── Goals ─────────────────────────────────────────────────────────────────
   const goals = (state.goals || []).map((g) => {
-    const target = Number(g.targetAmount || g.target) || 0;
-    const current = Number(g.currentAmount || g.current || g.saved) || 0;
+    let target = Number(g.targetAmount || g.target) || 0;
+    if (g.schedule && g.schedule.length > 0) {
+      target = g.schedule.reduce((sum, it) => sum + (Number(it.amount) || 0), 0) || target;
+    }
+    let current = Number(g.currentAmount || g.current || g.saved) || 0;
+    if (g.goalType === "recurring") {
+      const disbursements = g.disbursements || [];
+      if (disbursements.length > 0) {
+        current = disbursements.reduce((sum, d) => sum + Number(d.amount || 0), 0) + current;
+      } else if (g.schedule && g.schedule.length > 0) {
+        const paidCount = Number(g.installmentsPaid) || 0;
+        const paidFromSchedule = g.schedule
+          .slice(0, paidCount)
+          .reduce((sum, it) => sum + (Number(it.amount) || 0), 0);
+        current = paidFromSchedule + current;
+      } else {
+        const totalInst = Number(g.installmentsCount) || 1;
+        const perInst = Number(g.amountPerInstallment) || (target / totalInst);
+        current = (Number(g.installmentsPaid) || 0) * perInst + current;
+      }
+    }
     const pct = target > 0 ? Math.min(Math.round((current / target) * 100), 100) : 0;
     return { name: g.name || g.category, pct, current, target };
   });
@@ -2633,6 +2711,7 @@ async function fetchStateFromSupabase(supabase, userId) {
     rems,
     rentals,
     incomeQ,
+    salarySlipsQ,
     licP,
     investP,
     pcs,
@@ -2675,6 +2754,14 @@ async function fetchStateFromSupabase(supabase, userId) {
       ),
     supabase
       .from("income_entries")
+      .select("*")
+      .eq("user_id", userId)
+      .then(
+        (res) => res,
+        () => ({ data: [] })
+      ),
+    supabase
+      .from("salary_slips")
       .select("*")
       .eq("user_id", userId)
       .then(
@@ -2849,6 +2936,7 @@ async function fetchStateFromSupabase(supabase, userId) {
   }));
   const camelRentalData = snakeToCamel(rentals.data || []);
   const camelIncome = snakeToCamel(incomeQ.data || []);
+  const camelSalarySlips = snakeToCamel(salarySlipsQ.data || []);
   const camelLic = snakeToCamel(licP.data || []);
   const camelInvestP = snakeToCamel(investP.data || []);
   const camelPrepaid = snakeToCamel(pcs.data || []);
@@ -2899,6 +2987,7 @@ async function fetchStateFromSupabase(supabase, userId) {
     subscriptions: camelSubs,
     reminders: camelRems,
     income: camelIncome,
+    salarySlips: camelSalarySlips,
     rentalProperties,
     rentedProperties,
     realEstateProperties: camelReProps,
@@ -3087,8 +3176,9 @@ async function handler(req, res) {
       const freq = ["daily", "weekly", "monthly"].includes(rawFreq)
         ? rawFreq
         : String(rawFreq || "").split(",")[0] || "daily";
-      const summary = computeSummary(await withLiveMFPrices(await withLiveStockPrices(state)));
-      const html = generateHTML(summary, freq, recipientName);
+      const refDate = req.query?.refDate ? new Date(req.query.refDate) : new Date();
+      const summary = computeSummary(await withLiveMFPrices(await withLiveStockPrices(state)), refDate);
+      const html = generateHTML(summary, freq, recipientName, refDate);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       return res.status(200).send(html);
     } catch (err) {
@@ -3128,7 +3218,7 @@ async function handler(req, res) {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const { emailTo: requestedEmailTo, frequency, recipientName: requestedRecipientName, fromEmail } =
+      const { emailTo: requestedEmailTo, frequency, recipientName: requestedRecipientName, fromEmail, refDate: reqRefDate } =
         req.body || {};
       if (!RESEND_KEY)
         return res.status(500).json({
@@ -3165,10 +3255,11 @@ async function handler(req, res) {
         .maybeSingle();
       const recipientName = profData?.name || requestedRecipientName || "there";
 
-      const summary = computeSummary(await withLiveMFPrices(await withLiveStockPrices(state)));
+      const refDate = reqRefDate ? new Date(reqRefDate) : new Date();
+      const summary = computeSummary(await withLiveMFPrices(await withLiveStockPrices(state)), refDate);
       const freq = frequency || "daily";
-      const html = generateHTML(summary, freq, recipientName || "there");
-      const subject = buildSubject(freq, summary.netWorth);
+      const html = generateHTML(summary, freq, recipientName || "there", refDate);
+      const subject = buildSubject(freq, summary.netWorth, refDate);
 
       const { data: sendData, error } = await resend.emails.send({
         from: effectiveFromAddr,
@@ -3302,6 +3393,7 @@ handler.getNextSubscriptionRenewal = getNextSubscriptionRenewal;
 handler.getCreditCardDueDate = getCreditCardDueDate;
 handler.loanOutstanding = loanOutstanding;
 handler.loanGivenOutstanding = loanGivenOutstanding;
+handler.informalPersonOutstanding = informalPersonOutstanding;
 handler.clampDayToMonth = clampDayToMonth;
 handler.calculateEpfBalance = calculateEpfBalance;
 handler.nowIST = nowIST;
