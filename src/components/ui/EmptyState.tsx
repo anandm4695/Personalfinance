@@ -58,8 +58,8 @@ export function EmptyState({
         >
           {React.isValidElement(Icon) ? (
             Icon
-          ) : typeof Icon === "function" ? (
-            <Icon size={30} strokeWidth={1.75} />
+          ) : Icon ? (
+            React.createElement(Icon as any, { size: 30, strokeWidth: 1.75 })
           ) : null}
         </div>
       )}
