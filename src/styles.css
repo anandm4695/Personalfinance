@@ -3390,17 +3390,20 @@ input[type="range"].cxo-slider::-moz-range-thumb:hover {
   background: var(--surface-0);
 }
 
-/* ── Health Insurance Modal Widescreen Grid ── */
-.health-modal-grid {
+/* ── Health Insurance Executive Portfolio Layout ── */
+.health-portfolio-layout {
   display: grid;
-  grid-template-columns: minmax(260px, 300px) 1fr;
-  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) 370px;
+  gap: 20px;
+  align-items: start;
 }
-@media (max-width: 860px) {
-  .health-modal-grid {
-    grid-template-columns: 1fr !important;
+
+@media (max-width: 1220px) {
+  .health-portfolio-layout {
+    grid-template-columns: 1fr;
   }
 }
+
 
 
 

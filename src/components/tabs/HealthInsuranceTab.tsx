@@ -1893,7 +1893,43 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
   const [taxRegime, setTaxRegime] = useState<"old" | "new">("old");
   const [taxSlabRate, setTaxSlabRate] = useState<number>(30); // 30% default for high earners
 
-  // Calculations & Analytics
+  // Active vs Expired / Historical Policies
+  const activePolicies = useMemo(() => {
+    return policies.filter((p: any) => {
+      const d = daysUntilRenewal(p.renewalDate);
+      return d === null || d >= 0;
+    });
+  }, [policies]);
+
+  const expiredPolicies = useMemo(() => {
+    return policies.filter((p: any) => {
+      const d = daysUntilRenewal(p.renewalDate);
+      return d !== null && d < 0;
+    });
+  }, [policies]);
+
+  const activeBaseSumInsured = useMemo(() => {
+    return activePolicies
+      .filter((p) => !["top_up", "super_top_up"].includes(p.policyType))
+      .reduce((s: number, p: any) => s + Number(p.sumInsured || 0), 0);
+  }, [activePolicies]);
+
+  const activeTopUpSumInsured = useMemo(() => {
+    return activePolicies
+      .filter((p) => ["top_up", "super_top_up"].includes(p.policyType))
+      .reduce((s: number, p: any) => s + Number(p.sumInsured || 0), 0);
+  }, [activePolicies]);
+
+  const activeCombinedCover = activeBaseSumInsured + activeTopUpSumInsured;
+
+  const activeAnnualPremium = useMemo(() => {
+    return activePolicies.reduce(
+      (s: number, p: any) => s + annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual"),
+      0
+    );
+  }, [activePolicies]);
+
+  // Overall calculations (including historical)
   const totalBaseSumInsured = useMemo(() => {
     return policies
       .filter((p) => !["top_up", "super_top_up"].includes(p.policyType))
@@ -2062,7 +2098,11 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
   // Filtered Policies for Portfolio & Table views
   const filteredPolicies = useMemo(() => {
     return policies.filter((p: any) => {
-      if (filterType !== "all" && p.policyType !== filterType) return false;
+      const d = daysUntilRenewal(p.renewalDate);
+      const isExpired = d !== null && d < 0;
+      if (filterType === "active" && isExpired) return false;
+      if (filterType === "expired" && !isExpired) return false;
+      if (!["all", "active", "expired"].includes(filterType) && p.policyType !== filterType) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchIns = (p.insurer || "").toLowerCase().includes(q);
@@ -2190,19 +2230,27 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
         >
           <StatCard
             label="Total Combined Cover"
-            value={fmtINRFull(totalCombinedCover)}
-            numericValue={totalCombinedCover}
+            value={fmtINRFull(activePolicies.length > 0 ? activeCombinedCover : totalCombinedCover)}
+            numericValue={activePolicies.length > 0 ? activeCombinedCover : totalCombinedCover}
             formatValue={fmtINRFull}
-            sub={`Base: ${fmtINRFull(totalBaseSumInsured)} · Top-up: ${fmtINRFull(totalTopUpSumInsured)}`}
+            sub={
+              activePolicies.length > 0
+                ? `Base: ${fmtINRFull(activeBaseSumInsured)} · Top-up: ${fmtINRFull(activeTopUpSumInsured)}${expiredPolicies.length > 0 ? ` (${expiredPolicies.length} Expired)` : ""}`
+                : `Base: ${fmtINRFull(totalBaseSumInsured)} (Historical / Expired)`
+            }
             icon={<Shield />}
             color={THEME.accent}
           />
           <StatCard
             label="Annual Outgo"
-            value={fmtINRFull(totalAnnualPremium)}
-            numericValue={totalAnnualPremium}
+            value={fmtINRFull(activePolicies.length > 0 ? activeAnnualPremium : totalAnnualPremium)}
+            numericValue={activePolicies.length > 0 ? activeAnnualPremium : totalAnnualPremium}
             formatValue={fmtINRFull}
-            sub={`≈ ${fmtINRFull(monthlyOutgo)}/mo run-rate`}
+            sub={
+              activePolicies.length > 0
+                ? `≈ ${fmtINRFull(Math.round(activeAnnualPremium / 12))}/mo run-rate`
+                : `≈ ${fmtINRFull(monthlyOutgo)}/mo (Historical Record)`
+            }
             icon={<HeartPulse />}
             color={THEME.sage}
           />
@@ -2211,7 +2259,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
             value={fmtINRFull(totalEligible80D)}
             numericValue={totalEligible80D}
             formatValue={fmtINRFull}
-            sub={`Saves ≈ ${fmtINRFull(estimatedTaxSaved)} in 30% slab`}
+            sub={`Saves ≈ ${fmtINRFull(estimatedTaxSaved)} in ${taxSlabRate}% slab`}
             icon={<Percent />}
             color={THEME.violet}
           />
@@ -2220,7 +2268,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
             value={`${familyProtectionScore}%`}
             numericValue={familyProtectionScore}
             formatValue={(n) => `${Math.round(n)}%`}
-            sub={`${familyCoverageMatrix.filter((m) => m.isAdequate).length} of ${familyCoverageMatrix.length} lives adequately covered`}
+            sub={`${familyCoverageMatrix.filter((m) => m.isAdequate).length} of ${familyCoverageMatrix.length} lives covered`}
             icon={<ShieldCheck />}
             color={familyProtectionScore >= 80 ? THEME.sage : familyProtectionScore >= 50 ? THEME.gold : THEME.rust}
           />
@@ -2291,7 +2339,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
           {/* SubView Tabs */}
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
             {[
-              { id: "portfolio", label: "Policy Portfolio", icon: LayoutGrid },
+              { id: "portfolio", label: `Policy Portfolio (${policies.length})`, icon: LayoutGrid },
               { id: "matrix", label: `Family Matrix (${familyCoverageMatrix.length})`, icon: Users },
               { id: "claims", label: `Claims Central (${allClaims.length})`, icon: Hospital },
               { id: "tax80d", label: "80D Tax Planner", icon: Percent },
@@ -2323,7 +2371,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
           {/* Search & Filter Controls (Active for Portfolio & Table) */}
           {(subView === "portfolio" || subView === "table") && (
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ position: "relative", minWidth: 160 }}>
+              <div style={{ position: "relative", minWidth: 170 }}>
                 <Search
                   size={13}
                   style={{
@@ -2352,9 +2400,15 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                 />
               </div>
 
-              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
                 {[
                   { id: "all", label: "All" },
+                  ...(activePolicies.length > 0 && expiredPolicies.length > 0
+                    ? [
+                        { id: "active", label: `Active (${activePolicies.length})` },
+                        { id: "expired", label: `Expired (${expiredPolicies.length})` },
+                      ]
+                    : []),
                   { id: "family_floater", label: "Floater" },
                   { id: "individual", label: "Individual" },
                   { id: "corporate", label: "Corporate" },
@@ -2405,143 +2459,117 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
           {/* SUBVIEW 1: POLICY PORTFOLIO CARDS */}
           {/* ========================================================= */}
           {subView === "portfolio" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {filteredPolicies.length === 0 ? (
-                <Card style={{ padding: 48, textAlign: "center" }}>
-                  <div style={{ color: THEME.muted, fontSize: 13 }}>No policies match your search or filter.</div>
-                </Card>
-              ) : (
-                filteredPolicies.map((p: any) => {
-                  const days = daysUntilRenewal(p.renewalDate);
-                  const isExpanded = expandedPolicyId === p.id;
-                  const annual = annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual");
-                  const typeColor = TYPE_COLORS[p.policyType] || THEME.accent;
-                  const waiting = waitingPeriodInfo(p);
-                  const roomRentCapped = hasRoomRentCap(p);
-                  const claims = p.claims || [];
+            <div className="health-portfolio-layout">
+              {/* Left Column: Stream of Policy Cards */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {filteredPolicies.length === 0 ? (
+                  <Card style={{ padding: 48, textAlign: "center" }}>
+                    <div style={{ color: THEME.muted, fontSize: 13 }}>No policies match your search or filter.</div>
+                  </Card>
+                ) : (
+                  filteredPolicies.map((p: any) => {
+                    const days = daysUntilRenewal(p.renewalDate);
+                    const isExpanded = expandedPolicyId === p.id;
+                    const annual = annualPremium(Number(p.premium || 0), p.premiumFrequency || "annual");
+                    const typeColor = TYPE_COLORS[p.policyType] || THEME.accent;
+                    const waiting = waitingPeriodInfo(p);
+                    const roomRentCapped = hasRoomRentCap(p);
+                    const claims = p.claims || [];
 
-                  return (
-                    <Card
-                      key={p.id}
-                      className="card-lift"
-                      style={{
-                        borderLeft: `4.5px solid ${typeColor}`,
-                        padding: "20px 24px",
-                        position: "relative",
-                      }}
-                    >
-                      <div
+                    return (
+                      <Card
+                        key={p.id}
+                        className="card-lift"
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 16,
-                          flexWrap: "wrap",
-                          justifyContent: "space-between",
+                          borderLeft: `4.5px solid ${typeColor}`,
+                          padding: "20px 22px",
+                          position: "relative",
+                          background: "var(--surface-0)",
                         }}
                       >
-                        {/* Insurer Logo & Titles */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 240, flex: 1 }}>
-                          <div
-                            style={{
-                              width: 48,
-                              height: 48,
-                              borderRadius: 14,
-                              background: `color-mix(in srgb, ${typeColor} 12%, transparent)`,
-                              border: `1px solid color-mix(in srgb, ${typeColor} 25%, transparent)`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
-                            }}
-                          >
-                            <InsurerLogo name={p.insurer} size={42} />
-                          </div>
-
-                          <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <div style={{ fontWeight: 800, fontSize: 16, color: THEME.ink }}>
-                                {p.insurer}
-                              </div>
-                              <span
-                                style={{
-                                  fontSize: 10,
-                                  fontWeight: 800,
-                                  color: typeColor,
-                                  background: `color-mix(in srgb, ${typeColor} 12%, transparent)`,
-                                  padding: "2px 7px",
-                                  borderRadius: 4,
-                                  textTransform: "uppercase",
-                                }}
-                              >
-                                {POLICY_TYPES.find((t) => t.value === p.policyType)?.label || p.policyType}
-                              </span>
-                            </div>
-
+                        {/* Top Header Row: Insurer Identity + Action Toolbar */}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 16,
+                            flexWrap: "wrap",
+                            paddingBottom: 14,
+                            borderBottom: `1px solid ${THEME.line}`,
+                          }}
+                        >
+                          {/* Insurer Brand & Identity */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 260, flex: 1 }}>
                             <div
                               style={{
-                                fontSize: 12,
-                                color: THEME.muted,
-                                marginTop: 3,
+                                width: 46,
+                                height: 46,
+                                borderRadius: 12,
+                                background: `color-mix(in srgb, ${typeColor} 12%, transparent)`,
+                                border: `1px solid color-mix(in srgb, ${typeColor} 25%, transparent)`,
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 6,
-                                flexWrap: "wrap",
+                                justifyContent: "center",
+                                flexShrink: 0,
                               }}
                             >
-                              {p.policyName && <strong style={{ color: THEME.ink }}>{p.policyName}</strong>}
-                              {p.policyNumber && <span>· #{p.policyNumber}</span>}
-                              {p.insuredMembers?.length > 0 && (
-                                <span>· {p.insuredMembers.length} lives covered</span>
-                              )}
+                              <InsurerLogo name={p.insurer} size={38} />
+                            </div>
+
+                            <div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                <span style={{ fontWeight: 800, fontSize: 16, color: THEME.ink }}>
+                                  {p.insurer}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 800,
+                                    color: typeColor,
+                                    background: `color-mix(in srgb, ${typeColor} 12%, transparent)`,
+                                    padding: "2px 7px",
+                                    borderRadius: 4,
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.03em",
+                                  }}
+                                >
+                                  {POLICY_TYPES.find((t) => t.value === p.policyType)?.label || p.policyType}
+                                </span>
+
+                                {/* Status Badge */}
+                                {days !== null ? (
+                                  <Badge variant={days < 0 ? "rust" : days <= 7 ? "rust" : days <= 30 ? "gold" : "sage"}>
+                                    {days < 0 ? "Expired" : `Renews in ${days}d`}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="muted">Active</Badge>
+                                )}
+                              </div>
+
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  color: THEME.muted,
+                                  marginTop: 3,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                {p.policyName && <strong style={{ color: THEME.ink }}>{p.policyName}</strong>}
+                                {p.policyNumber && <span>· #{p.policyNumber}</span>}
+                                {p.insuredMembers?.length > 0 && (
+                                  <span>· {p.insuredMembers.length} {p.insuredMembers.length === 1 ? "life" : "lives"} covered</span>
+                                )}
+                                {p.startDate && <span>· Inception: {p.startDate}</span>}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Sum Insured & Premium Metric Blocks */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
-                          <div style={{ textAlign: "right" }}>
-                            <div
-                              style={{
-                                fontFamily: "var(--font-display)",
-                                fontWeight: 900,
-                                fontSize: 18,
-                                color: THEME.accent,
-                              }}
-                            >
-                              <Money value={Number(p.sumInsured || 0)} variant="full" />
-                            </div>
-                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 600 }}>
-                              Sum Insured {p.deductible ? `(Threshold: ${fmtINRFull(p.deductible)})` : ""}
-                            </div>
-                          </div>
-
-                          <div style={{ textAlign: "right" }}>
-                            <div
-                              style={{
-                                fontFamily: "var(--font-display)",
-                                fontWeight: 800,
-                                fontSize: 16,
-                                color: THEME.ink,
-                              }}
-                            >
-                              <Money value={annual} variant="full" />
-                            </div>
-                            <div style={{ fontSize: 11, color: THEME.muted }}>
-                              {p.premiumFrequency !== "annual" ? `${FREQ_LABELS[p.premiumFrequency]} premium` : "Annual premium"}
-                            </div>
-                          </div>
-
-                          {/* Renewal Badge */}
-                          {days !== null ? (
-                            <Badge variant={days <= 7 ? "rust" : days <= 30 ? "gold" : "sage"}>
-                              {days <= 0 ? "Expired" : `Renews in ${days}d`}
-                            </Badge>
-                          ) : (
-                            <Badge variant="muted">Active</Badge>
-                          )}
-
-                          {/* Quick Actions */}
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          {/* Quick Actions Toolbar */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                             {p.policyDocumentUrl ? (
                               <Button
                                 size="sm"
@@ -2557,7 +2585,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                                   })
                                 }
                                 style={{
-                                  padding: "6px 10px",
+                                  padding: "5px 10px",
                                   fontSize: 12,
                                   borderColor: `color-mix(in srgb, ${THEME.accent} 35%, var(--t-line))`,
                                 }}
@@ -2571,7 +2599,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                                 icon={<Upload size={12} color={THEME.muted} />}
                                 onClick={() => setPolicyModal({ ...p, _initialTab: "documents" })}
                                 title="Upload policy copy PDF/scan"
-                                style={{ padding: "6px 8px", fontSize: 11, color: THEME.muted }}
+                                style={{ padding: "5px 8px", fontSize: 11, color: THEME.muted }}
                               >
                                 + Policy Copy
                               </Button>
@@ -2582,31 +2610,16 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                               variant="ghost"
                               icon={<Hospital size={13} />}
                               onClick={() => setClaimModal(p)}
-                              style={{ padding: "6px 10px", fontSize: 12 }}
+                              style={{ padding: "5px 10px", fontSize: 12 }}
                             >
                               Claims ({claims.length})
                             </Button>
-                            <button
-                              onClick={() => setExpandedPolicyId(isExpanded ? null : p.id)}
-                              aria-label={isExpanded ? "Collapse policy details" : "Expand policy details"}
-                              className="icon-btn"
-                              style={{
-                                background: "var(--surface-1)",
-                                border: `1px solid ${THEME.line}`,
-                                cursor: "pointer",
-                                color: THEME.muted,
-                                padding: 6,
-                                borderRadius: 6,
-                                display: "inline-flex",
-                                alignItems: "center",
-                              }}
-                            >
-                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                            </button>
+
                             <button
                               onClick={() => setPolicyModal(p)}
                               aria-label="Edit policy"
                               className="icon-btn"
+                              title="Edit policy"
                               style={{
                                 background: "var(--surface-1)",
                                 border: `1px solid ${THEME.line}`,
@@ -2618,8 +2631,9 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                                 alignItems: "center",
                               }}
                             >
-                              <Pencil size={14} />
+                              <Pencil size={13} />
                             </button>
+
                             <button
                               onClick={() =>
                                 setConfirmAction({
@@ -2629,6 +2643,7 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                               }
                               aria-label="Delete policy"
                               className="icon-btn danger"
+                              title="Delete policy"
                               style={{
                                 background: `color-mix(in srgb, ${THEME.rust} 8%, transparent)`,
                                 border: `1px solid color-mix(in srgb, ${THEME.rust} 20%, transparent)`,
@@ -2640,280 +2655,801 @@ export function HealthInsuranceTab({ state, addItem, removeItem, updateItem, sho
                                 alignItems: "center",
                               }}
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={13} />
+                            </button>
+
+                            <button
+                              onClick={() => setExpandedPolicyId(isExpanded ? null : p.id)}
+                              aria-label={isExpanded ? "Collapse policy details" : "Expand policy details"}
+                              className="icon-btn"
+                              title={isExpanded ? "Collapse details" : "Expand full details"}
+                              style={{
+                                background: isExpanded ? "color-mix(in srgb, var(--t-accent) 12%, transparent)" : "var(--surface-1)",
+                                border: `1px solid ${isExpanded ? "var(--t-accent)" : THEME.line}`,
+                                cursor: "pointer",
+                                color: isExpanded ? "var(--t-accent)" : THEME.muted,
+                                padding: "5px 9px",
+                                borderRadius: 6,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                fontSize: 11,
+                                fontWeight: 700,
+                              }}
+                            >
+                              <span>{isExpanded ? "Less" : "Details"}</span>
+                              {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                             </button>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Visual PED Waiting Period Timeline (if configured) */}
-                      {waiting && (
+                        {/* Middle Metric Grid: High-Density Structured Financials */}
                         <div
                           style={{
-                            marginTop: 14,
-                            padding: "8px 12px",
-                            borderRadius: "var(--radius-sm)",
-                            background: "var(--surface-1)",
-                            display: "flex",
-                            alignItems: "center",
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                             gap: 12,
-                            flexWrap: "wrap",
+                            paddingTop: 14,
+                            paddingBottom: 14,
                           }}
                         >
-                          <div style={{ fontSize: 11, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 5 }}>
-                            <Clock size={12} color={waiting.done ? THEME.sage : THEME.gold} />
-                            PED Waiting Period:
-                          </div>
-                          <div style={{ flex: 1, minWidth: 120, height: 6, borderRadius: 3, background: "var(--surface-2)", overflow: "hidden" }}>
-                            <div
-                              style={{
-                                width: `${waiting.progressPct}%`,
-                                height: "100%",
-                                background: waiting.done ? THEME.sage : THEME.gold,
-                                borderRadius: 3,
-                              }}
-                            />
-                          </div>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: waiting.done ? THEME.sage : THEME.ink }}>
-                            {waiting.done ? "100% Completed (All PED Covered)" : `${waiting.elapsedMonths}/${waiting.totalMonths} mos (${waiting.remainingMonths} mos remaining)`}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Expanded Full Specs Drawer */}
-                      {isExpanded && (
-                        <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${THEME.line}` }}>
-                          {/* Policy Specs Grid */}
+                          {/* Sum Insured Tile */}
                           <div
                             style={{
-                              display: "grid",
-                              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                              gap: 12,
-                              marginBottom: 16,
-                            }}
-                          >
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-                              <CheckCircle2 size={15} color={p.cashless ? THEME.sage : THEME.muted} />
-                              <span style={{ fontWeight: 600, color: p.cashless ? THEME.ink : THEME.muted }}>
-                                {p.cashless ? "Cashless Hospitalisation" : "Reimbursement Only"}
-                              </span>
-                            </div>
-
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-                              <CheckCircle2 size={15} color={p.preExistingCovered ? THEME.sage : THEME.muted} />
-                              <span style={{ fontWeight: 600, color: p.preExistingCovered ? THEME.ink : THEME.muted }}>
-                                {p.preExistingCovered ? "Pre-Existing Diseases Covered" : "PED Not Covered"}
-                              </span>
-                            </div>
-
-                            {p.tpaName && (
-                              <div style={{ fontSize: 12, color: THEME.muted }}>
-                                TPA Desk: <strong style={{ color: THEME.ink }}>{p.tpaName}</strong> {p.tpaContact ? `(${p.tpaContact})` : ""}
-                              </div>
-                            )}
-
-                            {p.hospitalNetwork && (
-                              <div style={{ fontSize: 12, color: THEME.muted }}>
-                                Network: <strong style={{ color: THEME.ink }}>{p.hospitalNetwork}</strong>
-                              </div>
-                            )}
-
-                            {p.roomRentLimit && (
-                              <div style={{ fontSize: 12, color: roomRentCapped ? THEME.rust : THEME.sage }}>
-                                Room Rent Sublimit: <strong>{p.roomRentLimit}</strong>
-                                {roomRentCapped && (
-                                  <span style={{ marginLeft: 6, fontSize: 10.5, display: "inline-flex", alignItems: "center", gap: 3, color: THEME.rust, fontWeight: 600 }}>
-                                    <AlertTriangle size={11} style={{ flexShrink: 0 }} /> (Proportionate deduction risk)
-                                  </span>
-                                )}
-                              </div>
-                            )}
-
-                            {p.copayPercent !== undefined && Number(p.copayPercent) > 0 && (
-                              <div style={{ fontSize: 12, color: THEME.rust }}>
-                                Co-Pay: <strong>{p.copayPercent}%</strong>
-                              </div>
-                            )}
-
-                            {p.noClaimBonus ? (
-                              <div style={{ fontSize: 12, color: THEME.sage }}>
-                                No Claim Bonus: <strong><Money value={Number(p.noClaimBonus)} variant="full" /></strong>
-                              </div>
-                            ) : null}
-                          </div>
-
-                          {/* Insured Members List with Emergency Pass Action */}
-                          {p.insuredMembers?.length > 0 && (
-                            <div style={{ marginBottom: 16 }}>
-                              <div style={{ fontSize: 11, fontWeight: 800, color: THEME.muted, marginBottom: 8, textTransform: "uppercase" }}>
-                                Insured Members & Instant Emergency Passes
-                              </div>
-                              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                                {p.insuredMembers.map((m: any, idx: number) => {
-                                  const matchedProfile = familyProfiles?.find(
-                                    (prof: any) => prof.name.toLowerCase() === m.name.toLowerCase()
-                                  );
-                                  const dob = m.dob || matchedProfile?.dob;
-                                  const currentAge = dob ? calculateAge(dob) : (m.age ? Number(m.age) : null);
-                                  const policyRefDate = p.startDate || p.renewalDate;
-                                  const entryAge = (m.entryAge !== undefined && m.entryAge !== null && m.entryAge !== "")
-                                    ? Number(m.entryAge)
-                                    : (dob && policyRefDate ? calculateAge(dob, policyRefDate) : currentAge);
-                                  const isExpired = p.renewalDate && new Date(p.renewalDate) < new Date();
-
-                                  const displayAgeText = isExpired
-                                    ? `${entryAge ?? currentAge}y (at entry)`
-                                    : (entryAge && currentAge && entryAge !== currentAge
-                                        ? `${currentAge}y (entry: ${entryAge}y)`
-                                        : `${currentAge ?? entryAge}y`);
-
-                                  return (
-                                    <div
-                                      key={idx}
-                                      title={
-                                        dob
-                                          ? `DOB: ${dob} · Age at policy start: ${entryAge ?? "—"} yrs · Current age: ${currentAge ?? "—"} yrs`
-                                          : undefined
-                                      }
-                                      style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 8,
-                                        padding: "6px 10px",
-                                        borderRadius: "var(--radius-sm)",
-                                        background: "var(--surface-1)",
-                                        border: `1px solid ${THEME.line}`,
-                                        fontSize: 12,
-                                      }}
-                                    >
-                                      <Users size={12} color={THEME.accent} />
-                                      <span style={{ fontWeight: 700, color: THEME.ink }}>{m.name}</span>
-                                      <span style={{ color: THEME.muted }}>({m.relation})</span>
-                                      {(entryAge !== null || currentAge !== null) && (
-                                        <span style={{ fontWeight: 700, color: THEME.ink }}>· {displayAgeText}</span>
-                                      )}
-                                      <button
-                                        onClick={() => setECardModal({ policy: p, member: m })}
-                                        style={{
-                                          marginLeft: 6,
-                                          fontSize: 10,
-                                          fontWeight: 700,
-                                          padding: "2px 6px",
-                                          borderRadius: 4,
-                                          border: `1px solid ${THEME.accent}`,
-                                          background: "none",
-                                          color: THEME.accent,
-                                          cursor: "pointer",
-                                          display: "inline-flex",
-                                          alignItems: "center",
-                                          gap: 3,
-                                        }}
-                                      >
-                                        <Printer size={10} /> Emergency Pass
-                                      </button>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Policy Document & E-Archive Section */}
-                          <div
-                            style={{
-                              padding: "12px 16px",
+                              padding: "10px 14px",
                               borderRadius: "var(--radius-md)",
                               background: "var(--surface-1)",
                               border: `1px solid ${THEME.line}`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              flexWrap: "wrap",
-                              gap: 10,
-                              marginBottom: 12,
                             }}
                           >
-                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <Paperclip size={16} color={p.policyDocumentUrl ? THEME.sage : THEME.muted} />
-                              <div>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
-                                  Policy Schedule / E-Document Copy
-                                </div>
-                                <div style={{ fontSize: 11, color: THEME.muted }}>
-                                  {p.policyDocumentUrl
-                                    ? `${p.policyDocumentName || "Policy document attached"} ${p.policyDocumentSize ? `(${formatFileSize(p.policyDocumentSize)})` : ""}`
-                                    : "No digital copy uploaded yet"}
-                                </div>
-                              </div>
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>
+                              Sum Insured
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              {p.policyDocumentUrl ? (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    icon={<Eye size={12} />}
-                                    onClick={() =>
-                                      setPreviewDocModal({
-                                        url: p.policyDocumentUrl,
-                                        name: p.policyDocumentName || `${p.insurer}_Policy_Copy.pdf`,
-                                        size: p.policyDocumentSize,
-                                        mime: p.policyDocumentMime,
-                                        policy: p,
-                                      })
-                                    }
-                                  >
-                                    Preview Document
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    icon={<Download size={12} />}
-                                    onClick={() => {
-                                      const a = document.createElement("a");
-                                      a.href = p.policyDocumentUrl;
-                                      a.download = p.policyDocumentName || `${p.insurer}_Policy_Copy.pdf`;
-                                      document.body.appendChild(a);
-                                      a.click();
-                                      document.body.removeChild(a);
-                                    }}
-                                  >
-                                    Download
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    icon={<Pencil size={11} />}
-                                    onClick={() => setPolicyModal({ ...p, _initialTab: "documents" })}
-                                    title="Replace document"
-                                  >
-                                    Replace
-                                  </Button>
-                                </>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="primary"
-                                  icon={<UploadCloud size={13} />}
-                                  onClick={() => setPolicyModal({ ...p, _initialTab: "documents" })}
-                                >
-                                  Upload Policy Copy
-                                </Button>
-                              )}
+                            <div
+                              style={{
+                                fontFamily: "var(--font-display)",
+                                fontWeight: 900,
+                                fontSize: 19,
+                                color: THEME.accent,
+                              }}
+                            >
+                              <Money value={Number(p.sumInsured || 0)} variant="full" />
+                            </div>
+                            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                              {p.deductible ? `Deductible: ${fmtINRFull(p.deductible)}` : (p.policyType === "family_floater" ? "Family Floater Cover" : "Individual Cover")}
                             </div>
                           </div>
 
-                          {p.notes && (
-                            <div style={{ marginTop: 12, fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>
-                              Note: {p.notes}
+                          {/* Premium Outgo Tile */}
+                          <div
+                            style={{
+                              padding: "10px 14px",
+                              borderRadius: "var(--radius-md)",
+                              background: "var(--surface-1)",
+                              border: `1px solid ${THEME.line}`,
+                            }}
+                          >
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>
+                              Premium Outgo
                             </div>
+                            <div
+                              style={{
+                                fontFamily: "var(--font-display)",
+                                fontWeight: 900,
+                                fontSize: 19,
+                                color: THEME.ink,
+                              }}
+                            >
+                              <Money value={annual} variant="full" />
+                            </div>
+                            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                              {p.premiumFrequency !== "annual" ? `${FREQ_LABELS[p.premiumFrequency]} mode` : "Annual mode"} · ≈ {fmtINRFull(Math.round(annual / 12))}/mo
+                            </div>
+                          </div>
+
+                          {/* Policy Period / Validity Tile */}
+                          <div
+                            style={{
+                              padding: "10px 14px",
+                              borderRadius: "var(--radius-md)",
+                              background: "var(--surface-1)",
+                              border: `1px solid ${THEME.line}`,
+                            }}
+                          >
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>
+                              Policy Validity
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                              {p.renewalDate ? p.renewalDate : "Continuous Cover"}
+                            </div>
+                            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                              {days !== null ? (days < 0 ? `Expired ${Math.abs(days)} days ago` : `Renews in ${days} days`) : "No expiry recorded"}
+                            </div>
+                          </div>
+
+                          {/* Hospitalization Network / TPA Tile */}
+                          <div
+                            style={{
+                              padding: "10px 14px",
+                              borderRadius: "var(--radius-md)",
+                              background: "var(--surface-1)",
+                              border: `1px solid ${THEME.line}`,
+                            }}
+                          >
+                            <div style={{ fontSize: 11, color: THEME.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>
+                              Cashless / TPA Desk
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: p.cashless ? THEME.sage : THEME.muted, display: "flex", alignItems: "center", gap: 5 }}>
+                              <CheckCircle2 size={13} color={p.cashless ? THEME.sage : THEME.muted} />
+                              {p.cashless ? "24x7 Cashless Active" : "Reimbursement Only"}
+                            </div>
+                            <div style={{ fontSize: 11, color: THEME.muted, marginTop: 2 }}>
+                              {p.tpaName ? `TPA: ${p.tpaName}` : (p.hospitalNetwork ? `Network: ${p.hospitalNetwork}` : "Direct Insurer Desk")}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Insured Members Strip */}
+                        {p.insuredMembers?.length > 0 && (
+                          <div
+                            style={{
+                              paddingTop: 8,
+                              paddingBottom: waiting ? 8 : 0,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.muted, display: "flex", alignItems: "center", gap: 4 }}>
+                              <Users size={12} color={THEME.accent} /> Covered:
+                            </div>
+                            {p.insuredMembers.map((m: any, idx: number) => {
+                              const matchedProfile = familyProfiles?.find(
+                                (prof: any) => prof.name.toLowerCase() === m.name.toLowerCase()
+                              );
+                              const dob = m.dob || matchedProfile?.dob;
+                              const currentAge = dob ? calculateAge(dob) : (m.age ? Number(m.age) : null);
+                              const policyRefDate = p.startDate || p.renewalDate;
+                              const entryAge = (m.entryAge !== undefined && m.entryAge !== null && m.entryAge !== "")
+                                ? Number(m.entryAge)
+                                : (dob && policyRefDate ? calculateAge(dob, policyRefDate) : currentAge);
+                              const isExpired = p.renewalDate && new Date(p.renewalDate) < new Date();
+                              const displayAgeText = isExpired
+                                ? `${entryAge ?? currentAge}y (at entry)`
+                                : (entryAge && currentAge && entryAge !== currentAge
+                                    ? `${currentAge}y (entry: ${entryAge}y)`
+                                    : `${currentAge ?? entryAge}y`);
+
+                              return (
+                                <div
+                                  key={idx}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    padding: "4px 8px",
+                                    borderRadius: "var(--radius-sm)",
+                                    background: "var(--surface-1)",
+                                    border: `1px solid ${THEME.line}`,
+                                    fontSize: 11,
+                                  }}
+                                >
+                                  <span style={{ fontWeight: 700, color: THEME.ink }}>{m.name}</span>
+                                  <span style={{ color: THEME.muted }}>({m.relation})</span>
+                                  {(entryAge !== null || currentAge !== null) && (
+                                    <span style={{ color: THEME.muted }}>· {displayAgeText}</span>
+                                  )}
+                                  <button
+                                    onClick={() => setECardModal({ policy: p, member: m })}
+                                    title="View & print digital health pass"
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      padding: "2px 5px",
+                                      borderRadius: 4,
+                                      border: `1px solid ${THEME.accent}`,
+                                      background: "none",
+                                      color: THEME.accent,
+                                      cursor: "pointer",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 3,
+                                    }}
+                                  >
+                                    <Printer size={9} /> Pass
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Visual PED Waiting Period Timeline (if configured) */}
+                        {waiting && (
+                          <div
+                            style={{
+                              marginTop: 12,
+                              padding: "8px 12px",
+                              borderRadius: "var(--radius-sm)",
+                              background: "var(--surface-1)",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 12,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <div style={{ fontSize: 11, fontWeight: 700, color: THEME.ink, display: "flex", alignItems: "center", gap: 5 }}>
+                              <Clock size={12} color={waiting.done ? THEME.sage : THEME.gold} />
+                              PED Waiting Period:
+                            </div>
+                            <div style={{ flex: 1, minWidth: 120, height: 6, borderRadius: 3, background: "var(--surface-2)", overflow: "hidden" }}>
+                              <div
+                                style={{
+                                  width: `${waiting.progressPct}%`,
+                                  height: "100%",
+                                  background: waiting.done ? THEME.sage : THEME.gold,
+                                  borderRadius: 3,
+                                }}
+                              />
+                            </div>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: waiting.done ? THEME.sage : THEME.ink }}>
+                              {waiting.done ? "100% Completed (All PED Covered)" : `${waiting.elapsedMonths}/${waiting.totalMonths} mos (${waiting.remainingMonths} mos remaining)`}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Expanded Full Specs Drawer */}
+                        {isExpanded && (
+                          <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${THEME.line}` }}>
+                            {/* Policy Specs Grid */}
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                                gap: 12,
+                                marginBottom: 16,
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                                <CheckCircle2 size={15} color={p.cashless ? THEME.sage : THEME.muted} />
+                                <span style={{ fontWeight: 600, color: p.cashless ? THEME.ink : THEME.muted }}>
+                                  {p.cashless ? "Cashless Hospitalisation" : "Reimbursement Only"}
+                                </span>
+                              </div>
+
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                                <CheckCircle2 size={15} color={p.preExistingCovered ? THEME.sage : THEME.muted} />
+                                <span style={{ fontWeight: 600, color: p.preExistingCovered ? THEME.ink : THEME.muted }}>
+                                  {p.preExistingCovered ? "Pre-Existing Diseases Covered" : "PED Not Covered"}
+                                </span>
+                              </div>
+
+                              {p.tpaName && (
+                                <div style={{ fontSize: 12, color: THEME.muted }}>
+                                  TPA Desk: <strong style={{ color: THEME.ink }}>{p.tpaName}</strong> {p.tpaContact ? `(${p.tpaContact})` : ""}
+                                </div>
+                              )}
+
+                              {p.hospitalNetwork && (
+                                <div style={{ fontSize: 12, color: THEME.muted }}>
+                                  Network: <strong style={{ color: THEME.ink }}>{p.hospitalNetwork}</strong>
+                                </div>
+                              )}
+
+                              {p.roomRentLimit && (
+                                <div style={{ fontSize: 12, color: roomRentCapped ? THEME.rust : THEME.sage }}>
+                                  Room Rent Sublimit: <strong>{p.roomRentLimit}</strong>
+                                  {roomRentCapped && (
+                                    <span style={{ marginLeft: 6, fontSize: 10.5, display: "inline-flex", alignItems: "center", gap: 3, color: THEME.rust, fontWeight: 600 }}>
+                                      <AlertTriangle size={11} style={{ flexShrink: 0 }} /> (Proportionate deduction risk)
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              {p.copayPercent !== undefined && Number(p.copayPercent) > 0 && (
+                                <div style={{ fontSize: 12, color: THEME.rust }}>
+                                  Co-Pay: <strong>{p.copayPercent}%</strong>
+                                </div>
+                              )}
+
+                              {p.noClaimBonus ? (
+                                <div style={{ fontSize: 12, color: THEME.sage }}>
+                                  No Claim Bonus: <strong><Money value={Number(p.noClaimBonus)} variant="full" /></strong>
+                                </div>
+                              ) : null}
+                            </div>
+
+                            {/* Insured Members List with Emergency Pass Action */}
+                            {p.insuredMembers?.length > 0 && (
+                              <div style={{ marginBottom: 16 }}>
+                                <div style={{ fontSize: 11, fontWeight: 800, color: THEME.muted, marginBottom: 8, textTransform: "uppercase" }}>
+                                  Insured Members & Instant Emergency Passes
+                                </div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                                  {p.insuredMembers.map((m: any, idx: number) => {
+                                    const matchedProfile = familyProfiles?.find(
+                                      (prof: any) => prof.name.toLowerCase() === m.name.toLowerCase()
+                                    );
+                                    const dob = m.dob || matchedProfile?.dob;
+                                    const currentAge = dob ? calculateAge(dob) : (m.age ? Number(m.age) : null);
+                                    const policyRefDate = p.startDate || p.renewalDate;
+                                    const entryAge = (m.entryAge !== undefined && m.entryAge !== null && m.entryAge !== "")
+                                      ? Number(m.entryAge)
+                                      : (dob && policyRefDate ? calculateAge(dob, policyRefDate) : currentAge);
+                                    const isExpired = p.renewalDate && new Date(p.renewalDate) < new Date();
+
+                                    const displayAgeText = isExpired
+                                      ? `${entryAge ?? currentAge}y (at entry)`
+                                      : (entryAge && currentAge && entryAge !== currentAge
+                                          ? `${currentAge}y (entry: ${entryAge}y)`
+                                          : `${currentAge ?? entryAge}y`);
+
+                                    return (
+                                      <div
+                                        key={idx}
+                                        title={
+                                          dob
+                                            ? `DOB: ${dob} · Age at policy start: ${entryAge ?? "—"} yrs · Current age: ${currentAge ?? "—"} yrs`
+                                            : undefined
+                                        }
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: 8,
+                                          padding: "6px 10px",
+                                          borderRadius: "var(--radius-sm)",
+                                          background: "var(--surface-1)",
+                                          border: `1px solid ${THEME.line}`,
+                                          fontSize: 12,
+                                        }}
+                                      >
+                                        <Users size={12} color={THEME.accent} />
+                                        <span style={{ fontWeight: 700, color: THEME.ink }}>{m.name}</span>
+                                        <span style={{ color: THEME.muted }}>({m.relation})</span>
+                                        {(entryAge !== null || currentAge !== null) && (
+                                          <span style={{ fontWeight: 700, color: THEME.ink }}>· {displayAgeText}</span>
+                                        )}
+                                        <button
+                                          onClick={() => setECardModal({ policy: p, member: m })}
+                                          style={{
+                                            marginLeft: 6,
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            padding: "2px 6px",
+                                            borderRadius: 4,
+                                            border: `1px solid ${THEME.accent}`,
+                                            background: "none",
+                                            color: THEME.accent,
+                                            cursor: "pointer",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: 3,
+                                          }}
+                                        >
+                                          <Printer size={10} /> Emergency Pass
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Policy Document & E-Archive Section */}
+                            <div
+                              style={{
+                                padding: "12px 16px",
+                                borderRadius: "var(--radius-md)",
+                                background: "var(--surface-1)",
+                                border: `1px solid ${THEME.line}`,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                flexWrap: "wrap",
+                                gap: 10,
+                                marginBottom: 12,
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <Paperclip size={16} color={p.policyDocumentUrl ? THEME.sage : THEME.muted} />
+                                <div>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: THEME.ink }}>
+                                    Policy Schedule / E-Document Copy
+                                  </div>
+                                  <div style={{ fontSize: 11, color: THEME.muted }}>
+                                    {p.policyDocumentUrl
+                                      ? `${p.policyDocumentName || "Policy document attached"} ${p.policyDocumentSize ? `(${formatFileSize(p.policyDocumentSize)})` : ""}`
+                                      : "No digital copy uploaded yet"}
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                {p.policyDocumentUrl ? (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      icon={<Eye size={12} />}
+                                      onClick={() =>
+                                        setPreviewDocModal({
+                                          url: p.policyDocumentUrl,
+                                          name: p.policyDocumentName || `${p.insurer}_Policy_Copy.pdf`,
+                                          size: p.policyDocumentSize,
+                                          mime: p.policyDocumentMime,
+                                          policy: p,
+                                        })
+                                      }
+                                    >
+                                      Preview Document
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      icon={<Download size={12} />}
+                                      onClick={() => {
+                                        const a = document.createElement("a");
+                                        a.href = p.policyDocumentUrl;
+                                        a.download = p.policyDocumentName || `${p.insurer}_Policy_Copy.pdf`;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        document.body.removeChild(a);
+                                      }}
+                                    >
+                                      Download
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      icon={<Pencil size={11} />}
+                                      onClick={() => setPolicyModal({ ...p, _initialTab: "documents" })}
+                                      title="Replace document"
+                                    >
+                                      Replace
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="primary"
+                                    icon={<UploadCloud size={13} />}
+                                    onClick={() => setPolicyModal({ ...p, _initialTab: "documents" })}
+                                  >
+                                    Upload Policy Copy
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+
+                            {p.notes && (
+                              <div style={{ marginTop: 12, fontSize: 12, color: THEME.muted, fontStyle: "italic" }}>
+                                Note: {p.notes}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Right Column: Executive Intelligence & Emergency Readiness Cockpit */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {/* Companion Widget 1: 🚨 24x7 Cashless Hospitalization Protocol */}
+                <Card
+                  style={{
+                    padding: "18px 20px",
+                    background: `linear-gradient(135deg, color-mix(in srgb, ${THEME.accent} 6%, var(--surface-0)), var(--surface-0))`,
+                    border: `1px solid color-mix(in srgb, ${THEME.accent} 25%, var(--t-line))`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <Hospital size={16} color={THEME.accent} />
+                    <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                      24x7 Cashless Admission Protocol
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 12 }}>
+                    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <div
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          background: `color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+                          color: THEME.accent,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 10,
+                          fontWeight: 800,
+                          flexShrink: 0,
+                          marginTop: 1,
+                        }}
+                      >
+                        1
+                      </div>
+                      <div>
+                        <strong style={{ color: THEME.ink }}>Hospital TPA Desk:</strong> Present Digital Health Pass / E-Card + Policy Number.
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <div
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          background: `color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+                          color: THEME.accent,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 10,
+                          fontWeight: 800,
+                          flexShrink: 0,
+                          marginTop: 1,
+                        }}
+                      >
+                        2
+                      </div>
+                      <div>
+                        <strong style={{ color: THEME.ink }}>Govt Photo ID:</strong> Carry Aadhaar / PAN card of patient & primary policyholder.
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <div
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          background: `color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+                          color: THEME.accent,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 10,
+                          fontWeight: 800,
+                          flexShrink: 0,
+                          marginTop: 1,
+                        }}
+                      >
+                        3
+                      </div>
+                      <div>
+                        <strong style={{ color: THEME.ink }}>Intimation Timelines:</strong> 48 hours prior for planned, within 24 hours of emergency admission.
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <div
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          background: `color-mix(in srgb, ${THEME.accent} 15%, transparent)`,
+                          color: THEME.accent,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 10,
+                          fontWeight: 800,
+                          flexShrink: 0,
+                          marginTop: 1,
+                        }}
+                      >
+                        4
+                      </div>
+                      <div>
+                        <strong style={{ color: THEME.ink }}>Pre-Auth Stamp:</strong> Doctor completes pre-auth form; TPA issues initial sanction letter.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick TPA Helplines */}
+                  <div
+                    style={{
+                      marginTop: 14,
+                      padding: "10px 12px",
+                      borderRadius: "var(--radius-sm)",
+                      background: "var(--surface-1)",
+                      border: `1px solid ${THEME.line}`,
+                      fontSize: 11,
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, color: THEME.ink, marginBottom: 4 }}>
+                      Top Insurer / TPA 24x7 Helplines:
+                    </div>
+                    <div style={{ color: THEME.muted, lineHeight: 1.6 }}>
+                      • <strong>Star Health:</strong> 1800 425 2255<br />
+                      • <strong>HDFC ERGO:</strong> 1800 2666<br />
+                      • <strong>Care Health:</strong> 1800 102 4488<br />
+                      • <strong>Medi Assist TPA:</strong> 1800 425 9449
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Companion Widget 2: 🛡️ Section 80D Tax Optimizer Radar */}
+                <Card
+                  style={{
+                    padding: "18px 20px",
+                    background: "var(--surface-0)",
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Percent size={16} color={THEME.violet} />
+                      <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                        Section 80D Tax Shield
+                      </div>
+                    </div>
+                    <Badge variant="violet">
+                      Saves ≈ {fmtINRFull(estimatedTaxSaved)}
+                    </Badge>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {/* Self & Family Bar */}
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 600, color: THEME.ink }}>Self, Spouse & Children</span>
+                        <span style={{ color: THEME.muted }}>
+                          {fmtINRFull(sec80D_SelfDeduction)} / ₹25,000
+                        </span>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 3, background: "var(--surface-2)", overflow: "hidden" }}>
+                        <div
+                          style={{
+                            width: `${Math.min(100, (sec80D_SelfDeduction / 25000) * 100)}%`,
+                            height: "100%",
+                            background: THEME.violet,
+                            borderRadius: 3,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Parents Bar */}
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 600, color: THEME.ink }}>
+                          Parents {hasSeniorParents ? "(Senior 60+)" : "(Non-Senior)"}
+                        </span>
+                        <span style={{ color: THEME.muted }}>
+                          {fmtINRFull(sec80D_ParentsDeduction)} / {fmtINRFull(sec80D_ParentsLimit)}
+                        </span>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 3, background: "var(--surface-2)", overflow: "hidden" }}>
+                        <div
+                          style={{
+                            width: `${Math.min(100, (sec80D_ParentsDeduction / sec80D_ParentsLimit) * 100)}%`,
+                            height: "100%",
+                            background: THEME.accent,
+                            borderRadius: 3,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Preventive Health Checkup */}
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 600, color: THEME.ink }}>Preventive Health Checkup</span>
+                        <span style={{ color: THEME.muted }}>
+                          {fmtINRFull(sec80D_PreventiveDeduction)} / ₹5,000
+                        </span>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 3, background: "var(--surface-2)", overflow: "hidden" }}>
+                        <div
+                          style={{
+                            width: `${Math.min(100, (sec80D_PreventiveDeduction / 5000) * 100)}%`,
+                            height: "100%",
+                            background: THEME.sage,
+                            borderRadius: 3,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 14,
+                      paddingTop: 12,
+                      borderTop: `1px solid ${THEME.line}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 10, textTransform: "uppercase", fontWeight: 700, color: THEME.muted }}>
+                        Total 80D Claimable
+                      </div>
+                      <div style={{ fontSize: 15, fontWeight: 900, color: THEME.ink }}>
+                        {fmtINRFull(totalEligible80D)}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      style={{ fontSize: 11, padding: "4px 8px" }}
+                      onClick={() => setSubView("tax80d")}
+                    >
+                      Tax Details →
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Companion Widget 3: 👨‍👩‍👧‍👦 Family Health Shield Status */}
+                <Card
+                  style={{
+                    padding: "18px 20px",
+                    background: "var(--surface-0)",
+                    border: `1px solid ${THEME.line}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <ShieldCheck size={16} color={THEME.sage} />
+                      <div style={{ fontSize: 13, fontWeight: 800, color: THEME.ink }}>
+                        Family Coverage Radar
+                      </div>
+                    </div>
+                    <Badge variant={familyProtectionScore >= 80 ? "sage" : familyProtectionScore >= 50 ? "gold" : "rust"}>
+                      {familyProtectionScore}% Protected
+                    </Badge>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12 }}>
+                    {familyCoverageMatrix.slice(0, 4).map((m, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "6px 10px",
+                          borderRadius: "var(--radius-sm)",
+                          background: "var(--surface-1)",
+                          border: `1px solid ${THEME.line}`,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontWeight: 700, color: THEME.ink }}>{m.name}</span>
+                          <span style={{ color: THEME.muted, fontSize: 11 }}>({m.relation})</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontWeight: 800, color: m.totalMemberCover > 0 ? THEME.accent : THEME.muted, fontSize: 11 }}>
+                            {m.totalMemberCover > 0 ? fmtINRFull(m.totalMemberCover) : "No Cover"}
+                          </span>
+                          {m.isAdequate ? (
+                            <CheckCircle2 size={13} color={THEME.sage} />
+                          ) : (
+                            <AlertCircle size={13} color={m.totalMemberCover > 0 ? THEME.gold : THEME.rust} />
                           )}
                         </div>
-                      )}
-                    </Card>
-                  );
-                })
-              )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: 12, textAlign: "right" }}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      style={{ fontSize: 11, padding: "4px 8px" }}
+                      onClick={() => setSubView("matrix")}
+                    >
+                      View Family Matrix →
+                    </Button>
+                  </div>
+                </Card>
+              </div>
             </div>
           )}
 
